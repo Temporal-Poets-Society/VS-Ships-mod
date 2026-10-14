@@ -1,0 +1,1655 @@
+{
+  "date": "2026-10-14",
+  "capturedUtc": "2026-10-14T19:22:42.776318+00:00",
+  "source": "C:\\VS mods\\Magelan",
+  "sourceVersionLabel": "0.3.30",
+  "sourceState": "Parked development source with 0.3.29 generated assets; not a verified release",
+  "identityTransform": "magelan/Magelan/MAGELAN -> hansa/Hansa/HANSA, including asset domain, classes, channels, attributes and test namespace",
+  "excluded": [
+    "build output",
+    "release packages",
+    "test world",
+    "Python caches",
+    "parked block-line experiment"
+  ],
+  "files": [
+    {
+      "source": "src/Client/BrowRenderer.cs",
+      "fork": "src/Client/BrowRenderer.cs",
+      "sourceSha256": "14cc79abd62ef0634031280d252d8555af60f78d54b8461bbd238dfb8c1a218b",
+      "forkSha256": "f9c844a2ba651bcd5d014ab45cefbb7bf73e0d51d1c86adacb2402de309802a2"
+    },
+    {
+      "source": "src/Client/CannonClient.cs",
+      "fork": "src/Client/CannonClient.cs",
+      "sourceSha256": "2aab3cd9336e9c54ee25a4258ff5ecf3c6a978f8c17604fa9ddfbcde23455b0d",
+      "forkSha256": "51cb63245f57c36b5aec145ccc9055cfd725c5607175f8b46bb1eaa5f43f6157"
+    },
+    {
+      "source": "src/Client/ChalkNoteDialog.cs",
+      "fork": "src/Client/ChalkNoteDialog.cs",
+      "sourceSha256": "2d0f65d92af8438bb580aabb6b68bd746fbd0a992e68120cca84c5a83a5b316a",
+      "forkSha256": "2ce7689ef5a29e7715d69698056ff8c99247a82570153a5dba04321cc9d8dd7a"
+    },
+    {
+      "source": "src/Client/ChalkTextArea.cs",
+      "fork": "src/Client/ChalkTextArea.cs",
+      "sourceSha256": "af6210507c1aeaeebd207964fef85d44d5dad703ebf3143718c6efc6ddc2edc5",
+      "forkSha256": "22ff1e8d85fb87315958190c7d21284f54a821ae55abd1987edc0bbbb67ddce6"
+    },
+    {
+      "source": "src/Client/DecoClient.cs",
+      "fork": "src/Client/DecoClient.cs",
+      "sourceSha256": "029261efdd9aae9d282f4a1a79512a3058c8646893d53cce71117e6d051abd97",
+      "forkSha256": "922db5ec4ef1ad8833f337b31a3f57978ac49503d402c163fa9f80e3bdd43197"
+    },
+    {
+      "source": "src/Client/HearthClient.cs",
+      "fork": "src/Client/HearthClient.cs",
+      "sourceSha256": "f42a12bbf7ee788c39ecb6286d85ae51ab8aeb742b39d2ed1eb09867bd5ca36d",
+      "forkSha256": "d9c466977baea7a6963a745f72c12d3a55daf2cd441b9bb1df63b9224dc7f345"
+    },
+    {
+      "source": "src/Client/HearthDialog.cs",
+      "fork": "src/Client/HearthDialog.cs",
+      "sourceSha256": "5f5433e36bd57da62dcf61c7a3983691973101c6b45f9b28d3b0d2ab6115d027",
+      "forkSha256": "d31c0da78a30e60f4cc8495974b1ba6a6ff6a0dce97f12362d435340a87c7ef5"
+    },
+    {
+      "source": "src/Client/HelmUiSystem.cs",
+      "fork": "src/Client/HelmUiSystem.cs",
+      "sourceSha256": "9504c899332b25152ed3352f691520b1db79c769ece307c4a6c2a838512caea5",
+      "forkSha256": "cff401fb0dc1bd132f7b008b79ad34bd8f20ff36a41a07a7a199a8ef17289217"
+    },
+    {
+      "source": "src/Client/ModularRenderer.cs",
+      "fork": "src/Client/ModularRenderer.cs",
+      "sourceSha256": "c864acb5e970c9e872cc98b8e59d5eee188a1717c28040ea07f1c826e553f3fb",
+      "forkSha256": "5600b29fb045556a9930b3118f6dee68ecc886f9b096555ccf69bdecdc8cb930"
+    },
+    {
+      "source": "src/Client/PaintRenderer.cs",
+      "fork": "src/Client/PaintRenderer.cs",
+      "sourceSha256": "360c72249b49a4f332e59a7b03a03a101bdd58e5494d72a3395748bedaac44bd",
+      "forkSha256": "fb7253b3f43355bcb65c80005197d383a61eaed820cbf9ecd854d408d0a2017c"
+    },
+    {
+      "source": "src/Client/PennantRenderer.cs",
+      "fork": "src/Client/PennantRenderer.cs",
+      "sourceSha256": "2201d1dfc31fa53e66ccc7b15f25b86ec57362f6689c2483596caa25a214f0e4",
+      "forkSha256": "7a62a76fe041c45e4bd61d5e3bf9734d5a58b25f47bf59556f10a7598ffe11ca"
+    },
+    {
+      "source": "src/Client/PieceRenderer.cs",
+      "fork": "src/Client/PieceRenderer.cs",
+      "sourceSha256": "25473f9325562a68f2910b929cca71733c255efc3d914667c54221aa76997b61",
+      "forkSha256": "77d41c479f7a94d93ce94b9b161858391178bf831fb8a8168f293ced5c54a642"
+    },
+    {
+      "source": "src/Client/PumpClient.cs",
+      "fork": "src/Client/PumpClient.cs",
+      "sourceSha256": "722b2266356c2002dd117aef0ea739c4d4279dba041b1d225c12d431898ed837",
+      "forkSha256": "60cab6b103a32f4f3d6cbd439fa93dac43ce84cc5e1bfb004b97bf244dc2b2fe"
+    },
+    {
+      "source": "src/Client/ScarRenderer.cs",
+      "fork": "src/Client/ScarRenderer.cs",
+      "sourceSha256": "587cf477da5e660fb0b290361600fa9c4b1b4dee8630168584a0b2128b1e5e17",
+      "forkSha256": "a58d7d077ade0695963cfbdda3c4a9ccd5b8efeadc917b404623fd831393b769"
+    },
+    {
+      "source": "src/Client/ShapeUvs.cs",
+      "fork": "src/Client/ShapeUvs.cs",
+      "sourceSha256": "06778c8537f560bafb90dc95b8773ad8bf320a1d86be47d2ada79e8034e2529c",
+      "forkSha256": "eb9412956b22db697ff45697d7df0f53b258270fc06b09a83e0dd2171ff97218"
+    },
+    {
+      "source": "src/Client/ShipBlocksClient.cs",
+      "fork": "src/Client/ShipBlocksClient.cs",
+      "sourceSha256": "ef6bbba6c1de201caaf942852b81e9f961f658ac0495c590826beffe05ac294e",
+      "forkSha256": "aea98c785fa47cff2d1b028f657ebf4441d366416c0c1efd9a989681e8dec21a"
+    },
+    {
+      "source": "src/Client/ShipCamera.cs",
+      "fork": "src/Client/ShipCamera.cs",
+      "sourceSha256": "e6820198ae4cc8d1936ccdeb3e5a853170f76a61a0838bef6badc4bfc25dbb32",
+      "forkSha256": "82d7cfe97e82ffd8bd523f85f8a953f265b91758997d0e86399bb80ed8d98481"
+    },
+    {
+      "source": "src/Client/ShipClientSystem.cs",
+      "fork": "src/Client/ShipClientSystem.cs",
+      "sourceSha256": "41c266adf34e6c1862c6aba5eee3d86adcd6da97da6901deed17bff85d34b633",
+      "forkSha256": "51456c3e12f252a01acd8c46a10e5a503f21b141104cc2cfc23a3d7bb9fcfa27"
+    },
+    {
+      "source": "src/Client/ShipComfort.cs",
+      "fork": "src/Client/ShipComfort.cs",
+      "sourceSha256": "4be7eac3baf0000df3a983a2d26c70f6d9a09e2b5978cb28e184f527425e22a0",
+      "forkSha256": "e2ad8d4468d1700a20ce07280921f55f22cd55fd8d4838d624e57f1133e83c5a"
+    },
+    {
+      "source": "src/Client/ShipCrewDialog.cs",
+      "fork": "src/Client/ShipCrewDialog.cs",
+      "sourceSha256": "143b988668b72f89db63918037f2dddb04379873d9a453a9d000e62a50ba3fd4",
+      "forkSha256": "26c36384802f8edf3929145f92fd1dad667bf4a9b00c93eab033154b35085044"
+    },
+    {
+      "source": "src/Client/ShipHud.cs",
+      "fork": "src/Client/ShipHud.cs",
+      "sourceSha256": "1d49892bb40b4c93063e33e2af2582f7c82bcfdccbaad2846a2fd58a70b7bd81",
+      "forkSha256": "012dd84368df37baa9c8254abe8b2c5b9d55fbe27f4287ce01822bf489a58f46"
+    },
+    {
+      "source": "src/Client/ShipMapLayer.cs",
+      "fork": "src/Client/ShipMapLayer.cs",
+      "sourceSha256": "bc4e8fef7a08514ea67eb6f3c86028edae97fbc5be4e02af59e4b2d849d04c5f",
+      "forkSha256": "b7076c9cb5c9fd6eb26636c5839df40ec3817501212ecc96539ec5ee7fdaf0a0"
+    },
+    {
+      "source": "src/Client/ShipNameDialog.cs",
+      "fork": "src/Client/ShipNameDialog.cs",
+      "sourceSha256": "610f4b303645189fc3f630912ac0ab236c5f67d8f740ec28cf5fe5d4ead73a8a",
+      "forkSha256": "24a622d49bdec56e7ab0fe13c99c5aae3c31d05698fce5c39b9483e03f9a50c4"
+    },
+    {
+      "source": "src/Client/ShipRenderer.cs",
+      "fork": "src/Client/ShipRenderer.cs",
+      "sourceSha256": "7563b2c0f1777ec2bddbfc0a35cedf108ce38e58e90e02b404c0ca2dd854f127",
+      "forkSha256": "097c3ebefc7ef8369ca9d50dbc7c3664b9f0f43f22c30f019513b3f51b4cfc63"
+    },
+    {
+      "source": "src/Client/ShipShadows.cs",
+      "fork": "src/Client/ShipShadows.cs",
+      "sourceSha256": "db6442fb10a949d8e227eca09afd3d5df61812356ffd93738a40ee1bb84d2349",
+      "forkSha256": "c6cb21e53744f500bb71f35ac93f7310f764c0487304cef30928e9737f2eecb8"
+    },
+    {
+      "source": "src/Client/ShipStorageDialog.cs",
+      "fork": "src/Client/ShipStorageDialog.cs",
+      "sourceSha256": "2cd0c0e0cdc56a314b994a5cebb74e9e5adfb1edac274eb57c20f844f319c2c9",
+      "forkSha256": "354cd313014cd82b265ad8108a57cb450460fc92a4c0dad7527401fbaeb1d7e6"
+    },
+    {
+      "source": "src/Client/SlotRenderer.cs",
+      "fork": "src/Client/SlotRenderer.cs",
+      "sourceSha256": "d4fc5b47bfd947494946cf8266f0c0123bab6b0e68813f6d11e944544a4062ed",
+      "forkSha256": "58ab9a8b1b766e4e6bf60ce9be4b48cb684451b3e0989aaf55867f3a34b5fc90"
+    },
+    {
+      "source": "src/Client/SurveyNotes.cs",
+      "fork": "src/Client/SurveyNotes.cs",
+      "sourceSha256": "1be4a152825c96c52b42585d847ec03fe2bd83d532785fd02df699926eef6ba1",
+      "forkSha256": "fd7b256ad02d172c224288c86bd7e79e93ce73ab167461060958e5f953ee8a8d"
+    },
+    {
+      "source": "src/Client/SurveyorsChalk.cs",
+      "fork": "src/Client/SurveyorsChalk.cs",
+      "sourceSha256": "32bfb2807fad3004a6251fddedac9e1263569ea74c50831d98489c5b43f28ba8",
+      "forkSha256": "4f665ecc15784e0fd8f22a1ea9ffae934c03ead928776ff613068ade45f990bf"
+    },
+    {
+      "source": "src/Client/WindPanel.cs",
+      "fork": "src/Client/WindPanel.cs",
+      "sourceSha256": "82ea4d20deab188a2686e5c2bc3fe7a2268fcbb16095979a3b0411496c039399",
+      "forkSha256": "8137e6e7b5dbdf19a09bf8bb06685a62e346fa111d9e4884bcf5186208615349"
+    },
+    {
+      "source": "src/Items/ItemRowBoat.cs",
+      "fork": "src/Items/ItemRowBoat.cs",
+      "sourceSha256": "8c34ddfbd0e56893efbc5a06f6ffc57f91e6ec370c4b36c97205bcbe82bf7851",
+      "forkSha256": "bd11c32df2844cdc6681e70debdfbcba357257a8dd4e5f959420a7df50d9a7dc"
+    },
+    {
+      "source": "src/Items/ItemShipDeed.cs",
+      "fork": "src/Items/ItemShipDeed.cs",
+      "sourceSha256": "83ae0ece700627fd6f5af770b311a902d8212bd833d6f1e4514743f1142e6b27",
+      "forkSha256": "386694890de37728389accc0f9f48db38b3258f45218a080762daa8e288ac51d"
+    },
+    {
+      "source": "src/Items/ItemSurveyorsChalk.cs",
+      "fork": "src/Items/ItemSurveyorsChalk.cs",
+      "sourceSha256": "c1afd3d772c86ee5a5d171da903ff6e63e9b5bd997527a2988fdaf0390d00d29",
+      "forkSha256": "a3fc64eb5e7c02ff11d2311dd3cd1e206fedda43970e88c704efa9c6d1959be1"
+    },
+    {
+      "source": "src/MagelanDecor.cs",
+      "fork": "src/MagelanDecor.cs",
+      "sourceSha256": "d192f1e7c284aa01e3f4d481fce0e29f5113a993758b7a3d6df7f11b5ddccef7",
+      "forkSha256": "b6894f471e6316e18dad2f279e54f24849075b0ec09e901118b6e20ee2ca4615"
+    },
+    {
+      "source": "src/MagelanMod.cs",
+      "fork": "src/MagelanMod.cs",
+      "sourceSha256": "ce2ca62116f78ced55588bd7ad3b25b3ee44f0bdfc6eac92f2e2f68b57c86891",
+      "forkSha256": "f2ea1fecb2e9922e265b6e0c2fa116c66d418266f29674a8f89d296fd7abfb88"
+    },
+    {
+      "source": "src/Network/DecorPackets.cs",
+      "fork": "src/Network/DecorPackets.cs",
+      "sourceSha256": "f4bedd1c433c3b574ccc0b727d5a1bf4282ac1af7278ec43c66b4bdf5c80d311",
+      "forkSha256": "b20b7c5b0f130497d03fd0115875ae3641a39dfab03c81189dc8c798dd97df83"
+    },
+    {
+      "source": "src/Network/MapPackets.cs",
+      "fork": "src/Network/MapPackets.cs",
+      "sourceSha256": "46fc8c00e2ef52e452d5c1074416746188e880866afcef610f1b22d55871d927",
+      "forkSha256": "2dc18a005b7e38a76380810a36e6d7240ba0f18a5c82293d30c2b6ffeb542c2f"
+    },
+    {
+      "source": "src/Network/Packets.cs",
+      "fork": "src/Network/Packets.cs",
+      "sourceSha256": "f13bf19695c6bc5e455b8c8998175c4d1100a591acc40a615e85f3e1255a065b",
+      "forkSha256": "f9fb5e76500ae621a52da7d71174fb59913cb52c1a829337886e5939d210949a"
+    },
+    {
+      "source": "src/Patches/BlockPatches.cs",
+      "fork": "src/Patches/BlockPatches.cs",
+      "sourceSha256": "449febe8a29af3ba2dac19a70f57c1830321b03ddb69d9463c2f18533bee0d4b",
+      "forkSha256": "366a944e8a1e33f54a218d383850c0fff8460821c34d575b66feea652877d567"
+    },
+    {
+      "source": "src/Patches/Patches.cs",
+      "fork": "src/Patches/Patches.cs",
+      "sourceSha256": "3690c78b2aeb7ed69f8271a4a53ddd2a07049514d622e9e8fdba338db97c9929",
+      "forkSha256": "ec66a338e70e59bf5764002842d338fb38da2d185ef9d97b7c15faa1cfc2027e"
+    },
+    {
+      "source": "src/SelfTest.cs",
+      "fork": "src/SelfTest.cs",
+      "sourceSha256": "499609758b459484fc4efb337dae3832d688497798ee25eb1a67f9ba44c41182",
+      "forkSha256": "e4459e32c0a619157cab70cd94a90247221cde6f38a3edd6552105c9e5798505"
+    },
+    {
+      "source": "src/SelfTestBeams.cs",
+      "fork": "src/SelfTestBeams.cs",
+      "sourceSha256": "5bba77880ea132a7bf17bff50f0002a4088e12066982cf395d1ca6e4936a3473",
+      "forkSha256": "a158a9dd10cc9ee9d1af4cc2a55a4f681c085ed34b0e077c230e25175bb4125b"
+    },
+    {
+      "source": "src/SelfTestBlocks.cs",
+      "fork": "src/SelfTestBlocks.cs",
+      "sourceSha256": "331cb4e2c1bbf5ca0952e65ac5ecebcbefa6e31598349ec6b24e5a1e9806535a",
+      "forkSha256": "85bcf152bbeb10ba2777160cc5df389dd1c05db864975cd6222dbd2f1c8fc03a"
+    },
+    {
+      "source": "src/SelfTestHull.cs",
+      "fork": "src/SelfTestHull.cs",
+      "sourceSha256": "540fc3016bb4cfe7ef820b3e38d68b3dc673bb902e19333b746d1c4308ac8de5",
+      "forkSha256": "8159c56809a0c79ab2d524efca3cfe10f23b575cb843f681768e8668ef5cc23e"
+    },
+    {
+      "source": "src/SelfTestModular.cs",
+      "fork": "src/SelfTestModular.cs",
+      "sourceSha256": "ac1d3ba67838cd6d56ace2459826ee6a0fc20e884ca50e6f9eda12bdd06d082f",
+      "forkSha256": "12c8f3201786e5bce9f30cb080de3540a7886435324c99f23c2d0c63d558e9b3"
+    },
+    {
+      "source": "src/Ship/AimPlace.cs",
+      "fork": "src/Ship/AimPlace.cs",
+      "sourceSha256": "4c3b4c23e1fa4b2d9ea6b1859829646a77f83a6c3a26cdc11480126404544a06",
+      "forkSha256": "d3826d78238473de1c9a6cbade8c8e55b22b4d36ecb08d783b834888903831c3"
+    },
+    {
+      "source": "src/Ship/BlockShipStair.cs",
+      "fork": "src/Ship/BlockShipStair.cs",
+      "sourceSha256": "620e3c175f851ac1e02300de676eeebba00be59bf53ddea27f069e7dab762953",
+      "forkSha256": "99079d452998718813e2ea1b807ae409e52cb93bc9e1254dfb0da3bd213ee4d6"
+    },
+    {
+      "source": "src/Ship/BlockWreck.cs",
+      "fork": "src/Ship/BlockWreck.cs",
+      "sourceSha256": "b9c4ec84db79d8b0dc2ca760191cbca7625a62fa0cebc82c246bb7d12767c388",
+      "forkSha256": "b51ed7215c68fc499a0905339596450af2a2e5ee1993150900b225fd5002e508"
+    },
+    {
+      "source": "src/Ship/Cannons.cs",
+      "fork": "src/Ship/Cannons.cs",
+      "sourceSha256": "a302840b077dde9c890673a4312755ec52ea032034121ea440ae2a26ab610ef7",
+      "forkSha256": "3b90975d1b3f52115f464d75e37cdca56ab3ce4d9f1af32e73ad72606a90dee8"
+    },
+    {
+      "source": "src/Ship/CannonShots.cs",
+      "fork": "src/Ship/CannonShots.cs",
+      "sourceSha256": "833346b5071682d2cd9ad72cf828ebb57ffd668cbaf962bb36b47051dd56cc57",
+      "forkSha256": "3b8a8fdb2a07b0e3316e921ca3bee75ae07010dfe6e53dfd5cf4c6fec20a4796"
+    },
+    {
+      "source": "src/Ship/CellDamage.cs",
+      "fork": "src/Ship/CellDamage.cs",
+      "sourceSha256": "0b474f1037ddbacd6bb3b992994499d8446c76bcb1205063abe60f12ca3015b7",
+      "forkSha256": "e6de43f930b54736e263a7625c35b32ab6809de90ea39dc709fe18c587ce99ae"
+    },
+    {
+      "source": "src/Ship/Crawl.cs",
+      "fork": "src/Ship/Crawl.cs",
+      "sourceSha256": "682768515867b45edb31277cd53a0c1787b2f108012da91a306911ae14c99ed4",
+      "forkSha256": "a44b5491693bf6c9a4033e48ad8d160d8b960d5710f1d4ee01cd8b44708e93f2"
+    },
+    {
+      "source": "src/Ship/DeckMover.cs",
+      "fork": "src/Ship/DeckMover.cs",
+      "sourceSha256": "17e8d8f33f650a5ce5af578b770e7293aaf3e7ddb2176b7a5f7f2a41de1e630c",
+      "forkSha256": "a8a93da5e649e00985a347318d1f0fc9f634bca052f29daeecebc59f696d6265"
+    },
+    {
+      "source": "src/Ship/DeckSlots.cs",
+      "fork": "src/Ship/DeckSlots.cs",
+      "sourceSha256": "9f8b43e830acba7beb133d4685d1ce240626a03418d8a16f38823371b7b74f83",
+      "forkSha256": "bf5ca1b45ce8b7ebb77c310aeac0320a8c4a4e5bf9202cd37b2ac3a5130047a3"
+    },
+    {
+      "source": "src/Ship/EntityRowBoat.cs",
+      "fork": "src/Ship/EntityRowBoat.cs",
+      "sourceSha256": "d99237773948b33208d4682f186ecfe5235a1e5123218d5fbd7ff4fb8a248a97",
+      "forkSha256": "0ae4a22143f2a715a2a361090817aa3f6d483cfa69a6d25c386b88c94484f8a8"
+    },
+    {
+      "source": "src/Ship/EntityShip.cs",
+      "fork": "src/Ship/EntityShip.cs",
+      "sourceSha256": "4ca630702ad491acb42bd7d88d92cb763b05bd7652af9c294b349d7748dffbc5",
+      "forkSha256": "bd97ab40f2976c834b6e8eedde15c55fe2c33b6a82cbc305f98db874dc04b9cf"
+    },
+    {
+      "source": "src/Ship/GunLaying.cs",
+      "fork": "src/Ship/GunLaying.cs",
+      "sourceSha256": "7f643be188e53c315ec17a62da0d236a87ed2ca7a1ac667627d7a57f9a1b4444",
+      "forkSha256": "6ea631d83eb74f2da3edb78cc03749e36176cf6c75cff0a34eb3e71a57815223"
+    },
+    {
+      "source": "src/Ship/GunPlaces.cs",
+      "fork": "src/Ship/GunPlaces.cs",
+      "sourceSha256": "79f56fe8c2898c807c6e77ff327044c1f4d6449a252d8f81e2aa678b890e47f6",
+      "forkSha256": "6235a7a31d5851b71de62a8675d8f728cacc7113bdd79be31d2020ae6d5e581e"
+    },
+    {
+      "source": "src/Ship/HearthFire.cs",
+      "fork": "src/Ship/HearthFire.cs",
+      "sourceSha256": "98199b35bf89337bd99c0f042c6865b492d706761245fba975adc16825fd0e41",
+      "forkSha256": "1dc306106b579bfa47d62a0e35265df559b2815fb0513a9b0439154c972cbe57"
+    },
+    {
+      "source": "src/Ship/HelmMath.cs",
+      "fork": "src/Ship/HelmMath.cs",
+      "sourceSha256": "f8895d30995d23bf35a8de92e856710d85a32f6721ddde219cf55e7e0820f803",
+      "forkSha256": "c9d557987234b2e200056764d168a58fd54fc5c39e13b093ee4ae7fdf05a5117"
+    },
+    {
+      "source": "src/Ship/HullSlots.cs",
+      "fork": "src/Ship/HullSlots.cs",
+      "sourceSha256": "883b46a015c4057cd587107c141ab287a61e25bdc2a4343b8c4b344fd67b9ae8",
+      "forkSha256": "27c1bfdc84fe8af582e4c1b4b0c48f1f91b4e4cfffe212a0c21b9a2079513dae"
+    },
+    {
+      "source": "src/Ship/LaunchGuard.cs",
+      "fork": "src/Ship/LaunchGuard.cs",
+      "sourceSha256": "cfaa33d79ffd0a9c67e199858871ec8f44b1d0926fbe3b3c291963b148ca3455",
+      "forkSha256": "0031afcb52ab9dc36d3f49e4ac395c8d8dcfc5d85148f9c1d3e0b7c1ad7d9f0d"
+    },
+    {
+      "source": "src/Ship/ModularGeometry.cs",
+      "fork": "src/Ship/ModularGeometry.cs",
+      "sourceSha256": "3ca908fe05b61936f32db98e1dcb2e2f937ed5ee12ceef6106306029076a9e2c",
+      "forkSha256": "ac11ec7db36b8a998823514a5c558e5dcaca3d649cf16e3cb0197d3daac3f6b0"
+    },
+    {
+      "source": "src/Ship/Oars.cs",
+      "fork": "src/Ship/Oars.cs",
+      "sourceSha256": "20ba03d401e0f2902c3f04a0681cb9c39d8d2415b5f9ff21ec79266f61dc6fb6",
+      "forkSha256": "280def247c2dc1c83ffe642371e315474500a7d5726fffbf25e3a2a386ad4d04"
+    },
+    {
+      "source": "src/Ship/OvenFire.cs",
+      "fork": "src/Ship/OvenFire.cs",
+      "sourceSha256": "7131e478dd94c9de2c97d6dd8d13e10d7c8af1b647bebdd1a5aee9a2d3d7e121",
+      "forkSha256": "0bed46b066fe8c0729c37f24f5429c84a08fe86833b6ca6523b9103bb230e2e4"
+    },
+    {
+      "source": "src/Ship/PartMotion.cs",
+      "fork": "src/Ship/PartMotion.cs",
+      "sourceSha256": "c257b439f90456c4796142f12d2abbab677e7a9a39715dc7af86730529fb622e",
+      "forkSha256": "d3d08af34f1d97f220edccb54a8038f3b78838ebf480f933e6a345735fc9349d"
+    },
+    {
+      "source": "src/Ship/PumpJet.cs",
+      "fork": "src/Ship/PumpJet.cs",
+      "sourceSha256": "70b58698d53da15afd9a6db6909ab0e793f434910c51d1a591c1d0a8b0cdba39",
+      "forkSha256": "0448df27e878bc8b93908ce1b38bda3c788b009ee724778af021e8e4df08dcb3"
+    },
+    {
+      "source": "src/Ship/Sailing.cs",
+      "fork": "src/Ship/Sailing.cs",
+      "sourceSha256": "76aba35a631e2ef9d8c48d8d6fd358741f9aea80b920828dc702192646f6853b",
+      "forkSha256": "121570ce738984b9180212ef615fbc1deb68cf255df29c4ad241238b48544ed8"
+    },
+    {
+      "source": "src/Ship/SailPress.cs",
+      "fork": "src/Ship/SailPress.cs",
+      "sourceSha256": "aeeecdd93332b05ca6caf284a009642ac8e642c1507cf499d7d52ef62cabe5fd",
+      "forkSha256": "115c125071662800fd2aaf5609dc1b1103ee41178bbdd76ab3deedda7b6d73f6"
+    },
+    {
+      "source": "src/Ship/ShipBeams.cs",
+      "fork": "src/Ship/ShipBeams.cs",
+      "sourceSha256": "841784efd5130ae9eeaba55f8d9af3b00cccab85600f23655c3589429aab24aa",
+      "forkSha256": "182959a100b1845135d9c30e240a30daac4352ff335d731f3d424df4dbf35c25"
+    },
+    {
+      "source": "src/Ship/ShipBlockMath.cs",
+      "fork": "src/Ship/ShipBlockMath.cs",
+      "sourceSha256": "d13d3d0103ca99b8dbb5ccc6eff51af9d88aa4efd5b0a24bd93c50bf99da4893",
+      "forkSha256": "05907e04727f3b425a6bfbbd241d6eb4ca46c91a9aba1e7fdf5d70fd421b0066"
+    },
+    {
+      "source": "src/Ship/ShipBlocks.cs",
+      "fork": "src/Ship/ShipBlocks.cs",
+      "sourceSha256": "09252ce81b2c61f803839f262e415a752cc30b4e25c846ac9024c1a3a819565e",
+      "forkSha256": "0e9d87885da672e657b57a7a05d48d931c9c2638b1ee0c197c849849ac1c6aa1"
+    },
+    {
+      "source": "src/Ship/ShipBlocksSystem.cs",
+      "fork": "src/Ship/ShipBlocksSystem.cs",
+      "sourceSha256": "5c584b06f9dc9f1c5e7dab77ecdd5de205c106224acdd8af7152942ad14d0dd6",
+      "forkSha256": "26379ddbecefe880cc0bb4291d2286125f469d5616e894c9688a90e481b88503"
+    },
+    {
+      "source": "src/Ship/ShipBrow.cs",
+      "fork": "src/Ship/ShipBrow.cs",
+      "sourceSha256": "040e7f2769bf29a798db0eea80aada66d68509157ef02183b735e07559ad2823",
+      "forkSha256": "ef70ce96c677eb70f2c9c8416b216ca8171a6e74a87a513aaae21361a4471ed1"
+    },
+    {
+      "source": "src/Ship/ShipCellDamage.cs",
+      "fork": "src/Ship/ShipCellDamage.cs",
+      "sourceSha256": "c1cbf38c94ad7a5813aeefd602bd835c205c461675155c821109faa266158bfa",
+      "forkSha256": "92cbaa2b710f5ff93b74dd60000543e6c8c281925478d2f8b0544c11ad75539a"
+    },
+    {
+      "source": "src/Ship/ShipCover.cs",
+      "fork": "src/Ship/ShipCover.cs",
+      "sourceSha256": "42b1565ad84c8ba9da0bcf5327ee2d6c4807e41ca459370a81475287a7f2d9ab",
+      "forkSha256": "0b7f18411fffbb76bcdb0399b20fd61664e58daf34f367195600bb1aa7cf2ee0"
+    },
+    {
+      "source": "src/Ship/ShipCrew.cs",
+      "fork": "src/Ship/ShipCrew.cs",
+      "sourceSha256": "7a3f7c524ff28325d8a7fa8399fd72eb78a9d4b57765c1692a6838d1b18f71d0",
+      "forkSha256": "a5078c04dacbba328a1146652fd9b3dea69a5e12849b58501d60328651a26a71"
+    },
+    {
+      "source": "src/Ship/ShipDamage.cs",
+      "fork": "src/Ship/ShipDamage.cs",
+      "sourceSha256": "b6d20691ef8320cb5e1431031913fa2bfdc0cfd306bffe8641ed72e1d8d8087d",
+      "forkSha256": "b2a9175627be266656c0dc00b9bd6d6ba12e42a386a3dcec47e915e925defccf"
+    },
+    {
+      "source": "src/Ship/ShipDamageSkin.cs",
+      "fork": "src/Ship/ShipDamageSkin.cs",
+      "sourceSha256": "b36a317d7472c28a20b06f6a4ff863820ef091930e8beef562748d0fd6668ee5",
+      "forkSha256": "b6c19051c3e8b7a6e33e6f9da363759f04d245d5f9eb6058efff2d6c13737825"
+    },
+    {
+      "source": "src/Ship/ShipDecor.cs",
+      "fork": "src/Ship/ShipDecor.cs",
+      "sourceSha256": "7779f747bc06b0b40cdf8ac04d9b1feb030f2ce85a118554f7e7bbe4361a132b",
+      "forkSha256": "d0f10f7c391bbe774f4e20aeaccc319acb7c0ab02b2b320b87ad8fcb4757082b"
+    },
+    {
+      "source": "src/Ship/ShipDefinition.cs",
+      "fork": "src/Ship/ShipDefinition.cs",
+      "sourceSha256": "b198623249cfd7ca6de656b4728ae2180f7bd29af535fcf24825c1460adbac55",
+      "forkSha256": "d6160b3c65ed9747905ba8ad41bdd2ef744d78eaa277649efc4ce66c750c567d"
+    },
+    {
+      "source": "src/Ship/ShipDrySpaces.cs",
+      "fork": "src/Ship/ShipDrySpaces.cs",
+      "sourceSha256": "d76b5b4f9d62622dd1ba8d40a3a81d313490ff67bc9e511a90a9c7014e34ef8b",
+      "forkSha256": "5e00e9bd2f6b4a50817c67c726b19b7accfed740aedd77fa10d6831721ee6ac2"
+    },
+    {
+      "source": "src/Ship/ShipFittings.cs",
+      "fork": "src/Ship/ShipFittings.cs",
+      "sourceSha256": "8a7452cd1456d24899c466d681c8197c556d56361884863d1ba471b619f837bd",
+      "forkSha256": "b3892d61f2d663764a81cea1c450e277cbd61bf645171c22854bf934196953b9"
+    },
+    {
+      "source": "src/Ship/ShipFlooding.cs",
+      "fork": "src/Ship/ShipFlooding.cs",
+      "sourceSha256": "18dd2b3d9c07e2c6210db5822d2daf4e8733ffeab306698ebcb69a9dbe1ae850",
+      "forkSha256": "666e62e1c1f7e45e7edd0801a4d5a9e557d95204605cf002e2d47fe9374073a3"
+    },
+    {
+      "source": "src/Ship/ShipGunPlaces.cs",
+      "fork": "src/Ship/ShipGunPlaces.cs",
+      "sourceSha256": "03bd47081e8fecfef0429cf3703c470f3d44c258d18b930a85c9d75f9430598d",
+      "forkSha256": "b55a55d9e0cf29b424cfa4bff61eff6a82dfd12b7d86d807b83781dbd1f74ddd"
+    },
+    {
+      "source": "src/Ship/ShipGuns.cs",
+      "fork": "src/Ship/ShipGuns.cs",
+      "sourceSha256": "2344d526d12304bd465d7c6cb002cd56f1ac392c4b8a1686573a6efeeaec7e92",
+      "forkSha256": "5610ec564e3158882c036f92189c7cdcd583c8d8638f2138fef81b72990ff60c"
+    },
+    {
+      "source": "src/Ship/ShipHearth.cs",
+      "fork": "src/Ship/ShipHearth.cs",
+      "sourceSha256": "30d9c9508aaf0760225232f49d3583505e5a4db58f8fe515a13c807445fdebc9",
+      "forkSha256": "e3957c114020f80d6ea914fca7c71544ef9903cf3cc3c188437c8d72c3bd847a"
+    },
+    {
+      "source": "src/Ship/ShipHullSlots.cs",
+      "fork": "src/Ship/ShipHullSlots.cs",
+      "sourceSha256": "8da5095cd60f72b8c01c6e00b03291f9010b06bbb169953a8a718f972432501b",
+      "forkSha256": "25b0ab2b6d3f16531f3ad9f182af82011814cf1744b944d46d6b900b7c4ee4c4"
+    },
+    {
+      "source": "src/Ship/ShipLogouts.cs",
+      "fork": "src/Ship/ShipLogouts.cs",
+      "sourceSha256": "166b5989af7e92f96d9a358a15f4b23d36b23dad0bd5b53849d9a43f3a1f7271",
+      "forkSha256": "e13c1776bf2045d587e15a2f6d3ce7dd534b4a6e39a2352245af6f60d556d54d"
+    },
+    {
+      "source": "src/Ship/ShipMotion.cs",
+      "fork": "src/Ship/ShipMotion.cs",
+      "sourceSha256": "cc1f40c77a8ee221376b09df49c0600177da97020d8b5b794c463fbb5ced3863",
+      "forkSha256": "0a5b26b7e64046d808fb76f304a31f29895635414cee80f276c08945e8dcc80d"
+    },
+    {
+      "source": "src/Ship/ShipMounts.cs",
+      "fork": "src/Ship/ShipMounts.cs",
+      "sourceSha256": "00709c72bd167c4c9a4e8a9aedf65e1f036214bc4d355b8de3a8b4ee6865590c",
+      "forkSha256": "8dd94c9ffb50e431ee12ea93b3ddf49421fb0f36b58682a0d48ffbe1ddf0bdde"
+    },
+    {
+      "source": "src/Ship/ShipOven.cs",
+      "fork": "src/Ship/ShipOven.cs",
+      "sourceSha256": "42e08276f12ac9d01ecf2c27ff3eb0035695cb1bf5abf057f4f38679e3376d23",
+      "forkSha256": "ba497f61cbafe687dcc9d21f504df8de368c6c3736c666063b8f8e99dee1279f"
+    },
+    {
+      "source": "src/Ship/ShipPaint.cs",
+      "fork": "src/Ship/ShipPaint.cs",
+      "sourceSha256": "ba3d0dddc94274393e2e938dae1b1670525293a9dd75bf2f0c637449cc4fd725",
+      "forkSha256": "36598cb86e4a2b5966df843fb17bb84776c0d1c291ae2ad772c2d12efb5eace9"
+    },
+    {
+      "source": "src/Ship/ShipParts.cs",
+      "fork": "src/Ship/ShipParts.cs",
+      "sourceSha256": "4f13279bc8bf247405c44d41c5e3ef23fd58fa16148972b0b486f21bfa89ddcf",
+      "forkSha256": "4b113c866cd6a7ec0bbc902eb85b4427c764eb5e930c2a2d83d20fa75908d261"
+    },
+    {
+      "source": "src/Ship/ShipPieceFire.cs",
+      "fork": "src/Ship/ShipPieceFire.cs",
+      "sourceSha256": "14ff7121805aebe95dab7f2d385597d160d4d9a8051422d7d7ea93ceffea3804",
+      "forkSha256": "8328018b6c8798838430b926fa0140273713929f3ae01f85cea474a93051bc1a"
+    },
+    {
+      "source": "src/Ship/ShipPieces.cs",
+      "fork": "src/Ship/ShipPieces.cs",
+      "sourceSha256": "bfa15532eb95f8d981725e12f5440ea646f4729806a2c607b1265497b1446e6e",
+      "forkSha256": "ea0743fdcc55ac60900f46d5d1c13ae7ff01d4314912bfd2f191063822e9116e"
+    },
+    {
+      "source": "src/Ship/ShipPlan.cs",
+      "fork": "src/Ship/ShipPlan.cs",
+      "sourceSha256": "64fbc2bc49ef2c3cd890e2733e95ba0cf39733aff2bc5653454f1a0e0c7f6b89",
+      "forkSha256": "c5717f344cee5511f75e4bf53c43b1bb3e0f7c3985d3eab4d2c260a1fbc854e0"
+    },
+    {
+      "source": "src/Ship/ShipRotate.cs",
+      "fork": "src/Ship/ShipRotate.cs",
+      "sourceSha256": "adc0200379ae893ed231cf567d0e815880edaa7795a0ef06218c0adcbe14a638",
+      "forkSha256": "7373a252cf39534856557d94222d7e91fd7adfc7df5cb95bc168a284100abe8a"
+    },
+    {
+      "source": "src/Ship/ShipScars.cs",
+      "fork": "src/Ship/ShipScars.cs",
+      "sourceSha256": "f21a081186b37629d66a1745f4b74449e458f8ba7af00d04da9e3424bf78dd7d",
+      "forkSha256": "ea5132a67a35d6f526785d47842d132ccbc8cb4a5bc0d41dbfdae1d57cffa599"
+    },
+    {
+      "source": "src/Ship/ShipSeats.cs",
+      "fork": "src/Ship/ShipSeats.cs",
+      "sourceSha256": "870efa4a41f3b9046805096ac2d05e2eec4a1a346243e662ff53b5accf72ecdb",
+      "forkSha256": "d1de99ed58c2c9ad881a7ea7d0f7da4f90064d284f951d671d010e137f9e7ca9"
+    },
+    {
+      "source": "src/Ship/ShipSlots.cs",
+      "fork": "src/Ship/ShipSlots.cs",
+      "sourceSha256": "65945e7f1e2d03992cc02340ecc299ae0efa7ec42bb8cf126137048c6e01c051",
+      "forkSha256": "44e62019306168df06f4fd4d1f085025ff8f11fe41bc659f139065246b696d37"
+    },
+    {
+      "source": "src/Ship/ShipSpawns.cs",
+      "fork": "src/Ship/ShipSpawns.cs",
+      "sourceSha256": "a8d2175014f2fcbb95ed7c2fc8a085e6d97fd5c20a452c9033837fa5a11911f0",
+      "forkSha256": "0d65c2ec28c3d2db3b3626479869e2b7358df224de81effa03e204d6af8dd31c"
+    },
+    {
+      "source": "src/Ship/ShipSurfaces.cs",
+      "fork": "src/Ship/ShipSurfaces.cs",
+      "sourceSha256": "500d346b866378da07aa602aa31213bdfa07c3b0f0be60590468b65f04eacd34",
+      "forkSha256": "233756f6af5c394d059085effc6cc70909dd71e21bc004166d064ffde46084ad"
+    },
+    {
+      "source": "src/Ship/ShipWatch.cs",
+      "fork": "src/Ship/ShipWatch.cs",
+      "sourceSha256": "ccd8dbf25b305a28f88e4cd4d1142b208d22050b736f85a5499fc9647d55caa6",
+      "forkSha256": "7e3c418915029554c929d5fedb4e252b9981b779a71f994d0630a99a3c11d5d5"
+    },
+    {
+      "source": "src/Ship/ShipWater.cs",
+      "fork": "src/Ship/ShipWater.cs",
+      "sourceSha256": "e1917d4fb1b4756f0d90b0e8602afaf0c150fb4e1fb05500aad016268b99e34b",
+      "forkSha256": "968c1c5c6af6e43d18abaa891d876c614785537e1e0cc1c3051d28db80a5bb3a"
+    },
+    {
+      "source": "src/Ship/ShipWrecks.cs",
+      "fork": "src/Ship/ShipWrecks.cs",
+      "sourceSha256": "22e0242ebcc22e68e6d7e4bb39041493940f6762877841a81a3c95ae59ecc61c",
+      "forkSha256": "25949c332957d2bb1873c560adf56dd4de95a838504ea8975a202cd55cf4ef63"
+    },
+    {
+      "source": "src/Ship/VanillaPieceBlock.cs",
+      "fork": "src/Ship/VanillaPieceBlock.cs",
+      "sourceSha256": "f27d903449178554e58eece5511a24d0615fe0e067a5660bf04ab1da691d9f50",
+      "forkSha256": "bd72d5f048d3c83f8c94f7404d914f304d200f84d8986d0d1a8163163dbe56bd"
+    },
+    {
+      "source": "src/Ship/WellHood.cs",
+      "fork": "src/Ship/WellHood.cs",
+      "sourceSha256": "ba87772bab604f7866d06512563ea222ed14b8dcbecd468b2193ebfc1439b0f5",
+      "forkSha256": "afcb8b717217669d70b7aa035a59b6849dd56ced0dea5261ad392bb5d4141064"
+    },
+    {
+      "source": "src/Ship/Wreck.cs",
+      "fork": "src/Ship/Wreck.cs",
+      "sourceSha256": "fc1640884904d70b3cc1ce6ee7028eb70de564981021836efea1a58deb116bef",
+      "forkSha256": "f399affb4f85808038787ee9f6b3a114c5b366c8ac0d827a4be577996e7d08de"
+    },
+    {
+      "source": "src/Ship/WreckCells.cs",
+      "fork": "src/Ship/WreckCells.cs",
+      "sourceSha256": "2487c8dbbfdcff325e1d25de2850eb9fe464206469a85bb30b0d5f3eb9df909b",
+      "forkSha256": "4772f617d5bd601c14fca6feb82aa45fa9940d7f26df422582275856c72115bb"
+    },
+    {
+      "source": "assets/magelan/blocktypes/gun.json",
+      "fork": "assets/hansa/blocktypes/gun.json",
+      "sourceSha256": "a38c0514b35e356731ea5ec0c9143d8baa9eba13b853a3a47563decfa9021f62",
+      "forkSha256": "904850f4bb96b1190ce6cc28dda24f73b63a332b2573ec2db5e7dae18f5a8175"
+    },
+    {
+      "source": "assets/magelan/blocktypes/shipstair.json",
+      "fork": "assets/hansa/blocktypes/shipstair.json",
+      "sourceSha256": "3e5b5f591fd9c5518d807d662010cae592c18d1b3a8d3b6850669ae6c892b046",
+      "forkSha256": "7df9ff3d805edf097ffdb2925fe2124304154dc1a9c60d1e57ecab76401663ab"
+    },
+    {
+      "source": "assets/magelan/blocktypes/shipsupport.json",
+      "fork": "assets/hansa/blocktypes/shipsupport.json",
+      "sourceSha256": "9d0acbb10b89b84e259d184226a75830116b271320969c8b908308bc44f2da67",
+      "forkSha256": "9d0acbb10b89b84e259d184226a75830116b271320969c8b908308bc44f2da67"
+    },
+    {
+      "source": "assets/magelan/blocktypes/wreck.json",
+      "fork": "assets/hansa/blocktypes/wreck.json",
+      "sourceSha256": "87794696e68736c0fb70857252b90b65bffeec22455c70816484c4ff76bee875",
+      "forkSha256": "e3a006dbee80ef893ed8fb0db2e7c06b36c5006886ea5219249366226d44fad7"
+    },
+    {
+      "source": "assets/magelan/config/shipmeshes/carrack-a.json",
+      "fork": "assets/hansa/config/shipmeshes/carrack-a.json",
+      "sourceSha256": "4c739890399aebe6aecbe12d082a2df3faca1b8d487a169cb55dbe114516d987",
+      "forkSha256": "52c7f0f8ed8d2b17c84a2fec527ccd47b9503cdebb6f0e029f203832645e0b85"
+    },
+    {
+      "source": "assets/magelan/config/shipmeshes/carrack-m.json",
+      "fork": "assets/hansa/config/shipmeshes/carrack-m.json",
+      "sourceSha256": "c7d91fda86421f02791ca38812ea6e24c6c2e6f5bde6cc0d589acaed87c2231a",
+      "forkSha256": "f505457e5f63a02ccfcb3d97e3df3543e73e66ff9835e2b159108d5a26724b0d"
+    },
+    {
+      "source": "assets/magelan/config/shipmeshes/carrack.json",
+      "fork": "assets/hansa/config/shipmeshes/carrack.json",
+      "sourceSha256": "a2a398907bd580ffad9dda4272669b643fcb1769e7b6f962f264a37f4ae81682",
+      "forkSha256": "5fd80dcea91aa12164235dd865c5baae5290ba6acc2c419f6a63ebeba008de71"
+    },
+    {
+      "source": "assets/magelan/config/shipmeshes/skiff.json",
+      "fork": "assets/hansa/config/shipmeshes/skiff.json",
+      "sourceSha256": "c024e0952dff1a438cc6382699d4616da40ad7719279394cd172547db230a883",
+      "forkSha256": "ac028b000a622df9b070147c8d379a8d4e9e27fed5ba96c8facba223437dec2a"
+    },
+    {
+      "source": "assets/magelan/config/ships/carrack-a.json",
+      "fork": "assets/hansa/config/ships/carrack-a.json",
+      "sourceSha256": "5a30a9bc5830274a31a96dae47560bd0a31f864653244798e60a73612881369b",
+      "forkSha256": "522c6a2636508dfdcf2b183ec8008f17d08b5c9b760990e026295ffec69d4911"
+    },
+    {
+      "source": "assets/magelan/config/ships/carrack-m.json",
+      "fork": "assets/hansa/config/ships/carrack-m.json",
+      "sourceSha256": "e89616ba9f3727009dcff2488a69cf595282884af829e3f57478a0130d41b472",
+      "forkSha256": "1cb50d488ec96803067c2f1a73c3da8046eb7f229ebca4c3b79190867cf54e6d"
+    },
+    {
+      "source": "assets/magelan/config/ships/carrack.json",
+      "fork": "assets/hansa/config/ships/carrack.json",
+      "sourceSha256": "4190628d26f19855541f434d593b60fa805ccd07ea7ed09ee426d1445a6bd24e",
+      "forkSha256": "a12bcfd899dda9f6ba98e1b10cb1ab70393de40d3571391e3acf72accd6f78c9"
+    },
+    {
+      "source": "assets/magelan/config/ships/skiff.json",
+      "fork": "assets/hansa/config/ships/skiff.json",
+      "sourceSha256": "4bd5a7e2046e674eba7943e44ec8ee3bdace84f0535d90f37db3a8adad13aafc",
+      "forkSha256": "cfebd2ef5df11e40cfdbd6b539307bc8c45cbf32e57ead559cdc43c9cd6873ab"
+    },
+    {
+      "source": "assets/magelan/entities/boat-skiff.json",
+      "fork": "assets/hansa/entities/boat-skiff.json",
+      "sourceSha256": "5facc003582a8b8316c1340a90ed74ff9a8df8ce9983acaf25b64e6116e8c96a",
+      "forkSha256": "8c44e0ec29930519f463400d70cb6317170259b6c26c5ec8593c4b98d23660bb"
+    },
+    {
+      "source": "assets/magelan/entities/rowboat.json",
+      "fork": "assets/hansa/entities/rowboat.json",
+      "sourceSha256": "d074b5d2b7430674aa94bf8817bd83e98d1879c42ae6f669fe37fe894d6565a3",
+      "forkSha256": "b6feb30941e1f0be26bb2514f86bd07343d641d9c3087afe681517c0110b82ec"
+    },
+    {
+      "source": "assets/magelan/entities/ship/carrack-a.json",
+      "fork": "assets/hansa/entities/ship/carrack-a.json",
+      "sourceSha256": "97d20741f5a4807c4eca825fa5b5ae7d07603ad9f301a3b65bd6dfe2535eb61a",
+      "forkSha256": "bb7f5ab3748952beaf45fba3cc4340449885684a0057280553a71d7903ed86ff"
+    },
+    {
+      "source": "assets/magelan/entities/ship/carrack-m.json",
+      "fork": "assets/hansa/entities/ship/carrack-m.json",
+      "sourceSha256": "aac460620e370a427659ef11758e68fc6aa25486016055abaf2118d59c2f03da",
+      "forkSha256": "3b5e641e5b218cde2d8abeb25d420b4244feb95e460732b565633fea4cb25ecd"
+    },
+    {
+      "source": "assets/magelan/entities/ship/carrack.json",
+      "fork": "assets/hansa/entities/ship/carrack.json",
+      "sourceSha256": "5522bc9406b0b0416cb5a2b134a92e08d4ee0d0573560e2336a45b9cf61e08a5",
+      "forkSha256": "792d4b2352666525856b1104c7f069e05afdcb8c2dc44344e4210f4057ca516d"
+    },
+    {
+      "source": "assets/magelan/entities/ship/carrack2.json",
+      "fork": "assets/hansa/entities/ship/carrack2.json",
+      "sourceSha256": "cd6c363f6e37028497bf2a26753de2961527ecd5c005ad450d9f28d3ae7d9bda",
+      "forkSha256": "87221d410cca2b67e4724ee10f80faac848fb3561276c7ba3f1013d3c1a6b2f2"
+    },
+    {
+      "source": "assets/magelan/entities/ship/carrack3.json",
+      "fork": "assets/hansa/entities/ship/carrack3.json",
+      "sourceSha256": "36fd3b4f92e133fce7c5d46c58cdbc0cdc77685c471ae7113b371d270f8eb7d7",
+      "forkSha256": "e424c3db3039e1be5384cb7fb5d52e61dcd5fce4d40efbffc654aac191f7cf0f"
+    },
+    {
+      "source": "assets/magelan/itemtypes/boat-skiff.json",
+      "fork": "assets/hansa/itemtypes/boat-skiff.json",
+      "sourceSha256": "0cd081355dd6295f7f0699744be13d1379e92dbdff31d08818d41cea0af0997e",
+      "forkSha256": "8aa7f769b0073745c12eedffaab611fdc668636bf3d5af6936a6f545f6d5c87e"
+    },
+    {
+      "source": "assets/magelan/itemtypes/rowboat.json",
+      "fork": "assets/hansa/itemtypes/rowboat.json",
+      "sourceSha256": "a3eedfb41420d3371399191ed223697bc4a38aca0a05068e7b540a3ad2e550b6",
+      "forkSha256": "1b5c37c845d620acba175b5c13bba1094c338ae318770fe6635ce7a6dbcdc844"
+    },
+    {
+      "source": "assets/magelan/itemtypes/shipdeed.json",
+      "fork": "assets/hansa/itemtypes/shipdeed.json",
+      "sourceSha256": "645706b4f7f6b7f0742f1b3be9921f7cad2d0f586ba8fdadb666d608edbe1f56",
+      "forkSha256": "24939deb81870dd8ad544b89ebffa4ca9a88e20e5679f4978d6afe28c5fe19a4"
+    },
+    {
+      "source": "assets/magelan/itemtypes/surveyorschalk.json",
+      "fork": "assets/hansa/itemtypes/surveyorschalk.json",
+      "sourceSha256": "e9ecdfc7d03da7fa3422fded63b7522ed01bcff7b9672a08205241cff8d26f02",
+      "forkSha256": "bc286e547c0d4f5866c6d987e8e0a09f2cbaee2f64f101f9d06a10d93ecbcc9d"
+    },
+    {
+      "source": "assets/magelan/lang/en.json",
+      "fork": "assets/hansa/lang/en.json",
+      "sourceSha256": "313dc2c22aec497f77b4679b86e759ab438c6b119246a438f649ccefc1ef6539",
+      "forkSha256": "5257e961d60325b219f0da4cf3965ef7576270791e423abfe75ad5e072f86b53"
+    },
+    {
+      "source": "assets/magelan/recipes/grid/gun.json",
+      "fork": "assets/hansa/recipes/grid/gun.json",
+      "sourceSha256": "9860561111688d872b40fcec5b5be269e807c82cd6856396a156c3014cb155ce",
+      "forkSha256": "cf8afba0dd334a6d4b07e80548f14e7fece982d6439f060f0d52354f9ed84603"
+    },
+    {
+      "source": "assets/magelan/recipes/grid/rowboat.json",
+      "fork": "assets/hansa/recipes/grid/rowboat.json",
+      "sourceSha256": "41c06c678828361a9c5227d826b641a64b22ef9d56fefc73360233b778c509cf",
+      "forkSha256": "8ea3959e7c74676b6218387ba08f385af0aac3883627fbc83ab326d9e2faa396"
+    },
+    {
+      "source": "assets/magelan/recipes/grid/shipstair.json",
+      "fork": "assets/hansa/recipes/grid/shipstair.json",
+      "sourceSha256": "61d9105f73f8cc36773b737e6d453ccaaa565d58c46f089bf195a12f56d98f5b",
+      "forkSha256": "6f8f870bf9e8885a33fe422e6f3dca45fcc1c4d6c642336f96bd5631a1fe0b6f"
+    },
+    {
+      "source": "assets/magelan/shapes/block/gun-bronze.json",
+      "fork": "assets/hansa/shapes/block/gun-bronze.json",
+      "sourceSha256": "444fd991365094a5d5993512945a0c65311156bb714a3694c8eab1f51a7af6f8",
+      "forkSha256": "444fd991365094a5d5993512945a0c65311156bb714a3694c8eab1f51a7af6f8"
+    },
+    {
+      "source": "assets/magelan/shapes/block/shipstair-long.json",
+      "fork": "assets/hansa/shapes/block/shipstair-long.json",
+      "sourceSha256": "dbb27bee83142e3cf905dc90a7c0d6d6e7808b1bdfaab24dfaca73c0d9c3ae6f",
+      "forkSha256": "dbb27bee83142e3cf905dc90a7c0d6d6e7808b1bdfaab24dfaca73c0d9c3ae6f"
+    },
+    {
+      "source": "assets/magelan/shapes/block/shipstair-steep.json",
+      "fork": "assets/hansa/shapes/block/shipstair-steep.json",
+      "sourceSha256": "f1e07ceacf8beff852c645f89db5bc775f9a9d67c8b2e297d2754e5338b42016",
+      "forkSha256": "f1e07ceacf8beff852c645f89db5bc775f9a9d67c8b2e297d2754e5338b42016"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/rowboat-stowed.json",
+      "fork": "assets/hansa/shapes/entity/rowboat-stowed.json",
+      "sourceSha256": "b867b1057b55101b25621f1037d4461667180fdf3bf221531858f5c31c30c4c4",
+      "forkSha256": "b867b1057b55101b25621f1037d4461667180fdf3bf221531858f5c31c30c4c4"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/rowboat.json",
+      "fork": "assets/hansa/shapes/entity/rowboat.json",
+      "sourceSha256": "bde997a0c05ec56a2ebf337178d87fd2860092fa2e65b8da0c50f0801b4c85c0",
+      "forkSha256": "bde997a0c05ec56a2ebf337178d87fd2860092fa2e65b8da0c50f0801b4c85c0"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack/exterior.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack/exterior.json",
+      "sourceSha256": "6474a83fe1f62bacd0648f63c469fed1bc2a6d4f820aca2c725e167716147966",
+      "forkSha256": "e237bbf2b8505bc0ca3d25db307426589ecd56f98b1b10b08c32eac68ae432dc"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack/fore-course.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack/fore-course.json",
+      "sourceSha256": "8babd178155e369e56f7b6c55427c6b2834f659cb530b92e185a71d1e2a75b84",
+      "forkSha256": "6dc60a1cc2138d46af7f05b7dc962485d65365f36c24b1ed1a3e40ad625abce5"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack/interior.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack/interior.json",
+      "sourceSha256": "5c0129a136dc28f6ba3222221bd850f13113fe96bb84abda9c0fc4f6d33d529c",
+      "forkSha256": "418c8aacf3f52d3fd94c3738aae796d79006af96f4b5768f25e18b95a26c996c"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack/main-course.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack/main-course.json",
+      "sourceSha256": "76ad447e911e9fb40fc367a65e56a71d16cbc89269f188d811078197e2637704",
+      "forkSha256": "d404b04350061424013f8b40f15bec6a55371dad6848da3aa73398390a13f60a"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack/main-topsail.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack/main-topsail.json",
+      "sourceSha256": "c5564c4dfab7c5df07d943f5c139e0ddc274380bd7c026e00477189b0027efae",
+      "forkSha256": "e4e65bfac89090bee08a7d8de01b2fe987ecca444482796a6597f84c97ae4856"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack-a/exterior.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack-a/exterior.json",
+      "sourceSha256": "3cd56b7722b669f6840e26a452a5fb721afe9fc00f68c5d399c673e44f053a6d",
+      "forkSha256": "a452dfebaba194581b5bdae348fe230bb6621b4be7ed1a228bf33967c963df88"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack-a/fore-course.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack-a/fore-course.json",
+      "sourceSha256": "8babd178155e369e56f7b6c55427c6b2834f659cb530b92e185a71d1e2a75b84",
+      "forkSha256": "6dc60a1cc2138d46af7f05b7dc962485d65365f36c24b1ed1a3e40ad625abce5"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack-a/interior.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack-a/interior.json",
+      "sourceSha256": "521c915de84ef9d0c8448a8d6af0c01a5a943a3ec8634edcfe927aa444180690",
+      "forkSha256": "945dd6e3327f678da3afa9180070e814b7ffaf7104f54bab8856d10b99f57676"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack-a/main-course.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack-a/main-course.json",
+      "sourceSha256": "76ad447e911e9fb40fc367a65e56a71d16cbc89269f188d811078197e2637704",
+      "forkSha256": "d404b04350061424013f8b40f15bec6a55371dad6848da3aa73398390a13f60a"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack-a/main-topsail.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack-a/main-topsail.json",
+      "sourceSha256": "c5564c4dfab7c5df07d943f5c139e0ddc274380bd7c026e00477189b0027efae",
+      "forkSha256": "e4e65bfac89090bee08a7d8de01b2fe987ecca444482796a6597f84c97ae4856"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack-m/exterior.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack-m/exterior.json",
+      "sourceSha256": "9b5ffa8a413bcba8b9186c4171af87c4f865926c475dfe4d3d3e36cb33e2eb4d",
+      "forkSha256": "8a37ff5180426c9b13e32dbc54d52285cd22fa1778c94feb92b500c4712429b5"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack-m/fore-course.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack-m/fore-course.json",
+      "sourceSha256": "8babd178155e369e56f7b6c55427c6b2834f659cb530b92e185a71d1e2a75b84",
+      "forkSha256": "6dc60a1cc2138d46af7f05b7dc962485d65365f36c24b1ed1a3e40ad625abce5"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack-m/interior.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack-m/interior.json",
+      "sourceSha256": "6c61ebc9e205f7e5e153841e26ae4c56b2469dd7480ed9a82c10817bf4308378",
+      "forkSha256": "a4026c49cf4a959654b6ed23b794f5a1ead6901e123fb5d1acc3afd9da0356e2"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack-m/main-course.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack-m/main-course.json",
+      "sourceSha256": "76ad447e911e9fb40fc367a65e56a71d16cbc89269f188d811078197e2637704",
+      "forkSha256": "d404b04350061424013f8b40f15bec6a55371dad6848da3aa73398390a13f60a"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/carrack-m/main-topsail.json",
+      "fork": "assets/hansa/shapes/entity/ship/carrack-m/main-topsail.json",
+      "sourceSha256": "c5564c4dfab7c5df07d943f5c139e0ddc274380bd7c026e00477189b0027efae",
+      "forkSha256": "e4e65bfac89090bee08a7d8de01b2fe987ecca444482796a6597f84c97ae4856"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/skiff/exterior.json",
+      "fork": "assets/hansa/shapes/entity/ship/skiff/exterior.json",
+      "sourceSha256": "fc1f88d51b12d8d7a4a23612e652fe8669fc4de4798766933bf935bc6f39862f",
+      "forkSha256": "b7cdba5d6ec10d1058a80585f61fca8fd61e8f8d096c3504f7a5091b4e60ba2b"
+    },
+    {
+      "source": "assets/magelan/shapes/entity/ship/skiff/interior.json",
+      "fork": "assets/hansa/shapes/entity/ship/skiff/interior.json",
+      "sourceSha256": "fc1f88d51b12d8d7a4a23612e652fe8669fc4de4798766933bf935bc6f39862f",
+      "forkSha256": "b7cdba5d6ec10d1058a80585f61fca8fd61e8f8d096c3504f7a5091b4e60ba2b"
+    },
+    {
+      "source": "assets/magelan/shapes/item/boat-skiff.json",
+      "fork": "assets/hansa/shapes/item/boat-skiff.json",
+      "sourceSha256": "e6cd601427a637c2dde3b5a956decaa0c2a190120c397667cb5e30ce4937b9cf",
+      "forkSha256": "fbbcf105768460d846bff72b38444531c3cdf9191fca56e564f25c1de58506b5"
+    },
+    {
+      "source": "assets/magelan/sounds/effect/cannon1.ogg",
+      "fork": "assets/hansa/sounds/effect/cannon1.ogg",
+      "sourceSha256": "7603ed883ddd70cd37f5a5e094ba7edbb0ec360295070aba239774e62c586d17",
+      "forkSha256": "7603ed883ddd70cd37f5a5e094ba7edbb0ec360295070aba239774e62c586d17"
+    },
+    {
+      "source": "assets/magelan/sounds/effect/cannon2.ogg",
+      "fork": "assets/hansa/sounds/effect/cannon2.ogg",
+      "sourceSha256": "39f17ec04e65ace58eff1a4c28487b50ce7a0cc480e531b3964f5a1442fd1285",
+      "forkSha256": "39f17ec04e65ace58eff1a4c28487b50ce7a0cc480e531b3964f5a1442fd1285"
+    },
+    {
+      "source": "assets/magelan/sounds/effect/cannon3.ogg",
+      "fork": "assets/hansa/sounds/effect/cannon3.ogg",
+      "sourceSha256": "2e33bc352995edbca7a21fa03c48b9d9aaac69f237f4b30fab21368da3df8043",
+      "forkSha256": "2e33bc352995edbca7a21fa03c48b9d9aaac69f237f4b30fab21368da3df8043"
+    },
+    {
+      "source": "assets/magelan/textures/block/caulk.png",
+      "fork": "assets/hansa/textures/block/caulk.png",
+      "sourceSha256": "217c174f85e23873795ee655955073bc42d3cff3a35714758746e500169ea703",
+      "forkSha256": "217c174f85e23873795ee655955073bc42d3cff3a35714758746e500169ea703"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-cracked-a.png",
+      "fork": "assets/hansa/textures/block/dmg-cracked-a.png",
+      "sourceSha256": "b910b90b638fdf7260fcc17493f98c0111e68431b49a73cf2a210f93694c6c44",
+      "forkSha256": "b910b90b638fdf7260fcc17493f98c0111e68431b49a73cf2a210f93694c6c44"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-cracked-b.png",
+      "fork": "assets/hansa/textures/block/dmg-cracked-b.png",
+      "sourceSha256": "5f0feedb5a36e3396981c3d625d34827c43039beaf55c785ceaac516a868f496",
+      "forkSha256": "5f0feedb5a36e3396981c3d625d34827c43039beaf55c785ceaac516a868f496"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-cracked-in-a.png",
+      "fork": "assets/hansa/textures/block/dmg-cracked-in-a.png",
+      "sourceSha256": "49cce5237b36562435feb67d3b31594cb93c22197dec89371c1cefcf0d066feb",
+      "forkSha256": "49cce5237b36562435feb67d3b31594cb93c22197dec89371c1cefcf0d066feb"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-cracked-in-b.png",
+      "fork": "assets/hansa/textures/block/dmg-cracked-in-b.png",
+      "sourceSha256": "c86252c989a99c33189d5071d6c256d5655bcd979fe08bef4adc1a4e08f82a41",
+      "forkSha256": "c86252c989a99c33189d5071d6c256d5655bcd979fe08bef4adc1a4e08f82a41"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-damp-in-a.png",
+      "fork": "assets/hansa/textures/block/dmg-damp-in-a.png",
+      "sourceSha256": "8719d4a5c6602665a5a39fc49bb0cd38bf4e47fd10ccd911fcda1869532ced4c",
+      "forkSha256": "8719d4a5c6602665a5a39fc49bb0cd38bf4e47fd10ccd911fcda1869532ced4c"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-damp-in-b.png",
+      "fork": "assets/hansa/textures/block/dmg-damp-in-b.png",
+      "sourceSha256": "56ea64f611dfe357f915bacf7a0ad6094e1d675538717e8504bce5fb001bbbf0",
+      "forkSha256": "56ea64f611dfe357f915bacf7a0ad6094e1d675538717e8504bce5fb001bbbf0"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-holed-a.png",
+      "fork": "assets/hansa/textures/block/dmg-holed-a.png",
+      "sourceSha256": "4b2f692498555b610dfad4e2e5af7a87a47f5f6483603582d06356521553e675",
+      "forkSha256": "4b2f692498555b610dfad4e2e5af7a87a47f5f6483603582d06356521553e675"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-holed-b.png",
+      "fork": "assets/hansa/textures/block/dmg-holed-b.png",
+      "sourceSha256": "4eae9b1fbd9b2038de8da7ff58e60f1c7bcbf943ff811fbcf486dce100bee341",
+      "forkSha256": "4eae9b1fbd9b2038de8da7ff58e60f1c7bcbf943ff811fbcf486dce100bee341"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-holed-in-a.png",
+      "fork": "assets/hansa/textures/block/dmg-holed-in-a.png",
+      "sourceSha256": "cef00e4a5123dd788c075f41220a4b61124c26727c92f63e2fe6e15d26e6cdb2",
+      "forkSha256": "cef00e4a5123dd788c075f41220a4b61124c26727c92f63e2fe6e15d26e6cdb2"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-holed-in-b.png",
+      "fork": "assets/hansa/textures/block/dmg-holed-in-b.png",
+      "sourceSha256": "c6a70e593c7991a55f56dfaf1a55acb4efa1f51557f83f05febf17d43bfe20a4",
+      "forkSha256": "c6a70e593c7991a55f56dfaf1a55acb4efa1f51557f83f05febf17d43bfe20a4"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-leaking-a.png",
+      "fork": "assets/hansa/textures/block/dmg-leaking-a.png",
+      "sourceSha256": "2321ba909b1a1550ee292ac693a79793dfab93797ac7261fe151f766a6c12294",
+      "forkSha256": "2321ba909b1a1550ee292ac693a79793dfab93797ac7261fe151f766a6c12294"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-leaking-b.png",
+      "fork": "assets/hansa/textures/block/dmg-leaking-b.png",
+      "sourceSha256": "3aef4827d72bf2aa1dbffc459e302eaf8e3a5760712a89b70943ef5e585fbc24",
+      "forkSha256": "3aef4827d72bf2aa1dbffc459e302eaf8e3a5760712a89b70943ef5e585fbc24"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-scraped-a.png",
+      "fork": "assets/hansa/textures/block/dmg-scraped-a.png",
+      "sourceSha256": "340cc0a34ee17b7795fe90721838e1bf9ad5c44c78ed126f5319704c7452f50b",
+      "forkSha256": "340cc0a34ee17b7795fe90721838e1bf9ad5c44c78ed126f5319704c7452f50b"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-scraped-b.png",
+      "fork": "assets/hansa/textures/block/dmg-scraped-b.png",
+      "sourceSha256": "10b37f2ad0f1e396607cfb044cb1ea73233a03b3f199ca486d7388c582a943b4",
+      "forkSha256": "10b37f2ad0f1e396607cfb044cb1ea73233a03b3f199ca486d7388c582a943b4"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-scraped-in-a.png",
+      "fork": "assets/hansa/textures/block/dmg-scraped-in-a.png",
+      "sourceSha256": "73444ce945a16d4fda15de928c40a0a5e99882765bfa90f9ed49c1eee7e7723e",
+      "forkSha256": "73444ce945a16d4fda15de928c40a0a5e99882765bfa90f9ed49c1eee7e7723e"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-scraped-in-b.png",
+      "fork": "assets/hansa/textures/block/dmg-scraped-in-b.png",
+      "sourceSha256": "c489e877d62a89cb151567938938390964ce8c74405971f04a8bb723572a101c",
+      "forkSha256": "c489e877d62a89cb151567938938390964ce8c74405971f04a8bb723572a101c"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-shot-a.png",
+      "fork": "assets/hansa/textures/block/dmg-shot-a.png",
+      "sourceSha256": "48518bc850be338b7bdfeeaa9cafed574eea8e3f39236ccd846e5c479b85dd3e",
+      "forkSha256": "48518bc850be338b7bdfeeaa9cafed574eea8e3f39236ccd846e5c479b85dd3e"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-shot-b.png",
+      "fork": "assets/hansa/textures/block/dmg-shot-b.png",
+      "sourceSha256": "b1596f2e826dd8ab4fc1f626ba7c5ef00fec6f945e4d772b3b484c1f64a4dff7",
+      "forkSha256": "b1596f2e826dd8ab4fc1f626ba7c5ef00fec6f945e4d772b3b484c1f64a4dff7"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-wet-a.png",
+      "fork": "assets/hansa/textures/block/dmg-wet-a.png",
+      "sourceSha256": "4613325678644ee39b3f00e1b08de88d5ed3d08a5aabbeebe33732cdb145c355",
+      "forkSha256": "4613325678644ee39b3f00e1b08de88d5ed3d08a5aabbeebe33732cdb145c355"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-wet-b.png",
+      "fork": "assets/hansa/textures/block/dmg-wet-b.png",
+      "sourceSha256": "4984bb14e765a4541a20679293e175496be0545ffa30b89acaee2adef8e2fa72",
+      "forkSha256": "4984bb14e765a4541a20679293e175496be0545ffa30b89acaee2adef8e2fa72"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-wet-in-a.png",
+      "fork": "assets/hansa/textures/block/dmg-wet-in-a.png",
+      "sourceSha256": "a1647400c337ef630788ada054f043030866192fcc9fa2b43288c1c8a6f6902c",
+      "forkSha256": "a1647400c337ef630788ada054f043030866192fcc9fa2b43288c1c8a6f6902c"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-wet-in-b.png",
+      "fork": "assets/hansa/textures/block/dmg-wet-in-b.png",
+      "sourceSha256": "9ee91fcc01744b218288323f4e911782ddffa992bcbabe82bd6c67f78ac64e0a",
+      "forkSha256": "9ee91fcc01744b218288323f4e911782ddffa992bcbabe82bd6c67f78ac64e0a"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-worn-a.png",
+      "fork": "assets/hansa/textures/block/dmg-worn-a.png",
+      "sourceSha256": "681e528fa632c388057d1525b0ebf26592193895350ed4d5c804fbd8475c34f7",
+      "forkSha256": "681e528fa632c388057d1525b0ebf26592193895350ed4d5c804fbd8475c34f7"
+    },
+    {
+      "source": "assets/magelan/textures/block/dmg-worn-b.png",
+      "fork": "assets/hansa/textures/block/dmg-worn-b.png",
+      "sourceSha256": "0ba39c12001792b4f4290e453dc243057df1d5013752a10d51709ae81aafe0aa",
+      "forkSha256": "0ba39c12001792b4f4290e453dc243057df1d5013752a10d51709ae81aafe0aa"
+    },
+    {
+      "source": "assets/magelan/textures/block/dye/black.png",
+      "fork": "assets/hansa/textures/block/dye/black.png",
+      "sourceSha256": "40beff7ec8f5f5513f38879046ea9c0af5b57aeb433c73ebc0b803b3c96ddbc2",
+      "forkSha256": "40beff7ec8f5f5513f38879046ea9c0af5b57aeb433c73ebc0b803b3c96ddbc2"
+    },
+    {
+      "source": "assets/magelan/textures/block/dye/blue.png",
+      "fork": "assets/hansa/textures/block/dye/blue.png",
+      "sourceSha256": "b2dae70c335f42f6ccbe20a158b256d2919b28f4467cfe0e460fb8a437b91b18",
+      "forkSha256": "b2dae70c335f42f6ccbe20a158b256d2919b28f4467cfe0e460fb8a437b91b18"
+    },
+    {
+      "source": "assets/magelan/textures/block/dye/gray.png",
+      "fork": "assets/hansa/textures/block/dye/gray.png",
+      "sourceSha256": "677fe1dd09e5229a3e437fa5944eed6d671c903ad1d8f78dafca5bf51f945981",
+      "forkSha256": "677fe1dd09e5229a3e437fa5944eed6d671c903ad1d8f78dafca5bf51f945981"
+    },
+    {
+      "source": "assets/magelan/textures/block/dye/green.png",
+      "fork": "assets/hansa/textures/block/dye/green.png",
+      "sourceSha256": "8809aca98ec737512a2fd841c4ef7073be1b758dd1e11fb36d1d153cfc37f056",
+      "forkSha256": "8809aca98ec737512a2fd841c4ef7073be1b758dd1e11fb36d1d153cfc37f056"
+    },
+    {
+      "source": "assets/magelan/textures/block/dye/orange.png",
+      "fork": "assets/hansa/textures/block/dye/orange.png",
+      "sourceSha256": "f612b4c061eed55deb1182d7dd1d0b0571a15eda0d7a3943209ff7f35aef18f0",
+      "forkSha256": "f612b4c061eed55deb1182d7dd1d0b0571a15eda0d7a3943209ff7f35aef18f0"
+    },
+    {
+      "source": "assets/magelan/textures/block/dye/pink.png",
+      "fork": "assets/hansa/textures/block/dye/pink.png",
+      "sourceSha256": "d38b1fe1f43c5e676ce2ff48b5b3bf3ed41daac86d92dc9848d6315b956e8be4",
+      "forkSha256": "d38b1fe1f43c5e676ce2ff48b5b3bf3ed41daac86d92dc9848d6315b956e8be4"
+    },
+    {
+      "source": "assets/magelan/textures/block/dye/purple.png",
+      "fork": "assets/hansa/textures/block/dye/purple.png",
+      "sourceSha256": "05cad2d1094281ba722e14f55428ae2699588ea5ef6dd11d0e3b6d3cdaf9ada9",
+      "forkSha256": "05cad2d1094281ba722e14f55428ae2699588ea5ef6dd11d0e3b6d3cdaf9ada9"
+    },
+    {
+      "source": "assets/magelan/textures/block/dye/red.png",
+      "fork": "assets/hansa/textures/block/dye/red.png",
+      "sourceSha256": "2f902409a839063e9546351363783dfc68cf05db41ba7b0296aa7fb468f4926a",
+      "forkSha256": "2f902409a839063e9546351363783dfc68cf05db41ba7b0296aa7fb468f4926a"
+    },
+    {
+      "source": "assets/magelan/textures/block/dye/white.png",
+      "fork": "assets/hansa/textures/block/dye/white.png",
+      "sourceSha256": "ecac64f77b63a201f982f26d09f34fe59a69f5aee24d3694342c95e8ce7c1bef",
+      "forkSha256": "ecac64f77b63a201f982f26d09f34fe59a69f5aee24d3694342c95e8ce7c1bef"
+    },
+    {
+      "source": "assets/magelan/textures/block/dye/woad.png",
+      "fork": "assets/hansa/textures/block/dye/woad.png",
+      "sourceSha256": "b2dae70c335f42f6ccbe20a158b256d2919b28f4467cfe0e460fb8a437b91b18",
+      "forkSha256": "b2dae70c335f42f6ccbe20a158b256d2919b28f4467cfe0e460fb8a437b91b18"
+    },
+    {
+      "source": "assets/magelan/textures/block/dye/yellow.png",
+      "fork": "assets/hansa/textures/block/dye/yellow.png",
+      "sourceSha256": "6302c0b09bb2439093d6666bb314dcf89fe6cb5eb29ddcb9cbf2a95a419e5f77",
+      "forkSha256": "6302c0b09bb2439093d6666bb314dcf89fe6cb5eb29ddcb9cbf2a95a419e5f77"
+    },
+    {
+      "source": "assets/magelan/textures/block/glass-clear.png",
+      "fork": "assets/hansa/textures/block/glass-clear.png",
+      "sourceSha256": "fea0fa3c71473e623baafda67041feed72e298cac9ceafbb829cdb05af0dde9d",
+      "forkSha256": "fea0fa3c71473e623baafda67041feed72e298cac9ceafbb829cdb05af0dde9d"
+    },
+    {
+      "source": "assets/magelan/textures/block/paint/oak1.png",
+      "fork": "assets/hansa/textures/block/paint/oak1.png",
+      "sourceSha256": "f47dbfa1e7f446642c4f41e51457290104f420c67fde4d11f2fd44d631d3ae55",
+      "forkSha256": "f47dbfa1e7f446642c4f41e51457290104f420c67fde4d11f2fd44d631d3ae55"
+    },
+    {
+      "source": "assets/magelan/textures/block/paint/oak2.png",
+      "fork": "assets/hansa/textures/block/paint/oak2.png",
+      "sourceSha256": "40a4920c5449bf1747650a48b3f5bcafc19a9ba0d08ed2c178531cd8e4fdd1a5",
+      "forkSha256": "40a4920c5449bf1747650a48b3f5bcafc19a9ba0d08ed2c178531cd8e4fdd1a5"
+    },
+    {
+      "source": "assets/magelan/textures/block/paint/oak3.png",
+      "fork": "assets/hansa/textures/block/paint/oak3.png",
+      "sourceSha256": "ffc960ed2207774c392ae45a4aedebd7749a0f9ef973817399dbe9568d64d9bb",
+      "forkSha256": "ffc960ed2207774c392ae45a4aedebd7749a0f9ef973817399dbe9568d64d9bb"
+    },
+    {
+      "source": "assets/magelan/textures/block/paint/oak4.png",
+      "fork": "assets/hansa/textures/block/paint/oak4.png",
+      "sourceSha256": "429f0df63c49accbb3add5fb93a8adb2b2d8b346f9ca47c48328b603b29d2c4c",
+      "forkSha256": "429f0df63c49accbb3add5fb93a8adb2b2d8b346f9ca47c48328b603b29d2c4c"
+    },
+    {
+      "source": "assets/magelan/textures/block/paint/timber.png",
+      "fork": "assets/hansa/textures/block/paint/timber.png",
+      "sourceSha256": "f9c87297b63778397015c1a456d5eafa05219decb2c65b02b08fe56544eecfac",
+      "forkSha256": "f9c87297b63778397015c1a456d5eafa05219decb2c65b02b08fe56544eecfac"
+    },
+    {
+      "source": "assets/magelan/textures/block/sail-fray-a.png",
+      "fork": "assets/hansa/textures/block/sail-fray-a.png",
+      "sourceSha256": "45b2f25ecd841ae57d407becd2ddff421bf4e0750dedcce7864c0b4d28416171",
+      "forkSha256": "45b2f25ecd841ae57d407becd2ddff421bf4e0750dedcce7864c0b4d28416171"
+    },
+    {
+      "source": "assets/magelan/textures/block/sail-fray-b.png",
+      "fork": "assets/hansa/textures/block/sail-fray-b.png",
+      "sourceSha256": "a32db3b9cf058baf2b54122cfa898f8cd95a968a94185f8097583860d047899d",
+      "forkSha256": "a32db3b9cf058baf2b54122cfa898f8cd95a968a94185f8097583860d047899d"
+    },
+    {
+      "source": "assets/magelan/textures/block/sail-fray-c.png",
+      "fork": "assets/hansa/textures/block/sail-fray-c.png",
+      "sourceSha256": "a2af02178c805be6d9bb09b23eda972a52bd488f159b6ae1a8947b54111b1237",
+      "forkSha256": "a2af02178c805be6d9bb09b23eda972a52bd488f159b6ae1a8947b54111b1237"
+    },
+    {
+      "source": "assets/magelan/textures/block/sail-hole-a.png",
+      "fork": "assets/hansa/textures/block/sail-hole-a.png",
+      "sourceSha256": "c3de8b4694bc9fc8865d0e2f8db4d0a8a16fd7c5370ac2fed30df5c4e9a51615",
+      "forkSha256": "c3de8b4694bc9fc8865d0e2f8db4d0a8a16fd7c5370ac2fed30df5c4e9a51615"
+    },
+    {
+      "source": "assets/magelan/textures/block/sail-hole-b.png",
+      "fork": "assets/hansa/textures/block/sail-hole-b.png",
+      "sourceSha256": "c647a5a7a2aa451a7b23de2cc5be086590990cc1908d60199ccd6b672af88d90",
+      "forkSha256": "c647a5a7a2aa451a7b23de2cc5be086590990cc1908d60199ccd6b672af88d90"
+    },
+    {
+      "source": "assets/magelan/textures/block/sail-hole-c.png",
+      "fork": "assets/hansa/textures/block/sail-hole-c.png",
+      "sourceSha256": "cfbe73c98a86ac5333d2f6e224ef7f6064d55ebf357fa5db8105fbb39c87c7ad",
+      "forkSha256": "cfbe73c98a86ac5333d2f6e224ef7f6064d55ebf357fa5db8105fbb39c87c7ad"
+    },
+    {
+      "source": "assets/magelan/textures/block/sail-shred-a.png",
+      "fork": "assets/hansa/textures/block/sail-shred-a.png",
+      "sourceSha256": "02de898ff1aa50520ab7b7b5e18cb25fdc8a1f2f30a88e12e7f292b49d087339",
+      "forkSha256": "02de898ff1aa50520ab7b7b5e18cb25fdc8a1f2f30a88e12e7f292b49d087339"
+    },
+    {
+      "source": "assets/magelan/textures/block/sail-shred-b.png",
+      "fork": "assets/hansa/textures/block/sail-shred-b.png",
+      "sourceSha256": "956c0f90a1a9c5982d6d3d69dc584e23c1f1f3a927404e5fbcdfd0ecb2de2707",
+      "forkSha256": "956c0f90a1a9c5982d6d3d69dc584e23c1f1f3a927404e5fbcdfd0ecb2de2707"
+    },
+    {
+      "source": "assets/magelan/textures/block/sail-shredfray-a.png",
+      "fork": "assets/hansa/textures/block/sail-shredfray-a.png",
+      "sourceSha256": "59593b6da543687fce9be6333f539c7f06d32de6f52be0da4654d6dcbb2fcce1",
+      "forkSha256": "59593b6da543687fce9be6333f539c7f06d32de6f52be0da4654d6dcbb2fcce1"
+    },
+    {
+      "source": "assets/magelan/textures/block/sail-shredfray-b.png",
+      "fork": "assets/hansa/textures/block/sail-shredfray-b.png",
+      "sourceSha256": "1e7b4b9822b9ed4a4e306691f3540af5c48556f6eb7a03b6a55be994e30b275a",
+      "forkSha256": "1e7b4b9822b9ed4a4e306691f3540af5c48556f6eb7a03b6a55be994e30b275a"
+    },
+    {
+      "source": "assets/magelan/textures/block/tar.png",
+      "fork": "assets/hansa/textures/block/tar.png",
+      "sourceSha256": "92a055e237fa2cbe9daf13ad83eb8f4990c62ce1a092736ad10a455948bfe216",
+      "forkSha256": "92a055e237fa2cbe9daf13ad83eb8f4990c62ce1a092736ad10a455948bfe216"
+    },
+    {
+      "source": "tests/MagelanTests/BlockTests.cs",
+      "fork": "tests/HansaTests/BlockTests.cs",
+      "sourceSha256": "46cfeb057af9d79a58a85139195f3e408917806279222b0f88feb0a8077efbbd",
+      "forkSha256": "1d8964fbc93ee9c18df110e0b9dd8e2cd8cd6d5241764b2d4c5ed5e7a83b209b"
+    },
+    {
+      "source": "tests/MagelanTests/CannonTests.cs",
+      "fork": "tests/HansaTests/CannonTests.cs",
+      "sourceSha256": "80d1cd6494c65023d05983339ce7b3c8873fb032407c93b7d68caefcb33c79fb",
+      "forkSha256": "1d4a5a2d61a6a55a3d5d8724e030645e2285fe9f3bd473545b06005fadd7a559"
+    },
+    {
+      "source": "tests/MagelanTests/ChalkTextTests.cs",
+      "fork": "tests/HansaTests/ChalkTextTests.cs",
+      "sourceSha256": "ef00f157041b9cab8d6f9aa9a660cf4ae8f68d00fce105b2bc0d4dd522af80ae",
+      "forkSha256": "9ff064f5ff90574e5c3979eae64d1f3ad49ce4f6536f622f98b02d49d3865722"
+    },
+    {
+      "source": "tests/MagelanTests/DamageSkinTests.cs",
+      "fork": "tests/HansaTests/DamageSkinTests.cs",
+      "sourceSha256": "653fe238e2166f96a1fd0e29e0be44ae780b16fcd3720cd3b21dd48638664df6",
+      "forkSha256": "f7c8d369e4612414fbbd0924afcfd83d3bcc541d9dd64ed81e143ec084a8f3b6"
+    },
+    {
+      "source": "tests/MagelanTests/DamageTests.cs",
+      "fork": "tests/HansaTests/DamageTests.cs",
+      "sourceSha256": "772be73633efd84bd5c62493e6ebd21c684b72ce257ad4f217e3f7787ccac354",
+      "forkSha256": "e70d637a1b9dbc735df9f52a6a25e22cca4f6a3de4df0667d3b377bc1a4fab91"
+    },
+    {
+      "source": "tests/MagelanTests/DecorTests.cs",
+      "fork": "tests/HansaTests/DecorTests.cs",
+      "sourceSha256": "3acf13ceff130159586b55fdfc9d372610cb52528d0af9782a700e15fbd4fd79",
+      "forkSha256": "41333ea132709e645660527a8d1b782a82237bf10e5abfa18930f2e9d36eea34"
+    },
+    {
+      "source": "tests/MagelanTests/DriveTests.cs",
+      "fork": "tests/HansaTests/DriveTests.cs",
+      "sourceSha256": "02e7144b7082afebdcfacb48e1d18990390f18f71c2bf9214107eb57d2bb51b5",
+      "forkSha256": "68e62cdfb8a8f7739fca41c1cb67dfc947946d5d4b6aca277bb8a7a21d496031"
+    },
+    {
+      "source": "tests/MagelanTests/FloodReport.cs",
+      "fork": "tests/HansaTests/FloodReport.cs",
+      "sourceSha256": "00308fa7a922ee2768ae2f9bd11ee67451fd6bb88f726306706889cd3cb2ac53",
+      "forkSha256": "0d31dc9c6aa54b01a560f90ea4691721cf8cf8c84abc49a10103e0550f7962db"
+    },
+    {
+      "source": "tests/MagelanTests/GunPlaceTests.cs",
+      "fork": "tests/HansaTests/GunPlaceTests.cs",
+      "sourceSha256": "36c5c43ade28cc7e9cd4b46f9a3f3cae9c65789771d05115ba30c0ba0725b72e",
+      "forkSha256": "18532d346a64c64436ef50e0bf6263f0831c5dc5fe6909a59170d6aecc8cf7f2"
+    },
+    {
+      "source": "tests/MagelanTests/HearthTests.cs",
+      "fork": "tests/HansaTests/HearthTests.cs",
+      "sourceSha256": "09db92f6f2115d3a6d8dd66dd528a615d4bd1b04c0c91a637ba539ecaaeaf68a",
+      "forkSha256": "67dc1a8d70f2f85fdcfd962c73debc10cc60a65635ccedfe3f312671ecf57626"
+    },
+    {
+      "source": "tests/MagelanTests/HelmTests.cs",
+      "fork": "tests/HansaTests/HelmTests.cs",
+      "sourceSha256": "b97997db1ddfb543588cd71a4a0796c97904aea8f07cee150365fd66c0562fa0",
+      "forkSha256": "501196f654290ab5e1c2bc686b421b4e54ec90ed0a0e84c29b25c85c2d5f870c"
+    },
+    {
+      "source": "tests/MagelanTests/HullSlotTests.cs",
+      "fork": "tests/HansaTests/HullSlotTests.cs",
+      "sourceSha256": "7c57964bda52b130c44a9eb150122c0e19fc241922869bceedf1c877bf563cb3",
+      "forkSha256": "e8661c7b255ce4383812ea076be3637caf7090fc3284166049496edf2258160f"
+    },
+    {
+      "source": "tests/MagelanTests/LayTests.cs",
+      "fork": "tests/HansaTests/LayTests.cs",
+      "sourceSha256": "b2888e9ea12540752cf23c3803e51d7ba39f076039c171b0f0465b037df38d71",
+      "forkSha256": "6036da7e966032949ceeb8f0be66c387d8f31f7eb6670f1eba605120ca75d9cb"
+    },
+    {
+      "source": "tests/MagelanTests/LiddedPortTests.cs",
+      "fork": "tests/HansaTests/LiddedPortTests.cs",
+      "sourceSha256": "3a7f1ba913218daf35184281b43ea1b80d4afaf15b79704aae054acc25fc1a59",
+      "forkSha256": "cb350886cfeb1780892e2326dab939c919bca3d8955913369b2f8e0a9c975ccb"
+    },
+    {
+      "source": "tests/MagelanTests/MagelanTests.csproj",
+      "fork": "tests/HansaTests/HansaTests.csproj",
+      "sourceSha256": "58ceb066e1fb031c0d28927c19a16f16d8d87b5ebed7278a3515d27b5abf822f",
+      "forkSha256": "58ceb066e1fb031c0d28927c19a16f16d8d87b5ebed7278a3515d27b5abf822f"
+    },
+    {
+      "source": "tests/MagelanTests/ModularTests.cs",
+      "fork": "tests/HansaTests/ModularTests.cs",
+      "sourceSha256": "97810bed5a6d27d633a5a568ecce80a072245e8f5fa3bd5c9472abac0ce1ecaf",
+      "forkSha256": "ec267e72125b5440a56cbb9e2925ce06da364680735baab564ba65bb03f3289b"
+    },
+    {
+      "source": "tests/MagelanTests/NoteTests.cs",
+      "fork": "tests/HansaTests/NoteTests.cs",
+      "sourceSha256": "dd0db5b4ea72c600f1bebeda159a43c13ed4a46aa7d101e2d73ad8c4bdc65e0b",
+      "forkSha256": "3b7a7aba8b8d263bb1fe820c20dd5331628acb39dfb7275a1269a164b35b54e4"
+    },
+    {
+      "source": "tests/MagelanTests/NoteTests0324.cs",
+      "fork": "tests/HansaTests/NoteTests0324.cs",
+      "sourceSha256": "236f374dc25db712ed5a216ea20f3d53fd231e60807296a53cdd24fd00adf8bd",
+      "forkSha256": "6b495dcf3bb87890ee98d5fefcc0eeb4cb5f58dedc4907734b47b3fcbbd238b3"
+    },
+    {
+      "source": "tests/MagelanTests/NoteTests0325.cs",
+      "fork": "tests/HansaTests/NoteTests0325.cs",
+      "sourceSha256": "86503e3889aaaee2b82c92a7d84b06b275b4534355d09b35cd5070f2776dcaa6",
+      "forkSha256": "62bfcb341dbb2d7f22799fc971e275c0564a51e57ac2aaa619bbf74be32ad6b7"
+    },
+    {
+      "source": "tests/MagelanTests/NoteTests0327.cs",
+      "fork": "tests/HansaTests/NoteTests0327.cs",
+      "sourceSha256": "7320380a013e060ed32000c6041cab22996707028ef7e2b4c0dfc568e254b400",
+      "forkSha256": "3de7990f7b57ec67ab349a787499ef652f8de002d112e06a02d42962e6d11234"
+    },
+    {
+      "source": "tests/MagelanTests/NoteTests0328.cs",
+      "fork": "tests/HansaTests/NoteTests0328.cs",
+      "sourceSha256": "f4bf3f7c2ae591d1ac072f55260ed988a19ae050b44d26aaa09835c8aeed1e43",
+      "forkSha256": "c15e83ee6e6357c30b50165a941fcbfb9b70a8e3f06243761837da8db46988f1"
+    },
+    {
+      "source": "tests/MagelanTests/NoteTests0328Damage.cs",
+      "fork": "tests/HansaTests/NoteTests0328Damage.cs",
+      "sourceSha256": "8f7f42708cbef0cd94589cbd2f1f691e701f07e1b9dd465f912ada0f840ead8f",
+      "forkSha256": "d9d7c625899448054b01f7a172fa47d95c6dd4e820ddd3956e258b4ae112e06c"
+    },
+    {
+      "source": "tests/MagelanTests/NoteTests0328Hood.cs",
+      "fork": "tests/HansaTests/NoteTests0328Hood.cs",
+      "sourceSha256": "09759ae1f1381246acdc39b9bc3d301dfd8d1981af2a907cd8a7d457549f569f",
+      "forkSha256": "585febaef40342d59f0f60235ab9c0e9c39d810adc971978b317b5d29546d189"
+    },
+    {
+      "source": "tests/MagelanTests/NoteTests0329.cs",
+      "fork": "tests/HansaTests/NoteTests0329.cs",
+      "sourceSha256": "dee47722b7e1aa69edabaa08409634f828392b6d4a8d27f77cac6ca55fda0a27",
+      "forkSha256": "35a12d292cf8d390847c2042c867b27ab578bd9eba59507f23c6e77871e761ae"
+    },
+    {
+      "source": "tests/MagelanTests/NoteTests0330.cs",
+      "fork": "tests/HansaTests/NoteTests0330.cs",
+      "sourceSha256": "862fe88eaea813e8a9df10a36f53472139adf4ab8743b57975612a60ff12c073",
+      "forkSha256": "0828c3bc17a8bfb9f82c66c7a4e7d619031a6b2e3d0ad3e01c067c20ba08c54d"
+    },
+    {
+      "source": "tests/MagelanTests/OvenTests.cs",
+      "fork": "tests/HansaTests/OvenTests.cs",
+      "sourceSha256": "bbbbbddf368fadcb36e2cc733b5805ff86580371a151e32ec3b465cb3f1b4578",
+      "forkSha256": "3b97f65f633c57a4746691e0e3a5a3c7a55b112c91700b834c93a374da4804da"
+    },
+    {
+      "source": "tests/MagelanTests/PartitionGapTests.cs",
+      "fork": "tests/HansaTests/PartitionGapTests.cs",
+      "sourceSha256": "94479e3443d6ea623adb11aa2bbd5b33eafd5ad2776f77f75062088bece594a7",
+      "forkSha256": "1414bd7d1e43ee10bb13a14b9d52a6e8ea9e62009f4972e4717a35682d3c49ba"
+    },
+    {
+      "source": "tests/MagelanTests/PartitionTests.cs",
+      "fork": "tests/HansaTests/PartitionTests.cs",
+      "sourceSha256": "e71aaec29be04506b946f342099bef4502776409c7f868079f83da4e49747a68",
+      "forkSha256": "b841368c6d06c651479437f6ab3130f7b7ebd99ee74548a81188ec6cebd62668"
+    },
+    {
+      "source": "tests/MagelanTests/PointingTests.cs",
+      "fork": "tests/HansaTests/PointingTests.cs",
+      "sourceSha256": "53c0c191efb231d94bd4b4c0d6f12b059169236e76582570fc6c1fb4a6f057f3",
+      "forkSha256": "8c75303d6f9b59b9bbb0b0c0cb3b346b5dbcdf413385034c4838ac2e3de92e2e"
+    },
+    {
+      "source": "tests/MagelanTests/Program.cs",
+      "fork": "tests/HansaTests/Program.cs",
+      "sourceSha256": "7608afb12a3936489b6512b1285a686ae9f56ced3856c60b7d7d017df11b89ac",
+      "forkSha256": "182ea5730a99c5c8942f8d749205181a16209b45e36bb436068eb26d6b97090a"
+    },
+    {
+      "source": "tests/MagelanTests/PumpTests.cs",
+      "fork": "tests/HansaTests/PumpTests.cs",
+      "sourceSha256": "e4df897aff18e91cbc631fb19ce7b0434cb7cc392da972b9ecfc39af88ae42a1",
+      "forkSha256": "ddcf250f7395af9a1c0482aaed6f10976893c6ccdc92e03fe9208725650ec392"
+    },
+    {
+      "source": "tests/MagelanTests/RainTests.cs",
+      "fork": "tests/HansaTests/RainTests.cs",
+      "sourceSha256": "bae7ff66142e4f69a7fb833f7623c87f4cbe2a1871b2f8abe42753cf040ea187",
+      "forkSha256": "ae033fcbc0fa55f852c8da85434f11d2a74267b108d09e130c0e984d60214d43"
+    },
+    {
+      "source": "tests/MagelanTests/runtimeconfig.template.json",
+      "fork": "tests/HansaTests/runtimeconfig.template.json",
+      "sourceSha256": "c5b8a47d763154f5ece719ac3639ab2bdb00b7a20ebcdab3189179a6de5a34cf",
+      "forkSha256": "f8d8c13c41b6d702bd065a2d891bed89274389f6b9f7a7852a80e4f7d649cb3c"
+    },
+    {
+      "source": "tests/MagelanTests/SailPressTests.cs",
+      "fork": "tests/HansaTests/SailPressTests.cs",
+      "sourceSha256": "0a9e451e2b1b83136c8db60f36b87d39b713d83b2cb365d2cb31aa67955433d1",
+      "forkSha256": "79e272ec2404acb8c730fd08dc3de82d2fb31470ba68105cef9e8ae78040e955"
+    },
+    {
+      "source": "tests/MagelanTests/SailTests.cs",
+      "fork": "tests/HansaTests/SailTests.cs",
+      "sourceSha256": "523db46bc7701c3d46d9f312eaf7ff5b7e5b58c54892e24d843923cff1dd009d",
+      "forkSha256": "fcbd8efef3693e895e0a3cdc38b23822212b3def8218be26d2f0d7ffa5027fd7"
+    },
+    {
+      "source": "tests/MagelanTests/SlotTests.cs",
+      "fork": "tests/HansaTests/SlotTests.cs",
+      "sourceSha256": "1dee6fd520b951b9f654365c5d12b1e344c11e4de51041e57db37c94bb7dfc3d",
+      "forkSha256": "4dc88ad33ecc4dc31a2e802fd528ced97b5649131e3c7cfcdeefa60785fb6cf4"
+    },
+    {
+      "source": "tests/MagelanTests/StairTests.cs",
+      "fork": "tests/HansaTests/StairTests.cs",
+      "sourceSha256": "3019d56ce8768b4839befcb92de3cb2f6069a0ccc17a43c745168620cdb11e52",
+      "forkSha256": "ce92e7a122bf2212b0f34f9581b24938fdb601d769f7a3bc333694d68e096043"
+    },
+    {
+      "source": "tests/MagelanTests/StepATests.cs",
+      "fork": "tests/HansaTests/StepATests.cs",
+      "sourceSha256": "ec5f0b19d0040f691a610ce5a8fda60cd91e249db15c29600ee452ab2dcea92d",
+      "forkSha256": "a46e3ed9778be6d9f1622c9bec037a53553ccd357792471b16110c3940144db8"
+    },
+    {
+      "source": "tests/MagelanTests/WreckTests.cs",
+      "fork": "tests/HansaTests/WreckTests.cs",
+      "sourceSha256": "f3c723ad824de4e49747ecbeb7aaa474b5dd26ed6d3cbcb7f5440d298e7a3f1e",
+      "forkSha256": "08e083401d85d0e7a7c5fd923ce0fb602ffef1eda1baa59e08f6ce70f591a1c4"
+    },
+    {
+      "source": "tools/run_selftest.sh",
+      "fork": "tools/run_selftest.sh",
+      "sourceSha256": "7a85f074d97d46d6c853138c6d5db7fad0652abdaf498b2a1ae743747fa847bc",
+      "forkSha256": "9dbbc41e2c7c26b7a8cabfd1f640ea58afe205d95e352ced291855b770eb20df"
+    },
+    {
+      "source": "tools/shipgen/boat.py",
+      "fork": "tools/shipgen/boat.py",
+      "sourceSha256": "e2f88792039d12eb1c5ee177f0f1a56cdd1c685ae700c2fa4ec4da2edfe49a85",
+      "forkSha256": "5affb33e1aba2d2d4b052f1f20075631dcafca881e5525c458c2a05471db2e3c"
+    },
+    {
+      "source": "tools/shipgen/carrack.py",
+      "fork": "tools/shipgen/carrack.py",
+      "sourceSha256": "ff4a632404bfdbcc563bd21e58876c5020edc6179d359ffd2ad500cd26d8c8aa",
+      "forkSha256": "0a7c275a680813e1ef1498c36d6ce39080deb552a1dd4aee3b769aefacfa4a1e"
+    },
+    {
+      "source": "tools/shipgen/gun.py",
+      "fork": "tools/shipgen/gun.py",
+      "sourceSha256": "591dffaa25bee0347f841087276905b2362d4162285640b6ee832d7e6186b65d",
+      "forkSha256": "0a6ec90076b5e74124f125688a827425771d70b794eaba1004593415400df8c5"
+    },
+    {
+      "source": "tools/shipgen/meshcheck.py",
+      "fork": "tools/shipgen/meshcheck.py",
+      "sourceSha256": "e3a157f48644052c1e744156a7b2f6011e1780c8a0e7fb16d71e9ef6e4f5d894",
+      "forkSha256": "bf5a9f340cd5270c8f77031ee31f248505e63faf70d8a6c3c4bff010e6fd1d0e"
+    },
+    {
+      "source": "tools/shipgen/notes-sample.json",
+      "fork": "tools/shipgen/notes-sample.json",
+      "sourceSha256": "9b4ca8ce72be0f5cddd65fc3ee94c6439ff5beed18cf2855a5851a040651a2a2",
+      "forkSha256": "a71379222793e2835f2949e3ec69f2b612edbc8f7a5c2ec9f237cdba0606f2c9"
+    },
+    {
+      "source": "tools/shipgen/paint_proposal.py",
+      "fork": "tools/shipgen/paint_proposal.py",
+      "sourceSha256": "2e2367f96d7b074926ced707835bd5e80f729fc8b063855634d96b4d5564fe64",
+      "forkSha256": "2e2367f96d7b074926ced707835bd5e80f729fc8b063855634d96b4d5564fe64"
+    },
+    {
+      "source": "tools/shipgen/paint_zones.py",
+      "fork": "tools/shipgen/paint_zones.py",
+      "sourceSha256": "bcf02e06969d3a8c6e6f0c5f2e6b45cb0f7bbb053a0cf6cb01e8b4a71aae603e",
+      "forkSha256": "bcf02e06969d3a8c6e6f0c5f2e6b45cb0f7bbb053a0cf6cb01e8b4a71aae603e"
+    },
+    {
+      "source": "tools/shipgen/planking.py",
+      "fork": "tools/shipgen/planking.py",
+      "sourceSha256": "9cae07ac43b818a6d14f5b7ba0ffbb7f01c9ad8e0bc02b91797ef1f944c03e18",
+      "forkSha256": "ac89b7fe33c40061908eccd63b7efc2810d8c9e6054478ae12928e8e794b8c04"
+    },
+    {
+      "source": "tools/shipgen/proportions.py",
+      "fork": "tools/shipgen/proportions.py",
+      "sourceSha256": "a3aa64b526a56aeb0cfa2f2644b7532e9dade900bac0fa74d8118c8e6c9eb2b2",
+      "forkSha256": "a3aa64b526a56aeb0cfa2f2644b7532e9dade900bac0fa74d8118c8e6c9eb2b2"
+    },
+    {
+      "source": "tools/shipgen/rowboat.py",
+      "fork": "tools/shipgen/rowboat.py",
+      "sourceSha256": "d940970c6ca549a455237ef44f16ed0e2b36c9e9eeeda3692a8037accbd87e20",
+      "forkSha256": "cd343c32708df87b081392cdd301d90add7d6abc367a0737e95dc76974cb1faf"
+    },
+    {
+      "source": "tools/shipgen/rowboat_assets.py",
+      "fork": "tools/shipgen/rowboat_assets.py",
+      "sourceSha256": "f63069c5025634d996f60482a4cf9a4d15935c5c22fc843e767130e655a7837d",
+      "forkSha256": "214b0ad0e8561df843de086967e7d510075a6abff7f85b761f8defd6c9c93be2"
+    },
+    {
+      "source": "tools/shipgen/shipgen.py",
+      "fork": "tools/shipgen/shipgen.py",
+      "sourceSha256": "96d18b43d4c6105aaf4fb68190d31b4a898acc89e1f2ad9013eb9b9e79420575",
+      "forkSha256": "56a50684715ea9b4239baaafafbc70117b4eaaedf42619cd569e13987b9b602b"
+    },
+    {
+      "source": "tools/shipgen/textures.py",
+      "fork": "tools/shipgen/textures.py",
+      "sourceSha256": "c06b5f2f8e118285d5192440df89806a12d230bd7b6223f245c20699138cfacf",
+      "forkSha256": "b67376ea0707cbc8c5543c00767092b2885d5f36a82d18cfa19c11251bebecfd"
+    },
+    {
+      "source": "tools/shipgen/texview.py",
+      "fork": "tools/shipgen/texview.py",
+      "sourceSha256": "13d9e4989d75bae66b373cc6bdbdd1c19bea7dfa7a5e4650e1a6ae913a793dfc",
+      "forkSha256": "8436bd97db9e6a51717231070a73b5f99caa920095896c5eda205e67a7015bf8"
+    },
+    {
+      "source": "tools/shipgen/view.py",
+      "fork": "tools/shipgen/view.py",
+      "sourceSha256": "3d2e79d545cfc21b4ae1cd61bf03114a10b41bc53d23fe4a50bf14d028ffad76",
+      "forkSha256": "db6f7efd59a818b8111fd0ea4be8bf35c767dccac0b17a57b622bb18d1411f04"
+    },
+    {
+      "source": "tools/shipgen/vsshape.py",
+      "fork": "tools/shipgen/vsshape.py",
+      "sourceSha256": "4fcad47265a3efe478ae38473868802549a206319c7fd9abf022aba5fd248c83",
+      "forkSha256": "4fcad47265a3efe478ae38473868802549a206319c7fd9abf022aba5fd248c83"
+    },
+    {
+      "source": "tools/sounds/cannon_report.py",
+      "fork": "tools/sounds/cannon_report.py",
+      "sourceSha256": "d4ab723add67a2faf4a6fee4ce82e2bf921abbc8a31b355f33714239bcff598c",
+      "forkSha256": "846f6d1deddc24ae2a8cd74cf5695859b78d401d4dd7ee2333a6a11e553840eb"
+    }
+  ]
+}

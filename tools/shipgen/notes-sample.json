@@ -1,0 +1,322 @@
+[
+  {
+    "number": 1,
+    "time": "2026-10-02 21:14:05",
+    "timeUtc": "2026-10-02T19:14:05.123Z",
+    "gameDate": "12. May, Year 2, 14:00",
+    "gameHours": 1234.5,
+    "hansa": "0.3.6",
+    "sea": "0.3.3",
+    "game": "1.22.7",
+    "world": "sample",
+    "comment": "From the water: a gap between the planks here, I can see light through it.",
+    "target": {
+      "kind": "ship",
+      "summary": "Carrack \"Santa Maria\" #6743: Hull, starboard side, amidships, topsides (frames 15–16)",
+      "ship": {
+        "code": "carrack",
+        "name": "Santa Maria",
+        "design": "Carrack (deep, long waist)",
+        "id": 6743,
+        "part": "Hull, starboard side, amidships, topsides (frames 15–16)",
+        "partIndex": 16846596,
+        "partCode": "Hull starboard station 14 band 4",
+        "local": [2.0, 0.6, 5.25],
+        "normal": [0.0, 0.0, 1.0],
+        "world": [1197.717, 113.215, -541.641],
+        "face": "west",
+        "distance": 6.33,
+        "damage": [
+          {
+            "part": "Hull, starboard side, amidships, topsides (frames 15–16)",
+            "index": 301,
+            "state": "Sound",
+            "hurt": 0.0,
+            "wear": 0.12,
+            "leak": 0.0
+          }
+        ],
+        "lookAtBox": "Santa Maria\nCarrack\nHull, starboard side, amidships, topsides (frames 15–16)\nSound"
+      }
+    },
+    "player": {
+      "name": "andris",
+      "pos": [1191.77, 111.592, -543.906],
+      "eye": [1191.802, 113.192, -543.901],
+      "look": [0.9341, 0.0036, 0.3569],
+      "dimension": 0,
+      "heading": 110.9,
+      "elevation": 0.2,
+      "gameMode": "Creative",
+      "camera": "FirstPerson"
+    },
+    "ships": [
+      {
+        "role": "target",
+        "code": "carrack",
+        "name": "Santa Maria",
+        "design": "Carrack (deep, long waist)",
+        "id": 6743,
+        "pos": [1203.25, 112.5, -540.75],
+        "heading": 210.0,
+        "speed": 0.0,
+        "knots": 0.0,
+        "sails": "furled",
+        "sailFraction": 0.0,
+        "rudder": 0.0,
+        "anchored": true,
+        "aground": false,
+        "wind": {
+          "strength": 0.3,
+          "speed": 7.5,
+          "force": 4,
+          "name": "moderate breeze",
+          "from": 260.0
+        },
+        "waves": {
+          "height": 0.9,
+          "period": 5.6,
+          "factor": 1.0,
+          "surface": 0.12
+        },
+        "heave": 0.08,
+        "pitch": 0.4,
+        "roll": -1.1,
+        "heel": 0.0,
+        "truePitch": 0.4,
+        "trueRoll": -1.1,
+        "seaMotion": 1.0,
+        "water": 0.0,
+        "waterRate": 0.0,
+        "list": 0.0,
+        "trim": 0.0,
+        "sinkage": 0.0,
+        "stage": "Afloat",
+        "pumpers": 0,
+        "fouling": 0.05,
+        "onBottom": false,
+        "clad": false
+      }
+    ],
+    "mark": {
+      "shipId": 6743,
+      "shipCode": "carrack",
+      "local": [2.0, 0.6, 5.25],
+      "world": [1197.717, 113.215, -541.641],
+      "normal": [0.0, 0.0, 1.0],
+      "dimension": 0
+    },
+    "screenshot": {
+      "file": "2026-10-02_21-14-12.png",
+      "path": "C:\\Users\\andri\\Pictures\\Vintagestory\\2026-10-02_21-14-12.png",
+      "time": "2026-10-02 21:14:12",
+      "status": "taken"
+    }
+  },
+  {
+    "number": 2,
+    "time": "2026-10-02 21:16:40",
+    "timeUtc": "2026-10-02T19:16:40.004Z",
+    "gameDate": "12. May, Year 2, 14:20",
+    "gameHours": 1234.83,
+    "hansa": "0.3.6",
+    "sea": "0.3.3",
+    "game": "1.22.7",
+    "world": "sample",
+    "comment": "The pump's brake pokes through the deck when it rocks over.",
+    "target": {
+      "kind": "ship",
+      "summary": "Carrack \"Santa Maria\" #6743: Main deck (by Bilge pump)",
+      "ship": {
+        "code": "carrack",
+        "name": "Santa Maria",
+        "id": 6743,
+        "part": "Main deck",
+        "partIndex": 33688832,
+        "partCode": "Deck 2 station 19",
+        "fixture": "pump",
+        "fixtureType": "pump",
+        "fixtureName": "Bilge pump",
+        "local": [8.9, 2.0, -0.2],
+        "normal": [0.0, 1.0, 0.0],
+        "world": [1198.266, 114.646, -531.425],
+        "face": "up",
+        "distance": 2.5
+      }
+    },
+    "player": {
+      "name": "andris",
+      "pos": [1198.688, 114.573, -529.563],
+      "eye": [1198.803, 116.188, -529.526],
+      "look": [-0.2146, -0.6157, -0.7582],
+      "heading": 344.2,
+      "elevation": -38.0,
+      "gameMode": "Creative",
+      "camera": "FirstPerson",
+      "aboard": {
+        "shipId": 6743,
+        "seat": "deck",
+        "local": [10.6, 2.0, 0.9],
+        "eyeLocal": [10.6, 3.62, 0.9],
+        "lookLocal": [-0.6562, -0.6253, -0.4246],
+        "bearing": 137.1,
+        "elevation": -40.3,
+        "deck": "main"
+      }
+    },
+    "ships": [
+      {
+        "role": "aboard, target",
+        "code": "carrack",
+        "name": "Santa Maria",
+        "id": 6743,
+        "pos": [1203.25, 112.5, -540.75],
+        "heading": 210.0,
+        "speed": 3.2,
+        "knots": 6.2,
+        "sails": "full",
+        "sailFraction": 1.0,
+        "anchored": false,
+        "stage": "Afloat",
+        "water": 0.0,
+        "pitch": 0.9,
+        "roll": -4.2,
+        "heel": -3.5
+      }
+    ],
+    "mark": {
+      "shipId": 6743,
+      "shipCode": "carrack",
+      "local": [8.9, 2.0, -0.2],
+      "world": [1198.266, 114.646, -531.425],
+      "normal": [0.0, 1.0, 0.0],
+      "dimension": 0
+    },
+    "screenshot": {
+      "status": "none found in C:\\Users\\andri\\Pictures\\Vintagestory after it was asked for at 21:16:47: match one by the note's time"
+    }
+  },
+  {
+    "number": 4,
+    "time": "2026-10-02 21:20:02",
+    "timeUtc": "2026-10-02T19:20:02.500Z",
+    "hansa": "0.3.6",
+    "sea": "0.3.3",
+    "game": "1.22.7",
+    "world": "sample",
+    "comment": "Gun's carriage: the inboard cheek is see-through from here.",
+    "target": {
+      "kind": "ship",
+      "summary": "Carrack \"Santa Maria\" #6743: Bronze gun",
+      "ship": {
+        "code": "carrack",
+        "id": 6743,
+        "part": "Bronze gun",
+        "partIndex": 83886140,
+        "partCode": "Fixture 60",
+        "fixture": "gun-starboard-2",
+        "fixtureType": "gun",
+        "local": [4.375, 2.5, 2.832],
+        "normal": [0.0, 0.0, -1.0],
+        "face": "west"
+      }
+    },
+    "player": {
+      "name": "andris",
+      "aboard": {
+        "shipId": 6743,
+        "seat": "deck",
+        "local": [2.5, 2.0, 0.5],
+        "eyeLocal": [2.5, 3.62, 0.5],
+        "bearing": 51.0,
+        "elevation": -30.0,
+        "deck": "main"
+      }
+    },
+    "mark": {
+      "shipId": 6743,
+      "shipCode": "carrack",
+      "local": [4.375, 2.5, 2.832],
+      "normal": [0.0, 0.0, -1.0],
+      "dimension": 0
+    }
+  },
+  {
+    "number": 5,
+    "time": "2026-10-02 21:24:30",
+    "timeUtc": "2026-10-02T19:24:30.000Z",
+    "hansa": "0.3.6",
+    "sea": "0.3.3",
+    "game": "1.22.7",
+    "world": "sample",
+    "comment": "Wheel: the spokes flicker at this angle.",
+    "target": {
+      "kind": "ship",
+      "summary": "Carrack \"Santa Maria\" #6743: Helm",
+      "ship": {
+        "code": "carrack",
+        "id": 6743,
+        "part": "Helm",
+        "fixture": "helm",
+        "fixtureType": "helm",
+        "local": [-4.125, 5.9, 0.3],
+        "normal": [1.0, 0.0, 0.0],
+        "face": "north"
+      }
+    },
+    "player": {
+      "name": "andris",
+      "aboard": {
+        "shipId": 6743,
+        "seat": "deck",
+        "local": [-2.6, 5.0, 1.2],
+        "eyeLocal": [-2.6, 6.62, 1.2],
+        "bearing": -169.0,
+        "elevation": -12.0,
+        "deck": "quarter"
+      }
+    },
+    "mark": {
+      "shipId": 6743,
+      "shipCode": "carrack",
+      "local": [-4.125, 5.9, 0.3],
+      "normal": [1.0, 0.0, 0.0],
+      "dimension": 0
+    }
+  },
+  {
+    "number": 6,
+    "time": "2026-10-02 21:30:11",
+    "timeUtc": "2026-10-02T19:30:11.000Z",
+    "hansa": "0.3.6",
+    "sea": "0.3.3",
+    "game": "1.22.7",
+    "world": "sample",
+    "comment": "The wreck's sand heap floats a block over the seabed here.",
+    "target": {
+      "kind": "block",
+      "summary": "Sand (game:sand-bauxite) at 1180,98,-610, up face",
+      "block": {
+        "code": "game:sand-bauxite",
+        "name": "Sand",
+        "pos": [1180, 98, -610],
+        "dimension": 0,
+        "face": "up",
+        "hit": [1180.42, 99.0, -609.7],
+        "distance": 4.1
+      }
+    },
+    "player": {
+      "name": "andris",
+      "pos": [1182.0, 99.5, -607.0],
+      "eye": [1182.0, 101.1, -607.0],
+      "heading": 210.0,
+      "elevation": -35.0
+    },
+    "mark": {
+      "world": [1180.42, 99.0, -609.7],
+      "normal": [0.0, 1.0, 0.0],
+      "dimension": 0
+    }
+  }
+]

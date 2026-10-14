@@ -1,0 +1,24 @@
+{
+ "code": "boat-skiff",
+ "class": "hansa.EntityShip",
+ "tags": [
+  "inanimate",
+  "vehicle"
+ ],
+ "weight": 600,
+ "hitboxSize": {
+  "x": 2,
+  "y": 1
+ },
+ "attributes": {
+  "ship": "skiff"
+ },
+ "client": {
+  "renderer": "Dummy",
+  "behaviors": []
+ },
+ "server": {
+  "behaviors": []
+ },
+ "sounds": {}
+}

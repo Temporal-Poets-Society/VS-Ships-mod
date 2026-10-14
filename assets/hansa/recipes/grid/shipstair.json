@@ -1,0 +1,20 @@
+[
+	{
+		"ingredientPattern": "P__,PP_,PPP",
+		"ingredients": {
+			"P": { "type": "item", "code": "game:plank-*", "quantity": 2, "skipVariants": ["veryaged"] }
+		},
+		"width": 3,
+		"height": 3,
+		"output": { "type": "block", "code": "hansa:shipstair-long" }
+	},
+	{
+		"ingredientPattern": "P_,PP,PP",
+		"ingredients": {
+			"P": { "type": "item", "code": "game:plank-*", "quantity": 2, "skipVariants": ["veryaged"] }
+		},
+		"width": 2,
+		"height": 3,
+		"output": { "type": "block", "code": "hansa:shipstair-steep" }
+	}
+]

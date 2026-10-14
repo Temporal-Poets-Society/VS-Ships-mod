@@ -1,0 +1,15 @@
+{
+  "type": "code",
+  "modid": "magelan",
+  "name": "Magelan",
+  "version": "0.3.30",
+  "description": "Ocean-going ships you can live on: walk the decks while sailing, sleep in the bunks, cook in the galley, keep your gear in the hold. First ship: a carrack.",
+  "authors": [ "Your Name" ],
+  "side": "Universal",
+  "requiredOnClient": true,
+  "requiredOnServer": true,
+  "dependencies": {
+    "game": "1.22.0",
+    "sea": "0.3.5"
+  }
+}

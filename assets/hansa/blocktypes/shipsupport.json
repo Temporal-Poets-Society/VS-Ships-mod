@@ -1,0 +1,23 @@
+{
+	code: "shipsupport",
+	attributes: {
+		canChisel: false,
+		handbook: { exclude: true }
+	},
+	drawtype: "Empty",
+	renderpass: "Opaque",
+	blockmaterial: "Wood",
+	drops: [],
+	maxstacksize: 1,
+	sidesolid: { all: true },
+	sideopaque: { all: false },
+	sideao: { all: false },
+	emitsideao: { all: false },
+	lightAbsorption: 0,
+	resistance: 99999,
+	replaceable: 0,
+	rainPermeable: true,
+	collisionbox: { x1: 0, y1: 0, z1: 0, x2: 1, y2: 1, z2: 1 },
+	selectionbox: null,
+	creativeinventory: {}
+}
