@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "kinds": [
+    { "code": "keel", "lead": "keel", "material": "planks", "health": 400, "required": "always" },
+    { "code": "rib", "lead": "rib", "material": "planks", "health": 300, "required": "always" },
+    { "code": "beam", "lead": "beam", "material": "planks", "health": 250, "required": "always" },
+    { "code": "hull", "lead": "skin", "material": "planks", "health": 150, "required": "belowWaterline" },
+    { "code": "deck", "lead": "deck", "material": "planks", "health": 120 },
+    { "code": "window", "slot": "skin", "generator": "opening", "material": "glass", "health": 40,
+      "opening": { "margin": 0.1875, "panel": "glass" } },
+    { "code": "gunport", "slot": "skin", "generator": "opening", "material": "planks", "health": 120,
+      "opening": { "margin": 0.1875, "panel": "lid", "operable": true } },
+    { "code": "gate", "slot": "skin", "generator": "opening", "material": "planks", "health": 120,
+      "opening": { "margin": 0.0625, "panel": "lid", "operable": true } },
+    { "code": "hatch", "slot": "deck", "generator": "opening", "material": "planks", "health": 100,
+      "opening": { "margin": 0.125, "panel": "lid", "operable": true } }
+  ]
+}

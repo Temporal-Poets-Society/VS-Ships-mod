@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "code": "two-bay",
+  "name": "Hansa two-bay construction slice",
+  "grid": { "origin": [0, 0, -0.5], "collisionVoxel": 0.25 },
+  "form": {
+    "cornerGrid": 0.5,
+    "slopes": [[0, 1], [1, 3], [1, 2], [2, 3], [1, 1], [3, 2], [2, 1], [3, 1], [1, 0]],
+    "skin": 0.25,
+    "stations": [
+      { "x": 0, "section": [[1, 0], [1, 2.5], [1.5, 4], [2.5, 5], [4, 6], [5.5, 6.5], [10, 6.5]] },
+      { "x": 9, "section": [[1, 0], [1, 2.5], [1.5, 4], [2.5, 5], [4, 6], [5.5, 6.5], [10, 6.5]] }
+    ]
+  },
+  "keel": { "from": 0, "to": 9, "top": 1, "width": 1, "height": 1 },
+  "frames": { "cells": [0, 4, 8], "clearGaps": [1, 3], "visibleWidth": 0.375, "depth": 0.5 },
+  "decks": [
+    { "code": "hold", "top": 2 },
+    { "code": "lower", "top": 5 },
+    { "code": "main", "top": 8 }
+  ],
+  "beamDepth": 0.5,
+  "waterline": 5.5,
+  "layout": [
+    { "stair": { "foot": [1, 5, -2], "dir": "+x" } },
+    { "wall": { "from": [5, 5, 2], "to": [7, 7, 2], "side": "+z" } },
+    { "wall": { "from": [5, 5, 3], "to": [5, 7, 6], "side": "-x" } },
+    { "door": { "at": [[6, 5, 2]], "side": "+z" } },
+    { "set": "hatch", "at": [[6, 7, 0]] },
+    { "set": "gunport", "at": [[2, 6, 6], [2, 6, -6]] },
+    { "set": "window", "at": [[6, 9, -6]] }
+  ]
+}

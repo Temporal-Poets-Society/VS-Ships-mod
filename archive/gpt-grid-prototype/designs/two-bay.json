@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "code": "grid-two-bay",
+  "name": "Hansa two-bay construction prototype",
+  "grid": { "origin": [0, 0, -0.5], "cellSize": 1, "collisionVoxel": 0.25 },
+  "lengthCells": 9,
+  "clearBayCells": 3,
+  "ribCells": [0, 4, 8],
+  "ribVisibleWidth": 0.375,
+  "ribDepth": 0.5,
+  "shellThicknessAcross": 0.25,
+  "deckThickness": 0.25,
+  "beamDepth": 0.5,
+  "waterline": 4.875,
+  "halfSection": [[0.5, 2.5], [1, 3], [1.5, 3.75], [2, 4.5], [3, 5.5], [4, 6], [5, 6.5], [6, 6.5], [7, 6.5], [8, 6.5]],
+  "decks": [{"code": "hold", "top": 1}, {"code": "lower", "top": 4}, {"code": "main", "top": 7}],
+  "stair": { "foot": [2, 1], "lower": "lower", "upper": "main", "direction": "+z", "run": 3, "rise": 3 },
+  "hatch": { "cell": [6, 6, -2] },
+  "material": "game:planks-oak-ud",
+  "notes": "Nine longitudinal cells: R PPP R PPP R. The half-height section control is an aesthetic crease inside a cell, not a second placement grid. Open slice ends are for geometry inspection, not a launchable hull."
+}

@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hansa · Two-bay prototype</title>
+<style>
+:root{color-scheme:light;--bg:#edf1ef;--ink:#243d36;--soft:#617a70;--line:#c2d0c9;--accent:#975d30}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif}
+header{padding:24px 28px 12px}h1{font:32px Georgia,serif;margin:0}header p{margin:5px 0;color:var(--soft)}
+main{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:22px;padding:0 28px 24px}
+section,aside{min-width:0}aside{border-left:1px solid var(--line);padding-left:22px}
+.controls{display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin:14px 0}label{display:grid;gap:4px}label.check{display:flex;align-items:center}
+select,button,input{font:inherit;color:inherit}select,button{background:#fff;border:1px solid var(--line);padding:8px 10px;border-radius:5px}
+button{cursor:pointer}button:disabled{opacity:.45;cursor:default}button.primary{background:var(--ink);color:#fff}button:hover:not(:disabled){border-color:var(--accent)}
+canvas{display:block;width:100%;height:570px;touch-action:none;cursor:grab}canvas:active{cursor:grabbing}
+h2{font:22px Georgia,serif;margin:16px 0 8px}p{margin:8px 0}.quiet{color:var(--soft)}.actions{display:flex;flex-wrap:wrap;gap:7px;margin:10px 0}
+.status{min-height:24px;font-variant-numeric:tabular-nums}.error{color:#913b31}.note{font-size:13px;color:var(--soft)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px}dt{color:var(--soft)}dd{margin:0;font-variant-numeric:tabular-nums}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--soft)}.legend span::before{content:"";display:inline-block;width:10px;height:10px;background:var(--swatch);margin-right:5px}
+#cell-choice{width:100%}footer{border-top:1px solid var(--line);padding:12px 28px;font-size:13px;color:var(--soft)}
+@media(max-width:900px){main{grid-template-columns:1fr}aside{border-left:0;padding-left:0;border-top:1px solid var(--line)}canvas{height:440px}}
+@media(max-width:480px){header{padding:16px}main{padding:0 16px 16px}canvas{height:360px}h1{font-size:26px}footer{padding:12px 16px}}
+</style>
+</head>
+<body>
+<header><h1>Hansa: The Last Voyage</h1><p>Two-bay construction study · one-cell ribs, three clear cells between · R PPP R PPP R</p></header>
+<main>
+<section aria-label="Geometry preview">
+<div class="controls">
+<label>View<select id="view"><option value="cutaway">Cutaway</option><option value="whole">Complete slice</option><option value="skeleton">Structure</option><option value="section">Grid cross-section</option></select></label>
+<label>Visible rib width<select id="rib-width"><option value="slim">0.375 block</option><option value="full">1 block</option></select></label>
+<label>Surface<select id="texture"><option value="wood">Plank grain</option><option value="checker">One-block texture grid</option><option value="plain">Plain material</option></select></label>
+<label class="check"><input id="ghosts" type="checkbox" checked>Missing-part guides</label>
+</div>
+<canvas id="scene" aria-label="Interactive ship section. Drag to orbit. Select a cell with a click, or use the cell list." role="img">Use the cell list and buttons to inspect construction state.</canvas>
+<div class="legend"><span style="--swatch:#ad7953">Hull</span><span style="--swatch:#ddaf6d">Ribs</span><span style="--swatch:#b8894f">Beams</span><span style="--swatch:#cfac7a">Deck</span><span style="--swatch:#79563d">Keel</span><span style="--swatch:#8d9994">Missing required part</span></div>
+<p class="status" id="summary" aria-live="polite"></p>
+<p class="note">Drag to orbit; select a visible piece or use the cell list. Cutaway hides the near skin and half the main floor for inspection. Texture grid lines are one physical block apart on the surface.</p>
+</section>
+<aside aria-label="Construction controls">
+<h2>Selected cell</h2><label for="cell-choice">Blueprint location</label><select id="cell-choice"></select>
+<dl id="details"></dl>
+<div class="actions"><button id="take">Take out</button><button id="crack">Crack</button><button id="destroy">Destroy</button><button class="primary" id="plank">Lay planks</button></div>
+<div class="actions"><button id="window">Glass window</button><button id="port">Port</button><button id="gate">Gate</button><button id="hatch">Deck hatch</button><button id="toggle">Open / close</button></div>
+<h2>Stair placement</h2><p class="note">A transverse stair rises three blocks through a three-cell opening. Rib cells reject this opening until an alternative support is defined.</p>
+<div class="actions"><button id="move-stair">Move to other bay</button><button id="blocked-stair">Try through middle rib</button></div>
+<p id="message" class="status" aria-live="polite"></p>
+<div class="actions"><button id="reset">Restore default slice</button><button id="save">Export layout</button></div>
+<p class="note">Planks and glass are the building materials. The blueprint supplies the shape. These controls exercise the construction contract; engine inventory and multiplayer binding are still pending.</p>
+</aside>
+</main>
+<footer id="metrics"></footer>
+<script>
+(()=>{
+"use strict";
+const variants=__BLUEPRINT_DATA__;
+let data=variants.slim,cells=new Map(data.cells.map(c=>[c.id,c])),changes={"cell:6:6:-2":{state:0,variant:"hatch",open:false}},stairX=2,selected="cell:2:7:-6";
+let yaw=-.8,pitch=.38,drawn=[],drag=null,moved=false;
+const el=id=>document.getElementById(id),canvas=el("scene"),ctx=canvas.getContext("2d");
+const palette={hull:"#ad7953",rib:"#ddaf6d",beam:"#b8894f",deck:"#cfac7a",keel:"#79563d"};
+const id=(x,y,z)=>`cell:${x}:${y}:${z}`;
+const wellAt=x=>[1,2,3].map(k=>id(x,6,k));
+function placement(key){return changes[key]||{state:wellAt(stairX).includes(key)?2:0,variant:"plank",open:false};}
+function solid(key){const p=placement(key);return p.state!==2&&!(p.open&&["port","gate","hatch"].includes(p.variant));}
+function set(key,patch){changes[key]={...placement(key),...patch};update();}
+function allowed(c,v){return c.allowed.includes(v)||(v==="hatch"&&c.role==="deck");}
+function boundsFaces(b){const p=[[b[0],b[1],b[2]],[b[3],b[1],b[2]],[b[3],b[4],b[2]],[b[0],b[4],b[2]],[b[0],b[1],b[5]],[b[3],b[1],b[5]],[b[3],b[4],b[5]],[b[0],b[4],b[5]]];return [[0,1,2,3],[4,5,6,7],[0,1,5,4],[2,3,7,6],[1,2,6,5],[0,3,7,4]].map(indices=>indices.map(i=>p[i]));}
+function camera(p){const x=p[0]-4.5,y=p[1]-4,z=p[2],u=x*Math.cos(yaw)+z*Math.sin(yaw),d=-x*Math.sin(yaw)+z*Math.cos(yaw);return [u,y*Math.cos(pitch)-d*Math.sin(pitch),y*Math.sin(pitch)+d*Math.cos(pitch)];}
+function project(p){const r=camera(p),scale=Math.min(canvas.clientWidth/19,canvas.clientHeight/12);return [canvas.clientWidth/2+r[0]*scale,canvas.clientHeight/2-r[1]*scale,r[2]];}
+function path(points){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();}
+function contours(face,axis,step,color){const values=face.uv.map(p=>p[axis]),low=Math.ceil(Math.min(...values)/step)*step,high=Math.max(...values);
+ ctx.strokeStyle=color;ctx.lineWidth=.6;
+ for(let v=low;v<=high+1e-6;v+=step){const hits=[];for(let i=0;i<values.length;i++){const k=(i+1)%values.length,a=values[i],b=values[k];if((a<=v&&b>v)||(b<=v&&a>v)){const t=(v-a)/(b-a);hits.push(project(face.points[i].map((c,j)=>c+(face.points[k][j]-c)*t)));}}if(hits.length>=2){ctx.beginPath();ctx.moveTo(hits[0][0],hits[0][1]);ctx.lineTo(hits[1][0],hits[1][1]);ctx.stroke();}}
+}
+function stipple(points){const box=[Math.min(...points.map(p=>p[0])),Math.min(...points.map(p=>p[1])),Math.max(...points.map(p=>p[0])),Math.max(...points.map(p=>p[1]))];ctx.save();path(points);ctx.clip();ctx.strokeStyle="#644935";ctx.lineWidth=1.3;for(let x=box[0];x<box[2];x+=14){ctx.beginPath();ctx.moveTo(x,box[1]+8);ctx.lineTo(x+5,box[1]+15);ctx.lineTo(x+1,box[1]+25);ctx.lineTo(x+7,box[1]+40);ctx.stroke();}ctx.restore();}
+function drawStair(){const run=3,z0=.5,foot=4;for(let n=0;n<12;n++){const z=z0+n*.25,y=foot+(n+1)*.25;const face=[[stairX+.125,y,z],[stairX+.875,y,z],[stairX+.875,y,z+.25],[stairX+.125,y,z+.25]];drawn.push({points:face.map(project),world:face,color:"#aa784c",key:"stair",depth:face.map(camera).reduce((s,p)=>s+p[2],0)/4});}}
+function draw3d(){drawn=[];const mode=el("view").value;
+ for(const c of data.cells){const p=placement(c.id);if(!solid(c.id)){if(c.required&&el("ghosts").checked){for(const ps of boundsFaces(c.bounds)){drawn.push({points:ps.map(project),color:"#8d9994",ghost:true,key:c.id,depth:ps.map(camera).reduce((s,p)=>s+p[2],0)/ps.length});}}continue;}
+  for(const f of c.faces){if(f.facing&&solid(f.facing))continue;if(mode==="skeleton"&&["hull","deck"].includes(f.kind))continue;if(mode==="cutaway"&&((f.kind==="hull"&&c.cell[2]>=0)||(f.kind==="deck"&&c.cell[1]===6&&c.cell[2]>=0)))continue;
+   const ny=f.normal[1],nd=-f.normal[0]*Math.sin(yaw)+f.normal[2]*Math.cos(yaw);if(ny*Math.sin(pitch)+nd*Math.cos(pitch)<-.001)continue;
+   const points=f.points.map(project);let color=p.variant==="window"?"#82b7c2":palette[f.kind];if(p.state===1)color="#926444";
+   drawn.push({points,color,key:c.id,face:f,state:p.state,variant:p.variant,depth:points.reduce((s,q)=>s+q[2],0)/points.length});}}
+ drawStair();drawn.sort((a,b)=>a.depth-b.depth);
+ for(const f of drawn){path(f.points);if(f.ghost){ctx.save();ctx.globalAlpha=.42;ctx.setLineDash([4,4]);ctx.strokeStyle=f.color;ctx.stroke();ctx.restore();continue;}ctx.fillStyle=f.color;ctx.fill();ctx.strokeStyle="#6b5039";ctx.lineWidth=.35;ctx.stroke();
+  if(f.face&&el("texture").value!=="plain"){const checker=el("texture").value==="checker";contours(f.face,1,checker?16:4,checker?"#284e57":"#75563c");if(checker)contours(f.face,0,16,"#284e57");}
+  if(f.variant==="window"){ctx.save();path(f.points);ctx.clip();ctx.strokeStyle="#3f6568";ctx.lineWidth=1;const p=f.points;ctx.beginPath();ctx.moveTo(p[0][0],p[0][1]);ctx.lineTo(p[Math.floor(p.length/2)][0],p[Math.floor(p.length/2)][1]);ctx.stroke();ctx.restore();}
+  if(f.variant==="hatch"){ctx.strokeStyle="#424b47";ctx.lineWidth=1.4;path(f.points);ctx.stroke();}
+  if(f.state===1)stipple(f.points);if(f.key===selected){path(f.points);ctx.strokeStyle="#f1cd7e";ctx.lineWidth=2;ctx.stroke();}}
+}
+function drawSection(){drawn=[];const w=canvas.clientWidth,h=canvas.clientHeight,scale=Math.min(w/16,h/10),map=(z,y)=>[w/2+z*scale,h-35-y*scale];
+ ctx.strokeStyle="#bfd0c7";ctx.lineWidth=.6;for(let z=-7.5;z<=7.5;z++){const a=map(z,0),b=map(z,8.5);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();}for(let y=0;y<=8;y++){const a=map(-7,y),b=map(7,y);ctx.beginPath();ctx.moveTo(...a);ctx.lineTo(...b);ctx.stroke();}
+ const profile=data.spec.halfSection,t=data.spec.shellThicknessAcross;for(const side of [-1,1]){for(let i=0;i<profile.length-1;i++){const [a,wa]=profile[i],[b,wb]=profile[i+1];const points=[map(side*wa,a),map(side*wb,b),map(side*(wb-t),b),map(side*(wa-t),a)];path(points);ctx.fillStyle=palette.hull;ctx.fill();path([map(side*(wa-t),a),map(side*(wb-t),b),map(side*Math.max(0,wb-t-.5),b),map(side*Math.max(0,wa-t-.5),a)]);ctx.fillStyle=palette.rib;ctx.fill();}}
+ function span(y){for(let i=0;i<profile.length-1;i++){const[a,wa]=profile[i],[b,wb]=profile[i+1];if(a<=y&&y<=b)return wa+(wb-wa)*(y-a)/(b-a)-t;}throw new Error("Section height is outside the profile");}
+ for(const d of data.spec.decks){const low=d.top-data.spec.deckThickness,wl=span(low),wt=span(d.top);path([map(-wl,low),map(-wt,d.top),map(wt,d.top),map(wl,low)]);ctx.fillStyle=palette.deck;ctx.fill();if(d.top>1){const bottom=low-data.spec.beamDepth,wb=span(bottom);path([map(-wb,bottom),map(-wl,low),map(wl,low),map(wb,bottom)]);ctx.fillStyle=palette.beam;ctx.fill();}ctx.fillStyle="#243d36";ctx.font="14px system-ui";ctx.textAlign="center";ctx.fillText(`${d.code} · floor ${d.top}`,w/2,map(0,d.top)[1]-8);}
+ const[by,bw]=profile[0];for(const side of[-1,1]){path([map(side*.5,by),map(side*bw,by),map(side*bw,by+t),map(side*.5,by+t)]);ctx.fillStyle=palette.hull;ctx.fill();}
+ const a=map(-.5,1),b=map(.5,0);ctx.fillStyle=palette.keel;ctx.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);ctx.strokeStyle="#497b91";ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(...map(-7,data.spec.waterline));ctx.lineTo(...map(7,data.spec.waterline));ctx.stroke();ctx.setLineDash([]);ctx.font="13px system-ui";ctx.fillStyle="#617a70";ctx.textAlign="center";ctx.fillText("Grid spacing: 1 block · proposed midship section",w/2,h-8);
+}
+function render(){const ratio=devicePixelRatio||1;canvas.width=Math.round(canvas.clientWidth*ratio);canvas.height=Math.round(canvas.clientHeight*ratio);ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,canvas.clientWidth,canvas.clientHeight);if(el("view").value==="section")drawSection();else draw3d();}
+function report(text,error=false){el("message").textContent=text;el("message").className="status"+(error?" error":"");}
+function update(){if(!cells.has(selected))selected=data.cells[0].id;el("cell-choice").value=selected;const c=cells.get(selected),p=placement(selected),missing=data.cells.filter(c=>c.required&&!solid(c.id)).length;
+ el("details").replaceChildren();for(const [k,v]of Object.entries({Role:c.role,State:["Placed","Cracked","Missing"][p.state],Fitting:p.variant||"plank",Required:c.required?"Yes":"No",Material:p.variant==="window"?"Glass pane":"Planks",Planes:c.faces.length})){const dt=document.createElement("dt"),dd=document.createElement("dd");dt.textContent=k;dd.textContent=v;el("details").append(dt,dd);}
+ for(const name of ["window","port","gate","hatch"]){el(name).disabled=!allowed(c,name)||wellAt(stairX).includes(selected);}
+ el("plank").disabled=wellAt(stairX).includes(selected);el("toggle").disabled=!["port","gate","hatch"].includes(p.variant)||p.state===2;
+ el("summary").textContent=`${data.stats.cells} owned cells · ${missing} missing required parts · stair in ${stairX===2?"first":"second"} bay`;
+ el("metrics").textContent=`All faces planar; all face edges preserve physical texture distance (maximum error ${data.stats.maxTextureDistanceError.toExponential(1)} block). This is an open-ended construction slice, not a sailing ship.`;
+ render();}
+for(const c of data.cells){const o=document.createElement("option");o.value=c.id;o.textContent=`${c.role} · ${c.cell.join(", ")}`;el("cell-choice").append(o);}
+el("cell-choice").onchange=()=>{selected=el("cell-choice").value;update();};
+for(const n of ["view","texture","ghosts"]){el(n).onchange=render;}
+el("rib-width").onchange=()=>{data=variants[el("rib-width").value];cells=new Map(data.cells.map(c=>[c.id,c]));update();};
+for(const [name,state]of [["take",2],["crack",1],["destroy",2]]){el(name).onclick=()=>{if(name==="crack"&&placement(selected).state===2){report("There is no material in this cell to crack.");return;}set(selected,{state});report(name==="crack"?"Cracked: geometry remains solid.":"Cell removed. Required parts retain a guide.");};}
+for(const name of ["plank","window","port","gate","hatch"]){el(name).onclick=()=>{if(!allowed(cells.get(selected),name))return;set(selected,{state:0,variant:name,open:false,material:name==="window"?"game:glasspane-leaded-oak-ew":"game:planks-oak-ud"});report(name==="plank"?"Ordinary planks fill the blueprint geometry.":`${name} placed in the same cell.`);};}
+el("toggle").onclick=()=>{set(selected,{open:!placement(selected).open});report(placement(selected).open?"Opening is open.":"Opening is shut.");};
+el("move-stair").onclick=()=>{const x=stairX===2?6:2;if(wellAt(x).some(key=>cells.get(key)?.role!=="deck")){report("Opening crosses framing.",true);return;}for(const key of wellAt(stairX)){changes[key]={state:0,variant:"plank",open:false};}stairX=x;for(const key of wellAt(x))delete changes[key];update();report("Stair moved. Previous floor restored; new three-cell well opened.");};
+el("blocked-stair").onclick=()=>report("Rejected: the proposed opening crosses the middle rib and its beam. Alternative framing is required.",true);
+el("reset").onclick=()=>{changes={"cell:6:6:-2":{state:0,variant:"hatch",open:false}};stairX=2;report("Default arrangement restored.");update();};
+el("save").onclick=()=>{const blob=new Blob([JSON.stringify({schema:1,stairX,changes},null,2)],{type:"application/json"}),url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="hansa-grid-layout.json";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+function inside(point,polygon){let ok=false;for(let i=0,j=polygon.length-1;i<polygon.length;j=i++){const a=polygon[i],b=polygon[j];if((a[1]>point[1])!==(b[1]>point[1])&&point[0]<(b[0]-a[0])*(point[1]-a[1])/(b[1]-a[1])+a[0])ok=!ok;}return ok;}
+canvas.onpointerdown=e=>{drag={x:e.clientX,y:e.clientY,yaw,pitch};moved=false;canvas.setPointerCapture(e.pointerId);};
+canvas.onpointermove=e=>{if(!drag||el("view").value==="section")return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>5)moved=true;yaw=drag.yaw+dx*.008;pitch=Math.max(-.15,Math.min(1.3,drag.pitch+dy*.006));render();};
+canvas.onpointerup=e=>{if(!moved){const b=canvas.getBoundingClientRect(),point=[e.clientX-b.left,e.clientY-b.top];const hit=[...drawn].reverse().find(f=>f.key!=="stair"&&inside(point,f.points));if(hit){selected=hit.key;update();}}drag=null;};
+canvas.onpointercancel=()=>{drag=null;};new ResizeObserver(render).observe(canvas);
+// Exposed only for local preview validation, using the same visible operations.
+window.hansaPreview={get data(){return data;},get state(){return {changes,stairX,selected};},select(key){selected=key;update();},solid,render};
+update();
+})();
+</script>
+</body></html>
