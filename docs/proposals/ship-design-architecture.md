@@ -324,20 +324,22 @@ User feedback on M1, 15 October 2026:
     second kind of address next to cells, like furniture; they do not share a cell's master
     block.
 
-Still open:
+12. **Rib spacing: mixed (decided 15 October 2026).** The spacing stays design data
+    (`frames.cells`, validated against `frames.clearGaps`).
+    - Bays of 3 clear cells are the base rhythm. They give room for a lengthwise ladder-stair
+      (two cells plus its 2 x 1 well), hatches, and up to three single-block openings per bay. The
+      middle cell of a bay stays within `plankSpan` 2 of a rib.
+    - There is 1 clear cell on each side of every mast: a rib stands either side of the mast's
+      cell, so the two beams beside it frame the mast as its partners.
+    - 1 clear cell may also be used at the tight turns of the bow and stern, if the full form
+      needs it (decided when the form is laid out, M5).
+    - Uniform 1 clear cell (Magelan's 2-block frames) was rejected. Every other cell would be a
+      rib, a lengthwise stair could not fit, and the framing to repair would double.
+    - Consequence: with gaps of 1 or 3, every rib has the same parity along x, so every mast
+      stands on the other parity. Of the carrack's masts (cells 2, 17 and −13), the main mast
+      moves by one cell when the full form is laid out (M5).
 
-- Final rib spacing (1 or 3 clear cells are allowed as design data).
-
-## 9. Milestones
-
-| Step | Result | Done when |
-|---|---|---|
-| M1 | C# core: form → ship blocks, kind library, block map, state, support graph | Invariant tests ported; locality test: changing one cell changes only that cell and its shared faces |
-| M2 | glTF exporter + depth-buffered viewer | Two-bay slice renders correctly from any angle, with textures and the faceted hull |
-| M3 | Two-bay slice on the new model | Window/port/gate, stair moved in data and by edit, hatch, guides |
-| M4 | In-game static test entity | Render, collide, walk, target a block, break/place with ordinary planks, grey guides, save/load, MP sync; dropped items stay where dropped and ride with the ship |
-| M5 | Full form: bow, stern, castles, masts as data | Sliver validator clean; carrack character reviewed in game |
-| M6 | Mechanics on `IShipStructure` | Sailing, damage, flooding, guns, pieces; old geometry code deleted |
+Still open: nothing in this section.
 
 ## 10. M1 status, 15 October 2026
 

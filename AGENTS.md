@@ -9,7 +9,8 @@ folder and the first cross-section/two-bay prototype. Magelan is a read-only ref
   mechanics. Redesign the default hull, ribs, windows and openings to fit the grid.
 - One ship-local block grid, shared by every deck and component. Minor dimensions
   inside a cell are aesthetic geometry, not alternative placement grids.
-- Rib cells occupy one longitudinal block, with 1 or 3 clear cells between them.
+- Rib cells occupy one longitudinal block, with 1 or 3 clear cells between them: bays of 3
+  as the base, 1 clear cell on each side of every mast, and 1 possibly at the bow and stern ends.
   Visible timber may be narrower and its cell may include hull surfaces.
 - Players place ordinary materials. The blueprint supplies the hull shape.
   Do not introduce player-facing hull slope/shape block inventories.
