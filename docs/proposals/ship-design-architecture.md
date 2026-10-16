@@ -339,6 +339,33 @@ User feedback on M1, 15 October 2026:
       stands on the other parity. Of the carrack's masts (cells 2, 17 and −13), the main mast
       moves by one cell when the full form is laid out (M5).
 
+13. **Magelan's proportions and vertical layout (user correction, 15 October 2026).** The
+    Magelan carrack is the general example for looks and dimensions, not a set of exact numbers to
+    copy. M1's sample had drifted from it: a one-block keel below the bottom, a hold floor a cell
+    above the bottom, and vertical sides.
+    - **Decks** are 3 apart: 2 blocks of room plus the deck and beam layer. The hold floor lies
+      directly on the bottom (the bottom is 0.5 thick: planking and floor). There are no beams
+      under the hold floor, and the ribs start at it (`frames.bottom`, `decks[].beams`).
+    - **Waterline:** 0.875 above a cell boundary. Vanilla still water stands 0.875 up its block,
+      so a ship floating at rest has every deck on a world block border, level with a pier or
+      quay. The compiler rejects any other waterline.
+    - **Keel:** slim, showing about 0.25 block below the bottom. The keelson inside is flush with
+      the hold floor.
+    - **Section:** Magelan's character in facets. A flat floor, the bilge in facets, widest just
+      above the waterline, and tumblehome bringing the sides back in above it. The two-bay sample
+      follows Magelan's midship curve to about 0.2 block up to the main deck.
+
+14. **The bottom is one whole block (user correction, 16 October 2026).** It holds the planking
+    (0–0.25), the rib timber running across under the floor as floor timbers (0.25–0.75) and the
+    hold floor (0.75–1). The keel runs flush inside it along the centre, like a beam. Every deck
+    level is then 2 clear blocks plus 1 structural block, the bottom included, and ribs run
+    continuously from side to side.
+    - This replaces item 13's "keel showing 0.25 below the bottom" and the overnight fix that
+      removed rib timber along the bottom. That fix was wrong: the bottom planking sat at 0.5,
+      leaving half the bottom block empty instead of using it.
+    - Cost: the draft grows from Magelan's 4.375 to 4.875 blocks below the waterline. The decks
+      stay where they are, tied to the waterline.
+
 Still open: nothing in this section.
 
 ## 10. M1 status, 15 October 2026
@@ -394,4 +421,138 @@ Known limits and choices to review:
 - An open door is drawn swung square to its wall about one jamb. The real door model comes
   with the engine adapter.
 - Bow, stern, castles, masts and the existing carrack's adjustment to the grid are M5.
+
+## 11. M2 status, 15 October 2026
+
+`tools/HansaPreview` compiles the same `src/Construction` sources and exports a design's
+default ship. It exports the visible block faces after neighbour culling, plus walls, doors and
+stairs.
+
+- **`docs/preview/<code>.glb`:** glTF 2.0 with the game's PNG textures embedded, repeating with
+  nearest filtering, one primitive per texture and part group. The structure was checked: every
+  accessor fits its buffer, positions have bounds, and the images are valid PNG.
+- **`docs/preview/<code>.html`:** a self-contained WebGL2 viewer, with no libraries and no
+  network.
+  - Depth buffer and back-face culling.
+  - Textures from the game: planks for planking, decks and walls; debarked wood for keel, ribs,
+    beams and stringers; plain glass for panes.
+  - UVs are the core's metric UVs divided by 16, so a texture repeats once per block of surface.
+  - Orbit, pan and zoom with the mouse or keyboard.
+  - Preset views: exterior, cutaway, section and lower deck.
+  - Part toggles, three cut planes, a cell-edge overlay and a translucent waterline.
+
+The two-bay slice exports as 466 blocks, 20 wall faces and one stair, 10,706 triangles. It was
+reviewed in four views captured with headless Chrome (SwiftShader). It renders correctly from
+those angles, with the faceted hull and the textures in place.
+
+Known limits:
+
+- Cut planes discard fragments, so cut solids look hollow.
+- Coplanar faces are not merged yet.
+- The waterline plane is off by default, because it washes out interior views.
+- Picking a block and changing state in the viewer are not part of M2.
+
+## 12. The full carrack and the first in-game version, 15–16 October 2026
+
+Worked on overnight after the user's request: "Work on model to reach first testable game version."
+Nothing here is committed yet.
+
+### Fixes from the user's review of the slice
+
+- **Rib timber stopped making a ridge on the hold floor.** It had been clipped at the floor,
+  leaving a 0.25-block ridge in row 1. That made the bottom two blocks deep in rib columns and
+  left the hold one clear block. Superseded on 16 October by item 14: the bottom moved down to fill
+  its block, and the rib timber runs under the floor.
+- **Every deck now has 2 clear blocks over its floor.** Decks are 3 apart. Both are checked.
+
+### Form features
+
+- **Sheer per station.** Each station describes the whole tumblehome, and `sheer` cuts it off at
+  the rail height. A castle is a higher sheer, so the tumblehome continues up it.
+- **Steps.** Two stations at the same x make a castle's front.
+- **Caps.** Planking is laid across the hull:
+  - a transom at the stern end;
+  - a stem plank at the bow;
+  - a bulkhead at each step, from the deck below up to the castle's rail.
+
+  `openEnds` keeps an inspection slice open.
+- **Masts.** A mast is design data, `masts[]`. It is validated to have a rib on each side and
+  none in its own cell.
+- **Support.**
+  - The lowest centreline planking is the backbone, so the stem and sternpost carry the keel on
+    where the bottom rises.
+  - Planking laid across the hull stands on what is under it.
+  - Planking may follow the hull's turn by a cell.
+
+### `assets/hansa/config/shipdesigns/carrack.json`
+
+- **Shape:** the stations follow Magelan's hull, measured from carrack-m's own collision voxels:
+  - a raked stern under an overhanging poop;
+  - quarterdeck and poop castles;
+  - a waist with a 1-block bulwark;
+  - a forecastle, and a bow rising to a stem;
+  - tumblehome all the way up.
+- **Decks:** hold 1, lower 4, main 7, quarterdeck and forecastle 10, poop 13.
+- **Ribs:** mixed spacing, with a rib each side of every mast. The main mast moved one cell to
+  x 3.5; the fore and mizzen masts stayed.
+- **Layout:**
+  - 5 ladder-stairs, one per deck pair;
+  - doorways in the 3 castle bulkheads;
+  - 2 cargo hatches;
+  - 8 lower-deck gun ports;
+  - 2 stern windows.
+- **Checks:** 2,207 blocks; watertight at 8 sections; every block supported; the default layout
+  passes all rules.
+
+### In the game: `src/Ship/GridShips.cs`, code `hansa-carrack`
+
+In `AssetsLoaded`, on both sides, every design with a `game` section is built into a
+`ShipDefinition`:
+
+- **From the construction core:** the hull, decks, collision and default layout. The ladder-stairs
+  become the old piece system's `ladder` pieces and wells. Doorways are open.
+- **From the rig donor `carrack-m`:**
+  - masts, yards, sails, rigging, rudder, helm, binnacle, capstan, pump, rooms;
+  - sailing, motion and damage settings.
+
+  The donor's hull, slots, guns, entry gates and old pieces are left out.
+- **The rig near the main mast moves with it.** The mast, its sails, ropes and moving parts, the
+  pump and the fittings on it move one cell, fading out beyond. Sails drawn from shape files get
+  an offset.
+- **The mesh is built in memory on the client.** It holds the block faces, tiled so every UV lies
+  within one texture (the atlas doesn't repeat), plus the donor's rig groups.
+- **Spawning:** her entity `hansa:hansa-carrack` and a charter in the creative inventory, "Charter
+  of a grid carrack (Hansa prototype)".
+
+Verified:
+
+- `tests/ConstructionTests`: 96 of 96 checks pass.
+- `tests/HansaTests -- grid` (offline, with the mod's own classes), 19 checks:
+  - she builds in about 4 s with 55,534 voxels;
+  - the main mast, its sails and the pump shifted together;
+  - floor places on all 6 decks;
+  - all 5 ladder-stairs laid by the piece planner;
+  - a player stands on every deck;
+  - mesh UVs lie within their textures.
+- Server self-test on a real dedicated Vintage Story server, with the old self-test's "Only" mode
+  set to `grid`: ALL OK.
+  - She builds in 2.7 s.
+  - Her entity and charter are registered.
+  - Launched into the pool, her 5 ladder-stairs are laid and climbed up and down.
+  - Her hold is sealed, and after 8 s she is afloat and dry.
+  - On a beam wind she sailed 39 blocks east at up to 5.2 blocks/s, holding her course, until the
+    pool's wall.
+- The full inherited `HansaTests` still show only the 3 known failures.
+
+Not verified, and known gaps:
+
+- **No client was run.** Her drawing (the in-memory mesh, the sail offsets) is untested in game.
+  Both builds compile and the server path works. This is the first thing to check in game.
+- **No editing aboard yet.** The ship is her design's default blocks. Breaking or placing blocks,
+  grey guides, saving block changes and opening hatches belong to the next step (M4 proper).
+- **No guns.** The donor's 28 were placed on the old gun ports.
+- **No damage drawing.** The old hull damage skin needs the old panels.
+- **Missing pieces:** the beakhead and its heads seats, and paint zones.
+- **Rough rig shift.** A rope running from near the main mast to far away is stretched slightly
+  over 1.5 blocks.
 

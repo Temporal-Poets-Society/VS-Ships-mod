@@ -69,6 +69,13 @@ namespace HansaTests
                 DamageViews(vdef, Path.Combine(root, "assets", "hansa"));
                 return 0;
             }
+            if (Array.IndexOf(args, "grid") >= 0)
+            {
+                // the grid carrack as the game builds her: dotnet run -- grid
+                GridShip(root);
+                Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
+                return failures == 0 ? 0 : 1;
+            }
             if (Array.IndexOf(args, "sails") >= 0)
             {
                 // the sails' wear table and the sail checks alone (looking at them, mending them, the lateen's trim):

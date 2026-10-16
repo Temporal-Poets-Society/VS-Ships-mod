@@ -93,6 +93,10 @@ namespace Hansa.Construction
             bool panelPresent = glass || !state.Open;
             foreach (var p in cell.Pieces)
             {
+                // A corner piece borrowed from a neighbour (a merged sliver) lies outside this cell's
+                // own box: it stays whole, so the neighbour's shared faces do not change.
+                var (plo, phi) = p.Solid.Bounds();
+                if (Enumerable.Range(0, 3).Any(a => plo[a] < lo[a] - 1e-7 || phi[a] > hi[a] + 1e-7)) { Add(p.Solid, p.Part, wood, solids); continue; }
                 // Frame: everything outside the hole, as four convex strips.
                 Add(p.Solid.Clip(u, hole.lo[u], 1), p.Part, wood, solids);
                 Add(p.Solid.Clip(u, hole.hi[u], -1), p.Part, wood, solids);

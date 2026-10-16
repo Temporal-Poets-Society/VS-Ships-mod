@@ -20,6 +20,15 @@ faces and two-cell ladder-stairs. It is compiled into the mod
 but not yet connected to the game. The inherited carrack remains a reference design under
 Hansa's independent identity.
 
+## Try it in game
+
+The first in-game version is the **grid carrack**, `hansa-carrack`, built when the game loads
+from `assets/hansa/config/shipdesigns/carrack.json` and carrack-m's rig (`src/Ship/GridShips.cs`).
+In creative mode take "Charter of a grid carrack (Hansa prototype)" and hold right-click facing
+open water. She is her design's default blocks: walk her decks, climb the ladder-stairs, sail her.
+Editing blocks aboard, guns and damage drawing are not connected yet; see section 12 of the
+proposal.
+
 ## Build and checks
 
 Requires the existing Vintage Story installation and .NET SDK used by Magelan.
@@ -28,11 +37,31 @@ Hansa references the existing sibling Sea DLL; it does not build or alter Sea.
 ```powershell
 dotnet build Hansa.csproj
 dotnet run --project tests/ConstructionTests/ConstructionTests.csproj
+dotnet run --project tests/HansaTests/HansaTests.csproj -- grid
 dotnet run --project tests/HansaTests/HansaTests.csproj
 ```
 
+`tools/run_selftest.sh` runs the self-test on a local dedicated server. Its config's
+`"Only": "grid"` (`testserver/ModConfig/hansa-selftest.json`) runs just the grid carrack:
+launched, laid, climbed, sealed, afloat and sailed.
+
 `ConstructionTests` checks the construction core in plain .NET. `-- --dump` prints the cell
-slots of two cross-sections; `-- --export <file>` writes visible faces as JSON for a preview.
+slots of two cross-sections; `-- --export <file>` writes visible faces as JSON.
+
+## Preview
+
+```powershell
+dotnet run --project tools/HansaPreview/HansaPreview.csproj [design.json] [--out dir]
+```
+
+The command builds a design with the same construction core and writes `docs/preview/<code>.glb`
+(opens in Blender or Windows 3D Viewer) and `docs/preview/<code>.html`. The HTML file is a
+self-contained WebGL2 viewer: depth-buffered, using the game's own textures with one repeat per
+block, with part toggles, cut planes, a cell-edge overlay and a waterline plane. Serve the folder
+locally (for example `python -m http.server 8765 --directory docs/preview`) and open
+`two-bay.html`. The page address can pick a view and options: `#exterior`, `#cutaway`,
+`#section` or `#lower`, plus `,edges` or `,water`. Textures are read from the installed game
+(`VINTAGE_STORY` or `%APPDATA%\Vintagestory`).
 
 ## Fork provenance
 

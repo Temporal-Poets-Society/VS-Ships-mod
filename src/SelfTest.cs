@@ -13,7 +13,8 @@ namespace Hansa
     {
         public bool Enabled;
         public bool Shutdown = true;
-        /// <summary>(0.3.14) Run only one step after the pool is built: "blocks" (working blocks aboard, SelfTestBlocks).</summary>
+        /// <summary>(0.3.14) Run only one step after the pool is built: "blocks" (working blocks aboard, SelfTestBlocks),
+        /// "modular" (carrack-m's pieces), "grid" (the grid carrack, SelfTestGrid).</summary>
         public string Only;
     }
 
@@ -110,6 +111,7 @@ namespace Hansa
                 sapi.Event.UnregisterGameTickListener(waitId);
                 Check(pending <= 0, "pool chunks loaded");
                 BuildPool(water, stone, x0, x1, y0, z0, z1);
+                if (cfg.Only == "grid") { GridLaunch(mod, spawn, y0, Finish); return; }
                 // (0.3.17) the modular carrack launched, laid, sealed, walked, reloaded (gone again before the carrack sails)
                 ModularLaunch(mod, spawn, y0);
                 if (cfg.Only == "modular") { Finish(); return; }

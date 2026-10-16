@@ -207,11 +207,11 @@ namespace Hansa
         {
             if (meshes.TryGetValue(def.Code, out var m)) return m;
             m = new Meshes { Exterior = Tesselate(def.Shapes?.Exterior), Interior = Tesselate(def.Shapes?.Interior), Def = def };
-            m.SkinLoad = LoadSkin(def.Shapes?.Skin, def.DamageParts);
+            m.SkinLoad = def.SkinFile != null ? System.Threading.Tasks.Task.FromResult((def.SkinFile, (HullDamageSkin)null)) : LoadSkin(def.Shapes?.Skin, def.DamageParts);
             foreach (var s in def.Sails)
             {
                 MeshData smd = null;
-                var r = s.Shape != null ? Tesselate(s.Shape, out smd) : null;
+                var r = s.Shape != null ? Tesselate(s.Shape, out smd, s.Offset) : null;
                 if (r != null && smd != null) m.SailData[r] = smd;
                 m.Sails.Add((s, r));
             }
@@ -221,7 +221,7 @@ namespace Hansa
 
         MultiTextureMeshRef Tesselate(string shapeLoc) => Tesselate(shapeLoc, out _);
 
-        MultiTextureMeshRef Tesselate(string shapeLoc, out MeshData md)
+        MultiTextureMeshRef Tesselate(string shapeLoc, out MeshData md, double[] offset = null)
         {
             md = null;
             if (shapeLoc == null) return null;
@@ -237,6 +237,7 @@ namespace Hansa
             capi.Tesselator.TesselateShape("hansa ship", shape, out md, texSource);
             // a design drawn all from its mesh (the ship's boat) has nothing here
             if (md == null || md.VerticesCount == 0) return null;
+            if (offset != null) md.Translate((float)offset[0], (float)offset[1], (float)offset[2]);
             return capi.Render.UploadMultiTextureMesh(md);
         }
 
@@ -694,6 +695,7 @@ namespace Hansa
                     }
                     foreach (var e in shape.Elements) Tear(e);
                     capi.Tesselator.TesselateShape("hansa torn sail", shape, out MeshData md, new ShapeTextureSource(capi, shape, loc + " (torn)"));
+                    if (md != null && sail.Offset != null) md.Translate((float)sail.Offset[0], (float)sail.Offset[1], (float)sail.Offset[2]);
                     if (md != null && md.VerticesCount > 0) m.SailData[mesh = capi.Render.UploadMultiTextureMesh(md)] = md;
                 }
                 else if (sail.Mesh != null && m.File?.Groups != null && m.File.Groups.TryGetValue(sail.Mesh, out var quads))

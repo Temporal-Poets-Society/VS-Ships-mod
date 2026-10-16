@@ -2,18 +2,20 @@
 	code: "shipdeed",
 	class: "hansa.ItemShipDeed",
 	variantgroups: [
-		{ code: "ship", states: ["carrack", "carrack-a", "carrack-m"] }
+		{ code: "ship", states: ["carrack", "carrack-a", "carrack-m", "hansa-carrack"] }
 	],
+	// exact codes: a wildcard "*-carrack" would also match shipdeed-hansa-carrack
 	attributesByType: {
-		"*-carrack": { ship: "carrack" },
-		"*-carrack-a": { ship: "carrack-a" },
-		"*-carrack-m": { ship: "carrack-m" }
+		"shipdeed-carrack": { ship: "carrack" },
+		"shipdeed-carrack-a": { ship: "carrack-a" },
+		"shipdeed-carrack-m": { ship: "carrack-m" },
+		"shipdeed-hansa-carrack": { ship: "hansa-carrack" }
 	},
 	maxstacksize: 1,
 	texture: { base: "game:item/lore/book" },
 	// (0.3.25, the user: "keep only modular now and park in archive previous") only the carrack (carrack-m) is to be had;
 	// the archived charters (carrack, carrack-a) stay registered so deeds already in inventories still launch their ships
-	creativeinventory: { "general": ["*-carrack-m"] },
+	creativeinventory: { "general": ["*-carrack-m", "*-hansa-carrack"] },
 	guiTransform: {
 		rotation: { x: 0, y: 0, z: 0 },
 		origin: { x: 0.5, y: 0, z: 0.5 },

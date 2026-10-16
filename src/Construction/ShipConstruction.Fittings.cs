@@ -193,15 +193,29 @@ namespace Hansa.Construction
             foreach (var r in rows)
             {
                 if (WallAt(r) != null) return $"A wall already stands at {r}";
-                bool open = new[] { r.Cell, r.Beyond }.Any(c => !Solid(c) && (Lattice.Interior(c) || Lattice.SlotKey(c) == Parts.Deck)
-                    || KindAt(c)?.Lead == Parts.Deck);
-                if (!open) return $"There is no room for a wall at {r}";
+                if (HitsTimber(r)) return $"A wall at {r} would cut through rib or keel timber";
                 if (stairs.Any(s => Passage(s).Contains(r))) return $"The wall would block a stair at {r}";
             }
             var probe = FittingShapes.Wall(Lattice, f, new WallState { Kind = kind });
             double area = probe.draw.Sum(d => d.solid.Volume()) / FittingShapes.Board;
             if (area < MinWallArea * rows.Length) return "Too little space between floor and hull for a wall";
             return null;
+        }
+
+        /// <summary>Whether a board on this face would pass through rib or keel timber beside it.
+        /// Decks and beams only lower the wall's top; the hull's surface trims its ends.</summary>
+        bool HitsTimber(FaceId f)
+        {
+            var (lo, hi) = Lattice.Bounds(f.Cell);
+            double plane = hi[f.Axis];
+            foreach (var c in new[] { f.Cell, f.Beyond })
+                if (Solid(c) && Lattice.Cells.TryGetValue(c, out var cell))
+                    foreach (var p in cell.Pieces.Where(p => p.Part is Parts.Rib or Parts.Keel))
+                    {
+                        var (plo, phi) = p.Solid.Bounds();
+                        if (plo[f.Axis] < plane + FittingShapes.Board / 2 && phi[f.Axis] > plane - FittingShapes.Board / 2) return true;
+                    }
+            return false;
         }
 
         public void PlaceWall(FaceId f, string kind, string material)

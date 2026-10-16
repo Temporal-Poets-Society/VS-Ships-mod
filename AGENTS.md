@@ -6,7 +6,10 @@ folder and the first cross-section/two-bay prototype. Magelan is a read-only ref
 ## Accepted construction rules
 
 - Keep the carrack's overall character, castles, mast arrangement and useful
-  mechanics. Redesign the default hull, ribs, windows and openings to fit the grid.
+  mechanics. The Magelan carrack is the general example for looks and dimensions: decks 3 apart (2 clear +
+  1 structural block), the bottom one whole block (planking, floor timbers, hold floor, the keel flush
+  inside it), tumblehome, and the waterline 0.875 above a cell
+  boundary so decks meet piers level. Redesign the default hull, ribs, windows and openings to fit the grid.
 - One ship-local block grid, shared by every deck and component. Minor dimensions
   inside a cell are aesthetic geometry, not alternative placement grids.
 - Rib cells occupy one longitudinal block, with 1 or 3 clear cells between them: bays of 3
@@ -31,9 +34,11 @@ folder and the first cross-section/two-bay prototype. Magelan is a read-only ref
 The first grid prototype is archived in `archive/gpt-grid-prototype` (not built,
 to be deleted later). The ship-design model is in `docs/proposals/ship-design-architecture.md`;
 only its section 8 decisions are agreed. `src/Construction` is the pure construction core
-(milestone M1): one master block per cell, and every edit changes exactly one cell. No grid ship
-exists in game yet; keep that explicit until targeting, rendering, collision, inventory,
-damage, water clipping, support validation and multiplayer adapters are connected.
+(milestone M1): one master block per cell, and every edit changes exactly one cell.
+`src/Ship/GridShips.cs` binds grid designs to the game: `hansa-carrack` is her design's default
+blocks on carrack-m's rig. She launches, floats and sails, verified on a dedicated server; her
+client drawing is not verified yet. Block editing aboard, guides, block saves, guns and damage
+drawing are not connected; keep that explicit.
 
 The inherited baseline is unfinished 0.3.30 source with older assets. Do not
 regenerate or repair every historic design while working on the new grid slice.
@@ -42,6 +47,7 @@ Keep historical notes under `docs/legacy`, and use `docs/grid-contract.md` for c
 ## Verification
 
 Run `tests/ConstructionTests` after changing `src/Construction`, the kind library or a design.
-Build Hansa after runtime changes. Validate previews visually when geometry changes.
+Build Hansa after runtime changes. Validate previews visually when geometry changes: re-run
+`tools/HansaPreview` and inspect the views (headless Chrome can capture `two-bay.html#<view>`).
 Sea is referenced through its existing build and must not be modified as a build side effect.
 Do not copy bin, obj, test worlds or old release packages from Magelan.

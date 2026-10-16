@@ -193,6 +193,9 @@ namespace Hansa
                     Mod.Logger.Error("Failed to load ship {0}: {1}", kv.Key, e);
                 }
             }
+            // (grid ships, docs/proposals/ship-design-architecture.md) designs built from the construction core, each on
+            // its rig donor among the ships just loaded
+            GridShips.LoadAll(api, ships, Mod.Logger);
             // each design's paint zones, read in the background (HansaDecor)
             StartPaintPlans(api);
         }

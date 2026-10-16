@@ -216,6 +216,13 @@ namespace Hansa.Construction
 
         static readonly HashSet<string> FrameLeads = new() { Parts.Keel, Parts.Rib, Parts.Beam };
 
+        /// <summary>A bottom block in a rib column under a floor laid on the bottom (the hold floor):
+        /// it stands for the floor timber joining the rib to the keel across the bottom.</summary>
+        bool FloorTimber(CellId c) =>
+            Lattice.Design.Frames.Cells.Contains(c.X) &&
+            Lattice.Design.Decks.Any(d => !d.Beams && (int)Math.Round(d.Top - Lattice.Origin.Y) - 1 == c.Y) &&
+            Lattice.SlotKey(c).Split('+').Contains(Parts.Deck);
+
         /// <summary>Present blocks with a load path: keel, ribs and beams joined to the keel; planking
         /// and openings within PlankSpan cells of supported framing; stairs and partitions resting on
         /// something supported.</summary>
@@ -223,14 +230,14 @@ namespace Hansa.Construction
         {
             var ok = new HashSet<CellId>();
             var queue = new Queue<CellId>();
-            foreach (var c in blocks.Keys.Where(c => KindAt(c).Lead == Parts.Keel)) { ok.Add(c); queue.Enqueue(c); }
+            foreach (var c in blocks.Keys.Where(c => KindAt(c).Lead == Parts.Keel || Lattice.Backbone.Contains(c))) { ok.Add(c); queue.Enqueue(c); }
             while (queue.Count > 0)
             {
                 var c = queue.Dequeue();
                 foreach (var d in CellId.Sides)
                 {
                     var n = c + d;
-                    if (!ok.Contains(n) && blocks.ContainsKey(n) && FrameLeads.Contains(KindAt(n).Lead ?? "")) { ok.Add(n); queue.Enqueue(n); }
+                    if (!ok.Contains(n) && blocks.ContainsKey(n) && (FrameLeads.Contains(KindAt(n).Lead ?? "") || FloorTimber(n) || Lattice.Backbone.Contains(n))) { ok.Add(n); queue.Enqueue(n); }
                 }
             }
             var frames = ok.ToHashSet();
@@ -240,14 +247,19 @@ namespace Hansa.Construction
                 if (ok.Contains(c)) continue;
                 bool held = false;
                 foreach (int dir in new[] { 1, -1 })
-                    for (int dx = 1; dx <= span && !held; dx++)
+                    for (int dx = 0; dx <= span && !held; dx++)
                     {
                         var x = c + new CellId(dir * dx, 0, 0);
                         held = Enumerable.Range(-1, 3).Any(dy => Enumerable.Range(-1, 3).Any(dz => frames.Contains(x + new CellId(0, dy, dz))));
-                        if (!blocks.ContainsKey(x)) break;
+                        // The planking run may follow the hull's turn by a cell up, down or sideways.
+                        if (dx > 0 && !Enumerable.Range(-1, 3).Any(dy => Enumerable.Range(-1, 3).Any(dz => blocks.ContainsKey(x + new CellId(0, dy, dz))))) break;
                     }
                 if (held) ok.Add(c);
             }
+            // Planking laid across the hull (transom, stem plank, castle fronts) stands on what is
+            // under it, lowest first.
+            foreach (var c in blocks.Keys.Where(c => !ok.Contains(c) && Lattice.Across.Contains(c)).OrderBy(c => c.Y))
+                if (ok.Contains(c - CellId.Up) || CellId.Sides.Any(d => d.Y == 0 && frames.Contains(c + d))) ok.Add(c);
             return ok;
         }
 

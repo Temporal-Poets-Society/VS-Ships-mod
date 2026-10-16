@@ -64,7 +64,7 @@ namespace Hansa.Construction
             var r = new List<V3>();
             foreach (var p in points) if (r.Count == 0 || (p - r[^1]).Length > 1e-9) r.Add(p);
             if (r.Count > 1 && (r[0] - r[^1]).Length < 1e-9) r.RemoveAt(r.Count - 1);
-            return r.Count >= 3 && Area(r) > 1e-10 ? r.ToArray() : null;
+            return r.Count >= 3 && Area(r) > 1e-10 && Normal(r) != null ? r.ToArray() : null;
         }
 
         /// <summary>Orients every face away from the solid's centre.</summary>

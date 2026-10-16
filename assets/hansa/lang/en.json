@@ -7,6 +7,8 @@
 	"entity-carrack-a": "Carrack (companion A)",
 	"item-shipdeed-carrack-m": "Charter of a carrack",
 	"entity-carrack-m": "Carrack",
+	"item-shipdeed-hansa-carrack": "Charter of a grid carrack (Hansa prototype)",
+	"entity-hansa-carrack": "Grid carrack",
 	"deed-help": "Hold right-click facing open water to launch the ship side-on in front of you (not from aboard a ship, nor with one in the crosshair).",
 	"deed-aboard": "Launch a ship from the shore or the water, not from aboard one.",
 	"deed-at-ship": "There's a ship in the way: face open water to launch her.",

@@ -114,6 +114,8 @@ namespace Hansa
         [JsonIgnore] public MountLayout Mounts;
 
         [JsonIgnore] public VoxelGrid Grid;
+        /// <summary>A mesh built in memory (a grid ship's: <see cref="GridShips"/>) instead of <see cref="ShipShapes.Skin"/>'s file.</summary>
+        [JsonIgnore] public ShipSkinFile SkinFile;
         /// <summary>What part of her a spot of her collision is (the hull's shell, a deck, a mast...): <see cref="ShipPartMap"/>.</summary>
         [JsonIgnore] public ShipPartMap PartMap;
         /// <summary>
@@ -862,6 +864,8 @@ namespace Hansa
         public double[] AxisPoint;
         public double[] AxisDir;
         public float Area;
+        /// <summary>Where its shape is drawn from where the shape file has it (a grid ship's rig moved with its mast).</summary>
+        [JsonIgnore] public double[] Offset;
         /// <summary>The fixture of the mast it's set on, if that folds down: lowered, the sail isn't drawn and doesn't drive her.</summary>
         public string Mast;
     }
