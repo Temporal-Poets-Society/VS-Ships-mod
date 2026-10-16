@@ -25,9 +25,11 @@ Hansa's independent identity.
 The first in-game version is the **grid carrack**, `hansa-carrack`, built when the game loads
 from `assets/hansa/config/shipdesigns/carrack.json` and carrack-m's rig (`src/Ship/GridShips.cs`).
 In creative mode take "Charter of a grid carrack (Hansa prototype)" and hold right-click facing
-open water. She is her design's default blocks: walk her decks, climb the ladder-stairs, sail her.
-Editing blocks aboard, guns and damage drawing are not connected yet; see section 12 of the
-proposal.
+open water. She is her design's default blocks on Magelan's mechanics: walk her decks, climb the
+ladder-stairs (open the scuttle at the top), use her doors, hatches, galley, guns and pump, sail,
+paint, take shot damage, flood, mend and sink into a wreck. Her plain planking works as Magelan's
+slots; her ribs, beams and other fixed structure can't be edited yet, and nothing has been seen in
+a client. See sections 12 and 13 of the proposal.
 
 ## Build and checks
 
@@ -43,7 +45,8 @@ dotnet run --project tests/HansaTests/HansaTests.csproj
 
 `tools/run_selftest.sh` runs the self-test on a local dedicated server. Its config's
 `"Only": "grid"` (`testserver/ModConfig/hansa-selftest.json`) runs just the grid carrack:
-launched, laid, climbed, sealed, afloat and sailed.
+launched, laid, climbed, sealed, afloat, sailed, her doors, hatches, deck cells, a holed panel and
+a broadside. `"Ship": "hansa-carrack"` runs the whole inherited self-test on her.
 
 `ConstructionTests` checks the construction core in plain .NET. `-- --dump` prints the cell
 slots of two cross-sections; `-- --export <file>` writes visible faces as JSON.

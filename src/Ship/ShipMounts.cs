@@ -2198,7 +2198,8 @@ namespace Hansa
         {
             var list = new List<double[]>();
             if (def?.Wells == null || r == null) return list;
-            var shelves = (pieces ?? Enumerable.Empty<ShipPiece>()).Where(p => p.Role == PieceRole.Shelf && p.Box != null).ToList();
+            // (a shelf over it, or a shut hatch: a scuttle over a ladder's way up, note 169)
+            var shelves = (pieces ?? Enumerable.Empty<ShipPiece>()).Where(p => (p.Role == PieceRole.Shelf || p.Role == PieceRole.Hatch && !p.Open) && p.Box != null).ToList();
             foreach (var w in def.Wells)
             {
                 var b = w?.Box;

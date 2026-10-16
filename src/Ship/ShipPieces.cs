@@ -1506,6 +1506,8 @@ namespace Hansa
             foreach (string m in plan.Mounts) if (At(m) is ShipPiece p) return p;
             foreach (var p in ById.Values)
             {
+                // (a hatch shuts over a ladder's way up, its top step in the opening: the climber opens it, note 169)
+                if (plan.Role == PieceRole.Hatch && p.Role == PieceRole.Ladder) continue;
                 foreach (var a in plan.Sel)
                     foreach (var b in p.Sel)
                         if (PiecePlanner.Overlap(a, b)) return p;

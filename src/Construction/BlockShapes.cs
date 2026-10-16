@@ -91,6 +91,9 @@ namespace Hansa.Construction
             bool glass = kind.Opening.Panel == "glass";
             string panelMaterial = glass ? lattice.Design.Glass : wood;
             bool panelPresent = glass || !state.Open;
+            // An operable opening's frame is drawn but takes no collision: thinner than a voxel, it would
+            // claim whole voxel rows round the hole and leave an open doorway a slit.
+            bool frameCollides = !kind.Opening.Operable;
             foreach (var p in cell.Pieces)
             {
                 // A corner piece borrowed from a neighbour (a merged sliver) lies outside this cell's
@@ -98,11 +101,11 @@ namespace Hansa.Construction
                 var (plo, phi) = p.Solid.Bounds();
                 if (Enumerable.Range(0, 3).Any(a => plo[a] < lo[a] - 1e-7 || phi[a] > hi[a] + 1e-7)) { Add(p.Solid, p.Part, wood, solids); continue; }
                 // Frame: everything outside the hole, as four convex strips.
-                Add(p.Solid.Clip(u, hole.lo[u], 1), p.Part, wood, solids);
-                Add(p.Solid.Clip(u, hole.hi[u], -1), p.Part, wood, solids);
+                Add(p.Solid.Clip(u, hole.lo[u], 1), p.Part, wood, solids, frameCollides);
+                Add(p.Solid.Clip(u, hole.hi[u], -1), p.Part, wood, solids, frameCollides);
                 var middle = p.Solid.Clip(u, hole.lo[u], -1)?.Clip(u, hole.hi[u], 1);
-                Add(middle?.Clip(v, hole.lo[v], 1), p.Part, wood, solids);
-                Add(middle?.Clip(v, hole.hi[v], -1), p.Part, wood, solids);
+                Add(middle?.Clip(v, hole.lo[v], 1), p.Part, wood, solids, frameCollides);
+                Add(middle?.Clip(v, hole.hi[v], -1), p.Part, wood, solids, frameCollides);
                 if (panelPresent)
                 {
                     var panel = middle?.Clip(v, hole.lo[v], -1)?.Clip(v, hole.hi[v], 1);
@@ -111,9 +114,9 @@ namespace Hansa.Construction
             }
         }
 
-        static void Add(Convex c, string part, string material, List<(string, Convex, string, bool)> solids)
+        static void Add(Convex c, string part, string material, List<(string, Convex, string, bool)> solids, bool collides = true)
         {
-            if (c != null) solids.Add((part, c, material, true));
+            if (c != null) solids.Add((part, c, material, collides));
         }
     }
 }

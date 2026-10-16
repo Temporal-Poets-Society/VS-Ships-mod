@@ -556,3 +556,90 @@ Not verified, and known gaps:
 - **Rough rig shift.** A rope running from near the main mast to far away is stretched slightly
   over 1.5 blocks.
 
+
+## 13. Towards Magelan's level, 16 October 2026
+
+Worked on while the user was away: "do full mod as i am going away. complete to level of magelan.
+check and test." Nothing here is committed yet.
+
+### What she has now, beyond section 12
+
+- **Slots: damage, holes, leaks, flooding and mending.** `src/Ship/GridShipSlots.cs` makes her
+  plain side planking Magelan's hull panels and her plain deck planking deck cells. Her bottom,
+  keel, ribs, beams, deck edges, castle fronts, transom, stem and openings are fixed structure, as
+  Magelan's skeleton is. A shot or grounding cracks or stoves in a panel, the sea comes in, the
+  pump and repairs work, and in building mode her deck cells are taken up and laid.
+- **Guns.** 8 waist guns, copies of carrack-m's, at her one-block ports (`game.guns`). Each has a
+  gun place on her deck cells.
+- **Doors, galley, hatches.**
+  - 3 castle doors (vanilla doors as pieces) in the bulkheads' doorways, a hearth and an oven in
+    the forecastle (`game.pieces`).
+  - 2 cargo hatches (trapdoors) over her 2×3 hatchways.
+  - New: a **scuttle** (a shut trapdoor) over each ladder well that comes up through a weather
+    deck (4 of her 5). Without them no room under a weather deck could close against rain and
+    cold. A climber opens it, as Magelan's note 169 already allows. `game.scuttles: false` turns
+    them off. This is a layout choice made here; the user may prefer another.
+- **Paint.** 10 paint zones (`game.paint`): rail caps, bottom, topsides, castles' sides,
+  bulwarks, inside planking, frames, beams, ceilings, keel. Each is a rule by part, facing and
+  height. Vanilla dye, gold and the knife work on them as on carrack-m.
+- **Rooms** from her decks (`game.rooms`): hold, lower deck, great cabin, poop cabin and
+  forecastle, each from its floor's top to the underside of the deck over it. The donor's boxes
+  were carrack-m's (its forecastle began a block further forward).
+- **Keep-clear places, hull samples, water clip.** All three are now her own, not the donor's:
+  - keep-clear: the rig's places, her guns, hatchways and windows;
+  - hull samples: across her bottom and along her sides, a block apart;
+  - water clip: an exact outline from her hull form.
+- **The donor's leftovers removed:** carrack-m's beakhead collision beyond her bow (she has no
+  beakhead), its window leading and dark panes in the mesh. The name board moved onto her
+  transom.
+
+### Fixes to the construction core and the inherited code
+
+- **Open doorways and ports are open over the whole cell.** An operable opening's frame (1/16
+  block) claimed whole collision voxels (1/4 block), so a 2-block doorway was two half-block slits.
+  The frame is still drawn but takes no collision. Shut, the panel fills the cell.
+- **Doors stand in their bulkheads.** They had stood a block inside each room, with a partition
+  over the gap above.
+- **A shut hatch covers a well** for room sealing, as a shelf did. A hatch may be laid over a
+  ladder's top step.
+- **A placed hearth's contents go into a wreck.** Taking up her pieces first dropped the hearth's
+  inventory before it was collected; this affected carrack-m too.
+- **Self-test:** the server's mesh and paint plan are built on both sides. Checks that assumed the
+  old hull (fixture doors, the waist hatch, its partition places, plank-count repairs, guns on
+  whole-block x) now either check her own equivalents or log that they don't apply.
+
+### Verified
+
+- `tests/ConstructionTests`: 96 of 96.
+- `tests/HansaTests -- grid`, offline:
+  - build, rig shift, rooms, hull samples, water clip, keep-clear places;
+  - the name board and no beakhead;
+  - ladders, scuttles, design pieces, doorways open over the whole cell;
+  - slots, hatchways, paint zones, guns, mesh UVs.
+  - All OK.
+- Dedicated server, `"Only": "grid"`: ALL OK.
+  - Launched, ladders climbed, scuttles stop a climber's head, side ladders and 14 lanterns.
+  - Hold sealed, afloat, sailed 44.8 blocks at up to 5.3 b/s.
+  - Doors seal and open the great cabin, a chest in the hold, 6 hatches.
+  - A deck cell taken up and laid, a panel stove in, flooded, mended, pumped.
+  - 8 guns mounted and a broadside fired without hurting herself.
+- Dedicated server, the full inherited self-test with `"Ship": "hansa-carrack"`: 317 checks
+  pass, 2 fail. Both failures are carrack-m's own and fail the same way with the inherited
+  `"Ship": "carrack"` (333 pass, 2 fail):
+  - 0.3.30 (notes 236, 239): carrack-m still has gun places on its poop's sides;
+  - 0.3.26: carrack-m reloaded with a panel out counts 11 differences, not 1.
+
+  Among what it covers on her: grounding damage at the bow; repairs; the hearth laid as a piece,
+  lit and warming her closed forecastle; gunnery and broadsides until she sinks; her wreck with
+  all her cargo; crews, spawn and paint.
+  - The broadside check is close to its threshold: 34 of 80 balls struck her (it asks 40 %; an
+    earlier run had 33 of 84). Her side is upright below the waterline, so more balls go into the
+    water short of her.
+- `tests/HansaTests` (the inherited offline suite): only its 3 known failures.
+
+### Not verified, and known gaps
+
+- **No client was run.** Her drawing, paint, damage overlays and sails are untested on screen.
+- **No block editing aboard beyond Magelan's slots.** Her ribs, beams, keel and fixed structure
+  can't yet be broken or rebuilt; guides and block saves are M4 proper.
+- **Rough rig shift** as in section 12.

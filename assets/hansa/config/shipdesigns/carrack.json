@@ -46,7 +46,40 @@
     "code": "hansa-carrack",
     "name": "Grid carrack",
     "rig": "carrack-m",
-    "rigShift": [{ "at": 2.5, "by": 1, "reach": 2.6, "falloff": 1.5 }]
+    "rigShift": [{ "at": 2.5, "by": 1, "reach": 2.6, "falloff": 1.5 }],
+    "pieces": [
+      { "kind": "hearth", "at": [17.5, 2.125, 2.0], "facing": "-z", "code": "hearth" },
+      { "kind": "oven", "at": [16.5, 2.125, 2.0], "facing": "-z", "code": "oven" },
+      { "kind": "door", "at": [13.0, 2.125, 0.0], "along": "z", "block": "game:door-sleek-windowed-oak", "code": "door-forecastle" },
+      { "kind": "door", "at": [-2.0, 2.125, 0.0], "along": "z", "block": "game:door-sleek-windowed-oak", "code": "door-greatcabin" },
+      { "kind": "door", "at": [-9.0, 5.125, 0.0], "along": "z", "block": "game:door-sleek-windowed-oak", "code": "door-poopcabin" }
+    ],
+    "guns": [
+      { "x": 1, "side": -1 }, { "x": 5, "side": -1 }, { "x": 9, "side": -1 }, { "x": 11, "side": -1 },
+      { "x": 1, "side": 1 }, { "x": 5, "side": 1 }, { "x": 9, "side": 1 }, { "x": 11, "side": 1 }
+    ],
+    "fixtures": {
+      "nameboard": { "pos": [-17.65, 8.3818, 0.0], "sel": [-17.78, 8.13, -1.13, -17.5, 8.63, 1.13], "up": [0.0, 1.0, 0.0], "out": [-1.0, 0.0, 0.0] }
+    },
+    "rooms": [
+      { "code": "hold", "floor": "hold", "ceiling": "lower" },
+      { "code": "lowerdeck", "floor": "lower", "ceiling": "main" },
+      { "code": "greatcabin", "floor": "main", "ceiling": "quarter", "pieces": true },
+      { "code": "poopcabin", "floor": "quarter", "ceiling": "poop", "pieces": true },
+      { "code": "forecastle", "floor": "main", "ceiling": "forecastle", "pieces": true }
+    ],
+    "paint": [
+      { "code": "rail-caps", "name": "Rail caps: the tops of her bulwarks and castle walls", "kind": "moulding", "parts": ["skin"], "facing": ["up"], "yMin": 7.5 },
+      { "code": "bottom", "name": "Her bottom, below the waterline", "parts": ["skin"], "facing": ["out", "down"], "yMax": 4.875 },
+      { "code": "topsides", "name": "Topsides, from the waterline up to the waist's rail (outside)", "parts": ["skin"], "facing": ["out", "down"], "yMax": 8 },
+      { "code": "castle-sides", "name": "Castles above the waist's rail: their sides, fronts and her stern (outside)", "parts": ["skin"], "facing": ["out", "down"] },
+      { "code": "bulwarks", "name": "Inside of the bulwarks and the castles' walls", "parts": ["skin"], "facing": ["in"], "yMin": 7 },
+      { "code": "inside-planking", "name": "Inside planking below the main deck (lower deck, hold)", "parts": ["skin"], "facing": ["in"] },
+      { "code": "frames", "name": "Frames (ribs) inside her", "kind": "moulding", "default": "timber", "parts": ["rib"] },
+      { "code": "beams", "name": "Deck beams", "kind": "ceiling", "default": "timber", "parts": ["beam"] },
+      { "code": "ceilings", "name": "Ceilings: the decks' undersides", "kind": "ceiling", "default": "deck", "parts": ["deck"], "facing": ["down"] },
+      { "code": "keel", "name": "Keel, along her hold floor", "kind": "moulding", "default": "timber", "parts": ["keel"] }
+    ]
   },
   "beamDepth": 0.5,
   "waterline": 4.875,
@@ -57,8 +90,10 @@
     { "stair": { "foot": [-11, 10, 0], "dir": "+z" } },
     { "stair": { "foot": [14, 7, 0], "dir": "+z" } },
     { "set": "gate", "at": [[-3, 7, 0], [-3, 8, 0], [-10, 10, 0], [-10, 11, 0], [13, 7, 0], [13, 8, 0]] },
-    { "set": "hatch", "at": [[6, 6, 0], [7, 6, 0], [6, 6, -1], [7, 6, -1], [6, 3, 0], [7, 3, 0], [6, 3, -1], [7, 3, -1]] },
-    { "set": "gunport", "at": [[-6, 5, 6], [-6, 5, -6], [-2, 5, 6], [-2, 5, -6], [6, 5, 6], [6, 5, -6], [10, 5, 6], [10, 5, -6]] },
-    { "set": "window", "at": [[-18, 11, 1], [-18, 11, -1]] }
+    { "set": "gate", "at": [[7, 7, 5], [7, 7, 6], [7, 7, -5], [7, 7, -6]] },
+    { "set": "hatch", "at": [[6, 6, -1], [7, 6, -1], [6, 6, 0], [7, 6, 0], [6, 6, 1], [7, 6, 1], [6, 3, -1], [7, 3, -1], [6, 3, 0], [7, 3, 0], [6, 3, 1], [7, 3, 1]] },
+    { "set": "window", "at": [[-18, 11, 1], [-18, 11, -1]] },
+    { "set": "gunport", "at": [[1, 7, 5], [1, 7, 6], [5, 7, 5], [5, 7, 6], [9, 7, 5], [9, 7, 6], [11, 7, 5], [11, 7, 6],
+                               [1, 7, -5], [1, 7, -6], [5, 7, -5], [5, 7, -6], [9, 7, -5], [9, 7, -6], [11, 7, -5], [11, 7, -6]] }
   ]
 }

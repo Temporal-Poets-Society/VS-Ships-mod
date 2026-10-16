@@ -25,12 +25,19 @@ namespace Hansa
             paintPlans.Clear();
             foreach (var def in ships.Values)
             {
-                if (def.PaintZones == null || def.PaintZones.Length == 0 || def.Shapes?.Skin == null) continue;
-                var skin = api.Assets.TryGet(AssetLocation.Create(def.Shapes.Skin, "hansa"));
-                if (skin == null) continue;
-                byte[] data = skin.Data;
+                if (def.PaintZones == null || def.PaintZones.Length == 0) continue;
+                // (a grid ship's mesh is built in memory, GridShips; a generated design's is read from its file)
+                var built = def.SkinFile;
+                byte[] data = null;
+                if (built == null)
+                {
+                    if (def.Shapes?.Skin == null) continue;
+                    var skin = api.Assets.TryGet(AssetLocation.Create(def.Shapes.Skin, "hansa"));
+                    if (skin == null) continue;
+                    data = skin.Data;
+                }
                 var shapes = new Dictionary<string, string>();
-                foreach (var (role, loc) in new[] { ("exterior", def.Shapes.Exterior), ("interior", def.Shapes.Interior) })
+                foreach (var (role, loc) in new[] { ("exterior", def.Shapes?.Exterior), ("interior", def.Shapes?.Interior) })
                 {
                     if (loc == null) continue;
                     var a = api.Assets.TryGet(AssetLocation.Create(loc, "hansa").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json"));
@@ -42,7 +49,7 @@ namespace Hansa
                 {
                     try
                     {
-                        var file = JsonConvert.DeserializeObject<ShipSkinFile>(System.Text.Encoding.UTF8.GetString(data));
+                        var file = built ?? JsonConvert.DeserializeObject<ShipSkinFile>(System.Text.Encoding.UTF8.GetString(data));
                         var boxes = shapes.ToDictionary(kv => kv.Key, kv => PaintPlan.ShapeBoxes(kv.Value));
                         var plan = PaintPlan.Build(d, file, boxes);
                         logger.Notification("Ship '{0}': {1} paint zones, {2} of them on her meshes", d.Code, plan.Zones.Length,

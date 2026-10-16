@@ -69,6 +69,7 @@ namespace HansaTests
                 DamageViews(vdef, Path.Combine(root, "assets", "hansa"));
                 return 0;
             }
+            if (Array.IndexOf(args, "grid-pieces") >= 0) { GridPieces(root); return 0; }
             if (Array.IndexOf(args, "grid") >= 0)
             {
                 // the grid carrack as the game builds her: dotnet run -- grid

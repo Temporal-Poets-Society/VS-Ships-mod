@@ -313,14 +313,14 @@ namespace Hansa
                 }
                 else loose.Items.Add(stack);
             }
+            // her hearth's fuel, what was cooking and what was cooked (and a pot's ingredients); her oven's fuel and what was
+            // baking. (Before her pieces: taking up a placed hearth or oven takes its inventory away with it.)
+            if (ship.HearthInv != null) loose.Items.AddRange(Contents(ship.HearthInv, take));
+            if (ship.OvenInv != null) loose.Items.AddRange(Contents(ship.OvenInv, take));
             // the pieces put aboard: each container with what's in it, where it stood; the rest loose (ShipDecor)
             ship.PieceLoot(list, loose, take);
             foreach (var kv in ship.Storages)
                 if (ship.Def.Fixture(kv.Key)?.Type != "attach" && !kv.Key.StartsWith("piece-")) loose.Items.AddRange(Contents(kv.Value, take));
-            // her hearth's fuel, what was cooking and what was cooked (and a pot's ingredients)
-            if (ship.HearthInv != null) loose.Items.AddRange(Contents(ship.HearthInv, take));
-            // her oven's fuel and what was baking
-            if (ship.OvenInv != null) loose.Items.AddRange(Contents(ship.OvenInv, take));
             if (!ship.Clad && ship.CladPlates > 0 && ship.World.GetItem(new AssetLocation("game:metalplate-copper")) is Item plate)
                 loose.Items.Add(new ItemStack(plate, ship.CladPlates));
             if (take)

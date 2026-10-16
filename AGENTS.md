@@ -36,9 +36,10 @@ to be deleted later). The ship-design model is in `docs/proposals/ship-design-ar
 only its section 8 decisions are agreed. `src/Construction` is the pure construction core
 (milestone M1): one master block per cell, and every edit changes exactly one cell.
 `src/Ship/GridShips.cs` binds grid designs to the game: `hansa-carrack` is her design's default
-blocks on carrack-m's rig. She launches, floats and sails, verified on a dedicated server; her
-client drawing is not verified yet. Block editing aboard, guides, block saves, guns and damage
-drawing are not connected; keep that explicit.
+blocks on carrack-m's rig, with Magelan's mechanics: slots (damage, flooding, mending, deck cells),
+guns, doors, hatches and scuttles, galley, paint, rooms and wrecks, verified on a dedicated server
+(proposal section 13). Her client drawing is not verified yet. Editing her fixed structure (ribs,
+beams, keel), guides and block saves are not connected; keep that explicit.
 
 The inherited baseline is unfinished 0.3.30 source with older assets. Do not
 regenerate or repair every historic design while working on the new grid slice.

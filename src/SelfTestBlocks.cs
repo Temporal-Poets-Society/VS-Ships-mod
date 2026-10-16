@@ -38,7 +38,7 @@ namespace Hansa
             var bloomery = B("bloomerybase-north");
             var chimney = B("bloomerychimney");
             var support = sapi.World.GetBlock(ShipBlocksSystem.SupportCode);
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", "carrack"));
+            var type = sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship));
             Check(bsys != null && forge != null && bellows != null && anvil != null && bloomery != null && chimney != null && support != null && type != null,
                 $"working blocks: the system, vanilla's forge, bellows, anvil, bloomery and chimney, and the support block ({forge?.Code}, {bellows?.Code}, {anvil?.Code}, {bloomery?.Code}, {chimney?.Code}, {support?.Code})");
             Check(mod.Config.WorkingBlocks && ShipBlockMath.Matches(mod.Config.WorkingBlockCodes, "anvil-iron") && ShipBlockMath.Matches(mod.Config.WorkingBlockCodes, "bloomerychimney") &&
