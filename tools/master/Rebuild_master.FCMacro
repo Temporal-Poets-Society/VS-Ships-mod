@@ -1,0 +1,25 @@
+# Rebuild the open master hull model's bodies (Envelope, Shell, Backbone, Ribs, Beams, Decks) from its inputs after an
+# edit: a waterline sketch, the sheer or forecastle profile, a rib or deck box, or the Parameters sheet.
+# Macro > Macros... > this file > Execute (with the model open). See docs/master-model.md.
+import os
+import sys
+
+import FreeCAD as App
+
+here = os.path.dirname(os.path.abspath(__file__))
+if here not in sys.path:
+    sys.path.insert(0, here)
+import importlib
+import master_fields
+import master_rebuild
+importlib.reload(master_fields)
+importlib.reload(master_rebuild)
+
+doc = App.ActiveDocument
+if doc is None or doc.getObject("LowerWaterlines") is None:
+    raise SystemExit("Open the master model (models/<ship>/<ship>.FCStd) first")
+if not doc.FileName:
+    raise SystemExit("Save the master model first: its fields are written next to it")
+master_rebuild.rebuild(doc)
+doc.save()                       # (the model and its fields, <name>-fields.npz, saved together)
+App.Console.PrintMessage("Master model rebuilt and saved.\n")

@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ship master model</title>
+<!-- The shared ship viewer (tools/shipview): one page for every ship's master model (the carrack, the caravel).
+     Data: window.SHIP (or window.CARAVEL), from a <ship>-mesh.js next to this page or inlined by tools/shipview/bundle.py.
+       name, units "mm", frame "X fore, Y port, Z up", levels { waterline }, colours? { Body: "#rrggbb" },
+       bodies { Name: { p: [x, y, z, ...], i: [a, b, c, ...] }  or  { pq: base64 int16 xyz, unit: mm per step,
+                iq: base64 uint32 indices } }, lines? { Reference: [[x, y, z, ...], ...] }.
+       Bodies named Rig_<name> are rigs: one shown at a time (&rig=<name>).
+     Hash: #profile #plan #body #bow #stern #deck, &rig=, &hide=Body,Body, &clip=X (section at X mm, keeps aft of it),
+     &cutz=Z (cut from the top: keeps below Z mm), &proj=ortho|persp (projection; else the view's own), &noui -->
+<style>
+  :root { --bg: #e9eef2; --fg: #1d2630; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 13px system-ui, sans-serif; overflow: hidden; }
+  #ui { position: absolute; top: 8px; left: 8px; background: #fffc; padding: 6px 8px; border-radius: 6px; max-width: calc(100vw - 32px); }
+  #ui label { margin-right: 8px; white-space: nowrap; }
+  #ui .row + .row { margin-top: 4px; }
+  #ui button { font: inherit; margin: 2px 4px 0 0; padding: 2px 8px; border: 1px solid #8aa; border-radius: 4px;
+    background: #fff; cursor: pointer; }
+  #ui button.on { background: #2060c0; color: #fff; border-color: #2060c0; }
+  #ui input[type=range] { width: 160px; vertical-align: middle; }
+  #title { position: absolute; bottom: 8px; left: 10px; font-weight: 600; }
+  canvas { display: block; }
+  #picks { position: absolute; right: 8px; bottom: 8px; max-width: min(460px, calc(100vw - 32px)); background: #fffd;
+    padding: 6px 8px; border-radius: 6px; font: 12px ui-monospace, Consolas, monospace; }
+  #picks:empty { display: none; }
+  #picks ol { margin: 4px 0 4px 18px; padding: 0; max-height: 30vh; overflow: auto; }
+  #picks button { font: 12px system-ui, sans-serif; margin-right: 4px; }
+  #help { color: #445; font-size: 12px; margin-top: 4px; }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<!-- SHIP-DATA -->
+</head>
+<body>
+<div id="ui"></div>
+<div id="title"></div>
+<div id="picks"></div>
+<script>
+const D = window.SHIP || window.CARAVEL;
+if (!D || !window.THREE) {
+  document.getElementById("title").textContent = !window.THREE
+    ? "three.js did not load (needs cdnjs.cloudflare.com)."
+    : "No ship data: open the ship's bundled page (tools/shipview/bundle.py), or this page with its <ship>-mesh.js.";
+  throw new Error("ship viewer: missing " + (!window.THREE ? "three.js" : "window.SHIP"));
+}
+const NAME = D.name || (window.CARAVEL ? "Caravel (proposal)" : "Ship");
+document.title = NAME + " master model";
+const RIGS = Object.keys(D.bodies).filter(n => n.startsWith("Rig_")).map(n => n.slice(4).toLowerCase());
+let params, view, rig, hide, clipX, cutZ, proj;
+function readHash() {
+  params = new URLSearchParams(location.hash.slice(1).replace(/^([a-z]+)/, "view=$1"));
+  view = params.get("view") || "bow";
+  rig = params.get("rig") || RIGS[0] || "";
+  hide = new Set((params.get("hide") || "Envelope").split(",").filter(h => h && h !== "none"));
+  clipX = params.has("clip") ? parseFloat(params.get("clip")) : null;
+  cutZ = params.has("cutz") ? parseFloat(params.get("cutz")) : null;
+  proj = params.get("proj");                       // "ortho", "persp" or null: the view's own projection
+}
+readHash();
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(devicePixelRatio);
+renderer.setSize(innerWidth, innerHeight);
+renderer.localClippingEnabled = true;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xe9eef2);
+// model frame (mm, X fore, Y port, Z up) -> three (m, Y up): x = X, y = Z, z = -Y
+const root = new THREE.Group();
+root.rotation.x = -Math.PI / 2;
+root.scale.setScalar(0.001);
+scene.add(root);
+const clip = [];   // shared by every material; filled in place when the hash asks for a section or a top cut
+const planeX = new THREE.Plane(new THREE.Vector3(-1, 0, 0), 0);   // keeps x <= constant (three units, metres)
+const planeZ = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);   // keeps model Z (three y) <= constant
+const colours = Object.assign({
+  Shell: 0x9a6b43, Decks: 0xc9a77a, Envelope: 0x7fa0b8, Rig_Latina: 0xe8e0cc, Rig_Redonda: 0xe8e0cc,
+  Fittings: 0x6d4b2e, Guns: 0x3a3a3a, Ribs: 0x6b3f1f, GunPlaces: 0xff8a2a, Beams: 0x8a5a32, Backbone: 0x3b2a1a,
+}, Object.fromEntries(Object.entries(D.colours || {}).map(([k, v]) => [k, parseInt(String(v).replace("#", ""), 16)])));
+const seeThrough = { Envelope: 0.35, GunPlaces: 0.28 };
+function b64(s) { const b = atob(s), u = new Uint8Array(b.length); for (let k = 0; k < b.length; k++) u[k] = b.charCodeAt(k); return u.buffer; }
+const meshes = {};
+const lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];   // the hull's extent (no rigs)
+let rigTop = 0;
+for (const [name, m] of Object.entries(D.bodies)) {
+  let pos = m.p, idx = m.i;
+  if (m.pq) { const q = new Int16Array(b64(m.pq)); pos = new Float32Array(q.length); for (let k = 0; k < q.length; k++) pos[k] = q[k] * (m.unit || 1); }
+  if (m.iq) idx = Array.from(new Uint32Array(b64(m.iq)));
+  if (!name.startsWith("Rig_")) for (let k = 0; k < pos.length; k += 3) for (let a = 0; a < 3; a++) {
+    lo[a] = Math.min(lo[a], pos[k + a]); hi[a] = Math.max(hi[a], pos[k + a]);
+  }
+  else for (let k = 2; k < pos.length; k += 3) rigTop = Math.max(rigTop, pos[k]);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  if (idx) g.setIndex(idx);
+  g.computeVertexNormals();
+  const mat = new THREE.MeshStandardMaterial({
+    color: colours[name] || 0x888888, roughness: 0.85, metalness: name === "Guns" ? 0.4 : 0.0,
+    side: THREE.DoubleSide, clippingPlanes: clip, flatShading: false,
+    transparent: name in seeThrough, opacity: seeThrough[name] || 1, depthWrite: !(name in seeThrough),
+    emissive: name.startsWith("Rig") ? 0x3a362e : 0x000000,
+  });
+  const mesh = new THREE.Mesh(g, mat);
+  mesh.name = name;
+  meshes[name] = mesh;
+  root.add(mesh);
+}
+const refGroup = new THREE.Group();
+for (const pl of ((D.lines || {}).Reference || [])) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pl, 3));
+  refGroup.add(new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x2060c0, transparent: true, opacity: 0.55, clippingPlanes: clip })));
+}
+if (refGroup.children.length) { root.add(refGroup); meshes.Reference = refGroup; }
+// the full cell grid around the hull: every cell border in X and Z (whole metres) and Y (+-500, +-1500 ...)
+{
+  const X0 = Math.floor(lo[0] / 1000) * 1000, X1 = Math.ceil(hi[0] / 1000) * 1000;
+  const ny = Math.ceil(Math.max(-lo[1], hi[1]) / 1000 - 0.5), Y = [];
+  for (let k = 0; k < ny + 1; k++) Y.push(k * 1000 + 500, -(k * 1000 + 500));   // +-500, +-1500 ...: cells centred on Y 0
+  Y.sort((a, b) => a - b);
+  const Ys = [...new Set(Y)], Z0 = Math.min(0, Math.floor(lo[2] / 1000) * 1000), Z1 = Math.ceil(hi[2] / 1000) * 1000;
+  const v = [];
+  for (let z = Z0; z <= Z1; z += 1000) {
+    for (const y of Ys) v.push(X0, y, z, X1, y, z);
+    for (let x = X0; x <= X1; x += 1000) v.push(x, Ys[0], z, x, Ys[Ys.length - 1], z);
+  }
+  for (let x = X0; x <= X1; x += 1000) for (const y of Ys) v.push(x, y, Z0, x, y, Z1);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(v, 3));
+  const grid = new THREE.LineSegments(g, new THREE.LineBasicMaterial({
+    color: 0x2a6fd6, transparent: true, opacity: 0.22, depthWrite: false, clippingPlanes: clip }));
+  root.add(grid);
+  meshes.Grid = grid;
+}
+// waterline plane
+const L = (hi[0] - lo[0]) / 1000, H = hi[2] / 1000, B = Math.max(-lo[1], hi[1]) / 1000, cx = (lo[0] + hi[0]) / 2000;
+const sea = new THREE.Mesh(new THREE.PlaneGeometry(L * 2, B * 5),
+  new THREE.MeshBasicMaterial({ color: 0x3b7fb0, transparent: true, opacity: 0.18, side: THREE.DoubleSide, depthWrite: false }));
+sea.rotation.x = -Math.PI / 2;
+sea.position.set(cx, ((D.levels || {}).waterline || 0) / 1000, 0);
+scene.add(sea);
+meshes.Sea = sea;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a7a66, 0.75));
+const sun = new THREE.DirectionalLight(0xffffff, 0.75);
+sun.position.set(-20, 40, 30);
+scene.add(sun);
+
+// cameras, from the hull's size: each view frames a box of width w and height h (metres) around `at`
+const rigH = Math.max(H, rigTop / 1000);
+const views = {
+  profile: { ortho: true, w: L * 1.1, h: rigH * 1.1, at: [cx, rigH / 2, 0], from: [cx, rigH / 2, 200] },
+  plan: { ortho: true, w: L * 1.05, h: B * 2.4, at: [cx, 0, 0], from: [cx, 200, 0], up: [0, 0, -1] },
+  body: { ortho: true, w: B * 2.6, h: H * 1.15, at: [cx, H / 2, 0], from: [cx + 200, H / 2, 0] },
+  bow: { w: L * 1.1, h: rigH, at: [cx, H * 0.6, 0], from: [cx + L * 1.1, H * 1.2, L * 0.95] },
+  stern: { w: L * 1.1, h: rigH, at: [cx, H * 0.6, 0], from: [cx - L * 1.15, H * 1.3, L * 0.9] },
+  deck: { w: L * 0.8, h: H * 1.2, at: [cx - L * 0.05, H * 0.3, 0], from: [cx + L * 0.5, H * 1.4, B * 1.6] },
+};
+let cam, controls = null, orbitMark = null, target = new THREE.Vector3();
+let pickMode = true;   // click picks a point on the model; the button turns it off for plain orbiting
+const PERSP_FOV = 35;   // degrees, for views turned to perspective
+function isOrtho(v) { return proj ? proj === "ortho" : !!v.ortho; }
+// A camera framing height h (metres) at `at`, seen from direction `dir` (unit, from the target toward the camera).
+function frameCamera(ortho, at, dir, h, up, dist) {
+  const a = innerWidth / innerHeight;
+  let c;
+  if (ortho) {
+    c = new THREE.OrthographicCamera(-h * a / 2, h * a / 2, h / 2, -h / 2, -1000, 1000);
+    c.position.copy(at).addScaledVector(dir, dist || 200);
+  } else {
+    c = new THREE.PerspectiveCamera(PERSP_FOV, a, 0.1, 2000);
+    c.position.copy(at).addScaledVector(dir, h / 2 / Math.tan(PERSP_FOV * Math.PI / 360));
+  }
+  if (up) c.up.copy(up);
+  c.lookAt(at);
+  return c;
+}
+function attachControls() {
+  if (controls) controls.dispose();
+  controls = THREE.OrbitControls ? new THREE.OrbitControls(cam, renderer.domElement) : null;
+  if (controls) { controls.target.copy(target); controls.enableDamping = false; controls.zoomSpeed = 1.2; controls.update(); }
+}
+function makeCamera() {
+  const v = views[view] || views.bow, a = innerWidth / innerHeight;
+  target.set(...v.at);
+  const from = new THREE.Vector3(...v.from);
+  const h = Math.max(v.h, v.w / a);
+  if (isOrtho(v) === !!v.ortho && !v.ortho) {
+    // the view's own perspective: keep its authored camera position
+    cam = new THREE.PerspectiveCamera(2 * Math.atan(h / 2 / from.distanceTo(target)) * 180 / Math.PI, a, 0.1, 2000);
+    if (v.up) cam.up.set(...v.up);
+    cam.position.copy(from);
+    cam.lookAt(target);
+  } else {
+    cam = frameCamera(isOrtho(v), target, from.clone().sub(target).normalize(), h,
+                      v.up ? new THREE.Vector3(...v.up) : null, from.distanceTo(target));
+  }
+  attachControls();
+  orbitMark = null;
+}
+// Switch projection where the camera is now: same target, direction and framed height.
+function switchProjection() {
+  const t = controls ? controls.target.clone() : target.clone();
+  const off = cam.position.clone().sub(t), dir = off.clone().normalize();
+  const h = cam.isPerspectiveCamera ? 2 * off.length() * Math.tan(cam.fov * Math.PI / 360)
+                                    : (cam.top - cam.bottom) / cam.zoom;
+  const keepMark = orbitMark;
+  cam = frameCamera(!!cam.isPerspectiveCamera, t, dir, h, cam.up.clone(), off.length());   // ortho if it was perspective
+  cam.userData.view = view;
+  target.copy(t);
+  attachControls();
+  orbitMark = keepMark;
+}
+const ui = document.getElementById("ui");
+function link(text, hash) {
+  const a = document.createElement("a");
+  a.href = "#" + hash; a.textContent = text; a.style.marginRight = "8px";
+  ui.appendChild(a);
+}
+function setHash() { history.replaceState(null, "", "#" + params.toString().replace(/^view=/, "")); }
+function apply() {
+  for (const [n, m] of Object.entries(meshes)) {
+    let on = !hide.has(n);
+    if (n.startsWith("Rig_")) on = on && n.slice(4).toLowerCase() === rig;
+    m.visible = on;
+  }
+  clip.length = 0;
+  if (clipX !== null) { planeX.constant = clipX / 1000; clip.push(planeX); }
+  if (cutZ !== null) { planeZ.constant = cutZ / 1000; clip.push(planeZ); }
+  const wantOrtho = isOrtho(views[view] || views.bow);
+  if (!cam || cam.userData.view !== view) { makeCamera(); cam.userData.view = view; }
+  else if (wantOrtho === !!cam.isPerspectiveCamera) switchProjection();
+  document.getElementById("title").textContent =
+    `${NAME} — ${view}${rig ? `, rig: ${rig}` : ""}${clipX !== null ? `, section at X ${clipX} mm` : ""}` +
+    `${cutZ !== null ? `, cut at Z ${cutZ} mm` : ""} — 1 block = 1000 mm`;
+  ui.textContent = "";
+  const hideq = params.has("hide") ? `&hide=${params.get("hide")}` : "";
+  const clipq = clipX !== null ? `&clip=${clipX}` : "", cutq = cutZ !== null ? `&cutz=${cutZ}` : "";
+  const projq = proj ? `&proj=${proj}` : "";
+  const keep = hideq + clipq + cutq + projq;
+  const rigq = rig ? `&rig=${rig}` : "";
+  for (const v of Object.keys(views)) link(v, `${v}${rigq}${keep}`);
+  if (RIGS.length > 1) { const nx = RIGS[(RIGS.indexOf(rig) + 1) % RIGS.length]; link(`→ ${nx}`, `${view}&rig=${nx}${keep}`); }
+  link(clipX === null ? "section" : "no section", `${view}${rigq}${hideq}${projq}${cutq}${clipX === null ? `&clip=${Math.round(cx * 1000 / 500) * 500}` : ""}`);
+  const lv = D.levels || {};
+  const cutDefault = Math.round(((lv.mainDeck !== undefined ? lv.mainDeck + 1500 : hi[2] / 2)) / 50) * 50;
+  link(cutZ === null ? "cut top" : "no top cut", `${view}${rigq}${hideq}${projq}${clipq}${cutZ === null ? `&cutz=${cutDefault}` : ""}`);
+  const row = document.createElement("div");
+  row.className = "row";
+  const names = ["Grid", "Reference", ...Object.keys(D.bodies).filter(n => !n.startsWith("Rig_")), "Sea"];
+  if (RIGS.length) names.push("Rig_" + rig.charAt(0).toUpperCase() + rig.slice(1));
+  for (const n of names) {
+    if (!meshes[n]) continue;
+    const b = document.createElement("button");
+    b.textContent = n.startsWith("Rig_") ? "rig" : n.toLowerCase();
+    b.className = hide.has(n) ? "" : "on";
+    b.onclick = () => {
+      hide.has(n) ? hide.delete(n) : hide.add(n);
+      params.set("hide", [...hide].join(",") || "none");
+      setHash();
+      apply();
+    };
+    row.appendChild(b);
+  }
+  ui.appendChild(row);
+  const pb = document.createElement("button");
+  pb.textContent = pickMode ? "✛ pick: on" : "✛ pick: off";
+  pb.className = pickMode ? "on" : "";
+  pb.title = "Click the model to mark a point and its cell";
+  pb.onclick = () => { pickMode = !pickMode; apply(); };
+  row.prepend(pb);
+  const pr = document.createElement("button");
+  pr.textContent = cam.isPerspectiveCamera ? "perspective: on" : "perspective: off";
+  pr.className = cam.isPerspectiveCamera ? "on" : "";
+  pr.title = "Switch between perspective and parallel (orthographic) projection, keeping the view";
+  pr.onclick = () => {
+    switchProjection();
+    proj = cam.isPerspectiveCamera ? "persp" : "ortho";
+    params.set("proj", proj);
+    setHash();
+    apply();
+  };
+  pb.after(pr);
+  if (clipX !== null) {
+    const s = document.createElement("div");
+    s.className = "row";
+    s.innerHTML = `section at X <input type="range" min="${Math.floor(lo[0] / 250) * 250}" max="${Math.ceil(hi[0] / 250) * 250}" step="250" value="${clipX}"> <span>${clipX}</span> mm`;
+    const r = s.querySelector("input");
+    r.oninput = () => { clipX = +r.value; s.querySelector("span").textContent = clipX; planeX.constant = clipX / 1000; };
+    r.onchange = () => { params.set("clip", clipX); setHash(); apply(); };
+    ui.appendChild(s);
+  }
+  if (cutZ !== null) {
+    const s = document.createElement("div");
+    s.className = "row";
+    const zlo = Math.floor(Math.min(0, lo[2]) / 50) * 50, zhi = Math.ceil(Math.max(hi[2], rigTop) / 50) * 50;
+    s.innerHTML = `cut from the top at Z <input type="range" min="${zlo}" max="${zhi}" step="50" value="${cutZ}"> <span>${cutZ}</span> mm`;
+    const r = s.querySelector("input");
+    r.oninput = () => { cutZ = +r.value; s.querySelector("span").textContent = cutZ; planeZ.constant = cutZ / 1000; };
+    r.onchange = () => { params.set("cutz", cutZ); setHash(); apply(); };
+    ui.appendChild(s);
+  }
+  renderer.domElement.style.cursor = pickMode ? "crosshair" : "grab";
+  const help = document.createElement("div");
+  help.id = "help";
+  help.textContent = "Drag: rotate · right-drag: pan · wheel: zoom · click (pick on): mark a point and its cell · " +
+    "double-click: orbit around that point";
+  ui.appendChild(help);
+  ui.style.display = params.has("noui") ? "none" : "";
+}
+apply();
+addEventListener("hashchange", () => { readHash(); apply(); });
+addEventListener("resize", () => { renderer.setSize(innerWidth, innerHeight); makeCamera(); cam.userData.view = view; });
+
+// ---------------------------------------------------------------- picking
+// three (x, y, z) in metres = model (X, Z, -Y) / 1000; cells: X and Z by whole metres, Y centred on the centreline
+const ray = new THREE.Raycaster();
+const pickLayer = new THREE.Group();
+root.add(pickLayer);
+const picks = [];
+function modelPoint(w) { return { X: Math.round(w.x * 1000), Y: Math.round(-w.z * 1000), Z: Math.round(w.y * 1000) }; }
+function cellOf(p) { return { x: Math.floor(p.X / 1000), y: Math.round(p.Y / 1000), z: Math.floor(p.Z / 1000) }; }
+function hitAt(e) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), cam);
+  const targets = Object.values(meshes).filter(m => m.isMesh && m.visible && m !== meshes.Sea);
+  return ray.intersectObjects(targets, false).find(h => clip.every(pl => pl.distanceToPoint(h.point) >= 0));
+}
+function cellBox(c, colour) {
+  const g = new THREE.EdgesGeometry(new THREE.BoxGeometry(1000, 1000, 1000));
+  const box = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: colour, depthTest: false }));
+  box.position.set(c.x * 1000 + 500, c.y * 1000, c.z * 1000 + 500);
+  box.renderOrder = 10;
+  return box;
+}
+function dot(p, colour, size = 90) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(size, 12, 8), new THREE.MeshBasicMaterial({ color: colour, depthTest: false }));
+  m.position.set(p.X, p.Y, p.Z);
+  m.renderOrder = 11;
+  return m;
+}
+function pickText(k, h) {
+  return `#${k + 1} ${h.body}: X ${h.p.X} Y ${h.p.Y} Z ${h.p.Z} mm, cell x ${h.c.x} y ${h.c.y} z ${h.c.z}`;
+}
+function drawPicks() {
+  pickLayer.clear();
+  picks.forEach(h => { pickLayer.add(cellBox(h.c, 0xff6a00)); pickLayer.add(dot(h.p, 0xff3300)); });
+  if (orbitMark) pickLayer.add(orbitMark);
+  const box = document.getElementById("picks");
+  box.textContent = "";
+  if (!picks.length) return;
+  const ol = document.createElement("ol");
+  picks.forEach((h, k) => { const li = document.createElement("li"); li.textContent = pickText(k, h).replace(/^#\d+ /, ""); ol.appendChild(li); });
+  const head = document.createElement("div");
+  head.textContent = "Picks (cells: x by aft face, y from the centreline, port +, z by floor)";
+  const bar = document.createElement("div");
+  for (const [label, fn] of [
+    ["Copy", () => navigator.clipboard && navigator.clipboard.writeText(picks.map((h, k) => pickText(k, h)).join("\n"))],
+    ["Undo", () => { picks.pop(); drawPicks(); }],
+    ["Clear", () => { picks.length = 0; drawPicks(); }]]) {
+    const b = document.createElement("button"); b.textContent = label; b.onclick = fn; bar.appendChild(b);
+  }
+  box.append(head, ol, bar);
+}
+let down = null;
+renderer.domElement.addEventListener("pointerdown", e => { down = [e.clientX, e.clientY, e.button]; });
+renderer.domElement.addEventListener("pointerup", e => {
+  if (!pickMode || !down || down[2] !== 0 || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 4) return;
+  const h = hitAt(e);
+  if (!h) return;
+  const p = modelPoint(h.point);
+  picks.push({ body: h.object.name, p, c: cellOf(p), t: performance.now() });
+  drawPicks();
+});
+renderer.domElement.addEventListener("dblclick", e => {
+  const h = hitAt(e);
+  if (!h || !controls) return;
+  const now = performance.now();                 // the double-click's own clicks are not picks
+  while (picks.length && now - picks[picks.length - 1].t < 700) picks.pop();
+  controls.target.copy(h.point);
+  controls.update();
+  target.copy(h.point);
+  orbitMark = dot(modelPoint(h.point), 0x1a7f37, 120);
+  drawPicks();
+});
+
+// fallback orbit when OrbitControls did not load: drag to rotate, wheel to zoom (perspective views)
+let drag = null;
+renderer.domElement.addEventListener("pointerdown", e => drag = [e.clientX, e.clientY]);
+addEventListener("pointerup", () => drag = null);
+addEventListener("pointermove", e => {
+  if (controls || !drag || !cam.isPerspectiveCamera) return;
+  const dx = (e.clientX - drag[0]) * 0.01, dy = (e.clientY - drag[1]) * 0.01;
+  drag = [e.clientX, e.clientY];
+  const sph = new THREE.Spherical().setFromVector3(cam.position.clone().sub(target));
+  sph.theta -= dx; sph.phi = Math.min(Math.max(sph.phi - dy, 0.1), 3.0);
+  cam.position.copy(target).add(new THREE.Vector3().setFromSpherical(sph));
+  cam.lookAt(target);
+});
+addEventListener("wheel", e => {
+  if (controls || !cam.isPerspectiveCamera) return;
+  cam.position.copy(target).add(cam.position.clone().sub(target).multiplyScalar(e.deltaY > 0 ? 1.1 : 0.9));
+});
+(function loop() { renderer.render(scene, cam); requestAnimationFrame(loop); })();
+</script>
+</body>
+</html>
