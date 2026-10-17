@@ -85,7 +85,7 @@ namespace HansaTests
             var watch = System.Diagnostics.Stopwatch.StartNew();
             var built = GridShips.Build(design, kinds, A("config/ships/carrack-m.json"), A("config/shipmeshes/carrack-m.json"));
             var def = built.Def;
-            Check(def.Code == "hansa-carrack" && def.Grid.CountSolid() > 20000, $"built in {watch.ElapsedMilliseconds} ms: {built.Ship.Present.Count()} blocks, {def.Grid.CountSolid()} solid voxels");
+            Check(def.Code == "grid-carrack" && def.Grid.CountSolid() > 20000, $"built in {watch.ElapsedMilliseconds} ms: {built.Ship.Present.Count()} blocks, {def.Grid.CountSolid()} solid voxels");
             var main = def.Masts.First(m => m.Code == "main");
             Check(Math.Abs(main.X - 3.5) < 1e-9 && def.Masts.First(m => m.Code == "fore").X == 17.5 && def.Masts.First(m => m.Code == "mizzen").X == -12.5,
                 "her main mast moved a cell forward to x 3.5, between its ribs; fore and mizzen where they were");

@@ -56,6 +56,7 @@ static class Program
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir != null && !File.Exists(Path.Combine(dir.FullName, "Hansa.csproj"))) dir = dir.Parent;
         string root = dir.FullName;
+        if (Array.IndexOf(args, "--skin") >= 0) return SkinMain(args, root);
         string designPath = args.FirstOrDefault(a => !a.StartsWith("--") && a.EndsWith(".json"))
             ?? Path.Combine(root, "assets/hansa/config/shipdesigns/two-bay.json");
         int o = Array.IndexOf(args, "--out");
@@ -139,6 +140,147 @@ static class Program
         var html = template.Replace("__SHIP_DATA__", data.ToString(Formatting.None).Replace("</", "<\\/"));
         File.WriteAllText(Path.Combine(outDir, design.Code + ".html"), html, new UTF8Encoding(false));
         Console.WriteLine($"{design.Code}: {data["stats"]}; wrote {outDir}");
+        return 0;
+    }
+
+    /// <summary>
+    /// A ship's mesh as the game draws it (a config/shipmeshes file, or one exported by HansaTests -- export-grid), in the
+    /// same viewer: each mesh group a toggle, the game's own textures (an overlay after "++" left out), and with --def, a
+    /// cross at every fixture, hook, moving part's axis and ladder end (to see what floats).
+    ///   dotnet run --project tools/HansaPreview -- --skin mesh.json [--def ship.json] [--shapes dir] [--code name] [--out dir]
+    /// </summary>
+    static int SkinMain(string[] args, string root)
+    {
+        string Opt(string k) { int i = Array.IndexOf(args, k); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; }
+        string meshPath = Opt("--skin"), defPath = Opt("--def");
+        string code = Opt("--code") ?? Path.GetFileNameWithoutExtension(meshPath).Replace(".mesh", "");
+        string outDir = Opt("--out") ?? Path.Combine(root, "docs/preview");
+        string game = Environment.GetEnvironmentVariable("VINTAGE_STORY") ??
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Vintagestory");
+        var file = JObject.Parse(File.ReadAllText(meshPath));
+        var tex = (file["textures"] ?? file["Textures"]).ToObject<string[]>();
+        var groups = (JObject)(file["groups"] ?? file["Groups"]);
+        string Category(string g) =>
+            g.StartsWith("part:gun") ? "guns" : g.StartsWith("part:") ? "parts" : g.StartsWith("slot:hull") ? "hull slots" :
+            g.StartsWith("slot:deck") ? "deck slots" : g.StartsWith("glass") ? "glass" : g.StartsWith("sail") ? "sails" : g;
+        string FileOf(string t)
+        {
+            string b = t.Split("++")[0];
+            int c = b.IndexOf(':');
+            string domain = c >= 0 ? b.Substring(0, c) : "game", path = c >= 0 ? b.Substring(c + 1) : b;
+            return domain == "game" ? Path.Combine(game, "assets/survival/textures", path + ".png") : Path.Combine(root, "assets", domain, "textures", path + ".png");
+        }
+        var batches = new Dictionary<(int, string), Batch>();
+        int quads = 0, hidden = 0;
+        // (a slot's quads as a new ship draws them, every slot in: a quad facing a slot (its pair's second) shows only once
+        // that slot is out: docs/legacy/slots.md §3)
+        var slotQuads = (JObject)(file["slotQuads"] ?? file["SlotQuads"]);
+        foreach (var g in groups.Properties())
+        {
+            if (g.Name == "shot" || g.Name.EndsWith("bottomclad")) continue;
+            var pairs = slotQuads?[g.Name] as JArray;
+            int qi = -1;
+            foreach (JArray q in (JArray)g.Value)
+            {
+                qi++;
+                if (pairs != null && 2 * qi + 1 < pairs.Count && (int)pairs[2 * qi + 1] >= 0) { hidden++; continue; }
+                int t = (int)q[0];
+                var key = (t, Category(g.Name));
+                if (!batches.TryGetValue(key, out var bt)) batches[key] = bt = new Batch { Texture = tex[t], Category = key.Item2 };
+                uint first = (uint)(bt.Pos.Count / 3);
+                for (int k = 0; k < 4; k++)
+                {
+                    int o = 1 + 8 * k;
+                    bt.Pos.AddRange(new[] { (float)q[o], (float)q[o + 1], (float)q[o + 2] });
+                    bt.Uv.AddRange(new[] { (float)q[o + 3] / 16f, (float)q[o + 4] / 16f });
+                    bt.Nrm.AddRange(new[] { (float)q[o + 5], (float)q[o + 6], (float)q[o + 7] });
+                }
+                bt.Index.AddRange(new[] { first, first + 1, first + 2, first, first + 2, first + 3 });
+                quads++;
+            }
+        }
+        // her voxel shapes (her decks' planking: config "shapes" exterior and interior), each element's faces as quads
+        var texList0 = tex.ToList();
+        foreach (var shapeName in new[] { "exterior", "interior" })
+        {
+            string sp = Opt("--shapes") is string dirS ? Path.Combine(dirS, shapeName + ".json") : null;
+            if (sp == null || !File.Exists(sp)) continue;
+            var sh = JObject.Parse(File.ReadAllText(sp));
+            var stex = (JObject)sh["textures"];
+            double tw = (double?)sh["textureWidth"] ?? 16, th = (double?)sh["textureHeight"] ?? 16;
+            foreach (JObject el in (JArray)sh["elements"])
+            {
+                var f0 = el["from"].ToObject<double[]>().Select(v => v / 16).ToArray();
+                var f1 = el["to"].ToObject<double[]>().Select(v => v / 16).ToArray();
+                foreach (var face in ((JObject)el["faces"] ?? new JObject()).Properties())
+                {
+                    string key = ((string)face.Value["texture"] ?? "").TrimStart('#');
+                    string path = (string)stex[key] ?? key;
+                    int ti = texList0.IndexOf(path);
+                    if (ti < 0) { texList0.Add(path); ti = texList0.Count - 1; }
+                    var uv = face.Value["uv"]?.ToObject<double[]>() ?? new double[] { 0, 0, 16, 16 };
+                    double u0 = uv[0] / tw, v0 = uv[1] / th, u1 = uv[2] / tw, v1 = uv[3] / th;
+                    (double[] a, double[] b, double[] c, double[] d, float[] n) = face.Name switch
+                    {
+                        "north" => (new[] { f1[0], f0[1], f0[2] }, new[] { f0[0], f0[1], f0[2] }, new[] { f0[0], f1[1], f0[2] }, new[] { f1[0], f1[1], f0[2] }, new float[] { 0, 0, -1 }),
+                        "south" => (new[] { f0[0], f0[1], f1[2] }, new[] { f1[0], f0[1], f1[2] }, new[] { f1[0], f1[1], f1[2] }, new[] { f0[0], f1[1], f1[2] }, new float[] { 0, 0, 1 }),
+                        "east" => (new[] { f1[0], f0[1], f1[2] }, new[] { f1[0], f0[1], f0[2] }, new[] { f1[0], f1[1], f0[2] }, new[] { f1[0], f1[1], f1[2] }, new float[] { 1, 0, 0 }),
+                        "west" => (new[] { f0[0], f0[1], f0[2] }, new[] { f0[0], f0[1], f1[2] }, new[] { f0[0], f1[1], f1[2] }, new[] { f0[0], f1[1], f0[2] }, new float[] { -1, 0, 0 }),
+                        "up" => (new[] { f0[0], f1[1], f1[2] }, new[] { f1[0], f1[1], f1[2] }, new[] { f1[0], f1[1], f0[2] }, new[] { f0[0], f1[1], f0[2] }, new float[] { 0, 1, 0 }),
+                        _ => (new[] { f0[0], f0[1], f0[2] }, new[] { f1[0], f0[1], f0[2] }, new[] { f1[0], f0[1], f1[2] }, new[] { f0[0], f0[1], f1[2] }, new float[] { 0, -1, 0 }),
+                    };
+                    var bkey = (ti, "decks (shapes)");
+                    if (!batches.TryGetValue(bkey, out var bt)) batches[bkey] = bt = new Batch { Texture = path, Category = bkey.Item2 };
+                    uint first = (uint)(bt.Pos.Count / 3);
+                    foreach (var (pt, uu, vv) in new[] { (a, u0, v1), (b, u1, v1), (c, u1, v0), (d, u0, v0) })
+                    {
+                        bt.Pos.AddRange(new[] { (float)pt[0], (float)pt[1], (float)pt[2] });
+                        bt.Uv.AddRange(new[] { (float)uu, (float)vv });
+                        bt.Nrm.AddRange(n);
+                    }
+                    bt.Index.AddRange(new[] { first, first + 1, first + 2, first, first + 2, first + 3 });
+                    quads++;
+                }
+            }
+        }
+
+        var marks = new List<float>();
+        if (defPath != null)
+        {
+            var d = JObject.Parse(File.ReadAllText(defPath));
+            void Cross(JToken p)
+            {
+                if (p is not JArray a || a.Count < 3) return;
+                float x = (float)a[0], y = (float)a[1], z = (float)a[2], r = 0.3f;
+                marks.AddRange(new[] { x - r, y, z, x + r, y, z, x, y - r, z, x, y + r, z, x, y, z - r, x, y, z + r });
+            }
+            foreach (var f in d["fixtures"] ?? new JArray()) Cross(f["pos"]);
+            foreach (var h in d["hooks"] ?? new JArray()) Cross(h["pos"]);
+            foreach (var m in d["movingParts"] ?? new JArray()) Cross(m["axisPoint"]);
+            foreach (var l in d["ladders"] ?? new JArray()) { Cross(l["bottom"]); Cross(l["top"]); }
+        }
+        var texList = batches.Values.Select(b => b.Texture).Distinct().OrderBy(t => t).ToList();
+        var blank = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+        var png = texList.ToDictionary(t => t, t => File.Exists(FileOf(t)) ? File.ReadAllBytes(FileOf(t)) : blank);
+        var ordered = batches.Values.OrderBy(b => b.Category).ThenBy(b => b.Texture).ToList();
+        var data = new JObject
+        {
+            ["name"] = code, ["code"] = code, ["waterline"] = 0, ["nocull"] = true,
+            ["textures"] = new JArray(texList.Select(t => new JObject { ["name"] = t, ["png"] = Convert.ToBase64String(png[t]), ["glass"] = t.Contains("glass") })),
+            ["batches"] = new JArray(ordered.Select(b => new JObject
+            {
+                ["texture"] = texList.IndexOf(b.Texture), ["category"] = b.Category,
+                ["pos"] = B64(b.Pos), ["nrm"] = B64(b.Nrm), ["uv"] = B64(b.Uv),
+                ["index"] = Convert.ToBase64String(b.Index.SelectMany(BitConverter.GetBytes).ToArray()),
+            })),
+            ["edges"] = B64(new List<float>()),
+            ["marks"] = B64(marks),
+            ["stats"] = $"{quads} quads in {groups.Count} groups and her shapes ({hidden} slot faces hidden, as with every slot in); {marks.Count / 18} fittings marked",
+        };
+        Directory.CreateDirectory(outDir);
+        var template = File.ReadAllText(Path.Combine(root, "tools/HansaPreview/viewer.html"));
+        File.WriteAllText(Path.Combine(outDir, code + ".html"), template.Replace("__SHIP_DATA__", data.ToString(Formatting.None).Replace("</", "<\\/")), new UTF8Encoding(false));
+        Console.WriteLine($"{code}: {data["stats"]}; wrote {outDir}");
         return 0;
     }
 

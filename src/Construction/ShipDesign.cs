@@ -276,6 +276,22 @@ namespace Hansa.Construction
             {
                 double xa = xs[s], xb = xs[s + 1];
                 if (y1 > Math.Min(SheerAt(xa, 1), SheerAt(xb, -1)) + 1e-9) continue;
+                // Where the hull's bottom rises over the slab's underside at one end of the strip (a raked stern's
+                // counter, a bow's rising floor), the slab runs to where her bottom meets it, not skipped whole.
+                bool Holds(double x, int side)
+                {
+                    var sec = Offset(SectionAt(x, side), inset);
+                    return !double.IsNaN(HalfWidth(sec, y0)) && !double.IsNaN(HalfWidth(sec, y1));
+                }
+                bool ha = Holds(xa, 1), hb = Holds(xb, -1);
+                if (!ha && !hb) continue;
+                if (!ha || !hb)
+                {
+                    double good = ha ? xa : xb, bad = ha ? xb : xa;
+                    for (int it = 0; it < 40; it++) { double mid = (good + bad) / 2; if (Holds(mid, 1)) good = mid; else bad = mid; }
+                    if (Math.Abs(good - (ha ? xa : xb)) < 1e-6) continue;
+                    if (ha) xb = good; else xa = good;
+                }
                 var ia = Offset(SectionAt(xa, 1), inset); var ib = Offset(SectionAt(xb, -1), inset);
                 double ta = HalfWidth(ia, y1), la = HalfWidth(ia, y0), tb = HalfWidth(ib, y1), lb = HalfWidth(ib, y0);
                 if (new[] { ta, la, tb, lb }.Any(double.IsNaN)) continue;

@@ -29,6 +29,9 @@ namespace Hansa
         {
             /// <summary>Her design code in the game (entity "hansa:" + this, a charter "shipdeed-" + this).</summary>
             public string Code, Name;
+            /// <summary>Built into the game's ships when it loads (false: only for the offline checks; the construction-core
+            /// carrack gave way to the generated hansa-carrack, docs/carrack-m-inventory.md).</summary>
+            public bool Load = true;
             /// <summary>The donor definition whose rig and mechanics she takes.</summary>
             public string Rig;
             public RigShift[] RigShift = Array.Empty<RigShift>();
@@ -140,7 +143,7 @@ namespace Hansa
                 {
                     var design = ShipDesign.Read(asset.ToText());
                     var game = design.Game?.ToObject<GameSpec>();
-                    if (game?.Code == null || game.Rig == null) continue;
+                    if (game?.Code == null || game.Rig == null || !game.Load) continue;
                     var donorAsset = api.Assets.TryGet(new Vintagestory.API.Common.AssetLocation("hansa", $"config/ships/{game.Rig}.json"));
                     if (donorAsset == null) { log.Error("Grid ship {0}: rig donor {1} not found", design.Code, game.Rig); continue; }
                     string donorJson = donorAsset.ToText(), skinJson = null;

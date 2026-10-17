@@ -35,11 +35,21 @@ The first grid prototype is archived in `archive/gpt-grid-prototype` (not built,
 to be deleted later). The ship-design model is in `docs/proposals/ship-design-architecture.md`;
 only its section 8 decisions are agreed. `src/Construction` is the pure construction core
 (milestone M1): one master block per cell, and every edit changes exactly one cell.
-`src/Ship/GridShips.cs` binds grid designs to the game: `hansa-carrack` is her design's default
-blocks on carrack-m's rig, with Magelan's mechanics: slots (damage, flooding, mending, deck cells),
-guns, doors, hatches and scuttles, galley, paint, rooms and wrecks, verified on a dedicated server
-(proposal section 13). Her client drawing is not verified yet. Editing her fixed structure (ribs,
-beams, keel), guides and block saves are not connected; keep that explicit.
+Since 17 October 2026 (the user, after testing that build) the ship is a **master hull model** in AstoCAD
+(a FreeCAD 1.1 fork at `C:\AstoCAD`), sliced later into one-block cells: `docs/master-model.md`, the model in
+`models/hansa-carrack/`, its tools in `tools/master/`. The model is the source once the user edits it; its plain
+hull (shell, backbone, ribs, beams, decks) is built and checked, and the slicer, replacement blocks and fittings are
+not done. Until the slicer exists, the game still uses the generator-built `hansa-carrack` below.
+From 16 October 2026 `hansa-carrack` was built by carrack-m's own generator, adjusted to stand on the
+block grid: `HANSA_MODULAR=1 HANSA_SHIP=hansa-carrack python tools/shipgen/carrack.py` (add
+`HANSA_FAST=1` for a 90-second build that skips the guns' arc sweep; ship only full builds). Every
+change from carrack-m is behind `HANSA` in the generator and listed in `docs/carrack-m-inventory.md`;
+carrack-m's own files stay untouched. The user's direction: carrack-m is the reference, changed with
+common sense where blocks need it (windows, ports, guns); stairs and some inner layout will change on
+the user's word. The construction-core ship from `src/Ship/GridShips.cs` is now `grid-carrack`
+(`"load": false`, offline checks only). Her hull panels are one block each; her bottom row, the wales'
+row, castle rows under mouldings and her ends are still fixed. Editing her ribs, beams and keel, guides
+and block saves are not connected; keep that explicit.
 
 The inherited baseline is unfinished 0.3.30 source with older assets. Do not
 regenerate or repair every historic design while working on the new grid slice.

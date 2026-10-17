@@ -43,7 +43,8 @@
     { "code": "fore", "cell": 17 }
   ],
   "game": {
-    "code": "hansa-carrack",
+    "code": "grid-carrack",
+    "load": false,
     "name": "Grid carrack",
     "rig": "carrack-m",
     "rigShift": [{ "at": 2.5, "by": 1, "reach": 2.6, "falloff": 1.5 }],

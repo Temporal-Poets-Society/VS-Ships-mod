@@ -22,14 +22,15 @@ Hansa's independent identity.
 
 ## Try it in game
 
-The first in-game version is the **grid carrack**, `hansa-carrack`, built when the game loads
-from `assets/hansa/config/shipdesigns/carrack.json` and carrack-m's rig (`src/Ship/GridShips.cs`).
-In creative mode take "Charter of a grid carrack (Hansa prototype)" and hold right-click facing
-open water. She is her design's default blocks on Magelan's mechanics: walk her decks, climb the
-ladder-stairs (open the scuttle at the top), use her doors, hatches, galley, guns and pump, sail,
-paint, take shot damage, flood, mend and sink into a wreck. Her plain planking works as Magelan's
-slots; her ribs, beams and other fixed structure can't be edited yet, and nothing has been seen in
-a client. See sections 12 and 13 of the proposal.
+The **Hansa carrack**, `hansa-carrack`, is carrack-m as Magelan's generator builds it, adjusted to
+stand on the block grid (`tools/shipgen/carrack.py` with `HANSA_MODULAR=1 HANSA_SHIP=hansa-carrack`;
+the changes are listed in `docs/carrack-m-inventory.md`). In creative mode take "Charter of a Hansa
+carrack" and hold right-click facing open water. She has everything carrack-m has: its stairs,
+companionway, cabins, fittings and mechanics. Each hull panel is one block. Her ribs, beams, keel and
+the other fixed structure can't be edited yet.
+
+The construction-core ship of sections 12 and 13 of the proposal is now `grid-carrack`, checked
+offline only.
 
 ## Build and checks
 

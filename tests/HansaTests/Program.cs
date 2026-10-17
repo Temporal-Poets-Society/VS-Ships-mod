@@ -70,6 +70,31 @@ namespace HansaTests
                 return 0;
             }
             if (Array.IndexOf(args, "grid-pieces") >= 0) { GridPieces(root); return 0; }
+            if (Array.IndexOf(args, "holes") >= 0) return GridHoles(root, true) == 0 ? 0 : 1;
+            if (Array.IndexOf(args, "startpieces") >= 0)
+            {
+                // a design's start pieces and whether her layout has each one's place: dotnet run -- startpieces <code>
+                string code = args[Array.IndexOf(args, "startpieces") + 1];
+                var sd = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", code + ".json")));
+                sd.Init();
+                foreach (var sp in sd.StartPieces ?? Array.Empty<StartPieceDef>())
+                    Console.WriteLine($"  {sp.Mount}: {(sd.Mounts.Get(sp.Mount) is MountPoint m ? $"place at {m.X:0.##} {m.Y:0.##} {m.Z:0.##}" : "NO PLACE")} ({sp.Block})");
+                return 0;
+            }
+            if (Array.IndexOf(args, "probe") >= 0)
+            {
+                int i = Array.IndexOf(args, "probe");
+                var ci = System.Globalization.CultureInfo.InvariantCulture;
+                GridProbe(root, double.Parse(args[i + 1], ci), double.Parse(args[i + 2], ci), double.Parse(args[i + 3], ci));
+                return 0;
+            }
+            if (Array.IndexOf(args, "export-grid") >= 0)
+            {
+                // the grid carrack's mesh and fittings as the game builds them, for tools/HansaPreview --skin:
+                // dotnet run -- export-grid <dir>
+                ExportGrid(root, args[Array.IndexOf(args, "export-grid") + 1]);
+                return 0;
+            }
             if (Array.IndexOf(args, "grid") >= 0)
             {
                 // the grid carrack as the game builds her: dotnet run -- grid

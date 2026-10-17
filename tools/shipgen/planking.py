@@ -58,6 +58,11 @@ def ring(half_width, y, xa, xb, m, offset=0.0):
     return rx, rz
 
 
+# (Hansa) a faceted hull's offset outline (the ceiling) has short steep spikes at each crease: xgrid_rings looks for
+# where a ring's ends start after a median over this many points (1: as carrack-m)
+KINK_WINDOW = 1
+
+
 def xgrid_rings(half_width, levels, x_range, offset, xgrid, seg=0.7, slope=1.0):
     """
     (Hansa 0.3.26, step D: hull panels as slots) The rings of a skin sampled so that each has a point at every x of
@@ -95,6 +100,9 @@ def xgrid_rings(half_width, levels, x_range, offset, xgrid, seg=0.7, slope=1.0):
                 xs_, zs_ = np.concatenate([xs_, [xb]]), np.concatenate([zs_, [np.interp(xb, x, z)]])
             x, z = xs_, zs_
         s = np.abs(np.gradient(z, x))
+        if KINK_WINDOW > 1:
+            from scipy.ndimage import median_filter
+            s = median_filter(s, size=KINK_WINDOW, mode="nearest")
         mid = int(np.argmax(z))
         aft = np.nonzero(s[:mid + 1] >= slope)[0]
         fwd = np.nonzero(s[mid:] >= slope)[0]

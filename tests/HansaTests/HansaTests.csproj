@@ -18,6 +18,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="GridInspect.cs" />
     <Compile Include="ModularTests.cs" />
     <Compile Include="StairTests.cs" />
     <Compile Include="DamageTests.cs" />

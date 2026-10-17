@@ -42,6 +42,7 @@
   <h2>Show</h2>
   <div id="groups"></div>
   <label><input type="checkbox" id="edges"> Cell edges</label>
+  <label><input type="checkbox" id="marks"> Fittings marked</label>
   <label><input type="checkbox" id="water"> Waterline</label>
   <h2>Cuts</h2>
   <div class="slider"><label for="cutZ">Across: keep z up to</label><output id="cutZv"></output><input type="range" id="cutZ" step="0.25"></div>
@@ -135,6 +136,7 @@ function lineSet(data) {
   gl.bindVertexArray(null); return { vao, count: data.length / 3 };
 }
 const edges = lineSet(f32(ship.edges));
+const marks = lineSet(f32(ship.marks || ""));
 const wl = ship.waterline, pad = 3;
 const water = (() => {
   const x0 = lo[0] - pad, x1 = hi[0] + pad, z0 = lo[2] - pad, z1 = hi[2] + pad, p = [x0, wl, z0, x1, wl, z0, x1, wl, z1, x0, wl, z0, x1, wl, z1, x0, wl, z1];
@@ -161,7 +163,7 @@ for (const [id, axis, min, max, start] of [["cutZ", 2, lo[2], hi[2], hi[2]], ["c
   el.addEventListener("input", update); sliders[id] = { el, out, set: v => { el.value = v; out.textContent = (+el.value).toFixed(2); } };
   sliders[id].set(start);
 }
-for (const id of ["edges", "water"]) document.getElementById(id).addEventListener("change", () => draw());
+for (const id of ["edges", "water", "marks"]) document.getElementById(id).addEventListener("change", () => draw());
 
 const centre = [(lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2, (lo[2] + hi[2]) / 2];
 const size = Math.hypot(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]);
@@ -229,7 +231,7 @@ function render() {
   const dark = matchMedia("(prefers-color-scheme: dark)").matches;
   gl.clearColor(...(dark ? [0.11, 0.13, 0.15, 1] : [0.81, 0.87, 0.92, 1]));
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  gl.enable(gl.DEPTH_TEST); gl.enable(gl.CULL_FACE); gl.disable(gl.BLEND); gl.depthMask(true);
+  gl.enable(gl.DEPTH_TEST); if (ship.nocull) gl.disable(gl.CULL_FACE); else gl.enable(gl.CULL_FACE); gl.disable(gl.BLEND); gl.depthMask(true);
   const mvp = matrix(w / h);
   const cutLo = [+sliders.cutX.el.value - 1e-4, -1e9, -1e9], cutHi = [1e9, +sliders.cutY.el.value + 1e-4, +sliders.cutZ.el.value + 1e-4];
   function use(p) {
@@ -253,6 +255,10 @@ function render() {
     use(lines); gl.uniform4f(gl.getUniformLocation(lines, "tint"), dark ? 0.85 : 0.1, dark ? 0.85 : 0.12, dark ? 0.9 : 0.15, 1);
     gl.bindVertexArray(edges.vao); gl.drawArrays(gl.LINES, 0, edges.count);
   }
+  if (document.getElementById("marks").checked && marks.count > 0) {
+    gl.disable(gl.DEPTH_TEST); use(lines); gl.uniform4f(gl.getUniformLocation(lines, "tint"), 0.95, 0.1, 0.1, 1);
+    gl.bindVertexArray(marks.vao); gl.drawArrays(gl.LINES, 0, marks.count); gl.enable(gl.DEPTH_TEST);
+  }
   gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
   use(faces); pass(true);
   if (document.getElementById("water").checked) {
@@ -266,7 +272,18 @@ function render() {
 const wanted = location.hash.slice(1).split(",");
 if (wanted.includes("edges")) document.getElementById("edges").checked = true;
 if (wanted.includes("water")) document.getElementById("water").checked = true;
+if (wanted.includes("marks")) document.getElementById("marks").checked = true;
 setView(wanted.find(w => views[w]) || "exterior");
+// (scripted views) cam=yaw:pitch:dist:tx:ty:tz, cut=z:y:x, hide=group+group
+for (const w of wanted) {
+  const [k, v] = w.split("=");
+  if (!v) continue;
+  const n = v.split(":").map(Number);
+  if (k === "cam") Object.assign(cam, { yaw: n[0], pitch: n[1], dist: n[2], target: [n[3], n[4], n[5]] });
+  if (k === "cut") { sliders.cutZ.set(n[0]); sliders.cutY.set(n[1]); sliders.cutX.set(n[2]); }
+  if (k === "hide") for (const g of decodeURIComponent(v).split("+")) shown[g] = false;
+}
+draw();
 </script>
 </body>
 </html>

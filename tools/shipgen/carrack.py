@@ -74,6 +74,15 @@ if VARIANT == 3 and COMPANION_OPTION == "A":
     CODE = "carrack-a"
 if MODULAR:
     CODE = "carrack-m"
+# (Hansa, 16 October 2026) the Hansa carrack: carrack-m rebuilt to stand on the block grid, block by block
+# (docs/carrack-m-inventory.md), under a code of her own so carrack-m's files stay as they are:
+#   HANSA_MODULAR=1 HANSA_SHIP=hansa-carrack python carrack.py
+HANSA = MODULAR and bool(os.environ.get("HANSA_SHIP"))
+# (Hansa) a quick build to look at her (HANSA_FAST=1): the guns' arcs not swept against her (97% of a build's time: each
+# gun trains +-10 degrees), the rest as a full build. Not for shipping
+FAST = os.environ.get("HANSA_FAST") == "1"
+if HANSA:
+    CODE = os.environ["HANSA_SHIP"]
 GRID_OFF = 1.5                                     # design y = G + GRID_OFF (the decks keep their design heights)
 
 B = 1.0 if GRID else (5.25 if PROPOSAL else 4.6)   # half beam at the widest (GRID: SECTION is the half width itself)
@@ -83,6 +92,12 @@ B = 1.0 if GRID else (5.25 if PROPOSAL else 4.6)   # half beam at the widest (GR
 # y -4.375, draft 4.375: 0.6 under her in 5 blocks of water); 0.3.9's bottom was at G -4.65, the keel's at G -5)
 KEEL = -2.75 if GRID else -2.5
 KEEL_BOTTOM = -3.0 if GRID else KEEL - 0.5
+if HANSA:
+    # (Hansa, decision 14, the user's correction of 16 October 2026: "there is enough space in bottom part to make ribs and
+    # hull") her bottom one whole block, G -5..-4: its planking at the bottom, the floor timbers over it, the hold's floor
+    # on top (G -4, as carrack-m's); the keel flush in it (its underside on the bottom's outside, a hair proud). Her draft
+    # 4.875 (carrack-m's 4.375); her decks where they were
+    KEEL = KEEL_BOTTOM = -3.5
 # The waist was lengthened by this much (the user, 2026-09-29): everything forward of the parallel midbody (the bow, the
 # forecastle, the foremast, the bowsprit) moved forward by it; the frames go on every FRAME_SPACE the whole length.
 # (0.3.9: 2 more, one more 2-block bay in the waist: the entry gates get a bay of their own)
@@ -124,6 +139,14 @@ HULL_BANDS = [(KEEL, -1.75), (-1.75, -0.75), (-0.75, 0.25), (0.5, 1.5), (1.5, 2.
 HULL_FIXED_BANDS = [(0.25, 0.5, "waterway"), (2.75, 3.5, "wales"), (4.5, 4.75, "cap"), (6.0, 6.75, "waterway"),
                     (7.5, 7.75, "cap"), (9.25, 9.5, "waterway"), (10.5, 10.75, "cap")]
 HULL_WALES = ((2.75, 3.0), (3.0, 3.25))
+if HANSA:
+    # (Hansa, 16 October 2026: "make it fully stick to blocks") her hull's panels a block high, on the block rows (design y
+    # G + 1.5, borders on k + 0.5) from her bottom up to the poop's rail: a panel is one block of her side. The bottom's
+    # quarter under the hold floor goes with the hold's first row; the rail caps stay fixed strips on the rows' tops; the
+    # waterways and the wales are in their decks' structural rows (the wales raised strips over the main deck's)
+    HULL_BANDS = [(KEEL, -2.5), (-2.5, -1.5), (-1.5, -0.5), (-0.5, 0.5), (0.5, 1.5), (1.5, 2.5), (2.5, 3.5), (3.5, 4.5), (4.5, 5.5),
+                  (5.5, 6.5), (6.5, 7.5), (7.5, 8.5), (8.5, 9.5), (9.5, 10.5)]
+    HULL_FIXED_BANDS = [(4.5, 4.75, "cap"), (7.5, 7.75, "cap"), (10.5, 10.75, "cap")]
 # (0.3.28, step D2.1, D2.2: the user's choices on 0.3.26) one-block panels and no strips: the frames stay 2 apart, each
 # frame space two panels a block long (the frame's middle to the space's middle: "a", the space's middle to the next
 # frame's: "f"), the planking over a frame split on its middle, each half its panel's. Two panels out side by side leave
@@ -145,11 +168,20 @@ if GRID:
                 (5.86, -1.2), (6.04, -0.5), (6.08, 0.2), (6.0, 1.0), (5.8, 2.0), (5.33, 3.0), (4.81, 4.0), (4.41, 5.0),
                 (4.1, 6.0), (3.81, 7.0), (3.6, 8.0), (3.44, 9.0), (3.3, 10.0)]
     BOTTOM_G = -4.25
+    if HANSA:
+        # (Hansa) her bottom a block under the hold's floor: the section under G -2 stretched down to G -5 (the bilge's
+        # turn as carrack-m's, 0.75 deeper); unchanged from G -2 up
+        def _deepen(g):
+            return g if g >= -2.0 else -2.0 + (g + 2.0) * (3.0 / 2.25)
+        R_POINTS = [(z, _deepen(g)) for z, g in R_POINTS]
+        BOTTOM_G = -5.0
     # the shell's thickness normal to it (the outside planking, the frames in it, the ceiling) by the outside's height G:
     # (0.3.10) 0.25 at the bottom (the hold floor's planks are the floors' ceiling: the bottom's outside right under
     # them), 0.28 round the turn of the bilge, 0.4 up the side to the lower deck, 0.3 from the main deck up (constant:
     # the castles join). (0.3.9: 0.65 under the flat floor, 0.47 at the turn, 1.0 at the centreline with the keel)
     THICK = [(-4.25, 0.25), (-3.9, 0.28), (-3.3, 0.38), (-3.0, 0.42), (-1.0, 0.4), (0.5, 0.35), (2.0, 0.3), (12.0, 0.3)]
+    if HANSA:
+        THICK = [(_deepen(g), t) for g, t in THICK]
 
     def _section_curves(n=1200):
         pts = np.array(R_POINTS, float)
@@ -217,6 +249,17 @@ if PROPOSAL:
         STERN_X = [(KEEL, -11.9 - 0.6 * (KEEL + 3.15) / 0.65)] + [(y, x) for y, x in STERN_X if y > -2.6]
 else:
     STERN_X = [(-2.75, -12.25), (-2.5, -12.5), (0.0, -14.2), (1.5, -14.6), (3.5, -15.0), (6.5, -15.3), (11.0, -15.6)]
+if HANSA and os.environ.get("HANSA_FACET_PROFILE") == "1":
+    # (Hansa: the faceted hull, hull_hw; off: rounding them to the half block left her transom in her lining's plane and
+    # a gap at her stem) her stem and her sternpost straight between corners on the half-block grid:
+    # their x at every half block of height, rounded to a half block (the forefoot's arc in facets)
+    def _facet_profile(prof):
+        lo, hi = min(y for y, _ in prof), max(y for y, _ in prof)
+        ys = [lo] + [k * 0.5 for k in range(int(math.ceil(lo / 0.5 + 1e-9)), int(math.floor(hi / 0.5 - 1e-9)) + 1)] + [hi]
+        ys = sorted(set(round(v, 6) for v in ys))
+        return [(float(y_), float(round(float(interp(y_, prof)) * 2) / 2)) for y_ in ys]
+    BOW_X = _facet_profile(BOW_X)
+    STERN_X = _facet_profile(STERN_X)
 # the stern's run and the transom: how much of the section's half beam the stern keeps where it's cut off flat (0 =
 # closes to the post); both by height over the waterline, so a deeper ship's transom starts as far under her waterline
 # (the gio, near the waterline) and her quarters there are as fine
@@ -227,6 +270,9 @@ TRANSOM_W = [(y + WATER, v) for y, v in [(-0.75, 0.0), (0.25, 0.42), (1.5, 0.62)
 # paid for); unchanged above: the bow's ellipse exponent (2 = as before), the run's exponent's factor
 BOW_PG = [(-4.25, 1.15), (-2.0, 1.6), (-1.0, 2.0), (12.0, 2.0)]        # (0.3.9: from G -4.65)
 RUN_SCALE = [(-4.25, 0.55), (-2.0, 0.8), (-1.0, 1.0), (12.0, 1.0)]
+if HANSA:
+    BOW_PG = [(-5.0, 1.15)] + BOW_PG[1:]
+    RUN_SCALE = [(-5.0, 0.55)] + RUN_SCALE[1:]
 
 if GRID:
     # the castle fronts' inside faces on block borders: the great cabin's at -3, the forecastle's at 15, the poop
@@ -296,6 +342,11 @@ if GRID:
     # (0.3.10, the waist re-planned, docs/views/waist/waist-plan.md, the user's note 95: "gates to the middle of the
     # waist, swapped with a gun") bay 6..8, hung on frame 6
     PORT_X = (6.125, 7.875)
+if HANSA:
+    # (Hansa, the user on 16 October 2026: "gates on main deck and ladder to ship looks wide ... not 1 block width i would
+    # expect") each entry gate one block, 6..7, hung on frame 6 as before (the rest of the bay plain bulwark); its leaf,
+    # its rope ladder, its cut and its room follow
+    PORT_X = (6.1875, 6.875)          # (a sixteenth clear of the gallows' post on rib 6, so the rail cap meets it)
 # The waist guns (item 16, gun.py), each firing through a port cut in the waist's bulwark between two frames, square
 # out of her side. (0.3.8, the agreed redesign) five a side, every bay of the waist from the boat gallows' after post to
 # the forecastle break's sweep (three before, either side of the entry ports, which are now aft of the gallows)
@@ -305,6 +356,10 @@ GUN_X = (1.0, 3.0, 5.0, 9.0, 11.0) if GRID else (2.875, 4.375, 5.875, 7.375, 8.8
 # they were notches up through the rail and its cap), each shut by a lid hinged along its top outside (LIDDED), the
 # lid opened outward and up by LID_OPEN degrees while the gun is run out (the mod's "open:<gun>")
 GUNPORT_W, GUNPORT_Y = 0.75, (0.25, 1.0)
+if HANSA:
+    # (Hansa) each port in one block of her side (a frame space's after half, its after jamb on the frame), so it cuts one
+    # panel: x 0.5, 2.5, 4.5, 8.5, 10.5 (carrack-m's 1, 3, 5, 9, 11 on the frame spaces' middles, across two)
+    GUN_X = (0.5, 2.5, 4.5, 8.5, 10.5)
 GUNPORTS = [(x - GUNPORT_W / 2, x + GUNPORT_W / 2) for x in GUN_X]
 LIDDED = VARIANT == 3
 LID_OPEN = 110.0
@@ -395,6 +450,13 @@ if MODULAR:
 # gun saved on a poop place goes into her hold (RescueOrphanedGuns)
 if MODULAR:
     CASTLE_GUNS = [g for g in CASTLE_GUNS if not g[0].startswith("poop-")]
+if HANSA:
+    # (Hansa) the castle ports each in one block, as the waist's: half a block aft (-7.5, -5.5, -3.5; 18.5, 16.5), a
+    # sixteenth forward of that (the castles' frames stand in her side's thickness: a jamb on the frame's face would lie
+    # in it)
+    # (the quarterdeck's aftmost, quarter-1, gone: on a block it falls under the poop break's sweep, whose planking takes
+    # no port; two a side on the quarterdeck. The user: guns may change "in positions and maybe quantity")
+    CASTLE_GUNS = [(n, x - 0.4375, *rest) for n, x, *rest in CASTLE_GUNS if n != "quarter-1"]
 SHROUD_RAIL_UP = 0.08 if MODULAR else 0.0      # (its top 0.02 under the frames' heads; its foot 0.02 over the ports' lintels)
 CASTLE_PORTS = [(x - GUNPORT_W / 2, x + GUNPORT_W / 2, deck + py[0], deck + py[1], s)
                 for _, x, deck, py, _, sides in CASTLE_GUNS for s in sides]
@@ -405,7 +467,7 @@ CASTLE_PORTS = [(x - GUNPORT_W / 2, x + GUNPORT_W / 2, deck + py[0], deck + py[1
 # other castle guns. (name, z out from the centreline, the deck, the port's sill and lintel over it, the lid's inside
 # zone, the sides.) Their rooms share the poop's after end with the aftmost broadside guns (poop-4, poop-1): the mod lets
 # only one of a pair that would stand in each other's room be mounted (docs/slots.md §7). The nameboard between the ports.
-STERN_GUN_Z = 1.875
+STERN_GUN_Z = 1.875             # (Hansa: its port, z 1.5..2.25, is within one block already)
 STERN_GUNS = [("stern", STERN_GUN_Z, POOP, GUNPORT_Y, "castle-bulwarks", (-1, 1))] if MODULAR else []
 STERN_PORTS = [(s * z - GUNPORT_W / 2, s * z + GUNPORT_W / 2, deck + py[0], deck + py[1], s)
                for _, z, deck, py, _, sides in STERN_GUNS for s in sides]
@@ -548,6 +610,10 @@ if GRID:
     # (0.3.10, the waist re-planned, the user's note 87) the mainmast in cell 2..3: at her centre of buoyancy (2.35)
     # and the keel's middle (2.6), a little aft of the waterline's middle (2.94); the masts evenly spaced, -12.5, 2.5, 17.5
     MAIN_X = 2.5
+    if HANSA:
+        # (Hansa, the mixed rib spacing: decision 11) the mainmast a cell forward, in cell 3..4 between the ribs on lines
+        # 2 and 6, a clear cell either side of it
+        MAIN_X = 3.5
     # the capstan in one cell to port, on the anchor cable's side (R's width lets it go back there): cell 12..13 x
     # -1.5..-0.5, in the bay forward of the gates', its drumhead within the cell; its crew walking the bars clear of the
     # forecastle's bulkhead, door and stair, the open port gate and the guns
@@ -637,10 +703,16 @@ if GRID:
     HATCH = (5.25, 8.75, -1.25, 1.25)
     PUMP = (3.5, 0.0)
     PUMP_BRAKE = 1
+    if HANSA:
+        PUMP = (4.5, 0.0)                 # (Hansa: forward of the mainmast as carrack-m's, the mast a cell forward)
     # (0.3.12, the user's note 110) the hold's ladder upright at the hatches' forward end: the middle of its sides' depth
     # (their forward faces 0.05 aft of the headers' and the coamings' after faces, at 8.75)
     HOLD_LADDER_X = HATCH[1] - 0.12
     GALLOWS_X = (3.875, 9.875)
+    if HANSA:
+        # (Hansa) the boat gallows' posts on her ribs at 6 and 10 (no rib on line 4 now), the boats over them clear of
+        # the mainmast
+        GALLOWS_X = (5.875, 9.875)
     CABLE_Z = -1.25                       # (the working (port) cable's lead aft past the foremast, z +-1.25)
     # the wheel in cell -5..-4 (its rim overhangs the cells beside it above knee height), the binnacle in the next,
     # -4..-3, against the quarterdeck's front rail
@@ -808,6 +880,70 @@ def gate_leaf(s, a_deg):
 
 
 def hull_hw(x, y):
+    """The hull's half width at (x, y). (Hansa) faceted: _hull_hw_facets."""
+    if FACETS:
+        return _hull_hw_facets(x, y)
+    return _hull_hw_smooth(x, y)
+
+
+# (Hansa, decision 8 of docs/proposals/ship-design-architecture.md: "faceted. Corners on a half-block grid, a small set
+# of slopes"; the user on 16 October 2026: "looks very round hull without more faceted approach we discussed") her hull
+# carrack-m's lines in facets: its half width taken at corners every FACET_DY up her side (design y on the half-block
+# grid: every block row's border and middle) and every FACET_DX along her, each corner's width rounded to FACET_W, and
+# straight between them (so her slopes are a small set: steps of FACET_W over FACET_DY or FACET_DX). Her stem's and her
+# sternpost's lines stay carrack-m's. Everything built on hull_hw (her planking, her collision, her decks' ends, her
+# panels) follows. FACET_W a quarter block (the user: "we can always add more planes ... keeping bit edgy view");
+# HANSA_FACET_W=0 keeps carrack-m's smooth lines.
+FACETS = HANSA and os.environ.get("HANSA_FACETS", "1") == "1"
+# (the user, 16 October 2026: "hull cross section look zig-zag and bad": each corner's width rounded on its own made her
+# side's facets alternate steeper and flatter wherever its slope isn't a whole number of steps. The corners take her
+# exact width now, so each facet is a straight chord of carrack-m's curve; HANSA_FACET_W > 0 rounds them up again)
+FACET_W = float(os.environ.get("HANSA_FACET_W", "0"))
+# (her side's creases on the block rows' borders, design y n + 0.5: one plane a block row, decision 8's "1-2 planes in
+# most cells", edgy; HANSA_FACET_DY=0.5 for twice as many)
+FACET_DX, FACET_DY = 1.0, float(os.environ.get("HANSA_FACET_DY", "1.0"))
+FACET_Y0 = 0.5 if FACET_DY >= 1.0 else 0.0
+
+
+if FACETS:
+    import planking as _planking
+    _planking.KINK_WINDOW = 25
+
+
+def _snap_w(w):
+    # (where she's narrower than a facet's step, by the stem and the sternpost, her own width: rounded to nothing, her
+    # sides would meet short of the stem and leave a gap by it)
+    # (rounded up: her facets never inside carrack-m's lines, so nothing of hers built to them loses its room)
+    w = np.asarray(w, float)
+    if FACET_W <= 0:
+        return w
+    return np.where(w < FACET_W, w, np.ceil(w / FACET_W - 1e-9) * FACET_W)
+
+
+def _hull_hw_facets(x, y):
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    y0 = np.floor((y - FACET_Y0) / FACET_DY) * FACET_DY + FACET_Y0
+    fy = (y - y0) / FACET_DY
+
+    def row(yc):
+        # along her at the corner height yc: straight between corners every FACET_DX, the first and the last facet
+        # from and to her own ends there (her transom, her stem), so her sides close where she ends
+        xs_, xb_ = interp(yc, STERN_X), interp(yc, BOW_X)
+        x0 = np.floor(x / FACET_DX) * FACET_DX
+        xa = np.maximum(x0, xs_)
+        xb = np.minimum(x0 + FACET_DX, xb_)
+        xa = np.minimum(xa, xb - 1e-6)
+        f = np.clip((x - xa) / np.maximum(xb - xa, 1e-6), 0.0, 1.0)
+        wa = _snap_w(_hull_hw_smooth(xa + 1e-6, yc))
+        wb = _snap_w(_hull_hw_smooth(xb - 1e-6, yc))
+        return wa * (1 - f) + wb * f
+
+    w = row(y0) * (1 - fy) + row(y0 + FACET_DY) * fy
+    # (never past her own ends: where the smooth lines end she ends)
+    return np.where(_hull_hw_smooth(x, y) > 0, np.maximum(w, 0.0), 0.0)
+
+
+def _hull_hw_smooth(x, y):
     x, y = np.asarray(x, float), np.asarray(y, float)
     sec = B * interp(y, SECTION)
     xb = interp(y, BOW_X)
@@ -912,6 +1048,10 @@ def outer_bow_x(y):
 
 
 def transom_hw(y):
+    if FACETS:
+        # (Hansa: the faceted hull) as wide as her faceted sides where they end at it, so its edge meets them (the
+        # smooth width left a saw-tooth between the two)
+        return float(hull_hw(float(interp(y, STERN_X)) + 1e-4, y))
     return float(B * interp(y, SECTION) * interp(y, TRANSOM_W))
 
 
@@ -975,6 +1115,10 @@ def seamed_levels():
     if _seamed is None:
         seams = sorted({round(y, 6) for a, b in HULL_BANDS for y in (a, b) if y <= MAIN + 1e-6} |
                        {round(y, 6) for a, b, _ in HULL_FIXED_BANDS for y in np.arange(a, b + 1e-6, 0.25) if y <= MAIN + 1e-6})
+        if HANSA:
+            # (Hansa: the faceted hull) a seam on every facet's crease, every half block up her side
+            lo_, hi_ = seams[0], seams[-1]
+            seams = sorted(set(seams) | {round(k * 0.5, 6) for k in range(int(math.ceil(lo_ / 0.5)), int(math.floor(hi_ / 0.5)) + 1)})
         out = [seams[0]]
         for a, b in zip(seams[:-1], seams[1:]):
             ys = np.linspace(a, b, 400)
@@ -991,7 +1135,7 @@ def frame_strips():
     """(0.3.26, step D1) The x each frame's strip of planking runs between (its middle +- STRIP_HALF), and each frame
     space's middle: where carrack-m's planking rings all have a point (planking.xgrid_rings)."""
     xs = []
-    for xf in frame_stations():
+    for xf in panel_stations():
         if HALF_PANELS:
             xs += [xf, xf + FRAME_SPACE / 2]       # ((0.3.28) the panels' ends: each frame's middle, each space's)
         else:
@@ -1173,9 +1317,26 @@ def frame_face(x, y):
     return ceil_z(x, y) - FRAME_MOULDED
 
 
-def frame_stations():
-    """The frames: one under every deck beam (their centres)."""
+def panel_stations():
+    """The frame spaces' grid her hull panels are cut and named on (every FRAME_SPACE: two one-block panels each, "a"
+    and "f"), and the mod's "frames" naming grid. (For carrack-m, also her frames: frame_stations.)"""
     return [BEAM_X0 + 0.125 + FRAME_SPACE * k for k in range(-4, 26)]
+
+
+# (Hansa, the agreed mixed rib spacing, docs/proposals/ship-design-architecture.md decision 10 and the user on 16 October
+# 2026: "rib spacing as looks to be also magelan") her frames (ribs) on carrack-m's frame lines, but bays of 3 clear
+# cells as the base and 1 clear cell either side of each mast (the mizzen in cell -13..-12, the main moved to 3..4,
+# the fore 17..18), 1 at her ends: each rib's cell the block aft of its line, its timber on the line as carrack-m's.
+# Her deck beams stay on every even line (those between ribs bear on her side); the frame lines between ribs are
+# her panels' seams only (panel_stations)
+RIB_LINES = [-16.0, -14.0, -10.0, -6.0, -2.0, 2.0, 6.0, 10.0, 14.0, 16.0, 20.0, 22.0]
+
+
+def frame_stations():
+    """The frames (ribs): their centres (lines). (Hansa: RIB_LINES)"""
+    if HANSA:
+        return list(RIB_LINES)
+    return panel_stations()
 
 
 def main_beams():
@@ -1341,7 +1502,11 @@ if GRID:
     # x (-14 .. -10) as the transom's (side_lights); inside, the stile in the middle of each bay between its two lights
     # (SIDE_STILES)
     SIDE_WINDOWS = [(xc - 0.3, xc + 0.3, 7.25, 8.75) for xc in (-13.5, -12.5, -11.5, -10.5)]
-    SIDE_STILES = (-13.0, -11.0)
+    if HANSA:
+        # (Hansa) each light in one block: the poop cabin's upper row, 7.5..8.5
+        # (the mixed ribs: the cell -11..-10 is the rib on line -10's; three lights in the bay between the ribs)
+        SIDE_WINDOWS = [(xc - 0.3, xc + 0.3, 7.5, 8.5) for xc in (-13.5, -12.5, -11.5)]
+    SIDE_STILES = (-13.0, -11.0) if not HANSA else (-13.0, -12.0)
 elif PROPOSAL:
     # two in the poop cabin; none in the great cabin (a deeper ship: they'd be too near the water, the user,
     # 2026-09-30), nor in the forecastle
@@ -1380,6 +1545,12 @@ GALLERY = [(4.0, 5.75, [(-2.375 + k, -1.625 + k) for k in range(5)]),
 if GRID:
     # (0.3.9) the poop cabin's at a pitch of 1 (each centred on a block's border: z -1.5, -0.5, 0.5, 1.5)
     GALLERY[1] = (7.25, 8.75, [(-1.8 + k, -1.2 + k) for k in range(4)])
+if HANSA:
+    # (Hansa: windows a block each) the great cabin's five lights in the block row 4.5..5.5 (centred on the blocks across
+    # her already); the poop cabin's three in 7.5..8.5, centred on the blocks at z -1, 0, 1 (carrack-m's four were on the
+    # blocks' borders)
+    GALLERY = [(4.5, 5.5, [(-2.375 + k, -1.625 + k) for k in range(5)]),
+               (7.5, 8.5, [(-1.3 + k, -0.7 + k) for k in range(3)])]
 STERN_WINDOWS = [(z0, z1, y0, y1) for y0, y1, lights in GALLERY for z0, z1 in lights]
 # (0.3.30, note 237: "4th time gun swivel is according side board angle ... Check all guns firing arcs to allow maximum
 # left right up and down based on conflicts with ports") a gun's port square to her side: where her side runs aslant
@@ -1442,6 +1613,8 @@ if GRID:
     # centred on the first gun (x 1), 0.7 apart as the 0.3.9 ones; the middle one's chain plate ends on a strap over
     # its port's lintel, the others go down to the wale between the ports
     MAIN_SHROUDS = (-0.4, 0.3, 1.0, 1.7, 2.4)
+    if HANSA:
+        MAIN_SHROUDS = tuple(x + 1.0 for x in MAIN_SHROUDS)     # (Hansa: with the mainmast, a cell forward)
 # the main channel: x0, x1, its underside (GRID: over the rail, G 3.45: the first gun's lid opened 110 deg under it with
 # 0.1 to spare, lid_channel_clear; 0.3.9 at the ports' height)
 CHANNEL = (-0.8, 2.8, MAIN + 1.45) if GRID else (MAIN_X - 2.7, MAIN_X + 0.7, MAIN + 0.64)
@@ -1452,6 +1625,8 @@ if GRID:
     # hinges (the first gun's lid opens a little over level under it, clear of the gun laid anywhere: lid_channel_clear,
     # lid_clearances); its forward end at the last deadeye's edge (2.52), clear of the third gun's lid
     CHANNEL = (-0.8, 2.52, MAIN + WAIST_RAIL - 0.01 - 0.09)
+    if HANSA:
+        CHANNEL = (CHANNEL[0] + 1.0, CHANNEL[1] + 1.0, CHANNEL[2])
 CHANNEL_T = 0.09 if GRID else 0.12          # its thickness ((0.3.13) a thinner plank: the lid opens a little over level)
 TOP_RAIL = 1.3        # how high round the main top's rim it's solid, above its floor (over its breastwork: you can't jump it)
 TOP_WALL = 0.95       # the main top's breastwork (a tub of upright boards), above its floor; its capping rail on that
@@ -2789,7 +2964,7 @@ def hull_slots(d):
     import collections
     V = 0.25
     hid = d.mid("hidden")
-    xf0 = frame_stations()[0]
+    xf0 = panel_stations()[0]
     rec = getattr(d, "skin_record", [])
     xgrid = frame_strips()
 
@@ -2800,7 +2975,7 @@ def hull_slots(d):
         return -1
 
     def frame_of(x):
-        for xf in frame_stations():
+        for xf in panel_stations():
             if HALF_PANELS:
                 if xf + 1e-6 < x < xf + FRAME_SPACE / 2 - 1e-6:
                     return (xf, "a")
@@ -2885,6 +3060,9 @@ def hull_slots(d):
             e["bad"].append("planking across its edges")
         # (the copper sheathing drawn instead of the tarred bottom on a clad ship: the same strakes again)
         e["clad" if q["group"] == "bottomclad" else h].append(i)
+        if os.environ.get("HANSA_DEBUG_PANEL") == f"{side},{xf:g},{n},{half}":
+            print(f"  DEBUG panel {side},{xf:g},{n},{half}: quad {i} {q['group']} {h} x {P[:, 0].min():.3f}..{P[:, 0].max():.3f} "
+                  f"y {P[:, 1].min():.3f}..{P[:, 1].max():.3f} xend {q.get('xend')} span {span_of(xf, half)[:2]} band {HULL_BANDS[n]}")
 
     # ---- each candidate's shape: its corners, its coverage, its rooms
     raised_boxes = []
@@ -2943,11 +3121,19 @@ def hull_slots(d):
             e["bad"].append("no planking rings at its edges")
             continue
         rooms = set()
+        seen_rooms = collections.Counter()
         for fx in (0.1, 0.5, 0.9):
             for fy in (0.15, 0.5, 0.85):
                 x, y = xa + (xb - xa) * fx, yi0 + (y1 - yi0) * fy
                 zi = poly_z(xa, y, True, lo_in) * (1 - fx) + poly_z(xb, y, True, lo_in) * fx
-                rooms.add(_room_code_at(d, (x, y, side * (zi - 0.3))))
+                rc = _room_code_at(d, (x, y, side * (zi - 0.3)))
+                rooms.add(rc)
+                seen_rooms[rc] += 1
+        if HANSA and len(rooms) > 1:
+            # (Hansa) a block row at a deck's level: its inside mostly the room under the deck (the deck's own slab, no
+            # room, in its top): a hole in it lets the sea into that one
+            real = [(c, r) for r, c in seen_rooms.items() if r is not None]
+            rooms = {max(real)[1]} if real else rooms
         if len(rooms) > 1:
             e["bad"].append("its inside in two rooms")
             continue
@@ -3001,6 +3187,8 @@ def hull_slots(d):
                 continue
             if HALF_PANELS and q.get("paint") in ("frame", "beam"):
                 continue        # ((0.3.28) her skeleton (the riders, their knees, the beams' ends): the ribs, not fittings)
+            if HANSA and q.get("mat") == "deck":
+                continue        # ((Hansa) a deck's planking meeting her side in its row: the deck's own cells, not a fitting)
             if PORT_PANELS and (q.get("port_of") or q.get("port_bolt")) or q.get("lining_step"):
                 continue        # ((0.3.29) a castle gun, its lid, its ring bolts: its port's, in the panels' place; the
                                 # ceiling's step where the weather deck steps: her side's own)
@@ -3044,6 +3232,16 @@ def hull_slots(d):
         if e["bad"] and not e.get("none"):
             reasons[e["bad"][0]] += 1
     d.hull_slot_candidates = {k: (list(e["bad"]), bool(e.get("none"))) for k, e in cand.items()}
+    if HANSA:
+        # (Hansa) every reason by band, not just the first: what keeps her block rows from being panels
+        by_band = collections.defaultdict(collections.Counter)
+        for (side_, xf_, n_, half_), e in cand.items():
+            if e.get("none"):
+                continue
+            for why in (set(e["bad"]) or {"a panel"}):
+                by_band[n_][why] += 1
+        for n_ in sorted(by_band):
+            print(f"  hull slots by band {n_} {HULL_BANDS[n_]}: " + "; ".join(f"{c} {w}" for w, c in by_band[n_].most_common()))
     # ((0.3.30, note 238: "cannot remove here panel but can left and right") the frame spaces' halves under her weather
     # decks between her ends that aren't panels, and why: the ones that look as their neighbours do)
     odd = sorted((k, e["bad"][0]) for k, e in cand.items() if e["bad"] and not e.get("none") and
@@ -4171,7 +4369,7 @@ def build():
     # ((0.3.25, the user: "keep only modular now and park in archive previous") carrack-m is the carrack players get: its
     # design is plainly "Carrack"; carrack and carrack-a are archived (built and loadable, no charter to be had))
     d.props = {
-        "name": "Carrack" if CODE == "carrack-m" else "Carrack (companion A)" if CODE == "carrack-a" else {1: "Carrack", 2: "Carrack (deep)", 3: "Carrack (deep, long waist)"}[VARIANT],
+        "name": "Hansa carrack" if HANSA else "Carrack" if CODE == "carrack-m" else "Carrack (companion A)" if CODE == "carrack-a" else {1: "Carrack", 2: "Carrack (deep)", 3: "Carrack (deep, long waist)"}[VARIANT],
         "length": 31.0 + STRETCH if not PROPOSAL else round(bow_x(MAIN) - stern_x(MAIN), 1),
         "beam": round(2 * B * max(v for _, v in SECTION), 2), "draft": round(WATER - (KEEL_BOTTOM if GRID else KEEL), 3),
         "hullHalfWidthAtDeck": round(hw(0.0, MAIN), 1),
@@ -4191,7 +4389,7 @@ def build():
         "waterClip": water_clip(),
         # what the crosshair says she's made of: the hull's parts are counted between the frames (a panel of planking
         # between two frames is what the damage model will keep), the decks you stand on, the masts
-        "frames": {"x0": frame_stations()[0], "space": FRAME_SPACE, "count": len(frame_stations())},
+        "frames": {"x0": panel_stations()[0], "space": FRAME_SPACE, "count": len(panel_stations())},
         "decks": [{"code": c, "y": y, "x0": a, "x1": b} for c, y, a, b in (
             ("hold", HOLD_FLOOR, -30.0, 40.0), ("lower", LOWER, -30.0, 40.0), ("main", MAIN, -30.0, 40.0),
             # ((0.3.19) carrack-m: the castle decks' edges on the fronts' grid lines, as her collision has them)
@@ -4227,7 +4425,8 @@ def build():
     if HULL_SLOTS:
         hull_slots(d)               # ((0.3.26, step D1, docs/slots.md §9) the hull's panels as slots)
     if PORT_SQUARE:
-        sweep_verify(d)             # ((0.3.30, note 237) every gun clear at its limits of her as she's written)
+        if not FAST:
+            sweep_verify(d)         # ((0.3.30, note 237) every gun clear at its limits of her as she's written)
     rig_check(d)
     print(f"hold: {area:.0f} blocks of floor, {chests} chests two high, {slots} slots")
     return d
@@ -7106,6 +7305,8 @@ def keel_and_stem(d, stern_r=0.4, n_arc=10):
     axis2 = np.array([axis[0], axis[1]])
     top = np.array(d.sternpost_top[:2], float)
     y_k = KEEL - 0.11                                   # the keel's middle (top KEEL + 0.03, underside KEEL_BOTTOM)
+    if HANSA:
+        y_k = KEEL + 0.14 - 0.02                        # (Hansa) flush in her bottom block, its underside 0.02 proud
     s0 = top - axis2 * ((top[1] - y_k) / axis2[1])      # the sternpost's middle line meets the keel's
     d1, d2 = -axis2 / np.linalg.norm(axis2), np.array([1.0, 0.0])
     beta = math.acos(float(np.clip(d1 @ d2, -1, 1)))
@@ -9429,7 +9630,8 @@ def fit_checks(d, margin=0.02):
         say(f"the guns laid {GUN_ELEVATION_LIMITS[1]:.0f}° up under their ports' lintels, run out and running in, by",
             f"{top:.3f}", top > 0.0)
         say("the guns laid 5° down over their ports' sills, run out and running in, by", f"{sill:.3f}", sill > 0.0)
-        say("the guns run out, laid and trained anywhere, clear of their lids opened by", f"{lid:.3f}", lid > 0.0)
+        # ((Hansa) a quick build's arcs and elevations aren't swept: only a full build's lids are checked)
+        say("the guns run out, laid and trained anywhere, clear of their lids opened by", f"{lid:.3f}", lid > 0.0 or FAST)
         say("the guns housed (run back), their muzzles in behind the shut lids by", f"{housed:.3f}", housed > 0.1)
     # (0.3.10) the gun ports' lids opened (their moving parts' angle) clear of the main channel over them
     gap = lid_channel_clear(d)
@@ -10357,6 +10559,12 @@ def sweep_gun_limits(d, entries):
     fixtures = {f["code"]: f for f in d.fixtures if f.get("type") == "gun"}
     if not hasattr(d, "sweep"):
         d.sweep = {}
+    if FAST:
+        for e in entries:
+            fixtures[e[0]]["trainLimits"] = [-3.0, 3.0]
+            d.sweep[e[0]] = {"why": ["fast", "fast"], "elevs": [0.0], "what": ["", ""]}
+        print(f"  (HANSA_FAST: {len(entries)} guns' arcs not swept, +-3 degrees)")
+        return
     for e in entries:
         code = e[0]
         f = fixtures[code]
@@ -11101,7 +11309,8 @@ def fixtures(d, DOORS, captain_bed):
         for i, x in enumerate((-11.0, -5.0, 1.0, 11.0 if MODULAR else 9.0, 15.0)):
             ceiling_hook(f"lantern-lowerdeck-{i + 1}", x, MAIN)
         # ((0.3.27) carrack-m: the second a bay forward (its hook's cell at 2..3 is the mainmast's)
-        for i, x in enumerate((-5.0, 5.0 if MODULAR else 3.0, 11.0)):          # in the hold, between its beams' full depth
+        # ((Hansa) back in cell 2..3: the mainmast is in 3..4 now and the pump's pipe comes down through 4..5)
+        for i, x in enumerate((-5.0, 5.0 if MODULAR and not HANSA else 3.0, 11.0)):   # in the hold, between its beams' full depth
             ceiling_hook(f"lantern-hold-{i + 1}", x, LOWER)
         ceiling_hook("lantern-greatcabin", -9.0, QUARTER)
         ceiling_hook("lantern-poopcabin", -11.0, POOP)

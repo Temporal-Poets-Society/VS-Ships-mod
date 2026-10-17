@@ -185,7 +185,7 @@ namespace Hansa
                     var g0 = mod.GetShip(cfg.Ship)?.Fixtures.FirstOrDefault(f => f.Type == "gun");
                     double gdx = g0 != null && Math.Abs(g0.Pos[0] - Math.Floor(g0.Pos[0]) - 0.5) < 0.05 ? 0 : 0.5;
                     shooter = Launch(ctype, sz, dx: gdx);
-                    var guns = shooter.Def.Fixtures.Where(f => f.Type == "gun" && f.Out[2] > 0).OrderBy(f => f.Pos[0]).ToArray();
+                    var guns = shooter.Def.Fixtures.Where(f => f.Type == "gun" && f.Out[2] > 0 && shooter.GunMounted(f)).OrderBy(f => f.Pos[0]).ToArray();
                     foreach (var f in guns) shooter.OpenGunPort(f, true);
                     WaitFor(() => false, 1, w1 =>
                     {

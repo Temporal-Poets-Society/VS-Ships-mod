@@ -204,8 +204,10 @@ namespace Hansa
                 foreach (var loc in new[] { def.Shapes.Interior, def.Shapes.Exterior })
                     if (loc != null && Shape.TryGet(sapi, AssetLocation.Create(loc, "hansa").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json")) is Shape sh) surfaces.AddShape(sh);
                 var l = def.Mounts;
-                var side = l.Get("b:lower:-6:-6:w:1");
-                var beam = l.Get("b:lower:-7:-2:s:2");
+                // (notes 148-149 are the carrack's own places: another design's beams and sides are elsewhere)
+                bool theCarrack = def.Code is "carrack" or "carrack-a";
+                var side = theCarrack ? l.Get("b:lower:-6:-6:w:1") : null;
+                var beam = theCarrack ? l.Get("b:lower:-7:-2:s:2") : null;
                 if (side == null || beam == null) Log($"{def.Code} hasn't the carrack's partition places of notes 148-149: only the general checks");
                 var sd = side == null ? null : l.DrawnClip(side, surfaces);
                 if (side != null) Check(sd != null && sd.Min(r => r[0]) < -5.6, $"note 149: the partition on b:lower:-6:-6:w:1 is drawn out to her ceiling (to z {sd?.Min(r => r[0]):0.000}, its block ends at -5.5)");
@@ -1979,7 +1981,9 @@ namespace Hansa
             }
             var shooter = Launch(sz);
             var target = Launch(sz + 17);
-            var guns = def.Fixtures.Where(f => f.Type == "gun").ToArray();
+            // (a new ship's guns: a design with gun places starting empty, carrack-m's castles', has only its laid ones)
+            bool Laid(FixtureDef f) => !def.GunPlaceOf.TryGetValue(f.Code, out var gp) || gp.StartsLaid;
+            var guns = def.Fixtures.Where(f => f.Type == "gun" && Laid(f)).ToArray();
             var port = guns.Where(f => f.Out[2] < 0).OrderBy(f => f.Pos[0]).ToArray();
             var starboard = guns.Where(f => f.Out[2] > 0).OrderBy(f => f.Pos[0]).ToArray();
             Check(guns.Length >= 6 && port.Length * 2 == guns.Length && mod.Shots != null && mod.Config.Cannons && !mod.Config.CannonsBreakBlocks,
@@ -2116,7 +2120,8 @@ namespace Hansa
         void Laying(HansaMod mod, ShipDefinition def, EntityShip ship, EntityProperties type, Action next)
         {
             var shots = mod.Shots;
-            var guns = def.Fixtures.Where(f => f.Type == "gun" && f.Out[2] > 0).OrderBy(f => f.Pos[0]).ToArray();
+            // (the guns she carries: a design's gun places that start empty, carrack-m's castles', have none to lay)
+            var guns = def.Fixtures.Where(f => f.Type == "gun" && f.Out[2] > 0 && ship.GunMounted(f)).OrderBy(f => f.Pos[0]).ToArray();
             double v = def.Cannon.MuzzleVelocity;
             // how far a ball's first velocity (less her own way) is from the way the gun is laid, degrees; and its start from the muzzle
             void Along(CannonShots.Ball b, FixtureDef gun, GunLay lay, out double angle, out double fromMuzzle)
@@ -2495,7 +2500,7 @@ namespace Hansa
                     $"{string.Join(", ", after.Select(kv => kv.Value + " " + kv.Key.Replace("game:", "")))}; {rep.Dropped} dropped");
                 // her guns
                 int guns = plan.Guns.Count(s => ba.GetBlock(new BlockPos(s.X, s.Y, s.Z, 0))?.Code?.ToString() == "hansa:gun-bronze-" + s.Side);
-                int gunsWant = def.Fixtures.Count(f => f.Type == "gun");
+                int gunsWant = def.Fixtures.Count(f => f.Type == "gun" && (!def.GunPlaceOf.TryGetValue(f.Code, out var gp) || gp.StartsLaid));
                 Check(guns == gunsWant && rep.Guns == gunsWant, $"her {gunsWant} bronze guns are there as blocks ({plan.Guns.Count(s => s.InWreck)} in her, {plan.Guns.Count(s => !s.InWreck)} tumbled onto the seabed; {guns} found)");
                 // the water (under the pool's surface): still in her blocks (they don't push it out), and round her where
                 // nothing was put
