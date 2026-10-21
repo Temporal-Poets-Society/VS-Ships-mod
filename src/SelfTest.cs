@@ -57,10 +57,17 @@ namespace Hansa
         void Run()
         {
             var mod = sapi.ModLoader.GetModSystem<HansaMod>();
+            // (18 October 2026) a build without the configured ship (the release carries the caravel, not the carracks)
+            // tests its default ship instead
+            if (mod.GetShip(cfg.Ship) == null && mod.DefaultShipCode != null)
+            {
+                Log($"note {cfg.Ship} is not in this build: testing {mod.DefaultShipCode}");
+                cfg.Ship = mod.DefaultShipCode;
+            }
             var def = mod.GetShip(cfg.Ship);
             Check(def != null, $"{cfg.Ship} definition loaded");
             Check(sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship)) != null, $"{cfg.Ship} entity type registered");
-            Check(sapi.World.GetItem(new AssetLocation("hansa", "shipdeed-carrack")) != null, "charter item registered");
+            Check(sapi.World.GetItem(new AssetLocation("hansa", "shipdeed-" + cfg.Ship)) != null, "charter item registered");
             {
                 // the surveyor's chalk (its notes and marks are the client's): there, with its class, and made by no recipe
                 var chalk = sapi.World.GetItem(new AssetLocation("hansa", "surveyorschalk"));
@@ -135,20 +142,25 @@ namespace Hansa
         void Notes0314(HansaMod mod)
         {
             var defA = mod.GetShip("carrack-a");
+            if (defA == null && mod.GetShip("carrack-m") == null)
+                Log("note the carracks' charters: not in this build (the release carries the caravel)");
+            else
             Check(defA != null && defA.Mounts?.Floors.Any() == true && sapi.World.GetEntityType(new AssetLocation("hansa", "carrack-a")) != null &&
                   sapi.World.GetItem(new AssetLocation("hansa", "shipdeed-carrack-a")) != null,
                 "the second design carrack-a (companion option A) is loaded, her entity and charter (shipdeed-carrack-a) registered");
             {
-                // (0.3.25, the user: "keep only modular now and park in archive previous") only carrack-m's charter is to be
-                // had (the creative inventory); the archived ones stay registered, with their ships' entities, so an old deed
-                // still launches its ship
+                // (the user, 18 October 2026) only the caravel's charter is to be had (the creative inventory); the carracks'
+                // stay registered, and where a build carries their ships (not the release) an old deed still launches its
+                // ship (0.3.25 kept carrack-m's alone in the inventory)
                 Item Deed(string c) => sapi.World.GetItem(new AssetLocation("hansa", "shipdeed-" + c));
                 bool InCreative(Item it) => it?.CreativeInventoryTabs?.Contains("general") == true;
-                var dm = Deed("carrack-m");
-                Check(InCreative(dm) && dm.Attributes?["ship"].AsString() == "carrack-m" &&
-                      new[] { "carrack", "carrack-a" }.All(c => Deed(c) is Item it && !InCreative(it) && it.Attributes?["ship"].AsString() == c &&
-                          sapi.World.GetEntityType(new AssetLocation("hansa", c)) != null),
-                    "0.3.25: only the carrack's charter (carrack-m) is in the creative inventory; the archived charters (carrack, carrack-a) stay registered and launch their ships");
+                var dc = Deed(HansaMod.DefaultShip);
+                var carracks = new[] { "carrack", "carrack-a", "carrack-m", "hansa-carrack" };
+                Check(InCreative(dc) && dc.Attributes?["ship"].AsString() == HansaMod.DefaultShip &&
+                      carracks.All(c => Deed(c) is Item it && !InCreative(it) && it.Attributes?["ship"].AsString() == c &&
+                          (mod.GetShip(c) == null || sapi.World.GetEntityType(new AssetLocation("hansa", c)) != null)),
+                    $"only the {HansaMod.DefaultShip}'s charter is in the creative inventory; the carracks' ({string.Join(", ", carracks)}) stay registered, " +
+                    $"and launch their ships where this build has them ({carracks.Count(c => mod.GetShip(c) != null)} of {carracks.Length})");
             }
             foreach (var code in new[] { "carrack", "carrack-a" })
             {
@@ -409,7 +421,9 @@ namespace Hansa
                 Check(ship.Pos.X - start.X > 15, $"ship sailed east {ship.Pos.X - start.X:0.0} blocks (top speed {maxSpeed:0.00} b/s)");
                 Check(Math.Abs(ship.Pos.Z - start.Z) < 0.5, "held its course");
                 Check(ship.Aground, "ran aground at the wall");
-                Check(ship.Pos.X < spawn.X + 45 - 12, $"stopped before the wall (bow at {ship.Pos.X + 14 - spawn.X:0.0} of 45)");
+                // her own bow: the foremost of her hull samples (was the carrack's 12 blocks, 14 reported)
+                double bowX = def.HullSamples?.Length > 0 ? def.HullSamples.Max(p => p[0]) : 12;
+                Check(ship.Pos.X + bowX < spawn.X + 45 + 0.5, $"stopped before the wall (bow at {ship.Pos.X + bowX - spawn.X:0.0} of 45)");
                 Check(Math.Abs(ship.BaseY - startBase) < 0.1 && Math.Abs(ship.Pos.Y - (ship.BaseY - ship.Sinkage + ship.Heave)) < 1e-9,
                     "stayed at the water surface, riding the waves on it");
                 GroundingDamage(ship, def, maxSpeed);
@@ -662,6 +676,11 @@ namespace Hansa
 
             // ---- a chest on the lower deck: a storage; things put in and taken out; not taken up full; taken up empty
             var chest = new ItemStack(B("chest-east"));
+            if (!l.Floors.Any(m => m.Room == "lowerdeck"))
+            {
+                Log($"{def.Code} has no lower deck: the lower deck's chest and cabinet checks are for ships with one");
+                return;
+            }
             var at = FreeIn("lowerdeck", chest);
             Check(at != null, "a free floor place on the lower deck for a chest");
             if (at == null) return;
@@ -1237,7 +1256,8 @@ namespace Hansa
             var sailed = sapi.World.Items.FirstOrDefault(it => it?.Code != null && it.Code.Domain == "game" && it.Code.Path.StartsWith("boat-sailed-"));
             var skiff = sapi.World.GetItem(new AssetLocation("hansa", "boat-skiff"));
             var boats = def.Fixtures.Where(f => f.Kind == "boat").ToArray();
-            Check(boats.Length == 2, $"two boat places on the gallows ({boats.Length})");
+            if (boats.Length == 0) Log($"{def.Code} carries no boats on gallows: the gallows checks are for ships with them");
+            else Check(boats.Length == 2, $"two boat places on the gallows ({boats.Length})");
             var boatF = boats.FirstOrDefault();
             if (boatF != null)
             {
@@ -1565,7 +1585,10 @@ namespace Hansa
             var l = def.DamageParts;
             var hurt = Enumerable.Range(0, l.Count).Where(i => l.Parts[i].Kind == DamageKind.Hull && ship.StateOfPart(i) >= PartState.Scraped).ToList();
             var worst = hurt.Count > 0 ? hurt.Max(i => ship.StateOfPart(i)) : PartState.Sound;
-            Check(hurt.Count > 0 && hurt.All(i => l.Parts[i].Center.X > def.Length * 0.2) && worst >= PartState.Cracked,
+            // (18 October 2026) as heavy as she is: a carrack's thousand tonnes crack her bow at this speed, a light ship's
+            // scrape it
+            var expect = l.Displacement >= 600 ? PartState.Cracked : PartState.Scraped;
+            Check(hurt.Count > 0 && hurt.All(i => l.Parts[i].Center.X > def.Length * 0.2) && worst >= expect,
                 $"running into the wall at {speed:0.0} b/s hurt her bow where she touched: {hurt.Count} panels, the worst {worst}, nothing aft");
             Check(ship.WatchedAttributes.GetBytes("hansaDmg")?.Length == 2 * l.Count && ship.Attributes.GetTreeAttribute("hansaDmgF") != null,
                 "the damage is synced to clients (a byte a part) and saved");
@@ -1592,8 +1615,14 @@ namespace Hansa
             Check(mod.Config.Damage && ship.PartDamage?.Count == l.Count && ship.Stage == SinkStage.Afloat && ship.Water == 0 && ship.Sinkage == 0,
                 $"a new ship is sound and dry ({l.Count} parts: hull panels, decks, the rudder, masts, sails, rigging)");
             // a hole below the waterline, port side amidships
-            var panel = l.Parts.Where(p => p.Kind == DamageKind.Hull && p.Part.Side < 0 && p.Center.Y < def.Waterline - 1.5 && p.Center.Y > def.Waterline - 2.5 &&
-                                           Math.Abs(p.Center.X) < 4).OrderBy(p => Math.Abs(p.Center.X)).First();
+            // the port panel nearest 2 blocks under the waterline amidships (any ship's depth, not only the carrack's)
+            var panel = l.Parts.Where(p => p.Kind == DamageKind.Hull && p.Part.Side < 0 && p.Center.Y < def.Waterline - 0.5 && Math.Abs(p.Center.X) < 4)
+                .OrderBy(p => Math.Abs(p.Center.Y - (def.Waterline - 2.0))).ThenBy(p => Math.Abs(p.Center.X)).FirstOrDefault();
+            if (panel == null)
+            {
+                Check(false, "a hull panel below the waterline amidships to hole");
+                return;
+            }
             int i = panel.Index;
             ship.DamagePart(i, 0.85f);
             Check(ship.StateOfPart(i) == PartState.Holed && ship.WatchedAttributes.GetBytes("hansaDmg")?[2 * i] == DamageState.Q(ship.PartDamage.Hurt[i]),
@@ -1605,11 +1634,13 @@ namespace Hansa
                       ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetDouble("sink") == ship.Sinkage,
                     $"she floats deeper for it ({ship.Sinkage:0.000}), on the server as on clients");
                 Check(ship.ListAngle < 0, $"and lists to port, where it came in ({ship.ListAngle * GameMath.RAD2DEG:0.00}°)");
-                ship.Flood(150);
+                // (18 October 2026) a heavy load for her size: the carrack's 150 t, or 40 % of a smaller ship's reserve buoyancy
+                double load = Math.Min(150, 0.4 * l.Reserve);
+                ship.Flood(load);
                 WaitFor(() => false, 6, w6 =>
                 {
-                    Check(ship.Sinkage > 0.3 && ship.ListAngle * GameMath.RAD2DEG < -1 && ship.SpeedFactorNow < 0.85 && ship.Stage <= SinkStage.Foundering,
-                        $"with 150 t more in her: {ship.Sinkage:0.00} deeper, {ship.ListAngle * GameMath.RAD2DEG:0.0}° over, {ship.SpeedFactorNow:0.00} of her speed; still afloat ({ship.Stage}: the hole lets in {ship.WaterRate:0.00} t/s)");
+                    Check(ship.Sinkage > Math.Min(0.3, 0.3 * load / 150 * 2) && ship.ListAngle * GameMath.RAD2DEG < -1 && ship.SpeedFactorNow < 0.85 && ship.Stage <= SinkStage.Foundering,
+                        $"with {load:0} t more in her: {ship.Sinkage:0.00} deeper, {ship.ListAngle * GameMath.RAD2DEG:0.0}° over, {ship.SpeedFactorNow:0.00} of her speed; still afloat ({ship.Stage}: the hole lets in {ship.WaterRate:0.00} t/s)");
                     ship.LocalToWorld(0, l.HoldBottom + 0.3, 0, out double hx, out double hy, out double hz);
                     ship.LocalToWorld(0, ship.FloodLevel + 1.0, 0, out double ax, out double ay, out double az);
                     Check(sea != null && !sea.IsDry(hx, hy, hz) && sea.IsDry(ax, ay, az), "in her hold it's wet under the water that's in her, and dry above it");
@@ -1617,8 +1648,10 @@ namespace Hansa
                     // as it's drawn; Sea keeps the sea under it (her water clip)
                     double fy = ship.FloodWorldY, fx = ShipWater.FloodX(def);
                     int level = 0, spots = 0, cut = 0;
-                    foreach (var (dx, dz) in new[] { (0.0, 0.0), (-4.0, 1.8), (4.0, -1.8), (6.0, 1.5) })
+                    double kx = Math.Min(1, def.Length / 36.4), kz = Math.Min(1, def.Beam / 12.16);   // the carrack's spots, to her size
+                    foreach (var (dx0, dz0) in new[] { (0.0, 0.0), (-4.0, 1.8), (4.0, -1.8), (6.0, 1.5) })
                     {
+                        double dx = dx0 * kx, dz = dz0 * kz;
                         ship.LocalToWorld(fx + dx, ship.FloodLevel, dz, out double sx2, out _, out double sz2);
                         spots++;
                         if (!sea.IsDry(sx2, fy - 0.15, sz2) && sea.IsDry(sx2, fy + 0.15, sz2)) level++;
@@ -1680,6 +1713,32 @@ namespace Hansa
                             Check(ship.PumpedRate > 0.05 && ship.PumpsWorked == pump.Code && told > 0.05,
                                 $"what the pump brings up is told to clients for its spout's water ({ship.PumpedRate * 1000:0} l/s out of '{ship.PumpsWorked}', synced {told * 1000:0})");
                             // flooded full in shallow water: she comes to rest on the bottom, her deck above the water
+                            // (18 October 2026) a ship drawing less than the carrack would go under in the pool's 4.9 of water
+                            // before she touched: a shoal of stone under her, whole blocks, till what's under her keel is less
+                            // than her freeboard (taken away again when she has floated off)
+                            var shoal = new List<BlockPos>();
+                            {
+                                var ba = sapi.World.BlockAccessor;
+                                var stoneB = sapi.World.GetBlock(new AssetLocation("game", "rock-granite"));
+                                int fx = (int)Math.Floor(ship.Pos.X), fz = (int)Math.Floor(ship.Pos.Z);
+                                int fy = (int)Math.Floor(wy);
+                                while (fy > wy - 12 && ba.GetBlock(new BlockPos(fx, fy, fz, 0)).Id != stoneB.Id) fy--;
+                                double freeboard = def.DeckY - def.Waterline, under = wy - (fy + 1) - def.Draft;
+                                int layers = 0;
+                                while (under - layers > 0.6 * freeboard) layers++;
+                                int hx = (int)Math.Ceiling(def.Length / 2) + 2, hz = (int)Math.Ceiling(def.Beam / 2) + 2;
+                                for (int x = fx - hx; x <= fx + hx; x++)
+                                    for (int z = fz - hz; z <= fz + hz; z++)
+                                        for (int y = fy + 1; y <= fy + layers; y++)
+                                        {
+                                            var bp = new BlockPos(x, y, z, 0);
+                                            if (ba.GetBlock(bp, BlockLayersAccess.Fluid).Id == 0) continue;   // (the pool's walls)
+                                            ba.SetBlock(0, bp, BlockLayersAccess.Fluid);
+                                            ba.SetBlock(stoneB.Id, bp);
+                                            shoal.Add(bp);
+                                        }
+                                if (layers > 0) Log($"a shoal {layers} high under her: {under - layers:0.00} under her keel, her freeboard {freeboard:0.00}");
+                            }
                             ship.Flood(l.Capacity);
                             WaitFor(() => ship.OnBottom && ship.Stage == SinkStage.Foundering, 20, ok =>
                             {
@@ -1690,6 +1749,12 @@ namespace Hansa
                                 {
                                     Check(ok2 && ship.Stage == SinkStage.Afloat, $"pumped dry, she floats off again ({ship.Sinkage:0.00}, {ship.Stage})");
                                     ship.Die(EnumDespawnReason.Removed);
+                                    var waterB = sapi.World.GetBlock(new AssetLocation("game", "water-still-7"));
+                                    foreach (var bp in shoal)
+                                    {
+                                        sapi.World.BlockAccessor.SetBlock(0, bp);
+                                        sapi.World.BlockAccessor.SetBlock(waterB.Id, bp, BlockLayersAccess.Fluid);
+                                    }
                                     DeepSinking(mod, def, spawn, wy);
                                 });
                             });
@@ -1736,7 +1801,7 @@ namespace Hansa
             ship.Pos.Yaw = (float)(Math.PI / 2);
             sapi.World.SpawnEntity(ship);
             // a rowing boat on her gallows, a chest with something in it in the hold, someone aboard, a spawn bound to her
-            var boatF = def.Fixtures.First(f => f.Kind == "boat");
+            var boatF = def.Fixtures.FirstOrDefault(f => f.Kind == "boat");   // (a ship without gallows carries none)
             var rowboat = sapi.World.GetItem(new AssetLocation("hansa", "rowboat-oak"));
             var chest = sapi.World.GetBlock(new AssetLocation("game", "chest-east"));
             // (the chest a piece on a floor place in the hold)
@@ -1744,7 +1809,7 @@ namespace Hansa
             var holdPlace = ship.Mounts?.Floors.FirstOrDefault(m => m.Room == "hold" &&
                 ship.PlaceProblem(PiecePlanner.Plan(ship.Mounts, m, new VanillaPieceBlock(sapi.World, chestStack), 1), true) == null);
             ShipPiece cargoP = null;
-            bool stowed = rowboat != null && ship.TryAttach(boatF, new ItemStack(rowboat)) == null && holdPlace != null &&
+            bool stowed = (boatF == null || rowboat != null && ship.TryAttach(boatF, new ItemStack(rowboat)) == null) && holdPlace != null &&
                           ship.PlacePiece(PiecePlanner.Plan(ship.Mounts, holdPlace, new VanillaPieceBlock(sapi.World, chestStack), 1), chestStack, true, out cargoP) == null;
             string cargoCode = cargoP?.StorageCode ?? "-";
             if (stowed)
@@ -1786,12 +1851,12 @@ namespace Hansa
             WaitFor(() => { listMax = Math.Max(listMax, Math.Abs(ship.ListAngle)); hearthLit |= ship.Fire.IsBurning; return ship.GoneDown; }, 40, ok =>
             {
                 Check(ok && ship.Sinkage >= def.DeckY - def.Waterline - 0.1, $"flooded in deep water she settles till her deck's at the water, and goes down ({ship.Stage}, {ship.Sinkage:0.00} deeper)");
-                Check(hearthLit && !ship.Fire.IsBurning && ship.Fire.BurnState == "cold" && !ship.Fire.CanIgniteFuel && ship.HearthInv?[0].StackSize > 0 &&
+                if (ship.HearthInv != null) Check(hearthLit && !ship.Fire.IsBurning && ship.Fire.BurnState == "cold" && !ship.Fire.CanIgniteFuel && ship.HearthInv?[0].StackSize > 0 &&
                       ship.WatchedAttributes.GetTreeAttribute("hansaHearth")?.GetString("burnstate") == "cold",
                     $"her hearth was burning; going down, the sea puts it out (cold, no embers; the firewood left in it: {ship.HearthInv?[0].StackSize})");
                 Check(sailor != null && sailor.MountedOn == null && ship.Seats.All(s => s.Passenger == null), "those aboard are put off into the water");
                 var boat = ship.ReleasedBoats.Count == 1 ? sapi.World.GetEntityById(ship.ReleasedBoats[0]) : null;
-                Check(boat is EntityRowBoat && boat.Alive && !ship.Attached.ContainsKey(boatF.Code) && Math.Abs(boat.Pos.Y - wy) < 1.5,
+                if (boatF != null) Check(boat is EntityRowBoat && boat.Alive && !ship.Attached.ContainsKey(boatF.Code) && Math.Abs(boat.Pos.Y - wy) < 1.5,
                     $"the rowing boat on her gallows floats free, on the water beside her ({boat?.Code})");
                 ShipSpawnBinding ended = null;
                 spawns?.Registry.Players.TryGetValue("hansa-selftest-sunk", out ended);
@@ -1839,8 +1904,10 @@ namespace Hansa
         /// </summary>
         void CrawlHarbour(HansaMod mod, BlockPos spawn, double wy, Action next)
         {
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", "carrack-m"));
-            if (type == null) { Check(false, "0.3.25: carrack-m to crawl"); next(); return; }
+            // (18 October 2026) a build without carrack-m (the release with the caravel): the ship under test crawls
+            var type = sapi.World.GetEntityType(new AssetLocation("hansa", "carrack-m")) ?? sapi.World.GetEntityType(new AssetLocation("hansa", this.cfg.Ship));
+            if (type == null) { Check(false, "0.3.25: a ship to crawl"); next(); return; }
+            Log($"0.3.25: under the sweeps: {type.Code}");
             var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
             sea?.SetOverride(new Sea.WindOverride { FromDegrees = 0, Strength = 0.6, StartHours = sea.Hours - 24 });
             mod.Config.StopWhenUnmanned = false;
@@ -1984,10 +2051,23 @@ namespace Hansa
             // (a new ship's guns: a design with gun places starting empty, carrack-m's castles', has only its laid ones)
             bool Laid(FixtureDef f) => !def.GunPlaceOf.TryGetValue(f.Code, out var gp) || gp.StartsLaid;
             var guns = def.Fixtures.Where(f => f.Type == "gun" && Laid(f)).ToArray();
-            var port = guns.Where(f => f.Out[2] < 0).OrderBy(f => f.Pos[0]).ToArray();
-            var starboard = guns.Where(f => f.Out[2] > 0).OrderBy(f => f.Pos[0]).ToArray();
+            // (20 October 2026) the lowest deck's first, then aft to fore: the caravel's quarterdeck guns stand 3 higher than
+            // her waist's, and one laid down at the chicken would put its ball into the water short of the pool's wall (the
+            // carracks' laid guns are all on their main deck: aft to fore, as before)
+            var port = guns.Where(f => f.Out[2] < 0).OrderBy(f => f.Pos[1]).ThenBy(f => f.Pos[0]).ToArray();
+            var starboard = guns.Where(f => f.Out[2] > 0).OrderBy(f => f.Pos[1]).ThenBy(f => f.Pos[0]).ToArray();
+            // (18 October 2026) a design with no guns laid: no gunnery and no broadsides; on to what follows them
+            if (port.Length == 0 || starboard.Length == 0)
+            {
+                Log($"{def.Code} has no guns laid ({guns.Length}): the gunnery, laying and broadside checks are for ships with guns a side");
+                foreach (var e in new Entity[] { shooter, target }) if (e.Alive) e.Die(EnumDespawnReason.Removed);
+                sea?.SetOverride(null);
+                MadeUpWreck(mod, def, spawn, wy, () => CrewWorks(mod, def, spawn, wy, () => SailStrainWorks(mod, def, spawn, wy, () => HearthWorks(mod, def, spawn, wy, () => WorkingBlocksWorks(mod, def, spawn, wy, () => HullPanelsWorks(mod, spawn, wy, Finish))))));
+                return;
+            }
+            // (the carracks have 5 guns a side laid, the caravel 4: two on her quarterdeck, two in her waist)
             Check(guns.Length >= 6 && port.Length * 2 == guns.Length && mod.Shots != null && mod.Config.Cannons && !mod.Config.CannonsBreakBlocks,
-                $"two carracks side by side, 17 apart, {port.Length} guns a side ({string.Join(", ", guns.Select(f => f.Code))}); cannons on, blocks don't break");
+                $"two {def.Code}s side by side, 17 apart, {port.Length} guns a side ({string.Join(", ", guns.Select(f => f.Code))}); cannons on, blocks don't break");
             // (the eighth client test) lidded ports: a new ship's guns are housed, their ports shut, and don't fire; opened
             // (someone laying it), one is run out first and fires after; Shift + right-click houses it again. Then all of
             // both ships' are run out at once for what follows.
@@ -2231,8 +2311,13 @@ namespace Hansa
                         var expect = ship.GunSeatLocal(gun);
                         GunLaying.OutOf(gun, out double ox, out double oz);
                         double behind = at == null ? 0 : (gun.Pos[0] - at.X) * ox + (gun.Pos[2] - at.Z) * oz;
+                        // (20 October 2026) behind its carriage, on the deck it stands on: a carrack's (1.15 behind its trunnions,
+                        // on her main deck) wants 1.5 as before; the caravel's lighter gun (0.65) and her quarterdeck's guns
+                        double carriage = gun.Box?.Length >= 6 ? Math.Max((gun.Pos[0] - gun.Box[0]) * ox + (gun.Pos[2] - gun.Box[2]) * oz,
+                                                                          (gun.Pos[0] - gun.Box[3]) * ox + (gun.Pos[2] - gun.Box[5]) * oz) : 1.15;
+                        double behindWant = Math.Min(1.5, carriage + 0.4);
                         var now = ship.GunLayNow(gun);
-                        Check(hand?.MountedOn == seat && at != null && at.DistanceTo(expect) < 1e-6 && Math.Abs(at.Y - def.DeckY) < 1e-6 && behind > 1.5 && behind < 3.3 &&
+                        Check(hand?.MountedOn == seat && at != null && at.DistanceTo(expect) < 1e-6 && Math.Abs(at.Y - gun.Pos[1]) < 1e-6 && behind > behindWant && behind < 3.3 &&
                               ship.StandsFree(at) != null && now.Train == before.Train && now.Elevation == before.Elevation,
                             $"a stand-in at {gun.Code}'s gun captain's place stands {behind:0.00} behind its trunnions on the deck, with room to stand up there; a creature " +
                             $"can't lay it (still {GunLaying.Text(now)})");
@@ -2256,6 +2341,9 @@ namespace Hansa
             double baseX = target.Pos.X;
             double[] shifts = { 0, -1.5, 1.5, -3, 3, -4.5, 4.5, -6, 6 };
             int broadsides = 0, fired = 0;
+            // (20 October 2026) as many broadsides as fire a carrack's three (5 guns a side: 15 shots), then how much water is
+            // in her: a carrack's 3, the caravel's 4 (4 guns a side)
+            int waterAt = (int)Math.Ceiling(15.0 / Math.Max(1, guns.Length));
             double waterAfter3 = double.NaN;
             long started = sapi.World.ElapsedMilliseconds;
             EntityShip hooked = null;
@@ -2287,7 +2375,9 @@ namespace Hansa
                         if (shooter.FireGun(gun, null, null, lay(shooter, gun, new Vec3d(tx, ty, tz))) == null) fired++;
                     }
                     broadsides++;
-                    if (broadsides == 3) WaitFor(() => false, 3, w5 => waterAfter3 = target.Water);
+                    int n = broadsides;
+                    if (n <= waterAt + 2) WaitFor(() => false, 3, w5 => Log($"  {n} broadsides ({fired} shots): {target.Water:0.0} t in her"));
+                    if (n == waterAt) WaitFor(() => false, 3, w5 => waterAfter3 = target.Water);
                     return;
                 }
                 if (!target.GoneDown && secs < 300) return;
@@ -2302,7 +2392,9 @@ namespace Hansa
                 Check(fired >= 9 && recs.Count >= fired * 0.4 && recs.Count + spent >= fired * 0.8 && holed >= 3,
                     $"{broadsides} broadsides, {fired} shots, {recs.Count} of them into her hull (through the water at her waterline, {recs.Where(r => r.Energy > 0).Select(r => r.Energy).DefaultIfEmpty(0).Average():0} kJ on average), " +
                     $"{spent} spent in the water short of her: {holed} panels below her waterline holed, {below.Count - holed} more cracked");
-                Check(waterAfter3 > 3, $"water comes into her ({waterAfter3:0} t after three broadsides)");
+                // (20 October 2026) 3 t in a carrack (a thousand tonnes) as before; 0.3 % of a light ship's displacement (the caravel's 0.7 t)
+                double waterWant = l.Displacement >= 600 ? 3 : 0.003 * l.Displacement;
+                Check(waterAfter3 > waterWant, $"water comes into her ({waterAfter3:0.0} t after {waterAt} broadsides; more than {waterWant:0.0} t wanted)");
                 Check(target.GoneDown, $"she founders and goes down {secs:0} s after the first broadside ({target.Stage}, {target.Water:0} t in her)");
                 Check(Enumerable.Range(0, l.Count).All(i => shooter.StateOfPart(i) == PartState.Sound), "the one firing takes no hurt from her own guns");
                 WaitFor(() => target.Stage == SinkStage.Sunk, 60, sunk =>
@@ -2460,7 +2552,9 @@ namespace Hansa
                 {
                     // what the game asks a wreck block for: its collision and selection are its cells as boxes
                     int boxed = 0, off = 0;
-                    foreach (long k in plan.Order().Where((k, i) => i % 20 == 0))
+                    // (20 October 2026) every 20th block of a carrack's wreck; of a smaller one (the caravel's 750), every 10th
+                    int every = plan.Blocks.Count >= 1000 ? 20 : 10;
+                    foreach (long k in plan.Order().Where((k, i) => i % every == 0))
                     {
                         var bp = PosOf(k);
                         var bl = ba.GetBlock(bp);
@@ -2473,8 +2567,23 @@ namespace Hansa
                     }
                     Check(boxed > 50 && off == 0, $"a wreck block's collision and selection are its cells ({boxed} looked at, {off} not)");
                 }
-                Check(found > 0 && Math.Abs(sx / found - lay.X) < 4 && Math.Abs(sz / found - lay.Z) < 6 && plan.MinY > floorY,
-                    $"where she lay: their middle {sx / Math.Max(1, found) - lay.X:+0.0;-0.0}, {sz / Math.Max(1, found) - lay.Z:+0.0;-0.0} from her, the lowest on the pool's floor (y {plan.MinY}, floor {floorY})");
+                // (20 October 2026) from her hull's middle along her where that lies well off her origin: the caravel's is 2.7 aft
+                // of hers (her quarterdeck and transom; a carrack's is 1.6 forward of hers, and hers is measured from her origin
+                // as before)
+                double hullMid = 0;
+                {
+                    var gr = def.Grid;
+                    double sum = 0; long n = 0;
+                    for (int i = 0; i < gr.NX; i++)
+                        for (int j = 0; j < gr.NY; j++)
+                            for (int k = 0; k < gr.NZ; k++)
+                                if (gr.Solid(i, j, k)) { sum += gr.OX + (i + 0.5) * gr.V; n++; }
+                    if (n > 0 && Math.Abs(sum / n) > 2) hullMid = sum / n;
+                }
+                double midX = lay.X + Math.Sin(ship.Pos.Yaw) * hullMid, midZ = lay.Z + Math.Cos(ship.Pos.Yaw) * hullMid;
+                Check(found > 0 && Math.Abs(sx / found - midX) < 4 && Math.Abs(sz / found - midZ) < 6 && plan.MinY > floorY,
+                    $"where she lay: their middle {sx / Math.Max(1, found) - midX:+0.0;-0.0}, {sz / Math.Max(1, found) - midZ:+0.0;-0.0} from her" +
+                    (hullMid != 0 ? $" (her hull's middle, {hullMid:+0.0;-0.0} along her from her origin)" : "") + $", the lowest on the pool's floor (y {plan.MinY}, floor {floorY})");
                 // her cargo: all of it in the containers put down
                 var after = new Dictionary<string, int>();
                 int themselves = 0;
@@ -2506,7 +2615,9 @@ namespace Hansa
                 // nothing was put
                 int sy = (int)Math.Floor(surface);
                 bool Wet(int x, int y, int z) => ba.GetBlock(new BlockPos(x, y, z, 0), BlockLayersAccess.Fluid)?.IsLiquid() == true;
-                var some = plan.Order().Where((k, i) => i % 50 == 0).Where(k => { WreckPlan.Unkey(k, out _, out int y, out _); return y <= sy; }).ToList();
+                // (every 50th block of a carrack's wreck; of a smaller one, every 25th)
+                int everyWet = plan.Blocks.Count >= 1000 ? 50 : 25;
+                var some = plan.Order().Where((k, i) => i % everyWet == 0).Where(k => { WreckPlan.Unkey(k, out _, out int y, out _); return y <= sy; }).ToList();
                 int dry = some.Count(k => { WreckPlan.Unkey(k, out int x, out int y, out int z); return !Wet(x, y, z); });
                 var taken = new HashSet<long>(plan.Blocks.Keys);
                 foreach (var s in plan.Containers.Concat(plan.Extra).Concat(plan.Guns).Concat(plan.Sediment)) if (s != null) taken.Add(WreckPlan.Key(s.X, s.Y, s.Z));
@@ -2523,8 +2634,11 @@ namespace Hansa
                     $"the water stays: in her blocks' empty cells ({some.Count - dry} of {some.Count} looked at), and round her ({free - freeDry} of {free})");
                 // breaking a wreck block: part of its raw materials, never the block
                 var codes = WreckDrops.Table.Values.SelectMany(d => d).Select(d => d.Code).ToHashSet();
-                var full = plan.Order().FirstOrDefault(k => plan.Blocks[k].Count >= 40 && plan.Blocks[k].CountOf(WreckMat.Oak) + plan.Blocks[k].CountOf(WreckMat.Tarred) >= 32 &&
-                    ba.GetBlockEntity(PosOf(k)) is BlockEntityWreck);
+                // (20 October 2026) the one with the most timber: a caravel's first block of 40 cells may hold two kinds of oak
+                // too thinly for either to roll a plank (1 stick in one run); a full block of it always gives planks
+                int Timber(long k) => plan.Blocks[k].CountOf(WreckMat.Oak) + plan.Blocks[k].CountOf(WreckMat.Tarred);
+                var full = plan.Order().Where(k => plan.Blocks[k].Count >= 40 && Timber(k) >= 32 && ba.GetBlockEntity(PosOf(k)) is BlockEntityWreck)
+                    .OrderByDescending(Timber).FirstOrDefault();
                 if (full != 0)
                 {
                     var bp = PosOf(full);
@@ -2756,6 +2870,12 @@ namespace Hansa
             sapi.World.SpawnEntity(ship);
             // (her design's hearth, or the one her design lays as a piece: a grid ship's galley)
             var hf = def.Fixture("hearth") ?? ship.HearthFixture;
+            if (hf == null)
+            {
+                // (18 October 2026) the caravel has no galley yet
+                Log($"{def.Code} has no hearth: the firehearth checks are for ships with one");
+                ship.Die(EnumDespawnReason.Removed); then(); return;
+            }
             Check(hf != null && firewood != null && meat != null && firestarter != null && torch != null && pot != null && grain != null,
                 $"the firehearth ({(hf == null ? "none" : def.Fixture("hearth") != null ? "the design's" : "laid as a piece")}), and vanilla's firewood, raw red meat, a firestarter, a lit torch ({torch?.Code}), a clay pot ({pot?.Code}) and grain to try it with");
             if (hf == null || firewood == null || meat == null || firestarter == null || torch == null || pot == null || grain == null) { ship.Die(EnumDespawnReason.Removed); then(); return; }

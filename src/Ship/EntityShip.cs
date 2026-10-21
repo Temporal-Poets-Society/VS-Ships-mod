@@ -178,7 +178,7 @@ namespace Hansa
             base.Initialize(properties, api, InChunkIndex3d);
             Mod = api.ModLoader.GetModSystem<HansaMod>();
             SeaSys = api.ModLoader.GetModSystem<Sea.SeaSystem>();
-            string code = properties.Attributes?["ship"].AsString("carrack") ?? "carrack";
+            string code = properties.Attributes?["ship"].AsString(HansaMod.DefaultShip) ?? HansaMod.DefaultShip;
             Def = Mod.GetShip(code);
             if (Def == null)
             {

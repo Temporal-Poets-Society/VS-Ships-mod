@@ -203,6 +203,12 @@ namespace Hansa
         public ShipDefinition GetShip(string code) => code != null && ships.TryGetValue(code, out var d) ? d : null;
         public IEnumerable<string> ShipCodes => ships.Keys;
 
+        /// <summary>The ship a command means when it names none: the caravel (the user, 18 October 2026: the release
+        /// carries her, not the carrack), else the carrack where a build still has it, else any loaded ship.</summary>
+        public const string DefaultShip = "caravel";
+        public string DefaultShipCode => ships.ContainsKey(DefaultShip) ? DefaultShip
+            : ships.ContainsKey("carrack") ? "carrack" : ships.Keys.FirstOrDefault();
+
         public override void Dispose()
         {
             sea?.RemoveDrySpaces(Dry);
@@ -650,7 +656,7 @@ namespace Hansa
         public string TrySpawnTarget(IServerPlayer player, EntityShip from, double distance, int side, out EntityShip spawned)
         {
             spawned = null;
-            const string code = "carrack";
+            string code = DefaultShipCode;
             var def = GetShip(code);
             var type = sapi.World.GetEntityType(new AssetLocation("hansa", code));
             if (def == null || type == null) return "hansa:no-such-ship";
@@ -733,7 +739,7 @@ namespace Hansa
                     .WithArgs(parsers.OptionalWord("ship"))
                     .HandleWith(args =>
                     {
-                        string code = args[0] as string ?? "carrack";
+                        string code = args[0] as string ?? DefaultShipCode;
                         string err = TrySpawnShip((IServerPlayer)args.Caller.Player, code, out var ship);
                         return err != null ? TextCommandResult.Error(Lang.Get(err)) : TextCommandResult.Success($"{ship.GetName()} is on the water.");
                     })
@@ -854,9 +860,9 @@ namespace Hansa
                 return why != null ? TextCommandResult.Error($"{ship.GetName()}: {why}" + (ship.Stage == SinkStage.Sunk ? "." : " (sink her first: /hansa flood 2000 in deep water)."))
                     : TextCommandResult.Success($"{ship.GetName()} #{ship.EntityId} is being made a wreck.");
             }
-            var def = GetShip("carrack");
+            var def = GetShip(DefaultShipCode);
             var ep = player.Entity;
-            if (def?.DamageParts == null || ep == null) return TextCommandResult.Error("No carrack design.");
+            if (def?.DamageParts == null || ep == null) return TextCommandResult.Error("No ship design.");
             long seed = long.TryParse(seedArg ?? "", out long sv) ? sv : sapi.World.Rand.Next();
             var rand = new Random((int)(seed ^ seed >> 32));
             double yaw = ep.Pos.Yaw, x = ep.Pos.X + Math.Sin(yaw) * 24, z = ep.Pos.Z + Math.Cos(yaw) * 24;

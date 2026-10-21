@@ -54,8 +54,22 @@
 
   <ItemGroup>
     <None Include="modinfo.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <!-- (the user, 18 October 2026) the release carries the caravel, not the carracks: their ship files stay in the repo
+       (tests read them, and work on the carrack resumes later) but are left out of the Release build. -->
+  <PropertyGroup>
+    <CarrackAssets>assets\hansa\config\ships\carrack*.json;assets\hansa\config\ships\hansa-carrack.json;assets\hansa\config\shipmeshes\carrack*.json;assets\hansa\config\shipmeshes\hansa-carrack.json;assets\hansa\shapes\entity\ship\carrack*\**;assets\hansa\shapes\entity\ship\hansa-carrack\**;assets\hansa\entities\ship\carrack*.json;assets\hansa\entities\ship\hansa-carrack.json</CarrackAssets>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(Configuration)' != 'Release'">
     <None Include="assets\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <None Include="assets\**\*" Exclude="$(CarrackAssets)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <!-- a Release build starts from an empty output folder, so files left out are not packed from an earlier build -->
+  <Target Name="CleanModOutput" BeforeTargets="BeforeBuild" Condition="'$(Configuration)' == 'Release'">
+    <RemoveDir Directories="$(OutputPath)" />
+  </Target>
 
   <!-- Release build also produces a ready-to-install zip in .\release, named with the version from modinfo.json
        (release\hansa-0.2.0.zip); older zips there are removed. -->

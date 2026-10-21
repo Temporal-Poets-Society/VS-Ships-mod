@@ -28,7 +28,7 @@ namespace Hansa
         /// <summary>How long right-click is held to launch her (seconds).</summary>
         public const float LaunchSeconds = 1.5f;
 
-        string ShipCode => Attributes?["ship"].AsString("carrack") ?? "carrack";
+        string ShipCode => Attributes?["ship"].AsString(HansaMod.DefaultShip) ?? HansaMod.DefaultShip;
         /// <summary>The design it launches.</summary>
         public string ShipCodeOf => ShipCode;
         /// <summary>A boat you carry and put in the water yourself (Hansa's ship's boat).</summary>

@@ -1,0 +1,793 @@
+{
+ "massProps": {
+  "Shell": {
+   "volume_m3": 64.6908,
+   "centroid_mm": [
+    -2562,
+    0,
+    2793
+   ]
+  },
+  "Backbone": {
+   "volume_m3": 3.7646,
+   "centroid_mm": [
+    -1314,
+    0,
+    1855
+   ]
+  },
+  "Ribs": {
+   "volume_m3": 10.0029,
+   "centroid_mm": [
+    -2730,
+    0,
+    2827
+   ]
+  },
+  "Beams": {
+   "volume_m3": 4.636,
+   "centroid_mm": [
+    -3669,
+    0,
+    4441
+   ]
+  },
+  "Decks": {
+   "volume_m3": 40.4534,
+   "centroid_mm": [
+    -2961,
+    0,
+    3640
+   ]
+  },
+  "Railings": {
+   "volume_m3": 1.4174,
+   "centroid_mm": [
+    -9328,
+    0,
+    7595
+   ]
+  },
+  "Fittings": {
+   "volume_m3": 1.3029,
+   "centroid_mm": [
+    -10631,
+    0,
+    2578
+   ]
+  },
+  "Stairs": {
+   "volume_m3": 0.2848,
+   "centroid_mm": [
+    -3566,
+    0,
+    3969
+   ]
+  },
+  "Gates": {
+   "volume_m3": 0.1172,
+   "centroid_mm": [
+    -500,
+    0,
+    4414
+   ]
+  },
+  "Rig_Latina": {
+   "volume_m3": 9.3476,
+   "centroid_mm": [
+    -2792,
+    114,
+    12997
+   ]
+  },
+  "Rig_Redonda": {
+   "volume_m3": 11.0681,
+   "centroid_mm": [
+    -521,
+    25,
+    11839
+   ]
+  },
+  "Guns": {
+   "volume_m3": 2.6,
+   "centroid_mm": [
+    -3000,
+    0,
+    5900
+   ]
+  }
+ },
+ "rigGeometry": {
+  "latina": {
+   "masts": [
+    {
+     "name": "main",
+     "x": -500,
+     "heel": 1000.0,
+     "top": 24800,
+     "r0": 300,
+     "r1": 180.0
+    },
+    {
+     "name": "mizzen",
+     "x": -8500,
+     "heel": 3400.0,
+     "top": 21800,
+     "r0": 220,
+     "r1": 132.0
+    }
+   ],
+   "sails": [
+    {
+     "name": "latina main",
+     "pts": [
+      [
+       8100,
+       520,
+       6200
+      ],
+      [
+       -8523,
+       520,
+       28958
+      ],
+      [
+       -3800,
+       520,
+       9000
+      ]
+     ]
+    },
+    {
+     "name": "latina mizzen",
+     "pts": [
+      [
+       -4600,
+       520,
+       9200
+      ],
+      [
+       -12000,
+       520,
+       22211
+      ],
+      [
+       -12000,
+       520,
+       9200
+      ]
+     ]
+    }
+   ],
+   "yards": [
+    {
+     "name": "latina main",
+     "mastX": -500,
+     "cross": [
+      -500,
+      18023
+     ],
+     "tack": [
+      8100,
+      6300
+     ],
+     "peak": [
+      -8700,
+      29200
+     ],
+     "length": 28402
+    },
+    {
+     "name": "latina mizzen",
+     "mastX": -8500,
+     "cross": [
+      -8500,
+      16104
+     ],
+     "tack": [
+      -4600,
+      9300
+     ],
+     "peak": [
+      -14000,
+      25700
+     ],
+     "length": 18903
+    }
+   ]
+  },
+  "redonda": {
+   "masts": [
+    {
+     "name": "fore",
+     "x": 7500,
+     "heel": 1000.0,
+     "top": 15500,
+     "r0": 210,
+     "r1": 126.0
+    },
+    {
+     "name": "main",
+     "x": -500,
+     "heel": 1000.0,
+     "top": 18835,
+     "r0": 280,
+     "r1": 220
+    },
+    {
+     "name": "mizzen",
+     "x": -8500,
+     "heel": 3400.0,
+     "top": 21800,
+     "r0": 220,
+     "r1": 132.0
+    }
+   ],
+   "sails": [
+    {
+     "name": "redonda fore course",
+     "pts": [
+      [
+       8010,
+       -4050,
+       14050
+      ],
+      [
+       8010,
+       4050,
+       14050
+      ],
+      [
+       8300,
+       4800,
+       6600
+      ],
+      [
+       8300,
+       -4800,
+       6600
+      ]
+     ]
+    },
+    {
+     "name": "redonda main course",
+     "pts": [
+      [
+       10,
+       -5950,
+       16685
+      ],
+      [
+       10,
+       5950,
+       16685
+      ],
+      [
+       300,
+       6700,
+       6400
+      ],
+      [
+       300,
+       -6700,
+       6400
+      ]
+     ]
+    },
+    {
+     "name": "redonda main topsail",
+     "pts": [
+      [
+       10,
+       -2850,
+       23485
+      ],
+      [
+       10,
+       2850,
+       23485
+      ],
+      [
+       300,
+       5500,
+       17235
+      ],
+      [
+       300,
+       -5500,
+       17235
+      ]
+     ]
+    },
+    {
+     "name": "redonda mizzen",
+     "pts": [
+      [
+       -4600,
+       520,
+       9200
+      ],
+      [
+       -12000,
+       520,
+       22211
+      ],
+      [
+       -12000,
+       520,
+       9200
+      ]
+     ]
+    }
+   ],
+   "yards": [
+    {
+     "name": "redonda mizzen",
+     "mastX": -8500,
+     "cross": [
+      -8500,
+      16104
+     ],
+     "tack": [
+      -4600,
+      9300
+     ],
+     "peak": [
+      -14000,
+      25700
+     ],
+     "length": 18903
+    }
+   ]
+  }
+ },
+ "hullLength_mm": 23544,
+ "loft": "polygon waterlines, ruled",
+ "linesFidelity": "exact at every lines point (polygon waterlines), linear between",
+ "envelope": {
+  "valid": true,
+  "closed": true,
+  "solids": 1,
+  "volume_m3": 570.8,
+  "bbox_mm": [
+   -13494,
+   -3300,
+   125,
+   10050,
+   3300,
+   7000
+  ]
+ },
+ "shell": {
+  "valid": true,
+  "solids": 1,
+  "volume_m3": 64.691,
+  "skinSamples": [
+   {
+    "x": 0,
+    "z": 2000,
+    "outer": 3107,
+    "inner": 2897,
+    "horizontal": 210
+   },
+   {
+    "x": 0,
+    "z": 600,
+    "outer": 2338,
+    "inner": 2022,
+    "horizontal": 315
+   },
+   {
+    "x": -6000,
+    "z": 3000,
+    "outer": 3000,
+    "inner": 2785,
+    "horizontal": 215
+   },
+   {
+    "x": 5000,
+    "z": 3000,
+    "outer": 2672,
+    "inner": 2457,
+    "horizontal": 215
+   },
+   {
+    "x": 0,
+    "z": 6000,
+    "outer": -1,
+    "inner": 2790,
+    "horizontal": -1
+   },
+   {
+    "x": -8000,
+    "z": 7500,
+    "outer": -1,
+    "inner": 2417,
+    "horizontal": -1
+   }
+  ],
+  "innerValid": true,
+  "endsOpenOnCentreline": [
+   [
+    -10509,
+    500
+   ],
+   [
+    7074,
+    500
+   ],
+   [
+    -10734,
+    1000
+   ],
+   [
+    7844,
+    1000
+   ],
+   [
+    -10959,
+    1500
+   ],
+   [
+    8268,
+    1500
+   ],
+   [
+    -11184,
+    2000
+   ],
+   [
+    8590,
+    2000
+   ],
+   [
+    -11409,
+    2500
+   ],
+   [
+    8881,
+    2500
+   ],
+   [
+    9140,
+    3000
+   ],
+   [
+    9390,
+    3500
+   ],
+   [
+    9605,
+    4000
+   ],
+   [
+    -12309,
+    4500
+   ],
+   [
+    9820,
+    4500
+   ],
+   [
+    9940,
+    5000
+   ],
+   [
+    9990,
+    5500
+   ],
+   [
+    9960,
+    6000
+   ]
+  ]
+ },
+ "lengthOverall_mm": 23544,
+ "beam_mm": 6600,
+ "waterline": {
+  "z_mm": 2875.0,
+  "length_mm": 20775,
+  "beam_mm": 6530,
+  "displacement_m3": 218.6,
+  "displacement_t_seawater": 224.1,
+  "blockCoefficient": 0.561
+ },
+ "beamWithinCells": true,
+ "underside_mm": 125.0,
+ "draft_mm": 2750.0,
+ "ribs": {
+  "count": 10,
+  "valid": true,
+  "skinOverlap_mm3": 0,
+  "backboneOverlap_mm3": 0
+ },
+ "backbone": {
+  "valid": true,
+  "volume_m3": 3.765,
+  "bottomZ_mm": 125,
+  "skinOverlap_mm3": 0,
+  "draftToKeel_mm": 2750
+ },
+ "beams": {
+  "count": 16,
+  "ribOverlap_mm3": 0,
+  "deckOverlap_mm3": 0,
+  "skinOverlap_mm3": 0
+ },
+ "sailFeet": [
+  {
+   "sail": "latina main",
+   "minHeadRoomOverDeck_mm": 2200,
+   "atX": 8100
+  },
+  {
+   "sail": "latina mizzen",
+   "minHeadRoomOverDeck_mm": 2200,
+   "atX": -5155
+  },
+  {
+   "sail": "redonda mizzen",
+   "minHeadRoomOverDeck_mm": 2200,
+   "atX": -5155
+  }
+ ],
+ "guns": [
+  {
+   "cell": 1,
+   "deck": 4000.0,
+   "side": "port",
+   "axisZ": 4625.0,
+   "halfBreadth": 3165,
+   "rear_mm": 1880,
+   "front_mm": 2880.0,
+   "trunnion_mm": 2530.0,
+   "pivot_mm": 3030.0,
+   "breech_mm": 1980.0,
+   "muzzle_mm": 3580.0,
+   "recoil_mm": 750.0,
+   "runOutMuzzleOutsideHull_mm": 415,
+   "train": [
+    -15.0,
+    15.0
+   ],
+   "elevation": [
+    -8.0,
+    12.0
+   ],
+   "trainBound": "the side or the railing",
+   "skinOverlap_mm3": 0,
+   "parkedCells": "x 1, |y| cells 1..2",
+   "clearAisle": "centre cell, Y -500..500"
+  },
+  {
+   "cell": 1,
+   "deck": 4000.0,
+   "side": "starboard",
+   "axisZ": 4625.0,
+   "halfBreadth": 3165,
+   "rear_mm": 1880,
+   "front_mm": 2880.0,
+   "trunnion_mm": 2530.0,
+   "pivot_mm": 3030.0,
+   "breech_mm": 1980.0,
+   "muzzle_mm": 3580.0,
+   "recoil_mm": 750.0,
+   "runOutMuzzleOutsideHull_mm": 415,
+   "train": [
+    -15.0,
+    15.0
+   ],
+   "elevation": [
+    -8.0,
+    12.0
+   ],
+   "trainBound": "the side or the railing",
+   "skinOverlap_mm3": 0,
+   "parkedCells": "x 1, |y| cells 1..2",
+   "clearAisle": "centre cell, Y -500..500"
+  },
+  {
+   "cell": 3,
+   "deck": 4000.0,
+   "side": "port",
+   "axisZ": 4625.0,
+   "halfBreadth": 3000,
+   "rear_mm": 1670,
+   "front_mm": 2670.0,
+   "trunnion_mm": 2320.0,
+   "pivot_mm": 2820.0,
+   "breech_mm": 1770.0,
+   "muzzle_mm": 3370.0,
+   "recoil_mm": 750.0,
+   "runOutMuzzleOutsideHull_mm": 370,
+   "train": [
+    -15.0,
+    15.0
+   ],
+   "elevation": [
+    -8.0,
+    12.0
+   ],
+   "trainBound": "the side or the railing",
+   "skinOverlap_mm3": 0,
+   "parkedCells": "x 3, |y| cells 1..2",
+   "clearAisle": "centre cell, Y -500..500"
+  },
+  {
+   "cell": 3,
+   "deck": 4000.0,
+   "side": "starboard",
+   "axisZ": 4625.0,
+   "halfBreadth": 3000,
+   "rear_mm": 1670,
+   "front_mm": 2670.0,
+   "trunnion_mm": 2320.0,
+   "pivot_mm": 2820.0,
+   "breech_mm": 1770.0,
+   "muzzle_mm": 3370.0,
+   "recoil_mm": 750.0,
+   "runOutMuzzleOutsideHull_mm": 370,
+   "train": [
+    -15.0,
+    15.0
+   ],
+   "elevation": [
+    -8.0,
+    12.0
+   ],
+   "trainBound": "the side or the railing",
+   "skinOverlap_mm3": 0,
+   "parkedCells": "x 3, |y| cells 1..2",
+   "clearAisle": "centre cell, Y -500..500"
+  },
+  {
+   "cell": -11,
+   "deck": 7000.0,
+   "side": "port",
+   "axisZ": 7625.0,
+   "halfBreadth": 2525,
+   "rear_mm": 1220,
+   "front_mm": 2220.0,
+   "trunnion_mm": 1870.0,
+   "pivot_mm": 2370.0,
+   "breech_mm": 1320.0,
+   "muzzle_mm": 2920.0,
+   "recoil_mm": 700.0,
+   "runOutMuzzleOutsideHull_mm": 395,
+   "train": [
+    -15.0,
+    15.0
+   ],
+   "elevation": [
+    -8.0,
+    7.0
+   ],
+   "trainBound": "the side or the railing",
+   "skinOverlap_mm3": 0,
+   "parkedCells": "x -11, |y| cells 1..2",
+   "clearAisle": "centre cell, Y -500..500"
+  },
+  {
+   "cell": -11,
+   "deck": 7000.0,
+   "side": "starboard",
+   "axisZ": 7625.0,
+   "halfBreadth": 2525,
+   "rear_mm": 1220,
+   "front_mm": 2220.0,
+   "trunnion_mm": 1870.0,
+   "pivot_mm": 2370.0,
+   "breech_mm": 1320.0,
+   "muzzle_mm": 2920.0,
+   "recoil_mm": 700.0,
+   "runOutMuzzleOutsideHull_mm": 395,
+   "train": [
+    -15.0,
+    15.0
+   ],
+   "elevation": [
+    -8.0,
+    7.0
+   ],
+   "trainBound": "the side or the railing",
+   "skinOverlap_mm3": 0,
+   "parkedCells": "x -11, |y| cells 1..2",
+   "clearAisle": "centre cell, Y -500..500"
+  },
+  {
+   "cell": -7,
+   "deck": 7000.0,
+   "side": "port",
+   "axisZ": 7625.0,
+   "halfBreadth": 2758,
+   "rear_mm": 1470,
+   "front_mm": 2470.0,
+   "trunnion_mm": 2120.0,
+   "pivot_mm": 2620.0,
+   "breech_mm": 1570.0,
+   "muzzle_mm": 3170.0,
+   "recoil_mm": 750.0,
+   "runOutMuzzleOutsideHull_mm": 412,
+   "train": [
+    -15.0,
+    15.0
+   ],
+   "elevation": [
+    -8.0,
+    7.0
+   ],
+   "trainBound": "the side or the railing",
+   "skinOverlap_mm3": 0,
+   "parkedCells": "x -7, |y| cells 1..2",
+   "clearAisle": "centre cell, Y -500..500"
+  },
+  {
+   "cell": -7,
+   "deck": 7000.0,
+   "side": "starboard",
+   "axisZ": 7625.0,
+   "halfBreadth": 2758,
+   "rear_mm": 1470,
+   "front_mm": 2470.0,
+   "trunnion_mm": 2120.0,
+   "pivot_mm": 2620.0,
+   "breech_mm": 1570.0,
+   "muzzle_mm": 3170.0,
+   "recoil_mm": 750.0,
+   "runOutMuzzleOutsideHull_mm": 412,
+   "train": [
+    -15.0,
+    15.0
+   ],
+   "elevation": [
+    -8.0,
+    7.0
+   ],
+   "trainBound": "the side or the railing",
+   "skinOverlap_mm3": 0,
+   "parkedCells": "x -7, |y| cells 1..2",
+   "clearAisle": "centre cell, Y -500..500"
+  }
+ ],
+ "gunGeometry": {
+  "carriage": [
+   700.0,
+   1000.0,
+   500.0
+  ],
+  "bedWidth": 500.0,
+  "bedBottom": 120.0,
+  "truckRadius": 150.0,
+  "truckWidth": 100.0,
+  "barrel": 1600.0,
+  "length": 1700.0,
+  "trunnion": 650.0,
+  "pivotAhead": 150.0,
+  "clear": 20.0,
+  "partsPerGun": [
+   "bed",
+   "trucks-fore",
+   "trucks-aft",
+   "barrel"
+  ]
+ },
+ "rigs": {
+  "latina": [
+   -15906,
+   -300,
+   1000,
+   8180,
+   570,
+   29246
+  ],
+  "redonda": [
+   -15906,
+   -6700,
+   1000,
+   16078,
+   6700,
+   25728
+  ]
+ },
+ "buildSeconds": 1103.2
+}

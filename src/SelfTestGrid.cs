@@ -19,8 +19,9 @@ namespace Hansa
             var def = mod.GetShip("hansa-carrack");
             var type = sapi.World.GetEntityType(new AssetLocation("hansa", "hansa-carrack"));
             var deed = sapi.World.GetItem(new AssetLocation("hansa", "shipdeed-hansa-carrack"));
-            Check(def != null && type != null && deed?.Attributes?["ship"].AsString() == "hansa-carrack" && deed.CreativeInventoryTabs?.Contains("general") == true,
-                "Hansa carrack: her design loaded, her entity and charter registered, the charter in the creative inventory");
+            // (the user, 18 October 2026: the carrack is paused, only the caravel's charter in the creative inventory)
+            Check(def != null && type != null && deed?.Attributes?["ship"].AsString() == "hansa-carrack" && deed.CreativeInventoryTabs?.Contains("general") != true,
+                "Hansa carrack: her design loaded, her entity and charter registered, the charter out of the creative inventory (paused)");
             if (def == null || type == null) { done(); return; }
             int ways = def.ModularPieces?.Count(e => e.Kind is "ladder" or "stair") ?? 0;
             Check(def.Grid.CountSolid() > 20000 && def.Masts.Length == 3 && ways > 0,
