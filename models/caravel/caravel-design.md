@@ -431,6 +431,22 @@ Not yet: hull panels as slots (note 16 and the user's item 3), rooms, a hearth.
 - **Capstan** (note 47): Magelan's size (radius 0.48, bars 0.95); the hawse at x 6.75, just forward of rib 6.
 - **Yards** (the user's item 7): 165 at the main's sling and 125 at the mizzen's, tapering to 0.6 and 0.5 of that.
 
+- **Beam lengths** (notes 51, 52, with the stair session's mod change): each main-deck beam's length in a rib cell under
+  a deck slot is a beam segment, `beside` the one cell over it (22 of 34; the others aren't clean in their cell). A stair
+  along her from the hold takes the length over the cell before its foot out. No carlings are drawn when one is out
+  (cosmetic, not done), and a deck cell can be laid again over a length that is out (as carrack-m's).
+- **Review for performance** (the user, 22 October 2026: "after build do review by yourself and /codex ... Specifically
+  look at performance aspects"; two Codex passes, no P0/P1): the ship's atlas doesn't repeat, so the mod squeezed 230
+  quads longer than a tile into one tile and shifted 3,530 that crossed one (rails, caps, yards, tiller: the "texture
+  mess"); `caravel_layout.split_tiles` cuts every quad at its tiles' edges (none outside one now). Triangles (81,000 of
+  102,000 quads) are paired into quads only where flat, convex, wound alike and under one texture mapping
+  (`pair_ok`); the flicker pass never moves a slot's faces, and the layout refuses to write while faces overlap;
+  `overlap_check.py` sweeps instead of comparing every pair in a plane and no longer misses faces 0.1° apart far from
+  her origin. Her mesh: 88,387 quads, 17.5 MB (dev.6: 103,874, 20.3 MB), 0 overlapping, 0 outside a tile. In the mod:
+  a piece's structural answer and the beams in a stair's way kept per plan while `FitVersion` holds (asked every frame
+  for the piece in the crosshair); dropped items' frame work without copies. Left: the degenerate second triangle of a
+  triangle-quad (the multi-texture upload wants four vertices a face).
+
 In other sessions (mod code): items shuffling on deck (1), partitions through a beam and where stairs were (48, 49),
 stairs in the hold (51, 52), building mode without block snapping (5), the telescope taken for a gun (6), lanterns'
 light (43). Note 50 (the carlings left after closing a hatch): they are the opening's framing, part of her structure.
