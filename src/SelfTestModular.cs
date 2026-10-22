@@ -57,6 +57,11 @@ namespace Hansa
             Check(ston != null && ston.Stairs && ston.StairCells == 2 && ston.StairRails && son != null && son.StairCells == 3 && son.StairRails && stoff != null && !stoff.Stairs && stoff.NeedsBuilding &&
                   (pon == null || !pon.Stairs) && VanillaPieceBlock.IsBuildingBlock(steep) && steep is BlockShipStair && VanillaPieceBlock.WoodOf(steep.Code.ToString()) == "oak",
                 $"0.3.23: {ModularPieceDef.SteepStair} (2 cells) and {ModularPieceDef.LongStair} (3) are ship's stairs with their own handrails in building mode, refused out of it; plank stairs aren't stairs any more");
+            // (0.1.0-dev.6, note 36) the short one (1 cell)
+            var shortB = B(ModularPieceDef.ShortStair);
+            var shon = shortB == null ? null : new VanillaPieceBlock(w, new ItemStack(shortB), true);
+            Check(shon != null && shon.Stairs && shon.StairCells == 1 && shon.StairRails && shortB is BlockShipStair,
+                $"0.1.0-dev.6 (note 36): {ModularPieceDef.ShortStair} is a ship's stair 1 cell long with its own handrails in building mode");
         }
 
         /// <summary>
@@ -591,7 +596,8 @@ namespace Hansa
                     // (0.3.23) a steep ship's stair by hand where its head meets the same deck edge (its foot a cell nearer), walked
                     var steepB = sapi.World.GetBlock(new AssetLocation(ModularPieceDef.SteepStair));
                     // ((0.3.24) her own stair already steep (the user's castle stairs): the steep one on the same foot)
-                    var steepFoot = PiecePlanner.RunOf(ws) <= 2 ? foot : l.FloorAt(foot.Deck, foot.I + MountLayout.DX[dir], foot.K + MountLayout.DZ[dir]);
+                    MountPoint HeadAt(int cells) { int c = (int)PiecePlanner.RunOf(ws) - cells; return l.FloorAt(foot.Deck, foot.I + MountLayout.DX[dir] * c, foot.K + MountLayout.DZ[dir] * c); }
+                    var steepFoot = HeadAt(PiecePlanner.SteepCells);
                     if (rem == null && steepB != null && steepFoot != null)
                     {
                         string sp = HandPlace(ship, steepFoot, dir, steepB, out var steepPiece);
@@ -599,6 +605,21 @@ namespace Hansa
                         Check(sp == null && steepPiece?.Cells == 2 && steepPiece.Rails && sw,
                             $"0.3.23: a steep ship's stair put by hand on {steepFoot.Id} (up to the same deck edge): {sp ?? "placed"}, walked up and down {sw}");
                         if (steepPiece != null) ship.RemovePiece(steepPiece, null);
+                    }
+                    // (0.1.0-dev.6, note 36) the short one by hand where its head meets the same deck edge (on her own stair's
+                    // head cell, the cell before it open), walked with a ship's stair's step, in her flights for the walker
+                    var shortB = sapi.World.GetBlock(new AssetLocation(ModularPieceDef.ShortStair));
+                    var shortFoot = HeadAt(PiecePlanner.ShortCells);
+                    if (rem == null && shortB != null && shortFoot != null)
+                    {
+                        int flights = ship.SteepFlights?.Length ?? 0;
+                        string sp = HandPlace(ship, shortFoot, dir, shortB, out var shortPiece);
+                        bool sw = shortPiece != null && WalkNear(ship.Grid, shortFoot, dir, shortPiece.Rise, PiecePlanner.RunOf(shortPiece), out _, out _, out _);
+                        bool flight = shortPiece != null && (ship.SteepFlights?.Length ?? 0) == flights + 1;
+                        Check(sp == null && shortPiece?.Cells == 1 && shortPiece.Rails && sw && flight,
+                            $"0.1.0-dev.6 (note 36): a short ship's stair put by hand on {shortFoot.Id} (up to the same deck edge): {sp ?? "placed"}, walked up and down {sw}, a ship's stair's step for her walker there {flight}");
+                        if (shortPiece != null) ship.RemovePiece(shortPiece, null);
+                        Check((ship.SteepFlights?.Length ?? 0) == flights, "0.1.0-dev.6: the short stair taken up again, her walker's ship's stair's steps go with it");
                     }
                     // (0.3.23, note 170) the long one put back by hand: the crosshair on its foot cell from before it, the client's plan's Toward to the server
                     string put = rem;

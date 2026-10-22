@@ -713,7 +713,8 @@ namespace HansaTests
             Planks = kind == "partition", Pane = kind == "window", Fence = kind == "railing", Stairs = kind == "stair", Ladder = kind == "ladder", Slab = kind == "panel", Door = kind == "door",
             Hearth = kind == "hearth", Oven = kind == "oven", Flue = kind == "flue",
             // (0.3.23) a stair entry is a ship's stair of its length, with its own handrails
-            StairCells = kind == "stair" && e.Length == 2 ? PiecePlanner.SteepCells : PiecePlanner.FlightCells, StairRails = kind == "stair"
+            // ((0.1.0-dev.6, note 36) length 1: the short one)
+            StairCells = kind == "stair" && e.Length is PiecePlanner.ShortCells or PiecePlanner.SteepCells ? e.Length : PiecePlanner.FlightCells, StairRails = kind == "stair"
         };
 
         /// <summary>(0.3.19) The way a modular entry's piece is put toward (as ShipDecor.PlaceModular): a stair's or ladder's away from its "up", a hearth's front, a border's anchor.</summary>

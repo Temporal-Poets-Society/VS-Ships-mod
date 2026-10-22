@@ -121,13 +121,19 @@ namespace Hansa
 
         /// <summary>
         /// (0.3.23, the user: "maybe for ships stairs better to have a special block") The mod's ship's stairs
-        /// (hansa:shipstair-steep, hansa:shipstair-long): in building mode a walked stair 2 or 3 cells long with its own
-        /// handrails. Vanilla's plank stairs no longer make stairs.
+        /// (hansa:shipstair-steep, hansa:shipstair-long; 0.1.0-dev.6: hansa:shipstair-short): in building mode a walked stair 1,
+        /// 2 or 3 cells long with its own handrails.
+        /// Vanilla's plank stairs no longer make stairs.
         /// </summary>
         public static bool IsShipStair(Block b) => b?.Code?.Domain == "hansa" && b.FirstCodePart() == "shipstair";
 
-        /// <summary>(0.3.23) A ship's stair's cells along its run: the steep one 2, the long one 3.</summary>
-        public static int ShipStairCells(Block b) => IsShipStair(b) && b.Variant?["length"] == "steep" ? PiecePlanner.SteepCells : PiecePlanner.FlightCells;
+        /// <summary>(0.3.23) A ship's stair's cells along its run: the steep one 2, the long one 3; (0.1.0-dev.6, note 36) the short one 1.</summary>
+        public static int ShipStairCells(Block b) => !IsShipStair(b) ? PiecePlanner.FlightCells : b.Variant?["length"] switch
+        {
+            "short" => PiecePlanner.ShortCells,
+            "steep" => PiecePlanner.SteepCells,
+            _ => PiecePlanner.FlightCells
+        };
 
         /// <summary>(0.3.20, step B) A vanilla trapdoor: in building mode a hatch over an opening in her deck (docs/slots.md §5).</summary>
         public static bool IsTrapdoor(Block b) => b?.FirstCodePart() == "trapdoor";
@@ -183,7 +189,7 @@ namespace Hansa
             var parts = (colon >= 0 ? code.Substring(colon + 1) : code).Split('-');
             // (0.3.19: ladder-wood-oak-north; a stick ladder's wood is oak's)
             if (parts[0] == "ladder") return parts.Length > 2 && parts[1] == "wood" ? parts[2] : "oak";
-            // (0.3.23: the ship's stairs, hansa:shipstair-steep / -long, are oak)
+            // (0.3.23: the ship's stairs, hansa:shipstair-steep / -long / -short, are oak)
             if (parts[0] == "shipstair") return "oak";
             int at = parts[0] == "glasspane" ? 2 : 1;
             return parts.Length > at ? parts[at] : "oak";

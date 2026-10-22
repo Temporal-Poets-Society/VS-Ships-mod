@@ -61,15 +61,17 @@ namespace HansaTests
         /// to have a special block") The ship's stairs on the carrack's lower deck up to the main deck: the long one (3 cells,
         /// 45°) and the steep one (2 cells, about 56°), their collision's steps, the wells and deck edges they need, walked
         /// up and down, their own handrails (solid beside the treads, nobody steps off sideways; drawn parallel to the
-        /// nosings), no railing beside them, out of building mode refused, taken up and put back by hand.
+        /// nosings), no railing beside them, out of building mode refused, taken up and put back by hand. (0.1.0-dev.6, note
+        /// 36: "stairs taking 1 block - NOT LADDERS") The short one (1 cell, about 72°) as well, through a 2 × 1 well over its
+        /// cell and the one before it, walked with a ship's stair's step (0.75); (note 39) none of them below its deck's underside.
         /// </summary>
         static void ShipStairs(ShipDefinition def)
         {
-            Console.WriteLine("0.3.23: the ship's stairs (steep 2 long, long 3 long)");
+            Console.WriteLine("0.3.23: the ship's stairs (steep 2 long, long 3 long; 0.1.0-dev.6: short 1 long)");
             var l = def.Mounts;
             var g = def.Grid;
             var mainDeck = def.Decks.First(x => x.Code == "main");
-            FakePiece Stair(int cells) => new FakePiece { Code = cells == 2 ? ModularPieceDef.SteepStair : ModularPieceDef.LongStair, Family = "x", Stairs = true, StairCells = cells, StairRails = true };
+            FakePiece Stair(int cells) => new FakePiece { Code = ModularPieceDef.StairBlock(cells), Family = "x", Stairs = true, StairCells = cells, StairRails = true };
             // collision steps: risers at most half a block, the long one's a tread each
             var steepCols = PiecePlanner.FlightColumns(3, 2);
             var longCols = PiecePlanner.FlightColumns(3, 3);
@@ -78,9 +80,14 @@ namespace HansaTests
             Check(steepCols.Count == 8 && Math.Abs(steepCols[^1].y - 3) < 1e-9 && maxRise <= 0.5 + 1e-9 && longCols.Count == 12 &&
                   longCols.Select((c, i) => Math.Abs(c.y - 0.25 * (i + 1)) < 1e-9).All(x => x) && PiecePlanner.FlightTreads(3) == 12,
                 $"its collision's steps: the steep one 8 columns a voxel long (tops {string.Join(" ", steepCols.Select(c => c.y.ToString("0.##")))}; risers ≤ {maxRise:0.##}), the long one a column per tread; 12 treads drawn each");
-            foreach (int cells in new[] { 2, 3 })
+            // (0.1.0-dev.6, note 36) the short one: 4 columns, each a ship's stair's step (0.75) over the last, the top flush
+            var shortCols = PiecePlanner.FlightColumns(3, 1);
+            Check(shortCols.Count == 4 && shortCols.Select((c, i) => Math.Abs(c.y - 0.75 * (i + 1)) < 1e-9).All(x => x) &&
+                  Math.Abs(DeckMover.ShipStairStep - 0.75) < 1e-9 && DeckMover.ShipStairStep > DeckMover.StepHeight,
+                $"the short stair's collision: 4 columns a voxel long, tops {string.Join(" ", shortCols.Select(c => c.y.ToString("0.##")))} (risers {DeckMover.ShipStairStep}: over a man's own step, {DeckMover.StepHeight})");
+            foreach (int cells in new[] { 1, 2, 3 })
             {
-                string name = cells == 2 ? "steep" : "long";
+                string name = cells == 1 ? "short" : cells == 2 ? "steep" : "long";
                 var block = Stair(cells);
                 MountPoint foot = null;
                 foreach (var m in l.Floors.Where(m => m.Deck == "lower" && m.Room == "lowerdeck").OrderBy(m => Math.Abs(m.X - 4) + Math.Abs(m.Z - 2.5)))
@@ -101,7 +108,7 @@ namespace HansaTests
                 int guards = plan.Solids.Count - PiecePlanner.FlightColumns(plan.Rise, cells).Count;
                 Check(plan.Error == null && plan.Role == PieceRole.Stair && plan.Cells == cells && plan.Rails && plan.Dir == 0 && plan.Toward == 2 &&
                       Math.Abs(plan.Rise - (mainDeck.Y - foot.Y)) < 1e-9 && plan.Mounts.Contains(foot.Id) && others.All(o => !plan.Mounts.Contains(o.Id)) && guards > 0 &&
-                      (cells == 2 ? angle > 52 && angle < 60 : angle > 40 && angle < 50),
+                      (cells == 1 ? angle > 68 && angle < 76 : cells == 2 ? angle > 52 && angle < 60 : angle > 40 && angle < 50),
                     $"the {name} ship's stair: {cells} cells climbing away from the placer (toward {plan.Toward}, up {plan.Dir}) to the main deck (rise {plan.Rise}, {angle:0}°), its other cells' places free, {guards} guard boxes beside its treads");
                 // wells: its cells only; its cells and the cell before its foot; (the steep one) its cells and a quarter cut back
                 VoxelGrid Well(double before)
@@ -123,6 +130,20 @@ namespace HansaTests
                 bool exactWalk = Walks(exact, plan, out _, out _), quarterWalk = Walks(quarter, plan, out double tq, out double bq), wholeWalk = Walks(whole, plan, out double tw, out double bw);
                 if (cells == 3)
                     Check(exactRoom && exactWalk && wholeWalk, $"the long stair through a 3 × 1 well over its cells: its room free ({exactRoom}), walked up and down ({exactWalk}); with the cell before its foot open too ({wholeWalk})");
+                else if (cells == 1)
+                {
+                    // (note 36) the user's 2 × 1 opening: its cell and the one before it, where the walker's head goes up
+                    Check(!exactRoom && !quarterRoom && wholeRoom && wholeWalk,
+                        $"the short stair through a deck: a well over its own cell is refused (room {exactRoom}, walked {exactWalk}), cut back a quarter too (room {quarterRoom}); a 2 × 1 well over the cell before its foot and its cell: room {wholeRoom}, walked up ({tw:0.00}) and down ({bw:0.00})");
+                    // the rule it needs: a man's own step (0.6) doesn't take its 0.75 risers; the ship's stair's step does
+                    var gs = whole.Clone();
+                    foreach (var sb in plan.Solids) gs.Fill(sb);
+                    var a = PiecePlanner.FlightFoot(foot, plan.Dir);
+                    var plain = new DeckMover(a[0], a[1], a[2]) { OnGround = true };
+                    for (int k = 0; k < 80; k++) plain.Step(gs, 0.05, MountLayout.DX[plan.Dir], MountLayout.DZ[plan.Dir], 3.0, false, false);
+                    double stuck = plain.Y - a[1];
+                    Check(stuck < 1, $"the short stair without a ship's stair's step (a man's own 0.6): stuck at {stuck:0.00} of {plan.Rise} (so the walker takes 0.75 on it, and on nothing else)");
+                }
                 else
                     Check(!exactRoom && !exactWalk && quarterRoom && quarterWalk && wholeRoom && wholeWalk,
                         $"the steep stair through a deck: a 2 × 1 well over its cells alone is refused (room {exactRoom}) and not walked (head on the well's near edge: {exactWalk}); the deck cut back a quarter before its foot: room {quarterRoom}, walked up ({tq:0.00}) and down ({bq:0.00}); a 3 × 1 well with the cell before its foot: room {wholeRoom}, walked up ({tw:0.00}) and down ({bw:0.00})");
@@ -144,13 +165,14 @@ namespace HansaTests
                 var gwalk = whole.Clone();
                 foreach (var sb in plan.Solids) gwalk.Fill(sb);
                 var fell = new List<string>();
+                var steepBox = PiecePlanner.SteepFlightBox(foot, plan.Dir, plan.Rise, cells);
                 foreach (int side in new[] { -1, 1 })
                 {
                     double u = cells / 2.0;
                     var colTop = PiecePlanner.FlightColumns(plan.Rise, cells).First(c => u >= c.u0 && u < c.u1).y;
                     var a = PiecePlanner.StairPoint(foot, plan.Dir, u, colTop, 0);
                     var b = PiecePlanner.StairPoint(foot, plan.Dir, u, colTop, side * 2);
-                    var mv = new DeckMover(a[0], a[1] + 0.01, a[2]) { OnGround = true };
+                    var mv = new DeckMover(a[0], a[1] + 0.01, a[2]) { OnGround = true, SteepFlights = steepBox == null ? null : new[] { steepBox } };
                     mv.Unstick(gwalk);
                     double low = mv.Y;
                     for (int k = 0; k < 40; k++) { mv.Step(gwalk, 0.05, b[0] - a[0], b[2] - a[2], 3.0, false, false); low = Math.Min(low, mv.Y); }
@@ -197,15 +219,16 @@ namespace HansaTests
                 }
                 var boxes = parts.Select(x => x.AsBox()).Where(x => x != null).ToList();
                 int coplanar = ModularGeometry.Coplanar(boxes).Count;
-                // (0.3.24, note 189) balusters about every 0.3 along the run (7 a side on the steep one, 10 on the long one)
+                // (0.3.24, note 189) balusters about every 0.3 along the run (7 a side on the steep one, 10 on the long one; 4 on the short one)
                 int wantPosts = 2 * (Math.Max(2, (int)Math.Round((cells - 0.2) / ModularGeometry.FlightBalusterPitch)) + 1);
-                Check(bad.Count == 0 && beams == 2 && posts == wantPosts && posts >= 14 && coplanar == 0,
+                Check(bad.Count == 0 && beams == 2 && posts == wantPosts && posts >= (cells == 1 ? 8 : 14) && coplanar == 0,
                     $"the {name} stair drawn: {beams} handrails {PiecePlanner.RailHeight} over its nosings, {posts} balusters clear of the treads, no two faces in one plane ({coplanar}){(bad.Count > 0 ? ": " + string.Join("; ", bad.Distinct().Take(4)) : "")}");
                 // out of building mode refused; put back by hand (aimed at its foot from before it) through a 3 × 1 well
                 var offMode = new FakePiece { Code = block.Code, Family = "x", StairCells = cells, NeedsBuilding = true };
                 Check(PiecePlanner.Plan(l, foot, offMode, 2).Error == "hansa:shipstair-build-mode", $"the {name} stair out of building mode: refused (shipstair-build-mode)");
                 HandPutBack(def, l, new ShipPieceSet(), whole, foot, 0, block, $"the {name} ship's stair");
             }
+            StairBeamsUnderDeck(l);
             // ShipPiece saved and loaded: its length and handrails kept; one saved before 0.3.23 is the long one, raked as before
             {
                 var foot = l.Floors.First(m => m.Deck == "lower" && m.Room == "lowerdeck");
@@ -221,14 +244,43 @@ namespace HansaTests
             }
             // the contract: a stair entry's length picks its block and its kind; an old entry without one as before
             {
+                var e1 = new ModularPieceDef { Kind = "stair", Length = 1 };
                 var e2 = new ModularPieceDef { Kind = "stair", Length = 2 };
                 var e3 = new ModularPieceDef { Kind = "stair" };
                 var eOld = new ModularPieceDef { Kind = "stair", Block = "game:plankstairs-oak-up-north-free" };
-                Check(e2.BlockFor("stair") == ModularPieceDef.SteepStair && e3.BlockFor("stair") == ModularPieceDef.LongStair && eOld.BlockFor("stair") == ModularPieceDef.LongStair &&
-                      ModularPieceDef.DefaultBlock("stair") == ModularPieceDef.LongStair,
-                    "a stair entry is laid with the ship's stair of its length (2: steep, 3 or none: long; vanilla plank stairs named by an old entry: the long one)");
+                var eWrong = new ModularPieceDef { Kind = "stair", Length = 1, Block = ModularPieceDef.SteepStair };
+                Check(e1.BlockFor("stair") == ModularPieceDef.ShortStair && e2.BlockFor("stair") == ModularPieceDef.SteepStair && e3.BlockFor("stair") == ModularPieceDef.LongStair &&
+                      eOld.BlockFor("stair") == ModularPieceDef.LongStair && eWrong.BlockFor("stair") == ModularPieceDef.ShortStair && ModularPieceDef.DefaultBlock("stair") == ModularPieceDef.LongStair,
+                    "a stair entry is laid with the ship's stair of its length (1: short, 2: steep, 3 or none: long; vanilla plank stairs named by an old entry: the long one)");
             }
             HatchFromBelow();
+        }
+
+        /// <summary>
+        /// (0.1.0-dev.6, note 39: "stair beams protrude") The ship's stairs drawn on a deck 0.2 thick (the caravel's) and 0.25
+        /// (the carrack's), all four ways: nothing of them below its deck's underside (the stringers' feet were 0.35 under its
+        /// top), the stringers under the deck above's top at the head, and their top line still meeting the deck at the foot.
+        /// </summary>
+        static void StairBeamsUnderDeck(MountLayout l)
+        {
+            var foot = l.Floors.First(m => m.Deck == "lower" && m.Room == "lowerdeck");
+            var bad = new List<string>();
+            static bool Stringer(ModularPart p) => p.IsBeam && p.AsBox() == null && p.Mat == PartMat.Wood && p.H > 0.15;
+            foreach (int cells in new[] { 1, 2, 3 })
+                foreach (double thick in new[] { 0.2, 0.25 })
+                    foreach (int up in new[] { 0, 1, 2, 3 })
+                    {
+                        var parts = ModularGeometry.Flight(foot, up, 3, cells, true, thick);
+                        double low = parts.Min(p => p.AsBox() is double[] b ? b[1] : Math.Min(p.P0[1], p.P1[1]) - p.H / 2) - foot.Y;
+                        var stringers = parts.Where(Stringer).ToList();
+                        double high = stringers.Max(p => Math.Max(p.P0[1], p.P1[1]) + p.H / 2) - foot.Y;
+                        double footTop = stringers.Min(p => Math.Min(p.P0[1], p.P1[1]) + p.H / 2) - foot.Y;
+                        if (low < -thick + 1e-6) bad.Add($"{cells} long on {thick}: {-low:0.000} under its deck's top");
+                        if (high > 3 - 0.02) bad.Add($"{cells} long: its stringers up to {high:0.00} at the head, over the deck above");
+                        if (footTop > 0.03) bad.Add($"{cells} long on {thick}: its stringers' top starts {footTop:0.00} over the deck");
+                    }
+            double was = ModularGeometry.FlightStringerDepth - 0.01;
+            Check(bad.Count == 0, $"0.1.0-dev.6 (note 39): the ship's stairs (1, 2 and 3 long) on decks 0.2 and 0.25 thick, all four ways: nothing under the deck's underside (before: the stringers' feet {was:0.00} under its top), the stringers under the deck above at the head, meeting the deck at the foot{(bad.Count > 0 ? ": " + string.Join("; ", bad.Distinct().Take(6)) : "")}");
         }
 
         /// <summary>

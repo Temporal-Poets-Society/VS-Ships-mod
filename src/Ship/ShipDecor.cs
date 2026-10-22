@@ -48,6 +48,9 @@ namespace Hansa
         public LadderDef[] Ladders => pieceLadders ?? Def?.Ladders ?? Array.Empty<LadderDef>();
         LadderDef[] pieceLadders;
 
+        /// <summary>(0.1.0-dev.6, note 36) Her short ship's stairs' flights, where the deck mover takes a ship's stair's step (null: none).</summary>
+        public double[][] SteepFlights { get; private set; }
+
         // ------------------------------------------------------------------ loading and saving
 
         /// <summary>Right after her fittings: her pieces (with their storages and seats) and her paint; clients follow both.</summary>
@@ -190,6 +193,11 @@ namespace Hansa
             // ((0.3.27, note 219) her brows run out to a quay: walked as ladders of their own kind)
             ladders.AddRange(BrowLadders());
             pieceLadders = ladders.ToArray();
+            // ((0.1.0-dev.6, note 36) her short ship's stairs: walked with a ship's stair's step)
+            var steep = new List<double[]>();
+            foreach (var p in Pieces.All)
+                if (p.Role == PieceRole.Stair && PiecePlanner.SteepFlightBox(Mounts?.Get(p.Mount), p.Dir, p.Rise > 0 ? p.Rise : 3, PiecePlanner.RunOf(p)) is double[] sb) steep.Add(sb);
+            SteepFlights = steep.Count > 0 ? steep.ToArray() : null;
             SyncPieceFixtures();
         }
 
@@ -563,7 +571,7 @@ namespace Hansa
         ItemStack ReturnedStack(ShipPiece p)
         {
             var b = p.Stack?.Block;
-            string code = p.Role == PieceRole.Stair && b != null && !VanillaPieceBlock.IsShipStair(b) ? (PiecePlanner.RunOf(p) == PiecePlanner.SteepCells ? ModularPieceDef.SteepStair : ModularPieceDef.LongStair) :
+            string code = p.Role == PieceRole.Stair && b != null && !VanillaPieceBlock.IsShipStair(b) ? ModularPieceDef.StairBlock((int)PiecePlanner.RunOf(p)) :
                           p.Role == PieceRole.Ladder && b != null && !VanillaPieceBlock.IsLadder(b) ? ModularPieceDef.DefaultBlock("ladder") : null;
             var nb = code == null ? null : World.GetBlock(new AssetLocation(code));
             return nb != null && nb.Id != 0 ? new ItemStack(nb) : p.Stack.Clone();

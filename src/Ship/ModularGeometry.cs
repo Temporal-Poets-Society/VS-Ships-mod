@@ -401,27 +401,42 @@ namespace Hansa
         /// <summary>
         /// (0.3.19) A walked stair: two stringers under its nosing line (from its deck at the foot cell's near edge up to the
         /// deck above at the head cell's far edge), its treads between them a plank thick (the top one a hair under the deck
-        /// above, which may reach back over it: no two faces in one plane), open underneath.
+        /// above, which may reach back over it: no two faces in one plane), open underneath. (0.1.0-dev.6, note 39: "stair
+        /// beams protrude") Nothing of it reaches below its deck's underside (footDeck: that deck's planking under its top):
+        /// the stringers' feet are cut there, a shallower piece of each carrying its top line down to the deck. Their heads
+        /// stop short of the deck above's edge, under its top. (Note 36) The short stair's treads overlap (each reaching
+        /// under the next), its stringers deeper for their slope.
         /// </summary>
-        public static List<ModularPart> Flight(MountPoint foot, int up, double rise, double run = PiecePlanner.FlightRun, bool rails = false)
+        public static List<ModularPart> Flight(MountPoint foot, int up, double rise, double run = PiecePlanner.FlightRun, bool rails = false, double footDeck = FlightFootDeck)
         {
             var list = new List<ModularPart>();
             bool alongX = up == 0 || up == 2;
             // (0.3.24, note 189: "stair beams could be a bit thicker and more serious") stringers 0.1 thick, 0.36 deep
-            const double st = FlightStringer, depth = FlightStringerDepth, tread = 0.07;
+            const double st = FlightStringer, tread = 0.07;
+            double slope = rise / run, depth = StringerDepth(slope);
             double cs = 0.5 - PiecePlanner.StairInset - st / 2;
             double[] P(double u, double yy, double c) => PiecePlanner.StairPoint(foot, up, u, yy, c);
-            // (the stringer's top along the nosings, a little under them; its ends cut where it meets the decks)
-            double drop = FlightStringerDrop, slope = rise / run, u0 = (drop - depth / 2 + 0.01) / slope, u1 = run - 0.05;
+            // (the stringer's top along the nosings, a little under them (StringerTop); its ends cut where it meets the decks:
+            // at the foot where its top meets the deck, at the head short of the deck above's edge)
+            double Top(double u) => StringerTop(rise, u, run);
+            double u0 = (FlightStringerDrop - FlightStringerDepth / 2 + 0.01) / slope, u1 = run - 0.05;
+            // ((note 39) its bottom no lower than a hair over the deck's underside: the full stringer from where it is, its foot
+            // a shallower piece (a hair lower and narrower, overlapping it: no faces in one plane))
+            double floor = 0.01 - Math.Max(0.05, footDeck), uc = Math.Min(u1, Math.Max(u0, (floor + depth - Top(0)) / slope));
             foreach (double c in new[] { -cs, cs })
-                list.Add(ModularPart.Beam(PartMat.Wood, P(u0, slope * u0 - drop, c), P(u1, slope * u1 - drop, c), alongX, st, depth));
+            {
+                list.Add(ModularPart.Beam(PartMat.Wood, P(uc, Top(uc) - depth / 2, c), P(u1, Top(u1) - depth / 2, c), alongX, st, depth));
+                if (uc - u0 < 0.01) continue;
+                double fd = Top(u0) - 0.004 - floor - 0.002;
+                list.Add(ModularPart.Beam(PartMat.Wood, P(u0, Top(u0) - 0.004 - fd / 2, c), P(uc + 0.03, Top(uc + 0.03) - 0.004 - fd / 2, c), alongX, st - 0.008, fd));
+            }
             int n = PiecePlanner.FlightTreads(rise);
-            double ci = cs - st / 2;
+            double ci = cs - st / 2, past = Math.Max(0.03, FlightTreadDepth - run / n);
             for (int k = 1; k <= n; k++)
             {
                 var (a, b, y) = PiecePlanner.FlightTread(rise, k, run);
                 double top = k == n ? y - 0.02 : y;
-                list.Add(ModularPart.B(PartMat.Planks, PiecePlanner.StairBox(foot, up, a, top - tread, -ci, b + (k == n ? 0 : 0.03), top, ci)));
+                list.Add(ModularPart.B(PartMat.Planks, PiecePlanner.StairBox(foot, up, a, top - tread, -ci, k == n ? b : Math.Min(run, b + past), top, ci)));
             }
             if (rails) list.AddRange(FlightHandrails(foot, up, rise, run));
             return list;
@@ -466,6 +481,26 @@ namespace Hansa
         public const double FlightBalusterEmbed = 0.04;
         /// <summary>(0.3.19) A walked stair's stringers: their depth, and how far their middle line is under the nosings' slope (their top 0.06 under it).</summary>
         public const double FlightStringerDepth = 0.36, FlightStringerDrop = 0.06 + FlightStringerDepth / 2;
+
+        /// <summary>
+        /// (0.1.0-dev.6, note 39) How thick a stair's foot deck is taken to be under its top when not known (her deck slots
+        /// say: the caravel's 0.2, the carrack's 0.25): the thinnest, so nothing shows under either.
+        /// </summary>
+        public const double FlightFootDeck = 0.2;
+        /// <summary>(0.1.0-dev.6, note 36) A walked stair's treads at least this deep (the short stair's overlap: each reaches under the next).</summary>
+        public const double FlightTreadDepth = 0.16;
+
+        /// <summary>(0.1.0-dev.6, note 36) A stringer's depth (upright) at this slope: 0.36, or at least 0.2 square to its line (the short stair's 72°).</summary>
+        public static double StringerDepth(double slope) => Math.Max(FlightStringerDepth, 0.2 * Math.Sqrt(1 + slope * slope));
+
+        /// <summary>(0.1.0-dev.6, note 39) The planking's thickness under a deck's top (ship-local y), from her deck slots; <see cref="FlightFootDeck"/> if they don't say.</summary>
+        public static double DeckThickness(ShipDefinition def, double top)
+        {
+            if (def?.Slots?.Tops != null)
+                foreach (var (t, thick) in def.Slots.Tops)
+                    if (Math.Abs(t - top) < 0.02 && thick > 0.04) return thick;
+            return FlightFootDeck;
+        }
 
         /// <summary>(0.3.27) The top of a walked stair's stringer at u along its run, over its deck.</summary>
         public static double StringerTop(double rise, double u, double run = PiecePlanner.FlightRun) => rise / run * u - FlightStringerDrop + FlightStringerDepth / 2;

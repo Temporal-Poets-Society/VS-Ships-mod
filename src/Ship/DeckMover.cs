@@ -86,6 +86,12 @@ namespace Hansa
         public const double JumpSpeed = 8.2;     // vanilla BaseJumpForce
         public const double TerminalFall = 40;
         public const double StepHeight = 0.6;
+        /// <summary>
+        /// (0.1.0-dev.6, note 36: "stairs taking 1 block - NOT LADDERS") A ship's stair's step: on a short ship's stair (a deck's
+        /// 3 blocks up over 1 block of run, her collision's columns a quarter block long) each step is 0.75, over a man's own
+        /// <see cref="StepHeight"/>. Taken up and down over <see cref="SteepFlights"/> only.
+        /// </summary>
+        public const double ShipStairStep = 0.75;
 
         public double X, Y, Z;
         public double VX, VY, VZ;
@@ -108,6 +114,16 @@ namespace Hansa
 
         double jumpCooldown;
         static readonly double[] StepTries = { 0.25, 0.5, StepHeight };
+        static readonly double[] SteepStepTries = { 0.25, 0.5, StepHeight, ShipStairStep };
+
+        /// <summary>(0.1.0-dev.6, note 36) Is the walker over one of her short ship's stairs (<see cref="SteepFlights"/>)?</summary>
+        bool OnSteepFlight()
+        {
+            if (SteepFlights == null) return false;
+            foreach (var b in SteepFlights)
+                if (b != null && X + HalfWidth > b[0] && X - HalfWidth < b[3] && Y + Height > b[1] && Y < b[4] && Z + HalfWidth > b[2] && Z - HalfWidth < b[5]) return true;
+            return false;
+        }
 
         /// <summary>Ok; Overboard (walked or jumped off the ship); LeftShip (climbed down a rope ladder into the water).</summary>
         public enum Result { Ok, Overboard, LeftShip }
@@ -121,6 +137,11 @@ namespace Hansa
         /// top, or NaN: climbing up, the climber's head stops under it.
         /// </summary>
         public Func<LadderDef, double> CoverUnder;
+        /// <summary>
+        /// (0.1.0-dev.6, note 36) Her short ship's stairs' flights (ship-local boxes, <see cref="PiecePlanner.SteepFlightBox"/>):
+        /// a walker overlapping one takes a <see cref="ShipStairStep"/> up or down there. Null: none.
+        /// </summary>
+        public double[][] SteepFlights;
 
         public DeckMover(double x, double y, double z) { X = x; Y = y; Z = z; }
 
@@ -176,8 +197,9 @@ namespace Hansa
             // walking down stairs: snap onto the next step instead of falling off each one
             if (canStep && Moving && VY <= 0)
             {
-                double down = g.Sweep(1, -StepHeight - 0.05, X - HalfWidth, Y, Z - HalfWidth, X + HalfWidth, Y + Height, Z + HalfWidth);
-                if (down < -1e-6 && down > -StepHeight - 0.05 + 1e-6)
+                double reach = (OnSteepFlight() ? ShipStairStep : StepHeight) + 0.05;
+                double down = g.Sweep(1, -reach, X - HalfWidth, Y, Z - HalfWidth, X + HalfWidth, Y + Height, Z + HalfWidth);
+                if (down < -1e-6 && down > -reach + 1e-6)
                 {
                     Y += down;
                     SmoothOffset -= down;
@@ -397,7 +419,7 @@ namespace Hansa
             double m = g.Sweep(axis, d, X - HalfWidth, Y, Z - HalfWidth, X + HalfWidth, Y + Height, Z + HalfWidth);
             if (Math.Abs(m - d) > 1e-9 && canStep)
             {
-                foreach (double s in StepTries)
+                foreach (double s in OnSteepFlight() ? SteepStepTries : StepTries)
                 {
                     if (g.Collides(X - HalfWidth, Y + s, Z - HalfWidth, X + HalfWidth, Y + s + Height, Z + HalfWidth)) continue;
                     double m2 = g.Sweep(axis, d, X - HalfWidth, Y + s, Z - HalfWidth, X + HalfWidth, Y + s + Height, Z + HalfWidth);

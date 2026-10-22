@@ -71,7 +71,8 @@ namespace Hansa
         /// <summary>(0.3.16) A stair's rise when it's given (a design's modular piece); 0: up to the deck above.</summary>
         public double Rise;
         /// <summary>
-        /// (0.3.23) A ship's stair: its cells along its run (3 the long one, 2 the steep one) and its own handrails (the mod's
+        /// (0.3.23) A ship's stair: its cells along its run (3 the long one, 2 the steep one; 0.1.0-dev.6, note 36: 1 the short
+        /// one) and its own handrails (the mod's
         /// ship's stairs have them; no railing goes beside one). NeedsBuilding: a ship's stair read out of building mode
         /// (it's placed in building mode only).
         /// </summary>
@@ -385,8 +386,12 @@ namespace Hansa
 
         // ------------------------------------------------------------------ (0.3.19) the walked stair; (0.3.23) the ship's stairs
 
-        /// <summary>(0.3.19) A walked stair's cells along its run (foot, middle, head) and its run (blocks): the long ship's stair. (0.3.23) The steep one: 2.</summary>
-        public const int FlightCells = 3, SteepCells = 2;
+        /// <summary>
+        /// (0.3.19) A walked stair's cells along its run (foot, middle, head) and its run (blocks): the long ship's stair. (0.3.23)
+        /// The steep one: 2. (0.1.0-dev.6, note 36: "stairs taking 1 block - NOT LADDERS") The short one: 1, walked up through
+        /// a 2 × 1 opening (its cell and the cell before it), its steps <see cref="DeckMover.ShipStairStep"/> high.
+        /// </summary>
+        public const int FlightCells = 3, SteepCells = 2, ShortCells = 1;
         public const double FlightRun = 3.0;
         /// <summary>
         /// (0.3.19) Its risers at most this high: a quarter block (a voxel), so a man stepping up near its foot (his head over
@@ -422,7 +427,9 @@ namespace Hansa
         /// <summary>
         /// (0.3.23) Her collision's steps of a stair: a voxel-long column every quarter block along the run, its top the drawn
         /// tread's over the column's middle (the long stair: each column a tread; the steep one: 8 columns for its 12 treads,
-        /// risers of a quarter or a half). From u0 to u1, top y.
+        /// risers of a quarter or a half). From u0 to u1, top y. (0.1.0-dev.6, note 36) The short one: the tread's at the
+        /// column's far end, 4 columns 0.75 apart, the last flush with the deck above as the others' are (a deck reaching back
+        /// over its cell a quarter lies on it).
         /// </summary>
         public static List<(double u0, double u1, double y)> FlightColumns(double rise, double run = FlightRun)
         {
@@ -432,7 +439,7 @@ namespace Hansa
             for (int j = 0; j < cols; j++)
             {
                 double u0 = j * FlightColumn, u1 = u0 + FlightColumn, mid = u0 + FlightColumn / 2;
-                int k = Math.Clamp((int)Math.Ceiling(mid / d - 1e-9), 1, n);
+                int k = Math.Clamp((int)Math.Ceiling((run < SteepCells ? u1 : mid) / d - 1e-9), 1, n);
                 list.Add((u0, u1, rise * k / n));
             }
             return list;
@@ -480,6 +487,17 @@ namespace Hansa
         public static double RunOf(ShipPiece p) => p?.Cells > 0 ? p.Cells : FlightCells;
 
         /// <summary>
+        /// (0.1.0-dev.6, note 36) Where a walker may take a ship's stair's step (<see cref="DeckMover.ShipStairStep"/>) up or
+        /// down: over a short stair's cell (and a little before and past it, where he stands to step on and off), from its
+        /// deck to over the deck above. Null for a longer stair (its steps are a man's own).
+        /// </summary>
+        public static double[] SteepFlightBox(MountPoint foot, int up, double rise, double run)
+        {
+            if (foot == null || run >= SteepCells || rise <= 0) return null;
+            return StairBox(foot, up, -0.35, -0.1, -0.5, run + 0.35, rise + 0.5, 0.5);
+        }
+
+        /// <summary>
         /// (0.3.19, the user: "maybe two versions: stairs and ladders; stairs can take more space, longer"; 0.3.23, the user:
         /// "can we make stairs for 2 blocks also? ladder animation is kind of bad"; "for ships stairs better to have a
         /// special block") A ship's stair (hansa:shipstair-long or -steep, building mode) on a floor place: a walked stair 1
@@ -488,7 +506,9 @@ namespace Hansa
         /// stringers, open underneath, walked by the deck mover over her collision's columns (<see cref="FlightColumns"/>). Its
         /// top is flush with the deck above at the head cell's far edge: on an open deck up to a castle's front no well is
         /// needed (the deck above may reach back over the head cell's last <see cref="FlightOverhang"/>); through a deck, a
-        /// well over its cells (the steep one also a quarter block before its foot: docs/modular-pieces.md §10). Its own
+        /// well over its cells (the steep one also a quarter block before its foot: docs/modular-pieces.md §10; 0.1.0-dev.6,
+        /// note 36: the short one, hansa:shipstair-short, 1 cell at about 72°, a 2 × 1 well over its cell and the one before it,
+        /// docs/legacy/modular-pieces.md §15). Its own
         /// handrails (<see cref="FlightGuards"/>: solid beside its treads, drawn rails 0.9 over its nosings), so no railing goes
         /// beside it. It takes the foot's place and the places over its cells; the others' own places stay free (a chest under
         /// it). Dir: the way up.
@@ -496,7 +516,7 @@ namespace Hansa
         static PiecePlan Flight(MountLayout layout, MountPoint m, PieceBlock b, PiecePlan p, int look)
         {
             if (m.Level != 0) { p.Error = "hansa:stair-needs-floor"; return p; }
-            int n = b.StairCells is 2 or 3 ? b.StairCells : FlightCells;
+            int n = b.StairCells is ShortCells or SteepCells or FlightCells ? b.StairCells : FlightCells;
             double run = n;
             var cells = new List<MountPoint> { m };
             for (int c = 1; c < n; c++)
@@ -580,7 +600,7 @@ namespace Hansa
 
         /// <summary>
         /// (0.3.19) Walk a walked stair up and down again in a collision grid, as a player would (the deck mover: steps up at
-        /// most 0.6, snaps down the steps): from half a block before its foot walking up the run until past its head on the
+        /// most 0.6, snaps down the steps; 0.1.0-dev.6, note 36: on a short stair a ship's stair's step): from half a block before its foot walking up the run until past its head on the
         /// deck above, then back down to the foot. top: how high over its deck the walk up ended; back: where the walk down
         /// ended. True if both ended on her floor at the right decks.
         /// </summary>
@@ -589,7 +609,9 @@ namespace Hansa
             var a = FlightFoot(foot, up);
             var b = FlightTop(foot, up, rise, run);
             double ax = MountLayout.DX[up], az = MountLayout.DZ[up];
-            var mv = new DeckMover(a[0], a[1], a[2]) { OnGround = true };
+            // ((0.1.0-dev.6, note 36) the short one's steps are a ship's stair's, as her walker takes them aboard)
+            var steep = SteepFlightBox(foot, up, rise, run);
+            var mv = new DeckMover(a[0], a[1], a[2]) { OnGround = true, SteepFlights = steep == null ? null : new[] { steep } };
             mv.Unstick(g);
             for (int n = 0; n < 200; n++)
             {
