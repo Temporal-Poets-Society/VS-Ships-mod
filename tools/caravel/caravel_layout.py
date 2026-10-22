@@ -224,6 +224,8 @@ def merge_slot_triangles(M):
                         if key(q_) in shared and key(r_) in shared:
                             break
                     s_ = next(c for c in cb if key(c) not in shared)
+                    if not affine_ok(p_, q_, r_, s_):        # (one texture mapping over both: drawn across either diagonal)
+                        continue
                     quad = [quads[a][0]] + [v for c in (p_, q_, s_, r_) for v in c]
                     new_of[a] = quad
                     used |= {a, b}
@@ -236,6 +238,23 @@ def merge_slot_triangles(M):
             out_p += [pairs[2 * n], pairs[2 * n + 1]]
         M["groups"][g], M["slotQuads"][g] = out_q, out_p
     return merged_total
+
+
+def affine_ok(p_, q_, r_, s_, tol=0.01):
+    """Does the triangle p q r's texture mapping (affine over its plane) put s's UV where s has it, and are the four
+    corners' normals one? Then a quad p q s r drawn across either diagonal looks the same."""
+    P, Q, R, S = (np.array(c[:3]) for c in (p_, q_, r_, s_))
+    e1, e2, w = Q - P, R - P, S - P
+    a11, a12, a22 = e1 @ e1, e1 @ e2, e2 @ e2
+    det = a11 * a22 - a12 * a12
+    if abs(det) < 1e-18:
+        return False
+    b1, b2 = w @ e1, w @ e2
+    a_, b_ = (a22 * b1 - a12 * b2) / det, (a11 * b2 - a12 * b1) / det
+    for k in (3, 4):
+        if abs(p_[k] + a_ * (q_[k] - p_[k]) + b_ * (r_[k] - p_[k]) - s_[k]) > tol:
+            return False
+    return all(abs(c[k] - p_[k]) < 1e-3 for c in (q_, r_, s_) for k in (5, 6, 7))
 
 
 def merge_plain_triangles(M):
@@ -293,6 +312,10 @@ def merge_plain_triangles(M):
                     return float(np.dot(np.cross(b - a, c - a), nrm))
                 if side(P[1], P[3], P[0]) * side(P[1], P[3], P[2]) >= 0 or side(P[0], P[2], P[1]) * side(P[0], P[2], P[3]) >= 0:
                     continue
+                # (after Codex's review) one texture mapping over both: s's UV where the triangle's own mapping puts it
+                # (the quad is drawn across its other diagonal), and one normal at its four corners
+                if not affine_ok(p_, q_, r_, s_):
+                    continue
                 # the same winding as the triangle: p, q, s, r
                 new_of[n] = [q[0]] + [v for c in (p_, q_, s_, r_) for v in c]
                 used |= {n, other}
@@ -300,6 +323,93 @@ def merge_plain_triangles(M):
                 break
         M["groups"][g] = [new_of.get(n, qq) for n, qq in enumerate(quads) if n not in used or n in new_of]
     return merged_total
+
+
+def split_tiles(M, start=None):
+    """(22 October 2026, after Codex's review; chalk notes 42, 44: "textures are complete mess") The ship's texture atlas
+    doesn't repeat: the mod brings a quad's UVs inside one 16-texel tile (ShapeUvs.FitQuad), shifting one that crosses a
+    tile's edge and squashing one longer than a tile (a rail, a cap, a yard: up to 4 blocks of wood on one block's
+    texture). Each quad is cut at the tiles' edges instead (its corners' positions, UVs and normals along its edges, its
+    mapping affine over it), each piece's UVs brought into its tile: texture density follows the surface and runs on
+    across the cuts. start: {group: the first quad to look at} (the fittings added after her paint's ranges: those
+    before stay where they are). Returns (quads cut, pieces made)."""
+    def corners(q):
+        out = []
+        for k in range(4):
+            c = list(q[1 + 8 * k: 9 + 8 * k])
+            if not out or any(abs(c[a] - out[-1][a]) > 1e-7 for a in range(5)):
+                out.append(c)
+        if len(out) > 1 and all(abs(out[0][a] - out[-1][a]) <= 1e-7 for a in range(5)):
+            out.pop()
+        return out
+
+    def clip(poly, axis, t, keep_above):
+        res = []
+        for i in range(len(poly)):
+            a, b = poly[i], poly[(i + 1) % len(poly)]
+            ina = (a[axis] >= t - 1e-6) if keep_above else (a[axis] <= t + 1e-6)
+            inb = (b[axis] >= t - 1e-6) if keep_above else (b[axis] <= t + 1e-6)
+            if ina:
+                res.append(list(a))                 # (a copy: each piece's UVs are moved into its own tile)
+            if ina != inb:
+                f = (t - a[axis]) / (b[axis] - a[axis])
+                res.append([a[k] + f * (b[k] - a[k]) for k in range(8)])
+        return res
+
+    cut, made = 0, 0
+    for g in list(M["groups"]):
+        if g.startswith("sail:") or g == "shot":
+            continue
+        quads = M["groups"][g]
+        pairs = M.get("slotQuads", {}).get(g)
+        out_q, out_p = [], []
+        first = start.get(g, 0) if start else 0
+        for n, q in enumerate(quads):
+            poly = corners(q) if n >= first else []
+            us, vs = [c[3] for c in poly], [c[4] for c in poly]
+            iu0, iu1 = (math.floor(min(us) / 16 + 1e-5), math.floor(max(us) / 16 - 1e-5)) if poly else (0, 0)
+            iv0, iv1 = (math.floor(min(vs) / 16 + 1e-5), math.floor(max(vs) / 16 - 1e-5)) if poly else (0, 0)
+            if len(poly) < 3 or (iu0 == iu1 and iv0 == iv1):
+                if poly and (iu0 or iv0):
+                    # (in one tile, not the first: brought into it whole)
+                    q = list(q)
+                    for k in range(4):
+                        q[4 + 8 * k] = round(q[4 + 8 * k] - 16 * iu0, 3)
+                        q[5 + 8 * k] = round(q[5 + 8 * k] - 16 * iv0, 3)
+                out_q.append(q)
+                if pairs is not None:
+                    out_p += pairs[2 * n: 2 * n + 2]
+                continue
+            cut += 1
+            for iu in range(iu0, iu1 + 1):
+                col = clip(clip(poly, 3, 16 * iu, True), 3, 16 * (iu + 1), False) if poly else []
+                for iv in range(iv0, iv1 + 1):
+                    piece = clip(clip(col, 4, 16 * iv, True), 4, 16 * (iv + 1), False) if len(col) >= 3 else []
+                    # (drop slivers and repeated corners)
+                    pc = []
+                    for c in piece:
+                        if not pc or any(abs(c[a] - pc[-1][a]) > 1e-6 for a in range(3)):
+                            pc.append(c)
+                    if len(pc) > 1 and all(abs(pc[0][a] - pc[-1][a]) <= 1e-6 for a in range(3)):
+                        pc.pop()
+                    if len(pc) < 3:
+                        continue
+                    for c in pc:
+                        c[3] -= 16 * iu
+                        c[4] -= 16 * iv
+                    # a fan of quads (convex: the cut of a convex quad), the last a triangle if it comes out odd
+                    k = 1
+                    while k + 1 < len(pc):
+                        four = [pc[0], pc[k], pc[k + 1], pc[k + 2] if k + 2 < len(pc) else pc[k + 1]]
+                        out_q.append([q[0]] + [round(v, 4) if a < 3 else round(v, 3) for c in four for a, v in enumerate(c)])
+                        if pairs is not None:
+                            out_p += pairs[2 * n: 2 * n + 2]
+                        made += 1
+                        k += 2
+        M["groups"][g] = out_q
+        if pairs is not None:
+            M["slotQuads"][g] = out_p
+    return cut, made
 
 
 def square_slot_faces(M, D):
@@ -440,9 +550,24 @@ def deflicker(M, D):
                 if o not in seen:
                     seen.add(o)
                     todo.append(o)
-        comp.sort(key=lambda f: (not f[0].startswith("slot:"), -area_of[f]))
+        # (after Codex's review) a slot's faces never move (her panels' and cells' faces meet their neighbours exactly,
+        # their openings and collision are where they are); the others in front of them, the larger first. Two slots'
+        # faces in one plane are left as they are (counted in what's left)
+        slots_ = [f for f in comp if f[0].startswith("slot:")]
+        rest = sorted((f for f in comp if not f[0].startswith("slot:")), key=lambda f: -area_of[f])
+        # (two faces of one slot's own, one group, in one plane: the mesher's overlapping fan; the smaller moves with it)
+        own_ = {}
+        for f in sorted(slots_, key=lambda f: -area_of[f]):
+            pr = M["slotQuads"][f[0]][2 * f[1]: 2 * f[1] + 2]
+            k_ = (f[0], pr[0], pr[1])
+            if k_ in own_ and pr[0] >= 0:
+                rest.append(f)
+            else:
+                own_[k_] = f
+        slots_ = list(own_.values())
         nrm = nrm_of[comp[0]]
-        for k, (g_, n_) in enumerate(comp[1:], start=1):
+        movable = rest if slots_ else rest[1:]
+        for k, (g_, n_) in enumerate(movable, start=1):
             q = M["groups"][g_][n_]
             for c_ in range(4):
                 for a_ in range(3):
@@ -813,13 +938,23 @@ def main():
     square_slot_faces(M, D)
     n_plain = merge_plain_triangles(M)
     print(f"[layout] triangles paired into quads: {n_merged} in the slot groups, {n_plain} elsewhere")
+    n_cut, n_pieces = split_tiles(M)
+    print(f"[layout] quads cut at their texture's tile edges: {n_cut}, into {n_pieces}")
     D["paintZones"] = PAINT_ZONES
     M["paintQuads"] = paint_quads(M, L, F)          # (before the fittings' quads join the groups: they aren't painted)
     M["paintFaces"] = {}
     qf_x = L["quarterdeckFront"] / 1000.0
+    before = {g: len(v) for g, v in M["groups"].items()}
     counts = merge_quads(d, M, lambda p: p[1] < deck - 0.1 or (p[0] < qf_x and p[1] < qd - 0.1))
-    n_pushed, n_left = deflicker(M, D)
-    print(f"[layout] overlapping faces in one plane: {n_pushed} pushed 2 mm out, {n_left} left")
+    n_cut2, n_pieces2 = split_tiles(M, before)
+    print(f"[layout] the fittings' quads cut at their texture's tile edges: {n_cut2}, into {n_pieces2}")
+    # (a face moved out can meet another there: again, a few times at most)
+    n_pushed, n_left, passes = 0, 1, 0
+    while n_left and passes < 3:
+        moved_, n_left = deflicker(M, D)
+        n_pushed += moved_
+        passes += 1
+    print(f"[layout] overlapping faces in one plane: {n_pushed} pushed 2 mm out in {passes} passes, {n_left} left")
     out = os.environ.get("CARAVEL_LAYOUT_OUT")             # (a check: somewhere else than the mod's assets)
     with open(os.path.join(out, "caravel.json") if out else os.path.join(ASSETS, "config", "ships", f"{CODE}.json"), "w") as f:
         json.dump(D, f, indent=1)

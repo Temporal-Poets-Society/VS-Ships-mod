@@ -51,6 +51,8 @@ namespace Hansa
         static readonly ConcurrentDictionary<long, Held> serverHeld = new();
         /// <summary>Client: the items its server says are aboard (main thread only).</summary>
         static readonly Dictionary<long, EntityItem> clientHeld = new();
+        static readonly List<long> gone = new();
+        static readonly Dictionary<long, (EntityShip Ship, Vec3d Origin)> frameShips = new();
 
         readonly ICoreServerAPI sapi;
         readonly HansaMod mod;
@@ -256,15 +258,26 @@ namespace Hansa
         public static void ClientFrame(ICoreClientAPI capi, ShipRenderer renderer, EntityPlayer ep)
         {
             if (clientHeld.Count == 0) return;
-            foreach (var (id, e) in clientHeld.ToArray())
+            // ((after 0.1.0-dev.6, Codex's review) no copy of the list, and each ship's drawn place once a frame)
+            gone.Clear();
+            frameShips.Clear();
+            foreach (var (id, e) in clientHeld)
             {
                 if (!e.Alive || e.State == EnumEntityState.Despawned || e.WatchedAttributes[Key] is not ITreeAttribute t)
                 {
-                    clientHeld.Remove(id);
+                    gone.Add(id);
                     continue;
                 }
-                if (capi.World.GetEntityById(t.GetLong("ship")) is not EntityShip ship || ship.Def == null) continue;
-                var o = renderer != null && ep != null ? renderer.RenderOrigin(ship, ep) : new Vec3d(ship.Pos.X, ship.Pos.Y, ship.Pos.Z);
+                long sid = t.GetLong("ship");
+                if (!frameShips.TryGetValue(sid, out var at))
+                {
+                    var sh = capi.World.GetEntityById(sid) as EntityShip;
+                    at = (sh, sh?.Def == null ? null : renderer != null && ep != null ? renderer.RenderOrigin(sh, ep) : new Vec3d(sh.Pos.X, sh.Pos.Y, sh.Pos.Z));
+                    frameShips[sid] = at;
+                }
+                if (at.Ship == null || at.Origin == null) continue;
+                var ship = at.Ship;
+                var o = at.Origin;
                 ShipFrame.ToWorld(ship.Pos.Yaw, ship.Pitch, ship.Roll, t.GetDouble("x"), t.GetDouble("y"), t.GetDouble("z"), out double dx, out double dy, out double dz);
                 double wx = o.X + dx, wy = o.Y + dy, wz = o.Z + dz;
                 e.Pos.SetPos(wx, wy, wz);
@@ -272,6 +285,7 @@ namespace Hansa
                 // vanilla's item renderer eases toward the place (a moving ship would leave it trailing behind her)
                 if (lerpedPos != null && e.Properties?.Client?.Renderer is EntityItemRenderer r) lerpedPos(r).Set(wx, wy, wz);
             }
+            foreach (long id in gone) clientHeld.Remove(id);
         }
     }
 }

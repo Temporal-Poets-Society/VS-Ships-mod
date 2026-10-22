@@ -439,6 +439,24 @@ namespace Hansa
         /// piece, into her (a shut door, something attached), or into someone standing there. The client asks the same for
         /// what its crosshair shows.
         /// </summary>
+        PiecePlan clashPlan;
+        int clashVersion = -1;
+        string clashSays;
+
+        /// <summary>Why her collision refuses a piece's plan (its boxes, its room), or null: what PlaceProblem asks of her structure.</summary>
+        string StructureProblem(PiecePlan plan)
+        {
+            if (PiecePlanner.GridClash(Mounts, plan, PlaceGrid ?? Grid) is not double[] clash) return null;
+            // ((0.3.27, the user's stairs and beams) a beam in its way that can come out with it (the deck either side
+            // open): fine, it comes out when the stair is put (TryPlacePiece); one that can't: say what to do
+            if (BeamsInTheWay(plan) != null) return null;
+            // ((22 October 2026, caravel note 52) a beam only if one is in its way with the deck's cells over it up)
+            if (BeamRules.ClashSays(Mounts, SlotLayout, Slots, plan, PlaceGrid ?? Grid, BeamAt) is string beam) return beam;
+            // ((0.3.28) where one steps off it at its foot or onto the deck at its top: her side's curve, a fitting)
+            if (plan.Role == PieceRole.Stair && StairLanding.At(plan, PlaceGrid ?? Grid)) return "hansa:flight-no-landing";
+            return plan.Role == PieceRole.Ladder ? "hansa:stair-no-well" : plan.Role == PieceRole.Stair ? "hansa:flight-no-well" : plan.Role == PieceRole.Hearth ? "hansa:hearth-no-room" : "hansa:piece-blocked";
+        }
+
         public string PlaceProblem(PiecePlan plan, bool checkPeople)
         {
             if (plan == null || plan.Error != null) return plan?.Error ?? "hansa:piece-nowhere";
@@ -480,19 +498,15 @@ namespace Hansa
             // cell's whole block; a lip over the edge, a cabinet's top board, touching her leaning side is no clash: note 72)
             // (0.3.18, note 162) a ladder-stair: the climber's room up it through the well and its landings (its own boxes
             // rest on her coaming at the top: PiecePlanner.GridClash, the offline tests' check too)
-            if (PiecePlanner.GridClash(Mounts, plan, PlaceGrid ?? Grid) is double[] clash)
+            // ((after 0.1.0-dev.6, Codex's review) what her collision says of it, worked out once for the plan as long as
+            // her collision is as it was (FitVersion): the client asks every frame for the piece in the crosshair)
+            if (!ReferenceEquals(plan, clashPlan) || clashVersion != FitVersion)
             {
-                // ((0.3.27, the user's stairs and beams) a beam in its way that can come out with it (the deck either side
-                // open): fine, it comes out when the stair is put (TryPlacePiece); one that can't: say what to do
-                if (BeamsInTheWay(plan) == null)
-                {
-                    // ((22 October 2026, caravel note 52) a beam only if one is in its way with the deck's cells over it up)
-                    if (BeamRules.ClashSays(Mounts, SlotLayout, Slots, plan, PlaceGrid ?? Grid, BeamAt) is string beam) return beam;
-                    // ((0.3.28) where one steps off it at its foot or onto the deck at its top: her side's curve, a fitting)
-                    if (plan.Role == PieceRole.Stair && StairLanding.At(plan, PlaceGrid ?? Grid)) return "hansa:flight-no-landing";
-                    return plan.Role == PieceRole.Ladder ? "hansa:stair-no-well" : plan.Role == PieceRole.Stair ? "hansa:flight-no-well" : plan.Role == PieceRole.Hearth ? "hansa:hearth-no-room" : "hansa:piece-blocked";
-                }
+                clashSays = StructureProblem(plan);
+                clashPlan = plan;
+                clashVersion = FitVersion;
             }
+            if (clashSays != null) return clashSays;
             if (checkPeople)
             {
                 double[] cells = plan.Kind == MountKind.Floor ? PiecePlanner.PlaceBounds(Mounts, plan) : null;

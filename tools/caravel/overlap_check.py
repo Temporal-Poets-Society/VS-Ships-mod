@@ -110,36 +110,67 @@ def empty_slots(d):
             "hull": {n for n, s in enumerate(d.get("hullSlots") or []) if s.get("start") == "empty"}}
 
 
+TOL = 0.001                 # (1 mm: two faces' planes this close, and 0.5 degrees, are one plane)
+
+
 def find_clashes(mesh, empty):
     """[(group a, quad a, group b, quad b, overlap m2, middle, normal, area a, area b)] of the drawn faces in one plane,
-    facing one way, overlapping."""
+    facing one way, overlapping. (22 October 2026, after Codex's review: a face near a rounding edge of its normal's or
+    its plane's bucket was missed, and every pair in a plane was compared) Faces by their normal on a 0.02 grid (a face
+    near a cell's edge in the neighbouring cell too), then swept along their plane's distance (1 mm) and along one axis
+    in the plane (their boxes 1 mm apart or nearer)."""
     P = polys(mesh, empty)
-    buckets = defaultdict(list)
-    for i, (g, n, pts, nrm) in enumerate(P):
-        dist = float(nrm @ pts[0])
-        key = (round(nrm[0], 2), round(nrm[1], 2), round(nrm[2], 2), round(dist * 1000))
-        buckets[key].append(i)
+    items = []
+    for g, n, pts, nrm in P:
+        items.append((g, n, pts, nrm, float(nrm @ pts[0]), pts.min(0) - TOL, pts.max(0) + TOL))
+    byn = defaultdict(list)
+    for i, it in enumerate(items):
+        keys = [[]]
+        for c in it[3]:
+            x = c * 50
+            k = int(math.floor(x + 0.5))
+            near = [k] + ([k - 1] if x - (k - 0.5) < 0.25 else []) + ([k + 1] if (k + 0.5) - x < 0.25 else [])
+            keys = [kk + [v] for kk in keys for v in near]
+        for kk in keys:
+            byn[tuple(kk)].append(i)
+    seen = set()
     out = []
-    for key, idx in buckets.items():
+    for idx in byn.values():
         if len(idx) < 2:
             continue
-        for a_ in range(len(idx)):
-            ga, na, pa, nra = P[idx[a_]]
-            ba_lo, ba_hi = pa.min(0), pa.max(0)
-            for b_ in range(a_ + 1, len(idx)):
-                gb, nb, pb, nrb = P[idx[b_]]
-                if ga == gb and na == nb:
-                    continue
-                if np.any(pb.max(0) < ba_lo - 1e-6) or np.any(pb.min(0) > ba_hi + 1e-6):
-                    continue
-                if math.degrees(math.acos(min(1.0, float(nra @ nrb)))) > 0.5:
-                    continue
-                if abs(float(nra @ (pb[0] - pa[0]))) > 0.001:
-                    continue
-                ov = overlap_area(pa, pb, nra)
-                if ov > 2e-6:
-                    out.append((ga, na, gb, nb, ov, (pa.mean(0) + pb.mean(0)) / 2, nra,
-                                overlap_area(pa, pa, nra), overlap_area(pb, pb, nra)))
+        idx.sort(key=lambda i: items[i][4])
+        # clusters of planes within 1 mm of the next
+        start = 0
+        for e in range(1, len(idx) + 1):
+            if e < len(idx) and items[idx[e]][4] - items[idx[e - 1]][4] <= TOL:
+                continue
+            cl = idx[start:e]
+            start = e
+            if len(cl) < 2:
+                continue
+            nrm0 = items[cl[0]][3]
+            ax = int(np.argmin(np.abs(nrm0)))           # an axis in the plane
+            cl.sort(key=lambda i: items[i][5][ax])
+            active = []
+            for i in cl:
+                ga, na, pa, nra, da, loa, hia = items[i]
+                active = [j for j in active if items[j][6][ax] >= loa[ax]]
+                for j in active:
+                    gb, nb, pb, nrb, db, lob, hib = items[j]
+                    if (ga == gb and na == nb) or (min(i, j), max(i, j)) in seen:
+                        continue
+                    if np.any(hib < loa) or np.any(lob > hia):
+                        continue
+                    if float(nra @ nrb) < math.cos(math.radians(0.5)):
+                        continue
+                    if abs(float(nra @ (pb[0] - pa[0]))) > TOL:
+                        continue
+                    ov = overlap_area(pa, pb, nra)
+                    if ov > 2e-6:
+                        seen.add((min(i, j), max(i, j)))
+                        out.append((gb, nb, ga, na, ov, (pa.mean(0) + pb.mean(0)) / 2, nrb,
+                                    overlap_area(pb, pb, nrb), overlap_area(pa, pa, nra)))
+                active.append(i)
     return out
 
 
