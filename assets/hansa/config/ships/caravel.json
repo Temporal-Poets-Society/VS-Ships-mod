@@ -3,16 +3,16 @@
  "name": "Caravel",
  "voxelSize": 0.25,
  "gridOrigin": [
-  -14.0,
+  -13.5,
   -2.875,
   -3.5
  ],
  "gridSize": [
-  98,
+  96,
   33,
   28
  ],
- "solid": "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",
+ "solid": "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",
  "shapes": {
   "skin": "hansa:config/shipmeshes/caravel.json"
  },
@@ -25,7 +25,7 @@
  "hullHalfWidthAtDeck": 3.27,
  "bounds": [
   [
-   -14.0,
+   -13.5,
    -2.875,
    -3.5
   ],
@@ -7653,29 +7653,29 @@
    "pos": [
     -10.5,
     4.125,
-    -1.87
+    -1.88
    ],
    "yaw": 90.0,
    "sel": [
     -11.05,
     4.125,
-    -2.22,
+    -2.23,
     -9.95,
     4.975,
-    -1.07
+    -1.08
    ],
    "box": [
     -10.85,
     4.125,
-    -2.22,
+    -2.23,
     -10.15,
     4.925,
-    -1.22
+    -1.23
    ],
    "muzzle": [
     -10.5,
     4.75,
-    -2.92
+    -2.93
    ],
    "out": [
     0.0,
@@ -7689,17 +7689,17 @@
    "trunnion": [
     -10.5,
     4.75,
-    -1.87
+    -1.88
    ],
    "pivot": [
     -10.5,
     4.125,
-    -2.37
+    -2.38
    ],
    "seat": [
     -10.5,
     4.125,
-    -0.72
+    -0.73
    ],
    "trainLimits": [
     -15.0,
@@ -7713,15 +7713,15 @@
    "elevationRate": 6.0,
    "port": [
     -10.925,
-    4.315,
+    4.165,
     -10.075,
     5.025
    ],
    "wall": [
-    2.3733,
-    2.2508,
-    2.4736,
-    2.391
+    2.3633,
+    2.2207,
+    2.4836,
+    2.4211
    ],
    "trainBound": [
     "the railing",
@@ -7735,7 +7735,7 @@
     7.0
    ],
    "lid": "gun-port-1-lid",
-   "housed": 0.7
+   "housed": 0.71
   },
   {
    "type": "gun",
@@ -7743,29 +7743,29 @@
    "pos": [
     -10.5,
     4.125,
-    1.87
+    1.88
    ],
    "yaw": 270.0,
    "sel": [
     -11.05,
     4.125,
-    1.07,
+    1.08,
     -9.95,
     4.975,
-    2.22
+    2.23
    ],
    "box": [
     -10.85,
     4.125,
-    1.22,
+    1.23,
     -10.15,
     4.925,
-    2.22
+    2.23
    ],
    "muzzle": [
     -10.5,
     4.75,
-    2.92
+    2.93
    ],
    "out": [
     0.0,
@@ -7779,17 +7779,17 @@
    "trunnion": [
     -10.5,
     4.75,
-    1.87
+    1.88
    ],
    "pivot": [
     -10.5,
     4.125,
-    2.37
+    2.38
    ],
    "seat": [
     -10.5,
     4.125,
-    0.72
+    0.73
    ],
    "trainLimits": [
     -15.0,
@@ -7803,15 +7803,15 @@
    "elevationRate": 6.0,
    "port": [
     -10.925,
-    4.315,
+    4.165,
     -10.075,
     5.025
    ],
    "wall": [
-    2.3733,
-    2.2508,
-    2.4736,
-    2.391
+    2.3633,
+    2.2207,
+    2.4836,
+    2.4211
    ],
    "trainBound": [
     "the railing",
@@ -7825,37 +7825,37 @@
     7.0
    ],
    "lid": "gun-starboard-1-lid",
-   "housed": 0.7
+   "housed": 0.71
   },
   {
    "type": "gun",
    "code": "gun-port-2",
    "pos": [
-    -6.5,
+    -8.5,
     4.125,
-    -2.12
+    -2.02
    ],
    "yaw": 90.0,
    "sel": [
-    -7.05,
+    -9.05,
     4.125,
-    -2.47,
-    -5.95,
+    -2.37,
+    -7.95,
     4.975,
-    -1.32
+    -1.22
    ],
    "box": [
-    -6.85,
+    -8.85,
     4.125,
-    -2.47,
-    -6.15,
+    -2.37,
+    -8.15,
     4.925,
-    -1.47
+    -1.37
    ],
    "muzzle": [
-    -6.5,
+    -8.5,
     4.75,
-    -3.17
+    -3.07
    ],
    "out": [
     0.0,
@@ -7867,19 +7867,19 @@
    "bore": 0.14,
    "shot": 4.1,
    "trunnion": [
-    -6.5,
+    -8.5,
     4.75,
-    -2.12
+    -2.02
    ],
    "pivot": [
-    -6.5,
+    -8.5,
     4.125,
-    -2.62
+    -2.52
    ],
    "seat": [
-    -6.5,
+    -8.5,
     4.125,
-    -0.97
+    -0.87
    ],
    "trainLimits": [
     -15.0,
@@ -7892,16 +7892,16 @@
    "trainRate": 10.0,
    "elevationRate": 6.0,
    "port": [
-    -6.925,
-    4.315,
-    -6.075,
+    -8.925,
+    4.165,
+    -8.075,
     5.025
    ],
    "wall": [
-    2.6054,
-    2.4315,
-    2.7055,
-    2.5716
+    2.4986,
+    2.3262,
+    2.6188,
+    2.5265
    ],
    "trainBound": [
     "the railing",
@@ -7921,31 +7921,31 @@
    "type": "gun",
    "code": "gun-starboard-2",
    "pos": [
-    -6.5,
+    -8.5,
     4.125,
-    2.12
+    2.02
    ],
    "yaw": 270.0,
    "sel": [
-    -7.05,
+    -9.05,
     4.125,
-    1.32,
-    -5.95,
+    1.22,
+    -7.95,
     4.975,
-    2.47
+    2.37
    ],
    "box": [
-    -6.85,
+    -8.85,
     4.125,
-    1.47,
-    -6.15,
+    1.37,
+    -8.15,
     4.925,
-    2.47
+    2.37
    ],
    "muzzle": [
-    -6.5,
+    -8.5,
     4.75,
-    3.17
+    3.07
    ],
    "out": [
     0.0,
@@ -7957,19 +7957,19 @@
    "bore": 0.14,
    "shot": 4.1,
    "trunnion": [
-    -6.5,
+    -8.5,
     4.75,
-    2.12
+    2.02
    ],
    "pivot": [
-    -6.5,
+    -8.5,
     4.125,
-    2.62
+    2.52
    ],
    "seat": [
-    -6.5,
+    -8.5,
     4.125,
-    0.97
+    0.87
    ],
    "trainLimits": [
     -15.0,
@@ -7982,16 +7982,16 @@
    "trainRate": 10.0,
    "elevationRate": 6.0,
    "port": [
-    -6.925,
-    4.315,
-    -6.075,
+    -8.925,
+    4.165,
+    -8.075,
     5.025
    ],
    "wall": [
-    2.6054,
-    2.4315,
-    2.7055,
-    2.5716
+    2.4986,
+    2.3262,
+    2.6188,
+    2.5265
    ],
    "trainBound": [
     "the railing",
@@ -8021,16 +8021,16 @@
     1.125,
     -3.3513,
     -0.09,
-    2.1175,
+    2.1975,
     -2.8513
    ],
    "box": [
     -0.91,
     1.125,
-    -3.1863,
+    -3.252,
     -0.09,
-    2.1175,
-    -3.0163
+    2.1975,
+    -2.9506
    ],
    "normal": "z"
   },
@@ -8048,16 +8048,16 @@
     1.125,
     2.8513,
     -0.09,
-    2.1175,
+    2.1975,
     3.3513
    ],
    "box": [
     -0.91,
     1.125,
-    3.0163,
+    2.9506,
     -0.09,
-    2.1175,
-    3.1863
+    2.1975,
+    3.252
    ],
    "normal": "z"
   },
@@ -8065,18 +8065,18 @@
    "type": "helm",
    "code": "helm",
    "pos": [
-    -10.4,
+    -7.52,
     4.125,
     0.0
    ],
    "yaw": 0.0,
    "sel": [
-    -9.72,
-    4.425,
-    -0.66,
-    -9.48,
-    5.725,
-    0.66
+    -6.97,
+    4.375,
+    -0.62,
+    -6.02,
+    5.625,
+    0.62
    ]
   },
   {
@@ -8089,22 +8089,22 @@
    ],
    "yaw": 0.0,
    "sel": [
-    0.25,
+    0.15,
     1.125,
-    -1.0,
-    0.75,
-    2.375,
-    1.0
+    -0.3,
+    1.65,
+    2.625,
+    0.3
    ],
    "spout": [
-    0.92,
-    1.805,
-    0.0
+    0.5,
+    1.7705,
+    0.4526
    ],
    "spoutDir": [
-    0.9659,
+    0.0,
     -0.2588,
-    0.0
+    0.9659
    ]
   },
   {
@@ -8117,12 +8117,12 @@
    ],
    "yaw": 0.0,
    "sel": [
-    6.0,
+    5.9,
     1.125,
-    -0.5,
-    7.0,
-    2.125,
-    0.5
+    -0.6,
+    7.1,
+    2.225,
+    0.6
    ]
   },
   {
@@ -8224,7 +8224,7 @@
   {
    "code": "hold",
    "min": [
-    -14.0,
+    -13.5,
     -1.875,
     -3.5
    ],
@@ -8238,7 +8238,7 @@
   {
    "code": "steerage",
    "min": [
-    -14.0,
+    -13.5,
     1.125,
     -3.5
    ],
@@ -8247,7 +8247,8 @@
     3.525,
     3.5
    ],
-   "enclosed": false
+   "enclosed": true,
+   "pieces": true
   }
  ],
  "lights": [],
@@ -8301,10 +8302,10 @@
    "box": [
     -11.075,
     4.125,
-    -2.22,
+    -2.23,
     -9.925,
     5.125,
-    -0.42
+    -0.43
    ]
   },
   {
@@ -8312,32 +8313,32 @@
    "box": [
     -11.075,
     4.125,
-    0.42,
+    0.43,
     -9.925,
     5.125,
-    2.22
+    2.23
    ]
   },
   {
    "what": "gun",
    "box": [
-    -7.075,
+    -9.075,
     4.125,
-    -2.47,
-    -5.925,
+    -2.37,
+    -7.925,
     5.125,
-    -0.67
+    -0.57
    ]
   },
   {
    "what": "gun",
    "box": [
-    -7.075,
+    -9.075,
     4.125,
-    0.67,
-    -5.925,
+    0.57,
+    -7.925,
     5.125,
-    2.47
+    2.37
    ]
   },
   {
@@ -8376,10 +8377,10 @@
   {
    "what": "helm",
    "box": [
-    -10.75,
+    -7.92,
     4.125,
     -0.7,
-    -9.45,
+    -6.62,
     6.125,
     0.7
    ]
@@ -9204,6 +9205,18 @@
    ]
   },
   {
+   "id": "quarterdeck:-10:-1",
+   "deck": "quarterdeck",
+   "box": [
+    -10.0,
+    3.925,
+    -0.5,
+    -9.0,
+    4.125,
+    0.5
+   ]
+  },
+  {
    "id": "quarterdeck:-10:-2",
    "deck": "quarterdeck",
    "box": [
@@ -9211,30 +9224,6 @@
     3.925,
     -1.5,
     -9.0,
-    4.125,
-    -0.5
-   ]
-  },
-  {
-   "id": "quarterdeck:-9:0",
-   "deck": "quarterdeck",
-   "box": [
-    -9.0,
-    3.925,
-    0.5,
-    -8.0,
-    4.125,
-    1.5
-   ]
-  },
-  {
-   "id": "quarterdeck:-9:-2",
-   "deck": "quarterdeck",
-   "box": [
-    -9.0,
-    3.925,
-    -1.5,
-    -8.0,
     4.125,
     -0.5
    ]
@@ -9273,6 +9262,54 @@
     -7.0,
     4.125,
     -0.5
+   ]
+  },
+  {
+   "id": "quarterdeck:-7:1",
+   "deck": "quarterdeck",
+   "box": [
+    -7.0,
+    3.925,
+    1.5,
+    -6.0,
+    4.125,
+    2.5
+   ]
+  },
+  {
+   "id": "quarterdeck:-7:0",
+   "deck": "quarterdeck",
+   "box": [
+    -7.0,
+    3.925,
+    0.5,
+    -6.0,
+    4.125,
+    1.5
+   ]
+  },
+  {
+   "id": "quarterdeck:-7:-2",
+   "deck": "quarterdeck",
+   "box": [
+    -7.0,
+    3.925,
+    -1.5,
+    -6.0,
+    4.125,
+    -0.5
+   ]
+  },
+  {
+   "id": "quarterdeck:-7:-3",
+   "deck": "quarterdeck",
+   "box": [
+    -7.0,
+    3.925,
+    -2.5,
+    -6.0,
+    4.125,
+    -1.5
    ]
   },
   {
@@ -9385,6 +9422,7 @@
    "cells": [
     "quarterdeck:-12:-1",
     "quarterdeck:-12:-2",
+    "quarterdeck:-10:-1",
     "quarterdeck:-10:-2"
    ]
   },
@@ -9394,29 +9432,28 @@
    "cells": [
     "quarterdeck:-12:0",
     "quarterdeck:-12:-1",
-    "quarterdeck:-10:0"
+    "quarterdeck:-10:0",
+    "quarterdeck:-10:-1"
    ]
   },
   {
    "id": "gun-port-2",
    "gun": "gun-port-2",
    "cells": [
+    "quarterdeck:-10:-1",
+    "quarterdeck:-10:-2",
     "quarterdeck:-8:-1",
-    "quarterdeck:-8:-2",
-    "quarterdeck:-6:-1",
-    "quarterdeck:-6:-2",
-    "quarterdeck:-6:-3"
+    "quarterdeck:-8:-2"
    ]
   },
   {
    "id": "gun-starboard-2",
    "gun": "gun-starboard-2",
    "cells": [
+    "quarterdeck:-10:0",
+    "quarterdeck:-10:-1",
     "quarterdeck:-8:0",
-    "quarterdeck:-8:-1",
-    "quarterdeck:-6:1",
-    "quarterdeck:-6:0",
-    "quarterdeck:-6:-1"
+    "quarterdeck:-8:-1"
    ]
   }
  ],
@@ -9488,7 +9525,7 @@
    "code": "gate-port",
    "axisPoint": [
     -0.91,
-    1.6213,
+    1.6612,
     -3.1013
    ],
    "axisDir": [
@@ -9503,7 +9540,7 @@
    "code": "gate-starboard",
    "axisPoint": [
     -0.91,
-    1.6213,
+    1.6612,
     3.1013
    ],
    "axisDir": [
@@ -9609,8 +9646,8 @@
   {
    "code": "wheel",
    "axisPoint": [
-    -9.6,
-    5.075,
+    -6.77,
+    4.975,
     0.0
    ],
    "axisDir": [
@@ -9622,48 +9659,48 @@
    "angle": 240.0
   },
   {
-   "code": "tillerrope-port",
-   "kind": "follow",
-   "follow": "tiller",
-   "anchor": [
-    -9.2,
-    1.575,
-    -2.3588
-   ],
-   "tip": [
-    -9.3,
-    1.625,
-    0.0
-   ],
-   "interior": true
-  },
-  {
    "code": "tillerrope-starboard",
    "kind": "follow",
    "follow": "tiller",
    "anchor": [
-    -9.2,
-    1.575,
-    2.3588
+    -11.15,
+    3.475,
+    1.7773
    ],
    "tip": [
-    -9.3,
-    1.625,
-    0.0
+    -11.0,
+    3.375,
+    -0.0
+   ],
+   "interior": true
+  },
+  {
+   "code": "tillerrope-port",
+   "kind": "follow",
+   "follow": "tiller",
+   "anchor": [
+    -11.15,
+    3.475,
+    -1.7773
+   ],
+   "tip": [
+    -11.0,
+    3.375,
+    -0.0
    ],
    "interior": true
   },
   {
    "code": "pump-brake",
    "axisPoint": [
-    0.5,
-    2.175,
+    0.7,
+    2.425,
     0.0
    ],
    "axisDir": [
-    1.0,
     0.0,
-    0.0
+    0.0,
+    1.0
    ],
    "source": "pump:pump",
    "angle": 12.0
@@ -9673,8 +9710,8 @@
    "kind": "slide",
    "axisPoint": [
     0.5,
-    2.165,
-    0.12
+    2.4909,
+    0.0
    ],
    "axisDir": [
     0.0,
@@ -9682,7 +9719,7 @@
     0.0
    ],
    "source": "pump:pump",
-   "distance": -0.04
+   "distance": -0.0416
   },
   {
    "code": "anchor",
@@ -9705,14 +9742,14 @@
    "kind": "follow",
    "follow": "anchor",
    "anchor": [
-    8.7,
-    1.475,
-    -1.446
+    8.2,
+    1.425,
+    -1.7497
    ],
    "tip": [
-    8.25,
-    2.5194,
-    -2.603
+    6.5,
+    1.4686,
+    -3.1172
    ]
   },
   {
@@ -10365,7 +10402,7 @@
    "axisPoint": [
     -10.5,
     4.125,
-    -2.37
+    -2.38
    ],
    "axisDir": [
     0.0,
@@ -10381,14 +10418,14 @@
    "axisPoint": [
     -10.5,
     4.125,
-    -1.87
+    -1.88
    ],
    "axisDir": [
     -0.0,
     -0.0,
     1.0
    ],
-   "distance": 0.7,
+   "distance": 0.71,
    "source": "fire:gun-port-1",
    "parent": "gun-port-1-train"
   },
@@ -10398,7 +10435,7 @@
    "axisPoint": [
     -10.5,
     4.75,
-    -1.87
+    -1.88
    ],
    "axisDir": [
     1.0,
@@ -10415,7 +10452,7 @@
    "axisPoint": [
     -10.5,
     4.275,
-    -2.05
+    -2.06
    ],
    "axisDir": [
     1.0,
@@ -10423,7 +10460,7 @@
     0.0
    ],
    "source": "fire:gun-port-1",
-   "angle": 267.38,
+   "angle": 271.2,
    "parent": "gun-port-1"
   },
   {
@@ -10432,7 +10469,7 @@
    "axisPoint": [
     -10.5,
     4.275,
-    -1.51
+    -1.52
    ],
    "axisDir": [
     1.0,
@@ -10440,7 +10477,7 @@
     0.0
    ],
    "source": "fire:gun-port-1",
-   "angle": 267.38,
+   "angle": 271.2,
    "parent": "gun-port-1"
   },
   {
@@ -10455,7 +10492,7 @@
    "tip": [
     -10.71,
     4.455,
-    -1.3
+    -1.31
    ]
   },
   {
@@ -10465,12 +10502,12 @@
    "anchor": [
     -10.71,
     4.455,
-    -1.3
+    -1.31
    ],
    "tip": [
     -10.54,
     4.75,
-    -1.3032
+    -1.3132
    ],
    "anchorFollow": "gun-port-1"
   },
@@ -10486,7 +10523,7 @@
    "tip": [
     -10.29,
     4.455,
-    -1.3
+    -1.31
    ]
   },
   {
@@ -10496,12 +10533,12 @@
    "anchor": [
     -10.29,
     4.455,
-    -1.3
+    -1.31
    ],
    "tip": [
     -10.46,
     4.75,
-    -1.3032
+    -1.3132
    ],
    "anchorFollow": "gun-port-1"
   },
@@ -10509,8 +10546,8 @@
    "code": "gun-port-1-lid",
    "axisPoint": [
     -10.909,
-    4.6665,
-    -2.4249
+    4.5915,
+    -2.4319
    ],
    "axisDir": [
     0.0,
@@ -10526,7 +10563,7 @@
    "axisPoint": [
     -10.5,
     4.125,
-    2.37
+    2.38
    ],
    "axisDir": [
     0.0,
@@ -10542,14 +10579,14 @@
    "axisPoint": [
     -10.5,
     4.125,
-    1.87
+    1.88
    ],
    "axisDir": [
     -0.0,
     -0.0,
     -1.0
    ],
-   "distance": 0.7,
+   "distance": 0.71,
    "source": "fire:gun-starboard-1",
    "parent": "gun-starboard-1-train"
   },
@@ -10559,7 +10596,7 @@
    "axisPoint": [
     -10.5,
     4.75,
-    1.87
+    1.88
    ],
    "axisDir": [
     -1.0,
@@ -10576,7 +10613,7 @@
    "axisPoint": [
     -10.5,
     4.275,
-    2.05
+    2.06
    ],
    "axisDir": [
     -1.0,
@@ -10584,7 +10621,7 @@
     0.0
    ],
    "source": "fire:gun-starboard-1",
-   "angle": 267.38,
+   "angle": 271.2,
    "parent": "gun-starboard-1"
   },
   {
@@ -10593,7 +10630,7 @@
    "axisPoint": [
     -10.5,
     4.275,
-    1.51
+    1.52
    ],
    "axisDir": [
     -1.0,
@@ -10601,7 +10638,7 @@
     0.0
    ],
    "source": "fire:gun-starboard-1",
-   "angle": 267.38,
+   "angle": 271.2,
    "parent": "gun-starboard-1"
   },
   {
@@ -10616,7 +10653,7 @@
    "tip": [
     -10.71,
     4.455,
-    1.3
+    1.31
    ]
   },
   {
@@ -10626,12 +10663,12 @@
    "anchor": [
     -10.71,
     4.455,
-    1.3
+    1.31
    ],
    "tip": [
     -10.54,
     4.75,
-    1.3032
+    1.3132
    ],
    "anchorFollow": "gun-starboard-1"
   },
@@ -10647,7 +10684,7 @@
    "tip": [
     -10.29,
     4.455,
-    1.3
+    1.31
    ]
   },
   {
@@ -10657,12 +10694,12 @@
    "anchor": [
     -10.29,
     4.455,
-    1.3
+    1.31
    ],
    "tip": [
     -10.46,
     4.75,
-    1.3032
+    1.3132
    ],
    "anchorFollow": "gun-starboard-1"
   },
@@ -10670,8 +10707,8 @@
    "code": "gun-starboard-1-lid",
    "axisPoint": [
     -10.909,
-    4.6665,
-    2.4249
+    4.5915,
+    2.4319
    ],
    "axisDir": [
     0.0,
@@ -10685,9 +10722,9 @@
    "code": "gun-port-2-train",
    "kind": "rotate",
    "axisPoint": [
-    -6.5,
+    -8.5,
     4.125,
-    -2.62
+    -2.52
    ],
    "axisDir": [
     0.0,
@@ -10701,9 +10738,9 @@
    "code": "gun-port-2",
    "kind": "slide",
    "axisPoint": [
-    -6.5,
+    -8.5,
     4.125,
-    -2.12
+    -2.02
    ],
    "axisDir": [
     -0.0,
@@ -10718,9 +10755,9 @@
    "code": "gun-port-2-barrel",
    "kind": "rotate",
    "axisPoint": [
-    -6.5,
+    -8.5,
     4.75,
-    -2.12
+    -2.02
    ],
    "axisDir": [
     1.0,
@@ -10735,9 +10772,9 @@
    "code": "gun-port-2-trucks-fore",
    "kind": "rotate",
    "axisPoint": [
-    -6.5,
+    -8.5,
     4.275,
-    -2.3
+    -2.2
    ],
    "axisDir": [
     1.0,
@@ -10752,9 +10789,9 @@
    "code": "gun-port-2-trucks-aft",
    "kind": "rotate",
    "axisPoint": [
-    -6.5,
+    -8.5,
     4.275,
-    -1.76
+    -1.66
    ],
    "axisDir": [
     1.0,
@@ -10770,14 +10807,14 @@
    "kind": "follow",
    "follow": "gun-port-2",
    "anchor": [
-    -7.0,
+    -9.0,
     4.675,
-    -2.4288
+    -2.3355
    ],
    "tip": [
-    -6.71,
+    -8.71,
     4.455,
-    -1.55
+    -1.45
    ]
   },
   {
@@ -10785,14 +10822,14 @@
    "kind": "follow",
    "follow": "gun-port-2-barrel",
    "anchor": [
-    -6.71,
+    -8.71,
     4.455,
-    -1.55
+    -1.45
    ],
    "tip": [
-    -6.54,
+    -8.54,
     4.75,
-    -1.5532
+    -1.4532
    ],
    "anchorFollow": "gun-port-2"
   },
@@ -10801,14 +10838,14 @@
    "kind": "follow",
    "follow": "gun-port-2",
    "anchor": [
-    -6.0,
+    -8.0,
     4.675,
-    -2.4628
+    -2.3864
    ],
    "tip": [
-    -6.29,
+    -8.29,
     4.455,
-    -1.55
+    -1.45
    ]
   },
   {
@@ -10816,28 +10853,28 @@
    "kind": "follow",
    "follow": "gun-port-2-barrel",
    "anchor": [
-    -6.29,
+    -8.29,
     4.455,
-    -1.55
+    -1.45
    ],
    "tip": [
-    -6.46,
+    -8.46,
     4.75,
-    -1.5532
+    -1.4532
    ],
    "anchorFollow": "gun-port-2"
   },
   {
    "code": "gun-port-2-lid",
    "axisPoint": [
-    -6.909,
-    4.6665,
-    -2.6461
+    -8.909,
+    4.5915,
+    -2.562
    ],
    "axisDir": [
     0.0,
-    0.98899,
-    0.14795
+    0.99217,
+    0.12491
    ],
    "source": "open:gun-port-2",
    "angle": 110.0
@@ -10846,9 +10883,9 @@
    "code": "gun-starboard-2-train",
    "kind": "rotate",
    "axisPoint": [
-    -6.5,
+    -8.5,
     4.125,
-    2.62
+    2.52
    ],
    "axisDir": [
     0.0,
@@ -10862,9 +10899,9 @@
    "code": "gun-starboard-2",
    "kind": "slide",
    "axisPoint": [
-    -6.5,
+    -8.5,
     4.125,
-    2.12
+    2.02
    ],
    "axisDir": [
     -0.0,
@@ -10879,9 +10916,9 @@
    "code": "gun-starboard-2-barrel",
    "kind": "rotate",
    "axisPoint": [
-    -6.5,
+    -8.5,
     4.75,
-    2.12
+    2.02
    ],
    "axisDir": [
     -1.0,
@@ -10896,9 +10933,9 @@
    "code": "gun-starboard-2-trucks-fore",
    "kind": "rotate",
    "axisPoint": [
-    -6.5,
+    -8.5,
     4.275,
-    2.3
+    2.2
    ],
    "axisDir": [
     -1.0,
@@ -10913,9 +10950,9 @@
    "code": "gun-starboard-2-trucks-aft",
    "kind": "rotate",
    "axisPoint": [
-    -6.5,
+    -8.5,
     4.275,
-    1.76
+    1.66
    ],
    "axisDir": [
     -1.0,
@@ -10931,14 +10968,14 @@
    "kind": "follow",
    "follow": "gun-starboard-2",
    "anchor": [
-    -7.0,
+    -9.0,
     4.675,
-    2.4288
+    2.3355
    ],
    "tip": [
-    -6.71,
+    -8.71,
     4.455,
-    1.55
+    1.45
    ]
   },
   {
@@ -10946,14 +10983,14 @@
    "kind": "follow",
    "follow": "gun-starboard-2-barrel",
    "anchor": [
-    -6.71,
+    -8.71,
     4.455,
-    1.55
+    1.45
    ],
    "tip": [
-    -6.54,
+    -8.54,
     4.75,
-    1.5532
+    1.4532
    ],
    "anchorFollow": "gun-starboard-2"
   },
@@ -10962,14 +10999,14 @@
    "kind": "follow",
    "follow": "gun-starboard-2",
    "anchor": [
-    -6.0,
+    -8.0,
     4.675,
-    2.4628
+    2.3864
    ],
    "tip": [
-    -6.29,
+    -8.29,
     4.455,
-    1.55
+    1.45
    ]
   },
   {
@@ -10977,28 +11014,28 @@
    "kind": "follow",
    "follow": "gun-starboard-2-barrel",
    "anchor": [
-    -6.29,
+    -8.29,
     4.455,
-    1.55
+    1.45
    ],
    "tip": [
-    -6.46,
+    -8.46,
     4.75,
-    1.5532
+    1.4532
    ],
    "anchorFollow": "gun-starboard-2"
   },
   {
    "code": "gun-starboard-2-lid",
    "axisPoint": [
-    -6.909,
-    4.6665,
-    2.6461
+    -8.909,
+    4.5915,
+    2.562
    ],
    "axisDir": [
     0.0,
-    0.98899,
-    -0.14795
+    0.99217,
+    -0.12491
    ],
    "source": "open:gun-starboard-2",
    "angle": -110.0
@@ -11113,23 +11150,10 @@
  ],
  "hooks": [
   {
-   "code": "lantern-stern",
-   "pos": [
-    -13.8538,
-    5.775,
-    0.0
-   ],
-   "hang": "up",
-   "kinds": [
-    "light"
-   ],
-   "shown": true
-  },
-  {
    "code": "lantern-mainmast",
    "pos": [
-    -1.12,
-    3.525,
+    -1.1117,
+    3.685,
     0.0
    ],
    "hang": "down",
@@ -11140,26 +11164,30 @@
   {
    "code": "lantern-mizzenmast",
    "pos": [
-    -9.05,
-    6.525,
+    -9.0303,
+    6.685,
     0.0
    ],
    "hang": "down",
    "kinds": [
     "light"
    ]
+  },
+  {
+   "code": "lantern-stern",
+   "pos": [
+    -13.8238,
+    5.72,
+    0.0
+   ],
+   "hang": "up",
+   "kinds": [
+    "light"
+   ],
+   "shown": true
   }
  ],
  "startPieces": [
-  {
-   "block": "game:lantern-small-up",
-   "attributes": {
-    "material": "tinbronze",
-    "lining": "plain",
-    "glass": "quartz"
-   },
-   "mount": "h:lantern-stern"
-  },
   {
    "block": "game:lantern-small-up",
    "attributes": {
@@ -11177,6 +11205,15 @@
     "glass": "quartz"
    },
    "mount": "h:lantern-mizzenmast"
+  },
+  {
+   "block": "game:lantern-small-up",
+   "attributes": {
+    "material": "tinbronze",
+    "lining": "plain",
+    "glass": "quartz"
+   },
+   "mount": "h:lantern-stern"
   }
  ],
  "modularPieces": [
@@ -11277,36 +11314,36 @@
     0.04
    ],
    [
-    -9.55,
+    -9.75,
     5.105,
-    2.3582,
+    2.3472,
     -8.5,
     18.025,
     0.18,
     0.04
    ],
    [
-    -9.55,
+    -9.75,
     5.105,
-    -2.3582,
+    -2.3472,
     -8.5,
     18.025,
     -0.18,
     0.04
    ],
    [
-    -10.45,
+    -10.25,
     5.105,
-    2.307,
+    2.3188,
     -8.5,
     18.025,
     0.18,
     0.04
    ],
    [
-    -10.45,
+    -10.25,
     5.105,
-    -2.307,
+    -2.3188,
     -8.5,
     18.025,
     -0.18,

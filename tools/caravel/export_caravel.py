@@ -153,6 +153,22 @@ def mesh_of(shape, defl=8.0):
     return m
 
 
+# (outside her: from her lines, fast; the envelope's own inside test took over 20 minutes for every hull face)
+import sys as _sys
+_sys.path.insert(0, os.path.join(ROOT, "tools", "caravel"))
+import numpy as _np
+import caravel_lines as _CL
+_SHEER = L["sheer"]
+
+
+def outside_hull(x, y, z):
+    """Is the point (model mm) outside her hull's envelope: beyond her half-breadth there, below her underside or above
+    her sheer?"""
+    if z < LV["underside"] or z > float(_np.interp(x, [q[0] for q in _SHEER], [q[1] for q in _SHEER])):
+        return True
+    zb = round(z / 1000.0, 2)                            # (waterlines are cached by height: 10 mm steps)
+    return abs(y) / 1000.0 > float(_CL.half_breadth(_np.array([x / 1000.0]), zb)[0])
+
 # ---------------------------------------------------------------- structure: the sliced cells
 cells = json.load(open(os.path.join(MOD, "cells.json")))
 pieces = Part.read(os.path.join(MOD, "cells.brep")).Solids
@@ -285,7 +301,10 @@ for c in cells["cells"]:
                 hidden += 1
                 continue
             if body == "Shell":
-                outward = (n[1] * (1 if cy >= 0 else -1) > 0.25) or n[2] < -0.5 or (n[0] < -0.6 and cz > 2000)
+                # (22 October 2026, chalk note 40: "this block cannot be dyed") outside is where a point a little off the
+                # face is out of her envelope: the bow's inside faces, facing aft, were taken for the transom's outside
+                # (drawn tarred in the bottom's group, never painted)
+                outward = outside_hull(cx + n[0] * 30.0, cy + n[1] * 30.0, cz + n[2] * 30.0)
                 if outward and cz < LV["waterline"] + 50:
                     add_tri("bottom", T_HULL, tri, uvs, n)
                     add_tri("bottomclad", T_COPPER, tri, uvs, n)
@@ -346,7 +365,20 @@ n_int = shell_first("interior", {T_HULL2})
 n_bot = len(groups.get("bottom", []))
 
 # ---------------------------------------------------------------- fittings drawn with the hull
-def add_shape(group, tex, shape, defl=6.0, cell_uv=True):
+def uv_along(tri, n):
+    """16 texels a block, the texture's u (the grain) along the triangle's longest edge (a rail's, a cap's length:
+    round the bow too), v across it in its plane."""
+    e = max(((tri[a], tri[b]) for a, b in ((0, 1), (1, 2), (2, 0))),
+            key=lambda ab: sum((ab[1][k] - ab[0][k]) ** 2 for k in range(3)))
+    u = [e[1][k] - e[0][k] for k in range(3)]
+    ln = math.sqrt(sum(c * c for c in u)) or 1.0
+    u = [c / ln for c in u]
+    v = [n[1] * u[2] - n[2] * u[1], n[2] * u[0] - n[0] * u[2], n[0] * u[1] - n[1] * u[0]]
+    return [(sum(q[k] * u[k] for k in range(3)) / 1000.0 * 16 % 1024, sum(q[k] * v[k] for k in range(3)) / 1000.0 * 16 % 1024)
+            for q in tri]
+
+
+def add_shape(group, tex, shape, defl=6.0, cell_uv=True, along=False):
     m = mesh_of(shape, defl)
     pts_all, facets = m.Topology
     normals = [f.Normal for f in m.Facets]
@@ -356,11 +388,17 @@ def add_shape(group, tex, shape, defl=6.0, cell_uv=True):
         n = (nv.x, nv.y, nv.z)
         c = [sum(q[a] for q in tri) / 3 for a in range(3)]
         origin = (math.floor(c[0] / 1000) * 1000, (math.floor(c[1] / 1000 + 0.5) - 0.5) * 1000, math.floor(c[2] / 1000) * 1000)
-        add_tri(group, tex, tri, [uv_box(q, n, origin) for q in tri], n)
+        if along:
+            uvs = uv_along(tri, n)
+            # (one triangle's UVs from one offset: shift them near 0 so they stay small numbers)
+            u0, v0 = math.floor(min(q[0] for q in uvs) / 16) * 16, math.floor(min(q[1] for q in uvs) / 16) * 16
+            add_tri(group, tex, tri, [(q[0] - u0, q[1] - v0) for q in uvs], n)
+        else:
+            add_tri(group, tex, tri, [uv_box(q, n, origin) for q in tri], n)
 
 
 for name in ("Railings", "Gates"):          # (21 October 2026) the stairs are the game's ship's stairs (pieces) now
-    add_shape("exterior", BODY_TEX[name], OBJ[name].Shape)
+    add_shape("exterior", BODY_TEX[name], OBJ[name].Shape, along=True)
 for side, leaf in zip(("port", "starboard"), OBJ["GateLeaves"].Shape.SubShapes):
     add_shape("part:gate-" + side, T_DECK2, leaf, 4.0)
 fit = OBJ["Fittings"].Shape.SubShapes            # rudder, tiller, mizzen step
@@ -705,7 +743,8 @@ definition = {
     # the hold under the main deck's beams (enclosed); the steerage under the quarterdeck, open at its front
     "rooms": [{"code": "hold", "min": [r4(ox), r4(hold_y), r4(oz)], "max": [10.0, r4(deck_y - 0.6), r4(-oz)], "enclosed": True},
               {"code": "steerage", "min": [r4(ox), r4(deck_y), r4(oz)], "max": [L["quarterdeckFront"] / 1000, r4(qd_y - 0.6), r4(-oz)],
-               "enclosed": False}],
+               # (22 October 2026, chalk note 38) a room its front's partitions close: sealed only while pieces close it
+               "enclosed": True, "pieces": True}],
     "lights": [],
     # each gun's working room from its carriage's front to behind its gun captain (the mod keeps the fixtures' own)
     "keepClear": gun_keep,

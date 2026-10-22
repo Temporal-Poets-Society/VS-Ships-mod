@@ -174,7 +174,8 @@ decks = Part.makeCompound([hold, main, qd])
 beam_solids = []
 for x0, x1, z0, z1, half in L["beams"]:
     # (21 October 2026, chalk note 23) each beam runs into its rib and is cut by it: it ends on the rib's curved face
-    b_ = Part.makeBox(x1 - x0, 2 * half, z1 - z0, V(x0, -half, z0)).cut(backbone).cut(ribs).common(inner)
+    # (22 October 2026, chalk note 35) square-ended, seated in a notch cut in its rib (below, once all are made)
+    b_ = Part.makeBox(x1 - x0, 2 * half, z1 - z0, V(x0, -half, z0)).cut(backbone).common(inner)
     if b_.BoundBox.intersect(hatch_cut.BoundBox):
         b_ = b_.cut(hatch_cut)                       # a beam across the hatch stops at its sides
     beam_solids += [so for so in b_.Solids if so.Volume > 5e6]
@@ -197,6 +198,10 @@ for b_ in beam_solids:
         _cut.append(b_)
 beam_solids = _cut + hatch_frame
 beams = Part.makeCompound(beam_solids)
+# the ribs' notches the beams' ends sit in (an L seat each: the beam's underside and its end on the rib)
+rib_solids = [r_.cut(beams) if r_.BoundBox.intersect(beams.BoundBox) else r_ for r_ in rib_solids]
+rib_solids = [so for r_ in rib_solids for so in r_.Solids if so.Volume > 1e6]
+ribs = Part.makeCompound(rib_solids)
 log("beams", len(beam_solids))
 log("decks", [round(s.Volume / 1e9, 2) for s in (hold, main, qd)])
 
@@ -299,7 +304,8 @@ def lateen(cell, cross_z, fore_len, aft_len, angle_deg, clew, r, y_yard=350.0, y
     SAIL_FEET.append((name, (tack.x, tack.z - 100), clew))
     peak = cross + V(-aft_len * math.cos(a), 0, aft_len * math.sin(a))
     # (21 October 2026, the user: the main yard "from outside looks maybe too long or thin") thicker toward its ends
-    yard = Part.makeCompound([spar(cross, tack, r, r * 0.55), spar(cross, peak, r, r * 0.45)])
+    # (22 October 2026, the user: "Mast yards now are too thick") between the two: the sling 240 / 170, tapering
+    yard = Part.makeCompound([spar(cross, tack, r, r * 0.5), spar(cross, peak, r, r * 0.4)])
     head = peak + V(300 * math.cos(a), 0, -300 * math.sin(a))
     if sail_to is not None:                          # the sail stops short of the peak: its after edge at X sail_to
         f = (sail_to - tack.x) / (peak.x - tack.x)
@@ -367,9 +373,9 @@ def lateen_points(key, r, name):
 # caravela latina, two masts, as the reference replica (Vera Cruz). Masts upright (the replica's rake forward).
 CUR_RIG = "latina"
 lat = []
-y, s_, top = lateen_points("main", 300, "latina main")
+y, s_, top = lateen_points("main", 240, "latina main")
 lat += [mast(M["main"]["cell"], M["main"]["heel"], top, 300, name="main"), y, s_]
-y, s_, top = lateen_points("mizzen", 200, "latina mizzen")
+y, s_, top = lateen_points("mizzen", 170, "latina mizzen")
 lat += [mast(M["mizzen"]["cell"], M["mizzen"]["heel"], top, 220, name="mizzen"), y, s_, bumpkin]
 rig_latina = Part.makeCompound(lat)
 
@@ -398,7 +404,9 @@ rig_redonda = Part.makeCompound(red)
 
 # ------------------------------------------------------------------------------------------------ fittings and guns
 post = L["post"]
-RUD_GAP, RUD_FOOT, RUD_HEAD_W, RUD_TOP = 30.0, 1500.0, 350.0, D + 500.0
+# (22 October 2026, chalk note 29: "lift rudders handle (and connected things) to ceiling and shorten the handle a bit")
+# the rudder's head up to just under the quarterdeck's beams (planking 200, beams 400, 150 clear), the tiller there
+RUD_GAP, RUD_FOOT, RUD_HEAD_W, RUD_TOP = 30.0, 1500.0, 350.0, Q - DECK_T - 400.0 - 150.0
 z_b = post[0][1] + 25.0
 
 
@@ -410,7 +418,7 @@ rudder_face_pts = [V(rudder_lead(z_b), 0, z_b), V(rudder_lead(RUD_TOP), 0, RUD_T
                    V(rudder_lead(RUD_TOP) - RUD_HEAD_W, 0, RUD_TOP), V(rudder_lead(z_b) - RUD_FOOT, 0, z_b)]
 rudder = Part.Face(Part.makePolygon(rudder_face_pts + [rudder_face_pts[0]])).extrude(V(0, 200, 0))
 rudder.translate(V(0, -100, 0))
-TILLER_END = M["mizzen"]["cell"] * 1000 - 300           # stops 300 short of the mizzen's cell
+TILLER_END = -11000.0                                    # 2.4 long (it reached -9.3 before)
 tiller = spar(V(rudder_lead(RUD_TOP - 60) - 200, 0, RUD_TOP - 60), V(TILLER_END, 0, RUD_TOP), 90, 70)
 # the mizzen's step: a timber between the main deck's beams either side of its cell, under its heel
 mx = M["mizzen"]["cell"] * 1000
@@ -450,15 +458,17 @@ for b0, t0 in RAIL["posts"]:
     rail_parts.append(Part.makeBox(CAP_W, CAP_W, 60, V(t0[0] - CAP_W / 2, t0[1] - CAP_W / 2, t0[2])))
 top_pts = [V(q[0], q[1], q[2] - 50) for q in RAIL["top"]]
 bot_pts = [V(*q) for q in RAIL["bottom"]]
-rail_parts += [bar(top_pts[k], top_pts[k + 1], 140, 100) for k in range(len(top_pts) - 1)]
-rail_parts += [bar(bot_pts[k], bot_pts[k + 1], 100, 80) for k in range(len(bot_pts) - 1)]
-rail_parts += [spar(V(*b_), V(*t_), 30, 30) for b_, t_ in RAIL["balusters"]]
+# (22 October 2026, chalk note 32) the top rail 200 x 140; the bottom rail 120 x 80 lying on the deck; between the posts
+# one member the posts' size (railings() gives them as "balusters")
+rail_parts += [bar(top_pts[k], top_pts[k + 1], 200, 140) for k in range(len(top_pts) - 1)]
+rail_parts += [bar(bot_pts[k] + V(0, 0, 40), bot_pts[k + 1] + V(0, 0, 40), 120, 80) for k in range(len(bot_pts) - 1)]
+rail_parts += [post(b_, (t_[0], t_[1], t_[2] - 70), POST_W) for b_, t_ in RAIL["balusters"]]
 
 # (21 October 2026, chalk note 13: "no top closing rail on side boards. See how magelan did") a cap rail on the waist's
 # bulwark each side, from the quarterdeck's front to the bow: CAP_IN inboard over the planking and the ribs' heads and
 # CAP_OUT proud of the planking outside, CAP_H thick on the sheer (the shell's own top: the sheer prism's points),
 # broken at the gates; over each gun port it is the port's head.
-CAP_OUT, CAP_IN, CAP_H = 40.0, 320.0, 80.0
+CAP_OUT, CAP_IN, CAP_H = 40.0, 400.0, 80.0          # (22 October 2026, note 37: the planking and half the rib)
 _qf = L["quarterdeckFront"]
 _sp = [(x, z) for k, (x, z) in enumerate(sheer) if k % 5 == 0 or _qf - 200 <= x <= _qf + 2700 or k == len(sheer) - 1]
 
@@ -473,9 +483,10 @@ def sheer_at(x):
 def cap_section(x, sgn):
     z = sheer_at(x)
     yo = half_breadth(x, z - 15) or 0.0
-    if yo < 600:
+    if yo < 60:
         return None
-    y_out, y_in = yo + CAP_OUT, yo - CAP_IN
+    # (22 October 2026, note 34: "does not meet at bow") on to the stem, the two meeting on the centreline
+    y_out, y_in = yo + CAP_OUT, max(yo - CAP_IN, 0.0)
     pts = [V(x, sgn * y_in, z), V(x, sgn * y_out, z), V(x, sgn * y_out, z + CAP_H), V(x, sgn * y_in, z + CAP_H)]
     return Part.makePolygon(pts + [pts[0]])
 
@@ -537,9 +548,16 @@ for sgn in (1, -1):                                   # port (+Y) first
     xm, zm = (GX0 + GX1) / 2, (GATE["sill"] + GATE["head"]) / 2
     yo, yi = half_breadth(xm, zm) or 3200, inner_half_breadth(xm, zm) or 3000
     ym = (yo + yi) / 2
-    w, h = GX1 - GX0 - 2 * LEAF_GAP, GATE["head"] - GATE["sill"] - LEAF_GAP
+    # (22 October 2026, chalk note 28: "gate should be the shape of full") the bulwark's whole thickness (the planking)
+    # and height up to the sheer, its own piece of the cap rail on top
+    LEAF_T = yo - yi
+    top_z = sheer_at(xm)
+    w, h = GX1 - GX0 - 2 * LEAF_GAP, top_z - GATE["sill"] - LEAF_GAP
     x0 = GX0 + LEAF_GAP
     leaf = [Part.makeBox(w, LEAF_T, h, V(x0, sgn * ym - LEAF_T / 2, GATE["sill"] + LEAF_GAP / 2))]
+    yo_t = half_breadth(xm, top_z - 15) or yo
+    cap_y0, cap_y1 = yo_t - CAP_IN, yo_t + CAP_OUT
+    leaf.append(Part.makeBox(w, cap_y1 - cap_y0, CAP_H, V(x0, cap_y0 if sgn > 0 else -cap_y1, GATE["sill"] + LEAF_GAP / 2 + h)))
     yin = sgn * (ym - LEAF_T / 2) - (40 if sgn > 0 else 0)          # the ledges on its inboard face, 40 thick
     for zl in (GATE["sill"] + 150, GATE["head"] - 230):
         leaf.append(Part.makeBox(w - 60, 40, 110, V(x0 + 30, yin, zl)))
@@ -550,7 +568,7 @@ for sgn in (1, -1):                                   # port (+Y) first
     leaf.append(br)
     gate_leaves.append(Part.makeCompound(leaf))
     GATE_LEAF.append({"side": "port" if sgn > 0 else "starboard", "x0": x0, "x1": x0 + w, "y": sgn * ym,
-                      "t": LEAF_T, "z0": GATE["sill"], "z1": GATE["sill"] + LEAF_GAP / 2 + h})
+                      "t": LEAF_T, "z0": GATE["sill"], "z1": GATE["sill"] + LEAF_GAP / 2 + h + CAP_H})
 for ropes in L["ropeLadders"]:
     pair = [[V(*q) for q in line] for line in ropes]
     for line in pair:
@@ -757,6 +775,7 @@ report = {
     "sailFeet": sail_clear,
     "guns": gun_fit,
     "gateLeaves": GATE_LEAF,
+    "tiller": {"end": [TILLER_END, 0.0, RUD_TOP], "head": [round(rudder_lead(RUD_TOP - 60) - 200), 0.0, RUD_TOP - 60]},
     "capRail": CAP_RECORD,
     "gunGeometry": GUN_RECORD,
     "rigs": {"latina": bbox(rig_latina), "redonda": bbox(rig_redonda)},

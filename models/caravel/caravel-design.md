@@ -374,9 +374,38 @@ the hatch over its opening, the gun places' cells); the server self-test ALL OK,
 
 Since 22 October 2026 the guns are the carrack's, fitted to hers, and housed behind lids (notes 14, 17; see Guns).
 
-Not yet: hull panels as slots
-(note 16), partitions across the ship under the quarterdeck's front (note 19: her borders face every way; to look at
-again in the game), rooms, a hearth.
+### The second trial (22 October 2026, chalk notes 26-40)
+
+- **Magelan's fittings** (`tools/caravel/caravel_fittings.py`: the carrack generator's geometry with her positions):
+  the wheel with its posts, drum and ropes; the capstan (whelps, drumhead, pawls, bars); the bronze pump with its
+  brake and spear; the mast lantern bands and arms; the stern lantern's crane on the taffrail.
+- **Wheel** (note 30): forward of the mizzen at x −6.77, where the user marked it; the helmsman aft of it. The
+  quarterdeck's guns moved from −7 to −9, beside the mizzen (the user: "place where cannons are and move them").
+- **Tiller** (note 29): up under the quarterdeck's beams (the rudder's head with it), 2.4 long; the wheel's ropes off
+  the drum down through the deck, out under the beams to blocks at the sides and aft to blocks abreast the tiller.
+- **Anchor** (note 26 and the user's follow-ups): the capstan abreast the cathead (cell 6), the cable from the hawse
+  (x 8.2) down to the deck and along it straight to the barrel's foot, on a tangent, wound up it the way it arrives,
+  its slack coiled on the deck. The cathead outside the hull, level and square to the side, its heel bolted through
+  the planking into rib 6 under the cap rail, an upright knee under it from the side.
+- **Railing** (note 32 and the user's follow-up): a post on each cell border and one the posts' size halfway between,
+  a 200 × 140 top rail, the bottom rail on the deck, no balusters; the stern's posts upright, not raked.
+- **Cap rail** (notes 34, 37): out to half the ribs' depth inboard (400 from the planking's outside), on to the stem
+  where the two sides meet; the wood's grain along it. The ribs' heads in the waist narrow from the main deck's top to
+  0.2 at the cap.
+- **Beams** (note 35): square-ended, seated 0.1 in a notch cut in their rib (an L seat), not cut to the rib's face.
+- **Gates** (note 28): the leaf the bulwark's full thickness and height, its own piece of cap rail on top.
+- **Dye** (note 40): a hull face is outside where a point just off it is out of her lines' envelope; the bow's inside
+  faces, facing aft, were taken for the transom's outside (tarred, in the bottom's group, not paintable).
+- **Yards**: 240 at the main's sling, 170 at the mizzen's (300/200 was "too thick").
+- **Steerage** (note 38): a room walled by pieces (`"enclosed": true, "pieces": true`), so partitions up to the
+  quarterdeck close it (with the partitions session's change to the mod); the hold hatch crosses its front line, so a
+  block-wide gap stays over it.
+
+Done in other sessions on their own branches (mod code): dropped items aboard (2), bubbles and particles inside the
+hull (4), the wind's no-go zone on the minimap (the image), the one-cell ship's stair and the stair stringers (36, 39),
+partitions up to the quarterdeck (38).
+
+Not yet: hull panels as slots (note 16 and the user's item 3), rooms, a hearth.
 
 ### Server self-test on the caravel (20 October 2026)
 

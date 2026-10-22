@@ -48,7 +48,8 @@ MASTS = {                       # cell, heel Z, used by which rig (the user, 17 
 RIBS = list(range(-12, 7, 2))           # every 2nd cell, 1 clear between (the user, 17 October); masts in clear cells.
                                         # None at 8: the forefoot there is too narrow for a frame (the user, 17 October)
 GUN_CELLS = [1, 3]                       # main deck, waist (the user, 18 October)
-QD_GUN_CELLS = [-11, -7]                 # quarterdeck; the railing is open over these cells
+QD_GUN_CELLS = [-11, -9]                 # quarterdeck; the railing is open over these cells (22 October 2026: from
+                                         # -7 to -9, beside the mizzen, the wheel taking -7: chalk note 30)
 # 11) the main hatch on the centreline cell, with a stair down to the hold (the user, 18 October)
 # (21 October 2026, chalk notes 18 and 22) The stairs are the game's walked ship's stairs (the user: "stair animation
 # and not ladder"): the steep one is 1 x 2 cells (foot F, head H, about 56 degrees, 3 blocks up), with a free landing
@@ -74,9 +75,13 @@ GATE_CELL = -1
 # cell 0 is the centreline cell); the exporter keeps the deck cells under them fixed, the layout step draws them
 FITTINGS = {
     "pump": {"deck": "main", "cell": [0, 0]},              # forward of the main mast; its brake athwartships
-    "capstan": {"deck": "main", "cell": [6, 0]},           # on the foredeck, the anchor's cable to it
-    "wheel": {"deck": "quarterdeck", "cell": [-10, 0]},    # just aft of the mizzen; the helmsman stands in cell -11
-    "anchor": {"side": "port", "x": 8.0},                  # hung at the port cathead, fished along the bow
+    "capstan": {"deck": "main", "cell": [6, 0]},           # on the foredeck abreast the cathead (the user, 22 October
+                                                           # 2026), the cable on the deck straight from the hawse
+    "hawse": {"x": 8.2},                                   # the hawse hole's middle, on the anchor's side
+    "wheel": {"deck": "quarterdeck", "cell": [-7, 0]},     # (22 October 2026, chalk note 30) forward of the mizzen,
+                                                           # where the user marked it (x -6.77): its rim there, the
+                                                           # helmsman aft of it in cell -8, the waist in sight
+    "anchor": {"side": "port", "x": 8.0},                  # hung at the port cathead (on the rib nearest this x)
     "sternLantern": {"x": None},                           # on the taffrail's middle (x from the transom)
 }
 PORT = {"sill": 0.25, "head": 1.0, "inset": 0.125}  # 750 x 750 in a cell's middle; sill and head above its deck
@@ -279,6 +284,7 @@ def inner_waterline(z, r=SKIN, nx=900):
 
 
 RIB_SIDED, RIB_MOULDED, FLOOR_TOP = 0.2, 0.4, 0.8   # ribs 0.2 along X, 0.4 deep; floors up to the hold floor
+RIB_HEAD = 0.2        # (22 October 2026) a rib's depth at its head under the cap rail
 RIB_GAP = 10.0   # mm inside the skin: the ruled inner loft joins waterline points by index, not by x, so sections taken
                  # at fixed x stray a few mm into the skin between waterlines
 
@@ -334,7 +340,14 @@ def rib_profiles(inner):
         d = np.gradient(c, axis=0)
         n = np.stack([d[:, 1], -d[:, 0]], axis=1)                    # toward the inside: in on the side, up at the bottom
         n /= np.linalg.norm(n, axis=1)[:, None]
-        i_ = untangle(c + n * m)
+        # (22 October 2026, chalk note 37: "Ribs tops (which are ending) we should cut to narrow down to fit the top
+        # board. Cut could start with deck top level.") in the waist and forward the band narrows from the main deck's
+        # top to the rail, to RIB_HEAD at the top, where the cap rail covers it
+        mm_ = np.full(len(c), m)
+        if r + 0.5 >= QD_FRONT and top > Z_DECK * MM + 100:
+            f = np.clip((c[:, 1] - Z_DECK * MM) / (top - Z_DECK * MM), 0.0, 1.0)
+            mm_ = m - (m - RIB_HEAD * MM) * f
+        i_ = untangle(c + n * mm_[:, None])
         # clip the inner edge below the top and to the port half, ending on the centreline
         pts = []
         for k in range(len(i_)):
@@ -450,6 +463,7 @@ def untangle(ring, span=40):
 
 # ---------------------------------------------------------------- deck beams: 0.2 along X, 0.4 deep, at every rib
 BEAM_SIDED, BEAM_MOULDED = 0.2, 0.4
+BEAM_SEAT = 0.1            # how far a beam's square end goes into its rib's notch
 
 
 def inner_at(x, z, inner):
@@ -484,9 +498,10 @@ def deck_beams(inner):
             if r not in RIB_INNER:
                 continue
             inn = RIB_INNER[r][::-1]                                   # z rising
-            # (21 October 2026, chalk note 23: holes between the beams and the ribs) into the rib past its inner face at
-            # every height; the build cuts the beam by the rib, so it ends on the rib's own curved face
-            half = max(float(np.interp(z, inn[:, 1], inn[:, 0])) for z in (z0, (z0 + z1) / 2, z1)) + 150.0
+            # (22 October 2026, chalk note 35: "do not overlap joints ... make L cut in rib and place beam with 90deg
+            # end ... I would make carpentry joint with L seat") the beam's end square, BEAM_SEAT into its rib past the
+            # rib's inner face at the beam's underside; the build cuts the rib's notch for it (an L seat), not the beam
+            half = float(np.interp(z0, inn[:, 1], inn[:, 0])) + BEAM_SEAT * MM
             if half > 300:
                 out.append([round(xs[0], 1), round(xs[-1], 1), round(z0, 1), round(z1, 1), round(half, 1)])
     return out
@@ -533,7 +548,9 @@ def railings():
     for x in reversed(side_xs):                       # port side, forward to aft
         path.append((pt(x, side_y(x, zb), zb), pt(x, side_y(x, zt), zt), "side"))
     for y in reversed(tr_ys[1:-1]):                   # transom, port to starboard
-        path.append((pt(tr_x(zb), y, zb), pt(tr_x(zt), y * 0.97, zt), "transom"))
+        # (22 October 2026, the user: "aft rails that now are sloped can be just vertical") upright, not raked with the
+        # transom
+        path.append((pt(tr_x(zb), y, zb), pt(tr_x(zb), y, zt), "transom"))
     for x in side_xs:                                 # starboard side, aft to forward
         path.append((pt(x, -side_y(x, zb), zb), pt(x, -side_y(x, zt), zt), "side"))
     for y in stbd_front:                              # front, starboard of the gap, from the side in to the gap
@@ -541,21 +558,18 @@ def railings():
 
     posts = [[b, t] for b, t, _ in path]
     top = [t for _, t, _ in path]
-    bottom = [(b[0], b[1], zb + 0.15) for b, _, _ in path]
+    # (22 October 2026, chalk note 32: "rails should be more robust with maybe just 1 thick vertical (same as main posts)
+    # member in between. Thicker top connecting rail and bottom flush to the deck") the bottom rail lies on the deck;
+    # one member the posts' size halfway along each span that isn't open for a gun, no balusters
+    bottom = [(b[0], b[1], zb) for b, _, _ in path]
     bal = []
     for (b0, t0, k0), (b1, t1, k1) in zip(path[:-1], path[1:]):
         xm = 0.5 * (b0[0] + b1[0])
         if k0 == k1 == "side" and any(c < xm < c + 1 for c in QD_GUN_CELLS):
             continue                                  # open for a gun
-        d = np.hypot(b1[0] - b0[0], b1[1] - b0[1])
-        n = int(d / BALUSTER_STEP)
-        for k in range(1, n):
-            f = k / n
-            xb_ = b0[0] + (b1[0] - b0[0]) * f
-            xt_ = t0[0] + (t1[0] - t0[0]) * f          # the transom rakes: the top's own X
-            yb_ = b0[1] + (b1[1] - b0[1]) * f
-            yt_ = t0[1] + (t1[1] - t0[1]) * f
-            bal.append([(xb_, yb_, zb + 0.23), (xt_, yt_, zt - 0.1)])
+        if np.hypot(b1[0] - b0[0], b1[1] - b0[1]) < 0.6:
+            continue
+        bal.append([tuple(0.5 * (np.asarray(b0) + np.asarray(b1))), tuple(0.5 * (np.asarray(t0) + np.asarray(t1)))])
     mm = lambda q: [round(c * MM, 1) for c in q]
     return {"posts": [[mm(b), mm(t)] for b, t in posts], "top": [mm(q) for q in top],
             "bottom": [mm(q) for q in bottom], "balusters": [[mm(b), mm(t)] for b, t in bal]}

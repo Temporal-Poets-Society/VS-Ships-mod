@@ -3,9 +3,9 @@
   "Shell": {
    "volume_m3": 64.6908,
    "centroid_mm": [
-    -2562,
+    -2561,
     0,
-    2793
+    2791
    ]
   },
   "Backbone": {
@@ -17,23 +17,23 @@
    ]
   },
   "Ribs": {
-   "volume_m3": 10.0029,
+   "volume_m3": 9.5689,
    "centroid_mm": [
-    -2730,
+    -2821,
     0,
-    2827
+    2741
    ]
   },
   "Beams": {
-   "volume_m3": 5.4266,
+   "volume_m3": 5.5679,
    "centroid_mm": [
-    -3912,
-    109,
-    4331
+    -3863,
+    106,
+    4346
    ]
   },
   "Decks": {
-   "volume_m3": 40.2534,
+   "volume_m3": 40.2537,
    "centroid_mm": [
     -2914,
     -15,
@@ -41,19 +41,19 @@
    ]
   },
   "Railings": {
-   "volume_m3": 2.2098,
+   "volume_m3": 3.0672,
    "centroid_mm": [
-    -5040,
-    17,
-    6759
+    -5408,
+    22,
+    6859
    ]
   },
   "Fittings": {
-   "volume_m3": 1.3029,
+   "volume_m3": 1.6082,
    "centroid_mm": [
-    -10631,
+    -11104,
     0,
-    2578
+    2953
    ]
   },
   "Stairs": {
@@ -73,25 +73,25 @@
    ]
   },
   "Rig_Latina": {
-   "volume_m3": 12.3828,
+   "volume_m3": 10.0879,
    "centroid_mm": [
-    -2543,
-    172,
-    14054
+    -2726,
+    131,
+    13313
    ]
   },
   "Rig_Redonda": {
-   "volume_m3": 11.1636,
+   "volume_m3": 11.1146,
    "centroid_mm": [
-    -596,
-    28,
-    11888
+    -558,
+    26,
+    11863
    ]
   },
   "Guns": {
    "volume_m3": 2.6,
    "centroid_mm": [
-    -3000,
+    -3500,
     0,
     5900
    ]
@@ -461,10 +461,6 @@
     4000
    ],
    [
-    -12309,
-    4500
-   ],
-   [
     9820,
     4500
    ],
@@ -475,6 +471,10 @@
    [
     9990,
     5500
+   ],
+   [
+    -12984,
+    6000
    ],
    [
     9960,
@@ -496,7 +496,7 @@
  "underside_mm": 125.0,
  "draft_mm": 2750.0,
  "ribs": {
-  "count": 10,
+  "count": 11,
   "valid": true,
   "skinOverlap_mm3": 0,
   "backboneOverlap_mm3": 0
@@ -646,14 +646,14 @@
    "side": "port",
    "axisZ": 7625.0,
    "halfBreadth": 2525,
-   "rear_mm": 1220,
-   "front_mm": 2220.0,
-   "trunnion_mm": 1870.0,
-   "pivot_mm": 2370.0,
-   "breech_mm": 1320.0,
-   "muzzle_mm": 2920.0,
-   "recoil_mm": 700.0,
-   "runOutMuzzleOutsideHull_mm": 395,
+   "rear_mm": 1230,
+   "front_mm": 2230.0,
+   "trunnion_mm": 1880.0,
+   "pivot_mm": 2380.0,
+   "breech_mm": 1330.0,
+   "muzzle_mm": 2930.0,
+   "recoil_mm": 710.0,
+   "runOutMuzzleOutsideHull_mm": 405,
    "train": [
     -15.0,
     15.0
@@ -673,14 +673,14 @@
    "side": "starboard",
    "axisZ": 7625.0,
    "halfBreadth": 2525,
-   "rear_mm": 1220,
-   "front_mm": 2220.0,
-   "trunnion_mm": 1870.0,
-   "pivot_mm": 2370.0,
-   "breech_mm": 1320.0,
-   "muzzle_mm": 2920.0,
-   "recoil_mm": 700.0,
-   "runOutMuzzleOutsideHull_mm": 395,
+   "rear_mm": 1230,
+   "front_mm": 2230.0,
+   "trunnion_mm": 1880.0,
+   "pivot_mm": 2380.0,
+   "breech_mm": 1330.0,
+   "muzzle_mm": 2930.0,
+   "recoil_mm": 710.0,
+   "runOutMuzzleOutsideHull_mm": 405,
    "train": [
     -15.0,
     15.0
@@ -695,19 +695,19 @@
    "clearAisle": "centre cell, Y -500..500"
   },
   {
-   "cell": -7,
+   "cell": -9,
    "deck": 7000.0,
    "side": "port",
    "axisZ": 7625.0,
-   "halfBreadth": 2758,
-   "rear_mm": 1470,
-   "front_mm": 2470.0,
-   "trunnion_mm": 2120.0,
-   "pivot_mm": 2620.0,
-   "breech_mm": 1570.0,
-   "muzzle_mm": 3170.0,
+   "halfBreadth": 2661,
+   "rear_mm": 1370,
+   "front_mm": 2370.0,
+   "trunnion_mm": 2020.0,
+   "pivot_mm": 2520.0,
+   "breech_mm": 1470.0,
+   "muzzle_mm": 3070.0,
    "recoil_mm": 750.0,
-   "runOutMuzzleOutsideHull_mm": 412,
+   "runOutMuzzleOutsideHull_mm": 409,
    "train": [
     -15.0,
     15.0
@@ -718,23 +718,23 @@
    ],
    "trainBound": "the side or the railing",
    "skinOverlap_mm3": 0,
-   "parkedCells": "x -7, |y| cells 1..2",
+   "parkedCells": "x -9, |y| cells 1..2",
    "clearAisle": "centre cell, Y -500..500"
   },
   {
-   "cell": -7,
+   "cell": -9,
    "deck": 7000.0,
    "side": "starboard",
    "axisZ": 7625.0,
-   "halfBreadth": 2758,
-   "rear_mm": 1470,
-   "front_mm": 2470.0,
-   "trunnion_mm": 2120.0,
-   "pivot_mm": 2620.0,
-   "breech_mm": 1570.0,
-   "muzzle_mm": 3170.0,
+   "halfBreadth": 2661,
+   "rear_mm": 1370,
+   "front_mm": 2370.0,
+   "trunnion_mm": 2020.0,
+   "pivot_mm": 2520.0,
+   "breech_mm": 1470.0,
+   "muzzle_mm": 3070.0,
    "recoil_mm": 750.0,
-   "runOutMuzzleOutsideHull_mm": 412,
+   "runOutMuzzleOutsideHull_mm": 409,
    "train": [
     -15.0,
     15.0
@@ -745,7 +745,7 @@
    ],
    "trainBound": "the side or the railing",
    "skinOverlap_mm3": 0,
-   "parkedCells": "x -7, |y| cells 1..2",
+   "parkedCells": "x -9, |y| cells 1..2",
    "clearAisle": "centre cell, Y -500..500"
   }
  ],
@@ -755,23 +755,35 @@
    "x0": -910.0,
    "x1": -90.0,
    "y": 3101.300500000001,
-   "t": 70.0,
+   "t": 201.3990000000017,
    "z0": 4000.0,
-   "z1": 4992.5
+   "z1": 5072.5
   },
   {
    "side": "starboard",
    "x0": -910.0,
    "x1": -90.0,
    "y": -3101.300500000001,
-   "t": 70.0,
+   "t": 201.3990000000017,
    "z0": 4000.0,
-   "z1": 4992.5
+   "z1": 5072.5
   }
  ],
+ "tiller": {
+  "end": [
+   -11000.0,
+   0.0,
+   6250.0
+  ],
+  "head": [
+   -13359,
+   0.0,
+   6190.0
+  ]
+ },
  "capRail": {
   "out": 40.0,
-  "in": 320.0,
+  "in": 400.0,
   "h": 80.0,
   "runs": [
    {
@@ -789,14 +801,14 @@
    {
     "side": "port",
     "x0": -75.0,
-    "x1": 9750.0,
-    "stations": 41
+    "x1": 10000.0,
+    "stations": 42
    },
    {
     "side": "starboard",
     "x0": -75.0,
-    "x1": 9750.0,
-    "stations": 41
+    "x1": 10000.0,
+    "stations": 42
    }
   ]
  },
@@ -827,9 +839,9 @@
    -15906,
    -300,
    1000,
-   8233,
-   650,
-   29280
+   8197,
+   590,
+   29257
   ],
   "redonda": [
    -15906,
@@ -837,8 +849,8 @@
    1000,
    16078,
    6700,
-   25736
+   25732
   ]
  },
- "buildSeconds": 1547.0
+ "buildSeconds": 1402.1
 }

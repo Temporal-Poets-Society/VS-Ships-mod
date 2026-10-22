@@ -31,6 +31,7 @@ sys.path.insert(0, HERE)
 from shipgen import Design, Material          # noqa: E402
 import caravel_gun as CG                       # noqa: E402
 import caravel_lines as CL                     # noqa: E402
+import caravel_fittings as CF                  # noqa: E402
 
 CODE = "caravel"
 
@@ -85,18 +86,21 @@ TEXTURES = {
     "planks": "game:block/wood/planks/oak1", "iron": "game:block/metal/tarnished/iron",
     "bronze": "game:block/metal/plate/tinbronze", "spar": "game:block/wood/debarked/pine",
     "tarred": "game:block/wood/planks/oak1++3~hansa:block/tar", "black": "game:block/black",
+    # (the carrack's fittings' materials: caravel_fittings)
+    "oak": "game:block/wood/planks/oak3", "gold": "game:block/metal/plate/gold",
 }
 
 
 def design():
     d = Design(CODE, -1, 1, -1, 1, -1, 1)          # (a token voxel box: only its mesh helpers are used)
     for code, tex in TEXTURES.items():
-        d.material(Material(code, [tex], (128, 128, 128), grain=code in ("timber", "spar")))
+        d.material(Material(code, [tex], (128, 128, 128), grain=code in ("timber", "spar", "oak")))
     return d
 
 
-def merge_quads(d, M):
-    """The design's quads into the mesh file's groups ([texture, x y z u v nx ny nz x 4]), its textures added."""
+def merge_quads(d, M, inside=None):
+    """The design's quads into the mesh file's groups ([texture, x y z u v nx ny nz x 4]), its textures added. A quad in
+    the group "auto" (the carrack's fittings' way) goes to "interior" where inside(its middle) says so, else "exterior"."""
     tex = M["textures"]
 
     def face_normal(p):
@@ -130,8 +134,12 @@ def merge_quads(d, M):
                 n = normals[i]
             row += [r4(p[0]), r4(p[1]), r4(p[2]), round(float(cuv[k][0]), 3), round(float(cuv[k][1]), 3),
                     round(float(n[0]), 3), round(float(n[1]), 3), round(float(n[2]), 3)]
-        M["groups"].setdefault(q["group"], []).append(row)
-        count[q["group"]] = count.get(q["group"], 0) + 1
+        grp = q["group"]
+        if grp == "auto":
+            mid = np.mean(np.asarray(q["pts"], float), axis=0)
+            grp = "interior" if inside is not None and inside(mid) else "exterior"
+        M["groups"].setdefault(grp, []).append(row)
+        count[grp] = count.get(grp, 0) + 1
     return count
 
 
@@ -403,7 +411,7 @@ def main():
         heel_deck = deck if code == "main" else qd
         rope(top, np.array([mx - mast["r0"] / 1000.0 - 0.08, heel_deck + 0.35, 0.18]), r=0.03)      # its fall to the deck
     # shrouds: the main's three a side to its cap rails aft of the gate, the mizzen's two to the quarterdeck's rail
-    for code, xs, top_drop in (("main", (-1.25, -2.05, -2.85), 1.2), ("mizzen", (-9.55, -10.45), 0.9)):
+    for code, xs, top_drop in (("main", (-1.25, -2.05, -2.85), 1.2), ("mizzen", (-9.75, -10.25), 0.9)):
         mast = masts[code]
         mx = mast["x"] / 1000.0
         head = mast["top"] / 1000.0 - top_drop
@@ -423,86 +431,52 @@ def main():
         if p["code"].startswith("yard-"):
             p["angle"] = 57.29578                     # (as before: the sheet's angle, radians to degrees)
 
-    # ---------------------------------------------------------------- the wheel on the quarterdeck (chalk note 21)
-    wx = FIT["wheel"]["cell"][0] + 0.4               # its rim's plane (21 October 2026, the user: "too close to mizzen mast", pointing at -9.47)
-    wc = np.array([wx, qd + 0.95, 0.0])
-    R = 0.5
-    rim = [wc + np.array([0.0, R * math.cos(2 * math.pi * k / 16), R * math.sin(2 * math.pi * k / 16)]) for k in range(17)]
-    for a, b in zip(rim[:-1], rim[1:]):
-        d.add_cylinder("part:wheel", "timber", a, b, 0.035, sides=6, caps=False)
-    for k in range(8):
-        dirv = np.array([0.0, math.cos(2 * math.pi * k / 8 + 0.2), math.sin(2 * math.pi * k / 8 + 0.2)])
-        d.add_cylinder("part:wheel", "timber", wc + dirv * 0.08, wc + dirv * (R + 0.14), 0.022, 0.018, sides=6)
-    d.add_cylinder("part:wheel", "timber", wc + np.array([-0.07, 0, 0]), wc + np.array([0.07, 0, 0]), 0.09, sides=10)
-    d.add_cylinder("exterior", "iron", wc, wc + np.array([0.28, 0, 0]), 0.03, sides=6)          # the axle to its post
-    d.add_box_mesh("exterior", "timber", (wx + 0.33, (qd + wc[1] + 0.12) / 2, 0.0), (0.16, wc[1] + 0.12 - qd, 0.22))
-    parts.append({"code": "wheel", "axisPoint": v4(wc), "axisDir": [1.0, 0.0, 0.0], "source": "rudder", "angle": 240.0})
-    fixtures.append({"type": "helm", "code": "helm", "pos": [r4(wx - 0.8), r4(qd), 0.0], "yaw": 0.0,
-                     "sel": [r4(wx - 0.12), r4(qd + 0.3), -0.66, r4(wx + 0.12), r4(qd + 1.6), 0.66]})
-    # the tiller's ropes from its end out to blocks at her sides (the wheel's drum works them through the deck)
-    tiller = next(p for p in parts if p["code"] == "tiller")
-    t_end = np.array([(LAY["masts"]["mizzen"]["cell"] * 1000 - 300) / 1000.0, F.y_of(LV["mainDeck"] + 500), 0.0])
-    for sgn, side in ((-1, "port"), (1, "starboard")):
-        side_pt = np.array([t_end[0] + 0.1, t_end[1] - 0.05, sgn * (hb_in(t_end[0] + 0.1, Zd + 0.5) - 0.12)])
-        follow(f"tillerrope-{side}", tiller["code"], side_pt, t_end, interior=True, r=0.025)
-        d.add_box_mesh("interior", "timber", side_pt + np.array([0, 0, -sgn * 0.04]), (0.14, 0.2, 0.08))
+    # ---------------------------------------------------------------- the wheel, its ropes to the tiller (notes 21, 29-31)
+    # (22 October 2026) Magelan's wheel (caravel_fittings.wheel, the carrack's), on the quarterdeck where the user marked
+    # it, forward of the mizzen; its ropes off the drum down through the deck, out under the beams to blocks at her sides,
+    # aft to blocks abreast the tiller's end (the tiller now under the quarterdeck's beams) and to it
+    wx = FIT["wheel"]["cell"][0] + 0.23
+    part, helm, xd, wc = CF.wheel(d, wx, qd)
+    parts.append(part)
+    fixtures.append(helm)
+    tl = REP.get("tiller", {}).get("end") or [-11000.0, 0.0, LV["quarterdeck"] - 750.0]   # (before a rebuild has it)
+    tip = F.g(*tl)
+    beam_y = qd - CL.DECK_T - 0.4 - 0.05
+    parts += CF.wheel_ropes(d, xd, wc, qd, CL.DECK_T, beam_y, lambda x: hb_in(x, beam_y + F.WL) - 0.5, float(tip[0]) - 0.15, tip)
 
-    # ---------------------------------------------------------------- the pump (the user: "no pump")
+    # ---------------------------------------------------------------- the pump (chalk note 27: Magelan's)
     px, pz = FIT["pump"]["cell"][0] + 0.5, -FIT["pump"]["cell"][1] * 1.0
-    d.add_cylinder("exterior", "timber", (px, hold, pz), (px, deck + 0.62, pz), 0.12, sides=10)
-    d.add_box_mesh("exterior", "planks", (px, deck + 0.74, pz), (0.3, 0.24, 0.3))
-    d.add_box_mesh("exterior", "planks", (px + 0.27, deck + 0.68, pz), (0.26, 0.1, 0.1))             # its spout, forward
-    for zo in (-0.07, 0.07):
-        d.add_box_mesh("exterior", "timber", (px, deck + 0.98, pz + zo), (0.06, 0.26, 0.03))       # the brake's fork
-    piv = np.array([px, deck + 1.05, pz])
-    d.add_beam_mesh("part:pump-brake", "timber", piv + np.array([0, 0, -0.95]), piv + np.array([0, 0, 0.95]), 0.06)
-    for sgn in (1, -1):
-        e = piv + np.array([0, 0, sgn * 0.95])
-        d.add_cylinder("part:pump-brake", "timber", e + np.array([-0.18, 0, 0]), e + np.array([0.18, 0, 0]), 0.025, sides=6)
-    d.add_cylinder("part:pump-spear", "iron", (px, deck + 0.7, pz + 0.12), (px, deck + 1.04, pz + 0.12), 0.018, sides=6)
-    parts += [{"code": "pump-brake", "axisPoint": v4(piv), "axisDir": [1.0, 0.0, 0.0], "source": "pump:pump", "angle": 12.0},
-              {"code": "pump-spear", "kind": "slide", "axisPoint": v4((px, deck + 1.04, pz + 0.12)), "axisDir": [0.0, 1.0, 0.0],
-               "source": "pump:pump", "distance": -0.04}]
-    fixtures.append({"type": "pump", "code": "pump", "pos": [r4(px), r4(deck), r4(pz)], "yaw": 0.0,
-                     "sel": [r4(px - 0.25), r4(deck), r4(pz - 1.0), r4(px + 0.25), r4(deck + 1.25), r4(pz + 1.0)],
-                     "spout": [r4(px + 0.42), r4(deck + 0.68), r4(pz)], "spoutDir": [0.9659, -0.2588, 0.0]})
+    pf, pparts = CF.pump(d, px, pz, deck, CL.DECK_T, hold, 1.0)
+    fixtures.append(pf)
+    parts += pparts
 
-    # ---------------------------------------------------------------- the capstan, the anchor and its cable (item 4)
+    # ---------------------------------------------------------------- the capstan, the anchor, its cable (notes 26)
     cx, cz = FIT["capstan"]["cell"][0] + 0.5, -FIT["capstan"]["cell"][1] * 1.0
-    d.add_cylinder("exterior", "timber", (cx, deck, cz), (cx, deck + 0.75, cz), 0.28, 0.24, sides=12)
-    d.add_cylinder("exterior", "timber", (cx, deck + 0.75, cz), (cx, deck + 0.95, cz), 0.42, sides=12)
-    for k in range(4):
-        a = math.pi / 4 * k
-        dv = np.array([math.cos(a), 0, math.sin(a)])
-        d.add_beam_mesh("exterior", "timber", np.array([cx, deck + 0.85, cz]) - dv * 0.38, np.array([cx, deck + 0.85, cz]) + dv * 0.38, 0.05)
-    fixtures.append({"type": "anchor", "code": "capstan", "pos": [r4(cx), r4(deck), r4(cz)], "yaw": 0.0,
-                     "sel": [r4(cx - 0.5), r4(deck), r4(cz - 0.5), r4(cx + 0.5), r4(deck + 1.0), r4(cz + 0.5)]})
-    ax = FIT["anchor"]["x"]
+    # (22 October 2026, the user: the cathead's "unrealistic attachment to the hull - it could be moved to closest rib and
+    # be attached to ribs top"; its knee "does not fully connect with hull and cantilever beam") the cathead on the head
+    # of the rib nearest the anchor's place, under the cap rail, out over the side; its knee from into the side up into
+    # its underside
+    ax = min((r_ + 0.5 for r_ in LAY["ribs"]), key=lambda x_: abs(x_ - FIT["anchor"]["x"]))
     sgn = -1 if FIT["anchor"]["side"] == "port" else 1
+    hx_ = FIT.get("hawse", {}).get("x", ax + 0.6)
+    h_out = np.array([hx_, deck + 0.3, sgn * (hb(hx_, Zd + 0.3) + 0.005)])
+    h_in = np.array([hx_, deck + 0.3, sgn * (hb_in(hx_, Zd + 0.3) - 0.01)])
+    CF.hawse(d, h_out, h_in, np.array([0.0, 0.0, float(sgn)]))
+    fixtures.append(CF.capstan(d, cx, cz, deck, h_in))
     zs = sheer_at(L, ax)
     half = hb(ax, zs - 0.05)
     # (out past her side wherever the anchor hangs: the bow is fuller below the rail than at it)
-    reach = max(hb(ax + dx_, zs - dz_) for dx_ in (-0.8, 0.0, 0.8) for dz_ in (0.2, 0.8, 1.4, 2.0, 2.5)) - half + 0.45
-    cat0 = np.array([ax - 0.3, zs - F.WL - 0.05, sgn * (half - 0.35)])
-    cat1 = np.array([ax + 0.25, zs - F.WL + 0.15, sgn * (half + max(0.75, reach))])
-    d.add_beam_mesh("exterior", "timber", cat0, cat1, 0.16)                                       # the cathead
-    ring = cat1 + np.array([0, -0.2, 0])
-    shank_top, crown = ring + np.array([0, -0.12, 0]), ring + np.array([0, -2.1, 0])
-    d.add_cylinder("part:anchor", "iron", ring + np.array([0, 0.06, -0.05]), ring + np.array([0, 0.06, 0.05]), 0.08, sides=8)
-    d.add_cylinder("part:anchor", "iron", shank_top, crown, 0.05, 0.065, sides=8)
-    d.add_beam_mesh("part:anchor", "timber", shank_top + np.array([0, -0.12, -0.9]), shank_top + np.array([0, -0.12, 0.9]), 0.1)
-    for s2 in (1, -1):
-        tip = crown + np.array([s2 * 0.75, 0.55, 0])
-        d.add_cylinder("part:anchor", "iron", crown, tip, 0.055, 0.04, sides=8)
-        fl = tip + np.array([-s2 * 0.08, -0.12, 0])
-        d.add_box_mesh("part:anchor", "iron", fl, (0.08, 0.32, 0.26),
-                       R=np.array([[math.cos(0.6 * s2), -math.sin(0.6 * s2), 0], [math.sin(0.6 * s2), math.cos(0.6 * s2), 0], [0, 0, 1]]))
-    parts.append({"code": "anchor", "kind": "slide", "axisPoint": [0.0, 0.0, 0.0], "axisDir": [0.0, -1.0, 0.0],
-                  "distance": 8.5, "source": "anchor"})
-    hx_ = ax + 0.7
-    hawse = np.array([hx_, deck + 0.35, sgn * (hb(hx_, Zd + 0.35) + 0.04)])
-    follow("anchorcable", "anchor", hawse, ring, r=0.04)
-    rope(np.array([hx_ - 0.1, deck + 0.3, sgn * (hb_in(hx_ - 0.1, Zd + 0.3) - 0.05)]), np.array([cx + 0.1, deck + 0.45, cz + sgn * 0.27]), r=0.04)
+    reach = max(hb(ax + dx_, zs - dz_) for dx_ in (-0.6, 0.0, 0.6) for dz_ in (0.2, 0.8, 1.4, 2.0, 2.5)) - half + 0.4
+    # (the user: "place it outside hull and attach from side to the rib") level and square to her side, under the cap
+    # rail, its heel against the planking over the rib, bolted through; its knee under it in the same plane
+    cy = zs - 0.17 - F.WL
+    side_at = hb(ax, cy + F.WL)
+    ci = np.array([ax, cy, sgn * (side_at - 0.02)])
+    co = np.array([ax, cy, sgn * (side_at + max(0.75, reach + half - side_at))])
+    on_cat = ci + (co - ci) * 0.72 - np.array([0, 0.11, 0])                 # into the cathead's underside
+    ky = on_cat[1] - 0.75
+    knee_from = np.array([ax, ky, sgn * (hb(ax, ky + F.WL) - 0.03)])        # into her side
+    parts += CF.cathead_and_anchor(d, ci, co, knee_from, sgn, h_out + np.array([0, 0, sgn * 0.06]), knee_to=on_cat)
 
     # ---------------------------------------------------------------- the plaque, the spawn plate, lanterns (items 2, 3)
     mz = LAY["masts"]["mizzen"]["cell"] + 0.5
@@ -517,16 +491,20 @@ def main():
     fixtures.append({"type": "attach", "code": "plate", "pos": [r4(mz), r4(deck + 1.45), r4(-mr - 0.05)], "yaw": 90.0,
                      "sel": [r4(mz - 0.35), r4(deck + 1.1), r4(-mr - 0.3), r4(mz + 0.35), r4(deck + 1.8), r4(-mr + 0.02)],
                      "kind": "plate", "spawn": [r4(mz), r4(deck), -1.0]})
-    # the stern lantern on a post at the taffrail's middle; lanterns at the masts and one in the hold
+    # (chalk note 33: "lantern attachment to mast missing ... check magelan") the carrack's iron band and arm on each
+    # mast, 2.62 over its deck; the stern lantern on the carrack's crane from a post on the taffrail's middle
+    hooks = []
+    for code, deck_of_mast in (("main", deck), ("mizzen", qd)):
+        mast = masts[code]
+        y = deck_of_mast + 2.62
+        heel, top_ = F.y_of(mast["heel"]), F.y_of(mast["top"])
+        r_ = (mast["r0"] + (mast["r1"] - mast["r0"]) * (y - heel) / (top_ - heel)) / 1000.0
+        hp = CF.mast_band(d, mast["x"] / 1000.0, y, r_)
+        hooks.append({"code": f"lantern-{code}mast", "pos": v4(hp), "hang": "down", "kinds": ["light"]})
     tr_top = max((q for q in L["railings"]["top"] if abs(q[1]) < 600), key=lambda q: -q[0])
-    post_base = F.g(tr_top[0] + 60, 0, tr_top[2] + 60)
-    post_top = post_base + np.array([-0.12, 0.55, 0])
-    d.add_beam_mesh("exterior", "timber", post_base, post_top, 0.1)
-    d.add_box_mesh("exterior", "iron", post_top + np.array([0, 0.02, 0]), (0.2, 0.04, 0.2))
-    hooks = [{"code": "lantern-stern", "pos": v4(post_top + np.array([0, 0.04, 0])), "hang": "up", "kinds": ["light"], "shown": True},
-             {"code": "lantern-mainmast", "pos": [r4(LAY["masts"]["main"]["cell"] + 0.5 - 0.62), r4(deck + 2.4), 0.0],
-              "hang": "down", "kinds": ["light"]},
-             {"code": "lantern-mizzenmast", "pos": [r4(mz - 0.55), r4(qd + 2.4), 0.0], "hang": "down", "kinds": ["light"]}]
+    rail_top = (tr_top[2] - 50 + 70) / 1000.0 - F.WL
+    plate = CF.stern_lantern(d, tr_top[0] / 1000.0 - 0.1, tr_top[0] / 1000.0 + 0.02, rail_top)
+    hooks.append({"code": "lantern-stern", "pos": v4(plate), "hang": "up", "kinds": ["light"], "shown": True})
     lantern = {"block": "game:lantern-small-up", "attributes": {"material": "tinbronze", "lining": "plain", "glass": "quartz"}}
     start = [dict(lantern, mount="h:" + h["code"]) for h in hooks]
 
@@ -732,7 +710,8 @@ def main():
     D["paintZones"] = PAINT_ZONES
     M["paintQuads"] = paint_quads(M, L, F)          # (before the fittings' quads join the groups: they aren't painted)
     M["paintFaces"] = {}
-    counts = merge_quads(d, M)
+    qf_x = L["quarterdeckFront"] / 1000.0
+    counts = merge_quads(d, M, lambda p: p[1] < deck - 0.1 or (p[0] < qf_x and p[1] < qd - 0.1))
     out = os.environ.get("CARAVEL_LAYOUT_OUT")             # (a check: somewhere else than the mod's assets)
     with open(os.path.join(out, "caravel.json") if out else os.path.join(ASSETS, "config", "ships", f"{CODE}.json"), "w") as f:
         json.dump(D, f, indent=1)
