@@ -149,6 +149,14 @@ the table), `"paint"` (a dye colour as pieces are painted: `"red"`, `"white"`, .
   room's: up to the room's top, its partial row under the beams included, as from the room's own side. A room the
   players close with pieces (an open cabin under a castle deck, the caravel's steerage) is `"enclosed": true,
   "pieces": true` and its `max` y the beams' underside; as `"enclosed": false` it's open deck, two rows to deck + 2.
+- **A partial row beside a timber across the line** (22 October 2026, caravel note 48): a partition stands in both
+  quarter-block layers along its line. A timber of the deck over it (a beam, a carling: over the room's top, inboard of
+  her side, not a deck cell's planking) hanging into the other layer cuts a partial row as one in its own layer does,
+  and the partition is drawn up to that timber's underside, not through it (the hold's top row along the caravel's
+  hatch carlings).
+- **Places over a laid hatchway** (22 October 2026, caravel note 49): the places her openings get once their cells are
+  laid (`MergeOpenings`) are worked out without the design's `"hatch"` keep-clear boxes over cells that start empty: a
+  hatch taken up and its cells laid is deck, and partitions, floors and shelves go there as on any deck cell.
 - **Open decks get partial places too**: along a line past the last floor cell out to her side (the wedge cells, cut to
   what's free of her), as the rooms have, so the castle fronts' corners by her sides take railing pieces. A railing (not
   a window, not a door) may stand on a partial place; it's drawn and solid along the free part only.

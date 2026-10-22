@@ -195,7 +195,7 @@ namespace Hansa
                 foreach (var s in Slots.Slots) if (s?.Box != null) foreach (var b in s.SolidBoxes) full.Fill(b);
                 Grid = full;
                 MountLayout opened;
-                try { opened = MountLayout.Build(this); }
+                try { opened = MountLayout.Build(this, cellsLaid: true); }
                 finally { Grid = keep; }
                 Mounts.MergeOpenings(opened, Slots);
                 Mounts.BindSlots(Slots);

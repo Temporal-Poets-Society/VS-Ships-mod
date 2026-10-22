@@ -345,9 +345,14 @@ namespace Hansa
         /// <summary>The direction (0..3) a horizontal vector is nearest to.</summary>
         public static int Snap(double x, double z) => Math.Abs(x) >= Math.Abs(z) ? (x >= 0 ? 0 : 2) : (z >= 0 ? 1 : 3);
 
-        public static MountLayout Build(ShipDefinition def)
+        /// <summary>
+        /// Her places from her design. cellsLaid: the layout with every deck cell laid (<see cref="MergeOpenings"/>'s), where
+        /// the design's "hatch" keep-clear boxes over cells that start empty aren't kept: laid, those cells are deck, no
+        /// hatchway (22 October 2026, caravel note 49: "where stairs were i cannot build partition wall over").
+        /// </summary>
+        public static MountLayout Build(ShipDefinition def, bool cellsLaid = false)
         {
-            var l = new MountLayout(def);
+            var l = new MountLayout(def) { cellsLaid = cellsLaid };
             if (def?.Grid == null) return l;
             l.KeepClearZones();
             l.FloorPlaces();
@@ -484,6 +489,18 @@ namespace Hansa
             return null;
         }
 
+        bool cellsLaid;
+
+        /// <summary>(22 October 2026, note 49) Does a box stand on her deck cells that start empty (a hatchway's)?</summary>
+        bool OverOpening(double[] b)
+        {
+            if (b == null || b.Length < 6 || Def.Slots == null) return false;
+            foreach (var c in Def.Slots.Slots)
+                if (c?.Box != null && c.IsCell && c.StartsEmpty && Math.Abs(c.Top - b[1]) < 0.05 &&
+                    Math.Min(c.Box[3], b[3]) - Math.Max(c.Box[0], b[0]) > 0.1 && Math.Min(c.Box[5], b[5]) - Math.Max(c.Box[2], b[2]) > 0.1) return true;
+            return false;
+        }
+
         void KeepClearZones()
         {
             var def = Def;
@@ -579,6 +596,7 @@ namespace Hansa
             }
             foreach (var k in def.KeepClear ?? Array.Empty<KeepClearDef>())
             {
+                if (cellsLaid && k.What == "hatch" && OverOpening(k.Box)) continue;
                 // (0.3.24, note 181) the design's own "gun"/"gun port" boxes of an empty gun place: not kept either
                 if (k.What != null && k.What.StartsWith("gun") && FreeGunRooms(def).Any(r => r.Any(b => PiecePlanner.Overlap(b, k.Box, 0.05)))) continue;
                 Box(k.What ?? "kept clear", k.Box);
@@ -1253,6 +1271,22 @@ namespace Hansa
                 List<double[]> clip = null;
                 if (!whole)
                 {
+                    // (22 October 2026, caravel note 48: "partition penetrates deck beam below") a partial row stands in both
+                    // layers along the line: a timber of the deck over it hanging into the other one (up into the band over
+                    // the room's top, free under it there: a carling flush with the line beside a hatchway; not her side
+                    // leaning in) cuts it too, as one in its own layer does (DrawnClip carries it up to the timber's underside)
+                    double farLayer = line - inSign * g.V / 2;
+                    for (int a = 0; a < cells; a++)
+                    {
+                        bool under = false;
+                        for (int bb = 0; bb < cells; bb++)
+                        {
+                            double al = along0 + (a + 0.5) * g.V, y = ry + (bb + 0.5) * g.V;
+                            bool farSolid = y + g.V / 2 > top + 1e-6 && (alongX ? HangingAt(al, y, farLayer) : HangingAt(farLayer, y, al));
+                            if (!farSolid) under = true;
+                            else if (under && free[a, bb]) { free[a, bb] = false; nFree--; }
+                        }
+                    }
                     // (a sliver isn't worth a place: an eighth of the block at least)
                     if (nFree * 8 < cells * cells) { below = null; belowShut = nFree == 0; continue; }
                     clip = ClipRuns(free, cells, along0, ry, g.V);
@@ -1323,6 +1357,21 @@ namespace Hansa
                 if (ck > firstSolidZ[ci, j] && ck < lastSolidZ[ci, j]) return ck > firstSolidZ[ci, j] + inboard && ck < lastSolidZ[ci, j] - inboard;
             }
             return false;
+        }
+
+        /// <summary>
+        /// (22 October 2026, note 48) Her cell at a point, a timber inboard of her side (a carling, a beam, half a block or more
+        /// from the first and last of her cells across her there): not her side's planking, nor a deck's (its cells).
+        /// </summary>
+        bool HangingAt(double x, double y, double z)
+        {
+            var g = Def.Grid;
+            if (!g.SolidAt(x, y, z)) return false;
+            if (Def.Slots != null && Def.Slots.At(x, y - 0.01, z) >= 0 && Def.Slots.At(x, y + 0.01, z) >= 0) return false;
+            InsideHer(x, y, z);     // (her cells across her, worked out once)
+            int ci = g.CellX(x), cj = g.CellY(y), ck = g.CellZ(z), m = (int)Math.Round(0.5 / g.V);
+            if (ci < 0 || cj < 0 || ck < 0 || ci >= g.NX || cj >= g.NY || ck >= g.NZ) return false;
+            return ck >= firstSolidZ[ci, cj] + m && ck <= lastSolidZ[ci, cj] - m;
         }
 
         /// <summary>(0.3.28) How far inboard of her side lower down a point over a gap in her side counts as inside her.</summary>
@@ -1396,6 +1445,10 @@ namespace Hansa
             // the fine grid: the place's block and pad cells round it
             double along0 = (alongX ? m.X : m.Z) - 0.5 - pad * c, y0 = m.Y - pad * c;
             bool Solid(double al, double y) => alongX ? g.SolidAt(al, y, layer) : g.SolidAt(layer, y, al);
+            // ((22 October 2026, note 48) a partial place cut by a deck timber hanging into the other layer, over the room's top:
+            // up to it, her cells there count as hers)
+            double farLayer = line - inSign * g.V / 2;
+            bool Over(double al, double y) => Solid(al, y) || m.Clip != null && g.OY + (g.CellY(y) + 1) * g.V > top + 1e-6 && (alongX ? HangingAt(al, y, farLayer) : HangingAt(farLayer, y, al));
             var free = new bool[w, w];
             for (int a = pad; a < pad + n; a++)
                 for (int b = pad; b < pad + n; b++)
@@ -1413,15 +1466,19 @@ namespace Hansa
             double Far(double al, double y, double da, double dy)
             {
                 double run = 0;
+                Func<double, double, bool> hers = dy > 0 ? Over : Solid;
+                // ((note 48) up into a timber of the other layer only, beside free air in its own: to the timber's underside, the
+                // nearest surface met, not on through it)
+                bool otherOnly = dy > 0 && !Solid(al + da * 0.02, y + dy * 0.02);
                 // (from 0.01 inside the free cell: her cells begin 0.01 on)
-                while (run < DrawReach && Solid(al + da * (run + 0.02), y + dy * (run + 0.02))) run += 0.01;
+                while (run < DrawReach && hers(al + da * (run + 0.02), y + dy * (run + 0.02))) run += 0.01;
                 if (run <= 0) return -1;
                 double best = -1;
                 foreach (double off in new[] { -h, h })
                 {
                     double o = line + off;
                     double t = alongX ? s.Ray(al, y, o, da, dy, 0, run + 0.03) : s.Ray(o, y, al, 0, dy, da, run + 0.03);
-                    if (t < double.MaxValue) { best = Math.Max(best, t); near = Math.Min(near, t); }
+                    if (t < double.MaxValue) { best = otherOnly && best >= 0 ? Math.Min(best, t) : Math.Max(best, t); near = Math.Min(near, t); }
                     else near = 0;
                 }
                 return best;
@@ -1441,13 +1498,14 @@ namespace Hansa
                         for (int dir = -1; dir <= 1; dir += 2)
                         {
                             int nb = b + dir;
-                            if (nb < 0 || nb >= w || src[a, nb] || !Solid(mid, ym + dir * c)) continue;
+                            Func<double, double, bool> hers = dir > 0 ? Over : Solid;
+                            if (nb < 0 || nb >= w || src[a, nb] || !hers(mid, ym + dir * c)) continue;
                             double y = dir > 0 ? ya0 + c - 0.01 : ya0 + 0.01;
                             near = double.MaxValue;
                             double t = Math.Max(Far(al0 + 0.002, y, 0, dir), Far(al0 + c - 0.002, y, 0, dir));
                             if (t <= 0.011) continue;
                             double end = y + dir * t, nearEnd = y + dir * near;
-                            for (int k = nb, i = 0; i < most && k >= 0 && k < w && (dir > 0 ? y0 + k * c < end : y0 + (k + 1) * c > end) && Solid(mid, y0 + (k + 0.5) * c); k += dir, i++)
+                            for (int k = nb, i = 0; i < most && k >= 0 && k < w && (dir > 0 ? y0 + k * c < end : y0 + (k + 1) * c > end) && hers(mid, y0 + (k + 0.5) * c); k += dir, i++)
                             {
                                 fill[a, k] = more = true;
                                 if (pass == 0 && (dir > 0 ? y0 + (k + 1) * c <= nearEnd : y0 + k * c >= nearEnd)) open[a, k] = true;
