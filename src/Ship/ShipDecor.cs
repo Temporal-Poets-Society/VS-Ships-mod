@@ -484,8 +484,8 @@ namespace Hansa
                 // open): fine, it comes out when the stair is put (TryPlacePiece); one that can't: say what to do
                 if (BeamsInTheWay(plan) == null)
                 {
-                    if (plan.Role is PieceRole.Stair or PieceRole.Ladder && BeamAt(clash) is int bn)
-                        return bn >= 0 ? "hansa:flight-beam" : "hansa:flight-beam-fixed";
+                    // ((22 October 2026, caravel note 52) a beam only if one is in its way with the deck's cells over it up)
+                    if (BeamRules.ClashSays(Mounts, SlotLayout, Slots, plan, PlaceGrid ?? Grid, BeamAt) is string beam) return beam;
                     // ((0.3.28) where one steps off it at its foot or onto the deck at its top: her side's curve, a fitting)
                     if (plan.Role == PieceRole.Stair && StairLanding.At(plan, PlaceGrid ?? Grid)) return "hansa:flight-no-landing";
                     return plan.Role == PieceRole.Ladder ? "hansa:stair-no-well" : plan.Role == PieceRole.Stair ? "hansa:flight-no-well" : plan.Role == PieceRole.Hearth ? "hansa:hearth-no-room" : "hansa:piece-blocked";

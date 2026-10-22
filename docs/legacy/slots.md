@@ -407,6 +407,29 @@ every 2; a beam under a well comes out in **lengths a cell wide**, and a stair a
   on both sides of it and put the stair here again" or, for a beam with no lengths there, "put the stair elsewhere, or
   across her".
 - `-- design` and `-- notes0327` check them; meshcheck `--slots wells` draws random wells with their beams out.
+- **A rib cell's beam (22 October 2026, the caravel's notes 51, 52).** The block-grid ships carry a deck's beam in the
+  middle of each rib cell (the caravel's main deck: x `r + 0.25 .. r + 0.75` for rib cell `r`, 0.5 deep under the
+  planking's voxel, `y` deck − 0.75 .. deck − 0.25), under one deck cell rather than on a line between two. A segment
+  of such a beam names **one** cell in `beside`: the cell over it, and it comes out only with that cell open. Its
+  `box` is the beam's voxel columns within that cell (a cell's width along the beam):
+
+```jsonc
+{ "id": "beam:main:-2:-1", "deck": "main", "kind": "beam", "beam": "main:-2",
+  "beside": ["main:-2:-1"],
+  "box": [-1.75, 0.375, -0.5, -1.25, 0.875, 0.5],
+  "material": { "block": "game:planks-oak-ud", "count": 1 } }
+```
+
+  Why: along her a stair's room needs the cell before its foot, and with ribs every other cell that cell is a rib
+  cell, its beam over the walker's head (the short stair steps 0.75 up its first quarter: his head 2.6 over the floor
+  where the beam's underside is 2.25). Across her the cells between ribs are clear, and the stairs go up there with
+  nothing cut. The mesh as above: the segment's quads owned by it; the carlings along the opening's sides from the
+  beam aft to the beam forward. Anything else of hers under that cell (a hatchway's carling: the caravel's old hold
+  hatch, x −6 .. −3.25 at z −0.5 .. −0.25 under `main:-4:-1`) stays fixed and still refuses a stair there.
+- **The beam refusal says what is really in the way (notes 51, 52).** A stair whose room clashes is told "a beam" only if
+  something is still in its way with the deck's cells over it taken up (`BeamRules.ClashSays`); then the fixed one if
+  something fixed remains with the beam's lengths out as well. Before, any clash just under a deck was "a beam that can't
+  come out", so a stair across her between two beams, under her deck still laid, was told to go across her.
 
 
 ## 11. Step D2 (0.3.28): one-block hull panels, port covers, deck cells taking shots

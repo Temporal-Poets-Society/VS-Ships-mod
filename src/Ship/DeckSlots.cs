@@ -35,7 +35,11 @@ namespace Hansa
         /// the beam's collision there, its top the deck's underside.
         /// </summary>
         public string Kind;
-        /// <summary>(0.3.27) A beam segment: its beam ("main:-6": the deck and the beam's x), and the two deck cells either side of it (ids).</summary>
+        /// <summary>
+        /// (0.3.27) A beam segment: its beam ("main:-6": the deck and the beam's x), and the two deck cells either side of it
+        /// (ids). (22 October 2026, caravel notes 51, 52) A beam in the middle of a rib cell (the block-grid ships'): the one
+        /// deck cell over it.
+        /// </summary>
         public string Beam;
         public string[] Beside;
 
@@ -170,7 +174,8 @@ namespace Hansa
                 var s = slots[n];
                 if (s?.Box == null || !s.IsBeam) continue;
                 BesideOf[n] = (s.Beside ?? Array.Empty<string>()).Select(IndexOf).ToArray();
-                if (BesideOf[n].Length != 2 || BesideOf[n].Any(b => b < 0)) Problems.Add($"beam segment {s.Id}: its cells beside it ({string.Join(", ", s.Beside ?? Array.Empty<string>())}) aren't two deck cells");
+                // ((22 October 2026) or the one cell over a beam in the middle of a rib cell)
+                if (BesideOf[n].Length is not (1 or 2) || BesideOf[n].Any(b => b < 0)) Problems.Add($"beam segment {s.Id}: its cells beside it ({string.Join(", ", s.Beside ?? Array.Empty<string>())}) aren't one or two deck cells");
                 int c0 = BesideOf[n].FirstOrDefault(b => b >= 0, -1);
                 if (c0 >= 0 && ChunkOf[c0] >= 0) { ChunkOf[n] = ChunkOf[c0]; Chunks[ChunkOf[c0]].Add(n); }
                 else Problems.Add($"beam segment {s.Id} has no chunk");
@@ -756,13 +761,13 @@ namespace Hansa
         /// <summary>At most this many segments of one beam out (next to each other).</summary>
         public const int MaxOut = 2;
 
-        /// <summary>Why a beam segment can't come out with her cells as they are (a lang code), or null: it's out, the deck either side of it isn't open, too many of its beam are out.</summary>
+        /// <summary>Why a beam segment can't come out with her cells as they are (a lang code), or null: it's out, the deck either side of it (over it, a rib cell's beam) isn't open, too many of its beam are out.</summary>
         public static string TakeProblem(DeckSlotLayout l, SlotStates st, int n)
         {
             var d = l.Slots[n];
             if (!st.Filled(n)) return "hansa:beam-already-out";
             var beside = l.BesideOf[n];
-            if (beside == null || beside.Length < 2 || beside.Any(b => b < 0 || st.Filled(b))) return "hansa:beam-deck-in";
+            if (beside == null || beside.Length == 0 || beside.Any(b => b < 0 || st.Filled(b))) return "hansa:beam-deck-in";
             var mine = l.Beams.TryGetValue(d.Beam ?? d.Id, out var list) ? list : new List<int>();
             var outNow = mine.Where(i => i != n && !st.Filled(i)).ToList();
             if (outNow.Count >= MaxOut) return "hansa:beam-too-many";
@@ -772,6 +777,36 @@ namespace Hansa
                 if (outNow[0] != minus && outNow[0] != plus) return "hansa:beam-too-many";
             }
             return null;
+        }
+
+        /// <summary>
+        /// (22 October 2026, caravel note 52: "cannot also place horizontal stairs - says something about beams") What a stair
+        /// or ladder-stair whose room clashes with her is refused for, when no beam segment can come out for it: a beam (beamAt:
+        /// a segment's index, -1 a beam with none there, null none) only if one is still in its way with the deck's cells over
+        /// it taken up; else null (the deck itself is in the way: open it). Before, any clash just under a deck was a fixed
+        /// beam, so a stair across her between two beams with her deck still laid was told to go across her.
+        /// </summary>
+        public static string ClashSays(MountLayout layout, DeckSlotLayout l, SlotStates st, PiecePlan plan, VoxelGrid grid, System.Func<double[], int?> beamAt)
+        {
+            if (plan == null || plan.Role is not (PieceRole.Stair or PieceRole.Ladder)) return null;
+            var cells = new List<double[]>();
+            var bounds = PiecePlanner.PlaceBounds(layout, plan);
+            if (l != null && st != null && bounds != null)
+                for (int n = 0; n < l.Count; n++)
+                    if (l.Slots[n]?.IsCell == true && st.Filled(n) && PiecePlanner.Overlap(l.Slots[n].Box, bounds, 0.02)) cells.AddRange(l.Slots[n].SolidBoxes);
+            var past = PiecePlanner.GridClash(layout, plan, grid, cells);
+            if (past == null) return null;
+            // (and with its beams' lengths out too: something fixed still in its way is what to say, not the length that
+            // would come out for nothing)
+            if (l != null && st != null && bounds != null)
+            {
+                foreach (var kv in l.Beams)
+                    foreach (int n in kv.Value)
+                        if (st.Filled(n) && PiecePlanner.Overlap(l.Slots[n].Box, bounds, 0.02)) cells.AddRange(l.Slots[n].SolidBoxes);
+                if (PiecePlanner.GridClash(layout, plan, grid, cells) is double[] fixedClash) past = fixedClash;
+            }
+            if (beamAt(past) is not int bn) return null;
+            return bn >= 0 ? "hansa:flight-beam" : "hansa:flight-beam-fixed";
         }
 
         /// <summary>
