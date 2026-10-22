@@ -251,6 +251,16 @@ plank slabs and **ladders** make ship structure. Out of it they're plain decorat
 (that's why planks stack upward but not sideways), and the hint says so. Nothing changes for the generator: laid pieces
 are laid in building mode.
 
+**After 0.1.0-dev.6: building mode puts ship structure only.** The user, trying the caravel: "while in build mode ... we
+can skip regular block placement snap findings as those are placeable with it off". In building mode a block in hand
+finds a place aboard only if it's ship structure (`VanillaPieceBlock.IsStructureBlock`): planks (partitions, panels),
+glass panes (windows), fences (railings), the ship's stairs, plank slabs (shelves), ladders, trapdoors (hatches) and
+doors. Deck cells and hull panels are taken up (an axe) and laid (planks, boards) as before, and a gun goes on its gun
+place. Any other block (a chest, a lantern, a bed, the hearth's bricks, the oven, a flue, plank stairs) gets no ghost in
+building mode and the hint says "Building mode: only ship structure is put aboard ... B turns it off to put this aboard";
+the server refuses it too (`hansa:piece-build-decor`). Out of building mode nothing changed. Clicking a piece (a chest's
+lid, a bed, a door) with a block in hand still works in building mode; Shift no longer puts the block on top of it there.
+
 ### 8.2 Two floor kinds: `ladder` and `stair`
 
 | kind     | footprint                     | way up                       | block in hand              | default `block`                       |

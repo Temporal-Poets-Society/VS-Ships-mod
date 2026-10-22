@@ -352,6 +352,7 @@ namespace HansaTests
             SailsPressed(def, Path.Combine(root, "assets", "hansa"));
             WorkingBlocks(def);
             Modular(def, root);
+            BuildModeStructureOnly(root);
             ShipStairs(def);
             DeckItems(root);
             CastleGunPorts(root);

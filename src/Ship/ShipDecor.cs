@@ -375,6 +375,8 @@ namespace Hansa
             if (stack?.Block == null || stack.Block.Id == 0) return "hansa:piece-needs-block";
             // (0.3.21, step C) a gun goes on a gun place, not on a floor place
             if (IsGunBlock(stack.Collectible)) return "hansa:gunplace-gun-not-piece";
+            // (after 0.1.0-dev.6) building mode puts ship structure only; decoration goes aboard with it off
+            if (VanillaPieceBlock.BuildingRefusal(stack.Block, VanillaPieceBlock.BuildingMode(player.Entity)) is string berr) return berr;
             var m = Mounts.Get(mountId);
             if (m == null) return "hansa:piece-nowhere";
             if (!InReach(player, m.CX, m.CY, m.CZ)) return "hansa:piece-too-far";

@@ -145,7 +145,10 @@ namespace Hansa
             bool chalk = held?.Collectible is ItemSurveyorsChalk;
             // (0.3.21, step C) the gun item goes on a gun place (building mode), never on a floor place
             bool gunItem = block && EntityShip.IsGunBlock(held.Collectible);
-            bool placing = chalk || block && !painting && !gunItem;
+            // (after 0.1.0-dev.6, the user: "while in build mode ... we can skip regular block placement snap findings as those
+            // are placeable with it off") building mode puts ship structure only: any other block gets no place, the hint says why
+            bool decorOff = block && !painting && !gunItem && VanillaPieceBlock.BuildingRefusal(held.Block, building) != null;
+            bool placing = chalk || block && !painting && !gunItem && !decorOff;
             // (0.3.24, note 193) a lantern (a block giving light) in hand: its hooks are aimed at directly
             bool lightInHand = block && !chalk && held.Block.GetLightHsv(capi.World.BlockAccessor, null, held) is byte[] lhsv && lhsv.Length > 2 && lhsv[2] > 0;
             var best = new Target { Dist = double.MaxValue };
@@ -297,7 +300,9 @@ namespace Hansa
             // (0.3.18) planks, a fence, a pane, plank stairs, a slab or a ladder in hand aboard out of building mode: say so
             // (0.3.19, the user: "I can stack 3 plank blocks on top of each other ... but cannot add to the sides": out of
             // building mode they're decoration, on a floor place or on top of a piece only, and the hint says why)
-            string needSaw = block && !building && (VanillaPieceBlock.IsBuildingBlock(held.Block) || gunItem) && ep.MountedOn is ShipSeat ? Lang.Get("hansa:hint-build-off", BuildKeyName(capi)) : null;
+            string needSaw = block && !building && (VanillaPieceBlock.IsBuildingBlock(held.Block) || gunItem) && ep.MountedOn is ShipSeat ? Lang.Get("hansa:hint-build-off", BuildKeyName(capi)) :
+                // (after 0.1.0-dev.6) decoration in hand in building mode: it goes aboard with building mode off
+                decorOff && ep.MountedOn is ShipSeat ? Lang.Get("hansa:hint-build-decor", BuildKeyName(capi)) : null;
             if (best.Kind == TargetKind.None || best.Dist > fixtureDist + 0.05)
             {
                 Hint = needSaw;

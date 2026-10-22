@@ -62,6 +62,17 @@ namespace Hansa
             var shon = shortB == null ? null : new VanillaPieceBlock(w, new ItemStack(shortB), true);
             Check(shon != null && shon.Stairs && shon.StairCells == 1 && shon.StairRails && shortB is BlockShipStair,
                 $"0.1.0-dev.6 (note 36): {ModularPieceDef.ShortStair} is a ship's stair 1 cell long with its own handrails in building mode");
+            // (after 0.1.0-dev.6, the user: "while in build mode ... we can skip regular block placement snap findings") building
+            // mode puts the game's structure blocks (and a door) aboard, never a chest, a lantern or the hearth's bricks
+            var chest = B("game:chest-east");
+            var lantern = B("game:lantern-up");
+            var door = w.Blocks.FirstOrDefault(b => b != null && b.Id != 0 && VanillaPieceBlock.IsDoor(b));
+            var hearth = B(ModularPieceDef.DefaultBlock("hearth"));
+            Check(planks != null && VanillaPieceBlock.BuildingRefusal(planks, true) == null && ladder != null && VanillaPieceBlock.IsStructureBlock(ladder) &&
+                  door != null && VanillaPieceBlock.IsStructureBlock(door) && chest != null && VanillaPieceBlock.BuildingRefusal(chest, true) == "hansa:piece-build-decor" &&
+                  VanillaPieceBlock.BuildingRefusal(chest, false) == null && (lantern == null || !VanillaPieceBlock.IsStructureBlock(lantern)) &&
+                  hearth != null && !VanillaPieceBlock.IsStructureBlock(hearth),
+                $"after 0.1.0-dev.6: building mode puts structure only (planks, ladders, {door?.Code}); a chest, a lantern and {hearth?.Code} are put aboard with it off");
         }
 
         /// <summary>
