@@ -9371,6 +9371,468 @@
     4.125,
     -1.5
    ]
+  },
+  {
+   "id": "beam:main:-10:-1",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:-10",
+   "beside": [
+    "main:-10:-1"
+   ],
+   "box": [
+    -9.75,
+    0.375,
+    -0.5,
+    -9.25,
+    0.875,
+    0.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:-8:0",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:-8",
+   "beside": [
+    "main:-8:0"
+   ],
+   "box": [
+    -7.75,
+    0.375,
+    0.5,
+    -7.25,
+    0.875,
+    1.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:-6:0",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:-6",
+   "beside": [
+    "main:-6:0"
+   ],
+   "box": [
+    -5.75,
+    0.375,
+    0.5,
+    -5.25,
+    0.875,
+    1.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:-4:1",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:-4",
+   "beside": [
+    "main:-4:1"
+   ],
+   "box": [
+    -3.75,
+    0.375,
+    1.5,
+    -3.25,
+    0.875,
+    2.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:-4:0",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:-4",
+   "beside": [
+    "main:-4:0"
+   ],
+   "box": [
+    -3.75,
+    0.375,
+    0.5,
+    -3.25,
+    0.875,
+    1.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:-2:1",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:-2",
+   "beside": [
+    "main:-2:1"
+   ],
+   "box": [
+    -1.75,
+    0.375,
+    1.5,
+    -1.25,
+    0.875,
+    2.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:-2:0",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:-2",
+   "beside": [
+    "main:-2:0"
+   ],
+   "box": [
+    -1.75,
+    0.375,
+    0.5,
+    -1.25,
+    0.875,
+    1.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:-2:-1",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:-2",
+   "beside": [
+    "main:-2:-1"
+   ],
+   "box": [
+    -1.75,
+    0.375,
+    -0.5,
+    -1.25,
+    0.875,
+    0.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:-2:-2",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:-2",
+   "beside": [
+    "main:-2:-2"
+   ],
+   "box": [
+    -1.75,
+    0.375,
+    -1.5,
+    -1.25,
+    0.875,
+    -0.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:-2:-3",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:-2",
+   "beside": [
+    "main:-2:-3"
+   ],
+   "box": [
+    -1.75,
+    0.375,
+    -2.5,
+    -1.25,
+    0.875,
+    -1.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:0:1",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:0",
+   "beside": [
+    "main:0:1"
+   ],
+   "box": [
+    0.25,
+    0.375,
+    1.5,
+    0.75,
+    0.875,
+    2.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:0:0",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:0",
+   "beside": [
+    "main:0:0"
+   ],
+   "box": [
+    0.25,
+    0.375,
+    0.5,
+    0.75,
+    0.875,
+    1.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:0:-2",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:0",
+   "beside": [
+    "main:0:-2"
+   ],
+   "box": [
+    0.25,
+    0.375,
+    -1.5,
+    0.75,
+    0.875,
+    -0.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:0:-3",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:0",
+   "beside": [
+    "main:0:-3"
+   ],
+   "box": [
+    0.25,
+    0.375,
+    -2.5,
+    0.75,
+    0.875,
+    -1.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:2:1",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:2",
+   "beside": [
+    "main:2:1"
+   ],
+   "box": [
+    2.25,
+    0.375,
+    1.5,
+    2.75,
+    0.875,
+    2.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:2:0",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:2",
+   "beside": [
+    "main:2:0"
+   ],
+   "box": [
+    2.25,
+    0.375,
+    0.5,
+    2.75,
+    0.875,
+    1.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:2:-1",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:2",
+   "beside": [
+    "main:2:-1"
+   ],
+   "box": [
+    2.25,
+    0.375,
+    -0.5,
+    2.75,
+    0.875,
+    0.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:2:-2",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:2",
+   "beside": [
+    "main:2:-2"
+   ],
+   "box": [
+    2.25,
+    0.375,
+    -1.5,
+    2.75,
+    0.875,
+    -0.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:2:-3",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:2",
+   "beside": [
+    "main:2:-3"
+   ],
+   "box": [
+    2.25,
+    0.375,
+    -2.5,
+    2.75,
+    0.875,
+    -1.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:4:0",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:4",
+   "beside": [
+    "main:4:0"
+   ],
+   "box": [
+    4.25,
+    0.375,
+    0.5,
+    4.75,
+    0.875,
+    1.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:4:-1",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:4",
+   "beside": [
+    "main:4:-1"
+   ],
+   "box": [
+    4.25,
+    0.375,
+    -0.5,
+    4.75,
+    0.875,
+    0.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
+  },
+  {
+   "id": "beam:main:4:-2",
+   "deck": "main",
+   "kind": "beam",
+   "beam": "main:4",
+   "beside": [
+    "main:4:-2"
+   ],
+   "box": [
+    4.25,
+    0.375,
+    -1.5,
+    4.75,
+    0.875,
+    -0.5
+   ],
+   "material": {
+    "block": "game:planks-oak-ud",
+    "count": 1
+   }
   }
  ],
  "hullSlots": [

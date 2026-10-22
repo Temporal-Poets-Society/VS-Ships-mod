@@ -65,10 +65,11 @@ namespace HansaTests
                 }
             Check(said.Count == 0, $"caravel{(segmented ? "" : " (fixed beams)")}: the short and steep stairs from the hold cell {foot.Id} across her through the main deck's cells over them walked; " +
                                    $"{(segmented ? "" : "along her refused for the fixed beam over the cell before the foot; ")}under her laid deck \"open the deck\" (flight-no-well), not a beam{(said.Count > 0 ? ": " + string.Join("; ", said) : "")}");
-            if (segmented) Console.WriteLine($"         caravel has {def.Slots.Beams.Count} beams in lengths: the synthesized ones below stand in for hers");
+            if (segmented) Console.WriteLine($"         caravel has {def.Slots.Beams.Count} beams in lengths (the exporter's): the checks below use hers");
             // with her main deck's beams in one-cell lengths (the cell over each): along her the beam's length comes out
             var sdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
-            int added = AddRibBeamSegments(sdef, "main");
+            // ((22 October 2026) her own, since the exporter makes them; the synthesized ones only for a caravel without)
+            int added = segmented ? sdef.DeckSlots.Count(s => s.Kind == "beam") : AddRibBeamSegments(sdef, "main");
             sdef.Init();
             var sfoot = HoldFoot(sdef);
             var problems = sdef.Slots.Problems.Where(p => p.Contains("beam")).ToList();

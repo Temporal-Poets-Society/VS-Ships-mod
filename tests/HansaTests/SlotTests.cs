@@ -250,7 +250,9 @@ namespace HansaTests
                     var qd = quads[q];
                     double ny = qd[7] + qd[15] + qd[23] + qd[31];
                     int o = own[q], f = fac[q];
-                    if (o >= 0 && f < 0 && ny > 3.5 && Math.Abs(qd[2] - l.Slots[o].Top) < 0.05) tops[o]++;
+                    // ((22 October 2026) a beam's length: its top the deck's underside, over its box's top (her voxel row) by
+                    // the deck's thickness short of 0.25: the caravel's 0.2-thick deck, 0.05)
+                    if (o >= 0 && f < 0 && ny > 3.5 && Math.Abs(qd[2] - l.Slots[o].Top) < (l.Slots[o].IsBeam ? 0.1 : 0.05)) tops[o]++;
                     if (o >= 0 && f < 0 && ny < -3.5) unders[o]++;
                     if (o >= 0 && f >= 0) facingPairs.Add((o, f));
                     int who = o >= 0 ? o : f;

@@ -343,6 +343,25 @@ def hull_tri(body, tri, uvs, n, c3, own, fac):
     hull_tris.append(("slot:hull:interior" if in_room(cx, cz) else "slot:hull", tex, tri, uvs, n, own, fac))
 
 
+# ---------------------------------------------------------------- the main deck's beams in one-cell lengths
+# (22 October 2026, caravel notes 51, 52, with the stair session's mod change) her main deck's beams lie in the middle of
+# her rib cells, so a stair along her from the hold has a beam over the cell before its foot: each beam's length in a rib
+# cell under a deck slot is a beam segment (docs/legacy/slots.md §10; "beside" the one cell over it), taken out with that
+# cell open. Its faces are its own; the next length's (or the fixed beam's) cut face toward it is drawn while it's out.
+MAIN_ROW = int(math.floor((LV["mainDeck"] - 1) / 1000))
+RIB_X = {FR["x0"] + FR["space"] * n_ for n_ in range(FR["count"])}
+seg_cells = {}                            # (i, j) -> its beam pieces
+for c in cells["cells"]:
+    ci, cj, ck = c["cell"]
+    if ck == MAIN_ROW and ci in RIB_X and ("main", ci, cj) in slot_of and ("main", ci, cj) not in hatch_cells:
+        bp = [p["index"] for p in c["pieces"] if p["body"] == "Beams"]
+        if bp:
+            seg_cells[(ci, cj)] = bp
+seg_of_piece = {ix: key for key, bp in seg_cells.items() for ix in bp}
+seg_of_cell = {(key[0], key[1], MAIN_ROW): key for key in seg_cells}
+beam_tris = []                            # (tex, tri, uvs, n, owner key or None, facing key or None)
+log("beam lengths: candidates", len(seg_cells))
+
 hidden = 0
 for c in cells["cells"]:
     i, j, k = c["cell"]
@@ -387,6 +406,27 @@ for c in cells["cells"]:
                         continue
                 elif own is not None:
                     add_slot_tri(sg, BODY_TEX[body], tri, uvs, n, own, -1)
+                    continue
+            S = seg_of_piece.get(p["index"])
+            nbS = None
+            if a is not None:
+                nbc = [i, j, k]
+                nbc[a] += 1 if n[a] > 0 else -1
+                nbS = seg_of_cell.get(tuple(nbc))
+            if S is not None or nbS is not None:
+                if a is not None:
+                    cov = cover_pieces(tri, n, (i, j, k), a)
+                    if cov is not None:
+                        other = next((o for o in (seg_of_piece.get(ix) for ix in cov) if o is not None and o != S), None)
+                        if other is not None:
+                            # a length's cut face toward the next, or the fixed beam's toward a length: drawn while that
+                            # one is out
+                            beam_tris.append((BODY_TEX[body], tri, uvs, n, S, other))
+                        else:
+                            hidden += 1
+                        continue
+                if S is not None:
+                    beam_tris.append((BODY_TEX[body], tri, uvs, n, S, None))
                     continue
             if body == "Beams" and n[2] > 0.9:
                 # a beam's or a carling's top under a deck cell: seen only while that cell is out
@@ -866,6 +906,49 @@ for key in sorted(panel_cells, key=lambda t: (t[1], t[0], t[2])):
         # (a block of her side: one planks block, or 4 boards, lays it again, as carrack-m's)
         "material": {"block": "game:planks-oak-ud", "count": 1}})
 log("hull panels:", len(hull_slots), "of", len(panel_cells), "candidates; fixed:", dict(list(why.items())[:12]))
+# the beam lengths: the beam's voxel columns in the cell under the deck's underside (as the deck's 0.25 voxel row
+# lies), whole across the cell, not at its fore or aft edge, nothing of her side under it, all solid
+seg_index, seg_why = {}, {}
+deck_main_y = LV["mainDeck"] / 1000.0 - WL
+top_b = deck_main_y - 0.25
+
+
+def solid_at(x, y, z):
+    a_, b_, c_ = int(math.floor((x - ox) / VOX)), int(math.floor((y - oy) / VOX)), int(math.floor((z - oz) / VOX))
+    return 0 <= a_ < nx and 0 <= b_ < ny and 0 <= c_ < nz and solid[(a_ * ny + b_) * nz + c_] == 1
+
+
+for key in sorted(seg_cells):
+    ci, cj = key
+    cid = deck_slots[slot_of[("main", ci, cj)]]["id"]
+    z0 = -(cj + 0.5)
+    bx0, bx1, by0, whole_ = 1e9, -1e9, 1e9, True
+    for zq in [z0 + 0.125 + 0.25 * q for q in range(4)]:
+        any_ = False
+        for xq in [ci + 0.125 + 0.25 * q for q in range(4)]:
+            for yq in [top_b - 0.125 - 0.25 * q for q in range(4)]:
+                if solid_at(xq, yq, zq):
+                    any_ = True
+                    bx0, bx1, by0 = min(bx0, xq - 0.125), max(bx1, xq + 0.125), min(by0, yq - 0.125)
+        whole_ &= any_
+    if not whole_ or bx0 <= ci + 1e-6 or bx1 >= ci + 1 - 1e-6 or by0 < top_b - 0.75 - 1e-6:
+        seg_why[key] = "not a clean beam in the cell"
+        continue
+    if not all(solid_at(bx0 + 0.125 + 0.25 * a_, by0 + 0.125 + 0.25 * b_, z0 + 0.125 + 0.25 * c_)
+               for a_ in range(int(round((bx1 - bx0) / VOX))) for b_ in range(int(round((top_b - by0) / VOX))) for c_ in range(4)):
+        seg_why[key] = "not all solid"
+        continue
+    seg_index[key] = len(deck_slots)
+    deck_slots.append({"id": f"beam:{cid}", "deck": "main", "kind": "beam", "beam": f"main:{ci}", "beside": [cid],
+                       "box": [r4(bx0), r4(by0), r4(z0), r4(bx1), r4(top_b), r4(z0 + 1)],
+                       "material": {"block": "game:planks-oak-ud", "count": 1}})
+log("beam lengths:", len(seg_index), "of", len(seg_cells), "; fixed:", seg_why)
+for tex, tri, uvs, n, own, fac in beam_tris:
+    if fac is not None and fac not in seg_index:
+        continue
+    add_slot_tri("slot:deck:interior", tex, tri, uvs, n, seg_index.get(own, -1) if own is not None else -1,
+                 seg_index[fac] if fac is not None else -1)
+
 # their triangles: a panel left fixed is drawn as her fixed planking (its faces always, the faces toward it gone)
 n_hull = {}
 for grp, tex, tri, uvs, n, own, fac in hull_tris:
