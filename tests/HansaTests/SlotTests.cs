@@ -203,9 +203,12 @@ namespace HansaTests
                 if (s.IsBeam)
                 {
                     // ((0.3.27, docs/slots.md §10) a beam's length: under its deck's planking, its cells beside it, solid)
+                    // ((22 October 2026, caravel notes 51, 52) or a rib cell's beam: within the one cell over it, its voxel columns)
                     if (Math.Abs(b[4] - (deck.Y - 0.25)) > 1e-3) bad.Add($"{s.Id}: its top {b[4]} not the deck's underside {deck.Y - 0.25}");
-                    if (Math.Abs(b[5] - b[2] - 1) > 1e-6 || Math.Abs(b[3] - b[0] - 0.25) > 1e-6) bad.Add($"{s.Id}: not a cell's width of a beam's voxel column");
-                    if (s.Beside?.Length != 2 || s.Beside.Any(id => l.Get(id) == null)) bad.Add($"{s.Id}: its cells beside it aren't deck cells");
+                    bool overOne = s.Beside?.Length == 1 && l.Get(s.Beside[0])?.Box is double[] cb &&
+                                   b[0] >= cb[0] - 1e-6 && b[3] <= cb[3] + 1e-6 && b[2] >= cb[2] - 1e-6 && b[5] <= cb[5] + 1e-6;
+                    if (Math.Abs(b[5] - b[2] - 1) > 1e-6 || (overOne ? b[3] - b[0] < 0.25 - 1e-6 : Math.Abs(b[3] - b[0] - 0.25) > 1e-6)) bad.Add($"{s.Id}: not a cell's width of a beam's voxel column{(overOne ? "s" : "")}");
+                    if (s.Beside?.Length is not (1 or 2) || s.Beside.Any(id => l.Get(id) == null) || s.Beside.Length == 1 && !overOne) bad.Add($"{s.Id}: its cells beside it aren't deck cells (two either side, or the one over it)");
                     foreach (var sb in s.SolidBoxes)
                         foreach (long v in DeckSlotLayout.Voxels(g, sb))
                         {
