@@ -54,13 +54,21 @@ namespace HansaTests
                 Check(ones.Count >= 3 && bad.Count == 0, $"caravel, steerage closed by pieces: a third row (partial, up to y {room.Max[1]}, the steerage's) over each " +
                                                          $"of the {ones.Count} whole row-1 places on x = {front}{(bad.Count == 0 ? "" : ": not over " + string.Join(", ", bad))}");
                 // drawn out to her surfaces (DrawnClip), each third-row partition's top meets the quarterdeck's beam or planking
-                // across the middle of its block, on one side of the line or the other (its ends: her side, the hatch's gap)
+                // across the middle of its block, on one side of the line or the other (its ends: her side, the hatch's gap;
+                // HANSA_STEERAGE=1 draws them)
                 var surf = SurfacesOf(def, Path.Combine(root, "assets", "hansa"));
                 var unmet = new List<string>();
                 foreach (var t in line.Where(b => b.Row == 2))
                 {
                     var drawn = l.DrawnClip(t, surf) ?? t.Clip;
-                    for (double al = t.Z - 0.25; al <= t.Z + 0.25 + 1e-6; al += 0.125)
+                    if (Environment.GetEnvironmentVariable("HANSA_STEERAGE") != null)
+                    {
+                        DumpPlace(def, t, drawn);
+                        Console.WriteLine($"      {t.Id} drawn: " + string.Join(" ", drawn.Select(c => "[" + string.Join(",", c.Select(v => v.ToString("0.####"))) + "]")));
+                    }
+                    // (at the middles of the drawing's fine cells: a sample on the seam of two of its runs is in neither, as at
+                    // z -2.25 since her rib head and railing by the port side drew the run out there higher than the rest)
+                    for (double al = t.Z - 0.25 - 0.5 / MountLayout.DrawCells; al <= t.Z + 0.25; al += 0.125)
                     {
                         var over = drawn.Where(c => al > c[0] && al < c[2]).ToList();
                         double tp = over.Count == 0 ? double.NaN : over.Max(c => c[3]);
