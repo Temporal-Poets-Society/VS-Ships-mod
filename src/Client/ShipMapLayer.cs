@@ -174,18 +174,18 @@ namespace Hansa
             if (ep.MountedOn is not ShipSeat seat || seat.Ship is not EntityShip ship || ship.Def == null || ship.GoneDown) return;
             Screen(map, ship.Pos.X, ship.Pos.Z, out float sx, out float sy);
             double g = GuiElement.scaled(1), yaw = ship.Pos.Yaw;
-            var (bx, bz) = HelmMath.Bow(yaw);
-            var (stx, stz) = HelmMath.Starboard(yaw);
-            float Turn(double rel) => (float)Math.Atan2(bz * Math.Cos(rel) + stz * Math.Sin(rel), bx * Math.Cos(rel) + stx * Math.Sin(rel));
-            var w = Sys?.Sea?.WindAt(ship.Pos.X, ship.Pos.Z);
-            if (w != null && w.Value.Strength >= 0.02 && ship.SailByWind && ship.MastUp && ship.Def.Sailing != null)
+            float Turn(double rel) => (float)HelmMath.MapAngle(rel, yaw);
+            // (the wind her sails and the panel use: WindHere)
+            var w = ship.WindHere(ship.Pos.X, ship.Pos.Z);
+            if (w.Strength >= 0.02 && ship.SailByWind && ship.MastUp && ship.Def.Sailing != null)
             {
-                HelmMath.NoGoWedge(w.Value.X, w.Value.Z, yaw, ship.SailingNow.NoGo, out double from, out double to);
-                int deg = Math.Clamp((int)Math.Round((to - from) * 90 / Math.PI), 1, 179);
+                // (after 0.1.0-dev.5) the fan as wide as the panel's wedge: till then it was built from the half-angle, half as wide
+                HelmMath.MapNoGo(w.X, w.Z, yaw, ship.SailingNow.NoGo, out double centre, out double width);
+                int deg = HelmMath.FanDegrees(width);
                 if (!wedges.TryGetValue(deg, out var fan)) wedges[deg] = fan = capi.Render.UploadMesh(FanMesh(deg * Math.PI / 180));
                 float r = (float)(44 * g);
                 prog.Uniform("rgbaIn", new Vec4f(0.95f, 0.15f, 0.1f, 0.35f));
-                mat.Set(capi.Render.CurrentModelviewMatrix).Translate(sx, sy, DepthLabel - 0.5f).RotateZ(Turn((from + to) / 2)).Scale(r, r, 1);
+                mat.Set(capi.Render.CurrentModelviewMatrix).Translate(sx, sy, DepthLabel - 0.5f).RotateZ((float)centre).Scale(r, r, 1);
                 prog.UniformMatrix("modelViewMatrix", mat.Values);
                 capi.Render.RenderMesh(fan);
             }

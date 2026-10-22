@@ -84,6 +84,48 @@ namespace Hansa
             to = centre + half;
         }
 
+        /// <summary>
+        /// (after 0.1.0-dev.5) A direction relative to her bow (radians clockwise, as <see cref="Relative"/>) as the map draws
+        /// it: radians from the map's +x (east) toward its +y (south, down the screen), what GL's RotateZ turns a mesh
+        /// along +x by.
+        /// </summary>
+        public static double MapAngle(double rel, double yaw)
+        {
+            var b = Bow(yaw);
+            var s = Starboard(yaw);
+            double c = Math.Cos(rel), sn = Math.Sin(rel);
+            return Math.Atan2(b.Z * c + s.Z * sn, b.X * c + s.X * sn);
+        }
+
+        /// <summary>
+        /// (after 0.1.0-dev.5) A direction relative to her bow as the wind panel's card draws it (her bow up): cairo's angle,
+        /// radians clockwise from the card's +x (right).
+        /// </summary>
+        public static double CardAngle(double rel) => rel - Math.PI / 2;
+
+        /// <summary>
+        /// (after 0.1.0-dev.5) The no-go wedge on the map: its centre (<see cref="MapAngle"/>) and its whole width (radians),
+        /// the same wedge as the wind panel's (<see cref="CardNoGo"/>). The user (0.1.0-dev.5): "red wind zone does not
+        /// match minimap and HUD": the map's fan had been built half as wide.
+        /// </summary>
+        public static void MapNoGo(double windX, double windZ, double yaw, double noGoDeg, out double centre, out double width)
+        {
+            NoGoWedge(windX, windZ, yaw, noGoDeg, out double from, out double to);
+            centre = MapAngle((from + to) / 2, yaw);
+            width = to - from;
+        }
+
+        /// <summary>(after 0.1.0-dev.5) The no-go wedge on the wind panel's card: cairo's angles (<see cref="CardAngle"/>) from and to.</summary>
+        public static void CardNoGo(double windX, double windZ, double yaw, double noGoDeg, out double from, out double to)
+        {
+            NoGoWedge(windX, windZ, yaw, noGoDeg, out double f, out double t);
+            from = CardAngle(f);
+            to = CardAngle(t);
+        }
+
+        /// <summary>(after 0.1.0-dev.5) The map fan's whole width in whole degrees (its mesh is cached by it).</summary>
+        public static int FanDegrees(double width) => Math.Clamp((int)Math.Round(width * 180 / Math.PI), 1, 359);
+
         /// <summary>Does the wedge (from..to, radians) cover this relative direction?</summary>
         public static bool InWedge(double rel, double from, double to)
         {

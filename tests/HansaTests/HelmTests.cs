@@ -106,6 +106,52 @@ namespace HansaTests
                 Check(wrong == 0, $"the wind panel's no-go wedge (the true wind ± {sd.NoGo}°) covers her bow exactly when she's in irons ({n - wrong} of {n} winds and headings)");
             }
 
+            // (after 0.1.0-dev.5, the user: "red wind zone does not match minimap and HUD") the map's no-go fan and the wind
+            // panel's are one wedge: the same width (the map's had been half as wide), the card turned to her heading lying
+            // on the map's, its edges the headings where the sailing model's true wind angle is the no-go angle, its middle
+            // head to wind; for the caravel's 60°, the carrack's 67° and this design's, at headings and winds all round
+            {
+                double Wrap(double a) => Math.IEEERemainder(a, 2 * Math.PI);
+                // a heading on the map (an angle from east toward south) as her yaw: the bow (sin yaw, cos yaw) = (cos a, sin a)
+                double YawOf(double mapAngle) => Math.Atan2(Math.Cos(mapAngle), Math.Sin(mapAngle));
+                int wrong = 0, n = 0;
+                string first = null;
+                foreach (double noGo in new double[] { 60, 67, sd.NoGo })
+                {
+                    var d = sd.Clone();
+                    d.NoGo = (float)noGo;
+                    for (double yaw = -3; yaw < 3.2; yaw += 0.41)
+                        for (double wa = 3; wa < 360; wa += 23)
+                        {
+                            var w = Sea.Wind.FromCompass(wa, 0.15);
+                            HelmMath.MapNoGo(w.X, w.Z, yaw, d.NoGo, out double centre, out double width);
+                            HelmMath.CardNoGo(w.X, w.Z, yaw, d.NoGo, out double k0, out double k1);
+                            // the card is bow-up: turned so its up lies along her bow on the map, its angles are the map's
+                            double turn = HelmMath.MapAngle(0, yaw) - HelmMath.CardAngle(0);
+                            double e0 = centre - width / 2, e1 = centre + width / 2;
+                            bool same = Math.Abs(width - 2 * noGo * Math.PI / 180) < 1e-9 && HelmMath.FanDegrees(width) == (int)Math.Round(2 * noGo)
+                                        && Math.Abs(Wrap(k0 + turn - e0)) < 1e-9 && Math.Abs(Wrap(k1 + turn - e1)) < 1e-9;
+                            double a0 = Sailing.WindAngle(w.X, w.Z, YawOf(e0), out _), a1 = Sailing.WindAngle(w.X, w.Z, YawOf(e1), out _);
+                            double ac = Sailing.WindAngle(w.X, w.Z, YawOf(centre), out _);
+                            bool model = Math.Abs(a0 - noGo) < 1e-6 && Math.Abs(a1 - noGo) < 1e-6 && ac < 1e-6
+                                         && Sailing.Point(Sailing.WindAngle(w.X, w.Z, YawOf(centre + width / 2 * 0.98), out _), d) == Hansa.PointOfSail.InIrons
+                                         && Sailing.Point(Sailing.WindAngle(w.X, w.Z, YawOf(centre + width / 2 * 1.02), out _), d) != Hansa.PointOfSail.InIrons;
+                            n++;
+                            if (!(same && model)) { wrong++; first ??= $" first: no-go {noGo}°, yaw {yaw:0.00}, wind from {wa}°: map {width * 180 / Math.PI:0.0}° wide, edges at {a0:0.0}°/{a1:0.0}° off the wind"; }
+                        }
+                }
+                // the user's case: heading NE, the wind from the SE (5 kn), the caravel's 60°: the bow directions from 75° to 195°
+                var se = Sea.Wind.FromCompass(135, 0.15);
+                double yawNE = YawOf(-Math.PI / 4);
+                HelmMath.MapNoGo(se.X, se.Z, yawNE, 60, out double cNE, out double wNE);
+                double Bearing(double mapAngle) => Sea.Compass.Bearing(Math.Cos(mapAngle), Math.Sin(mapAngle));
+                bool user = Math.Abs(Sea.Compass.Bearing(HelmMath.Bow(yawNE).X, HelmMath.Bow(yawNE).Z) - 45) < 1e-6 && Sea.Compass.Name(se.FromDegrees) == "SE"
+                            && Math.Abs(Bearing(cNE - wNE / 2) - 75) < 1e-6 && Math.Abs(Bearing(cNE + wNE / 2) - 195) < 1e-6
+                            && Math.Abs(HelmMath.Relative(-se.X, -se.Z, yawNE) - Math.PI / 2) < 1e-9;     // (from her starboard beam)
+                Check(wrong == 0 && user, $"the map's no-go fan and the wind panel's wedge are one: the true wind ± the no-go angle, as wide, turned alike, edged where she'd be in irons ({n - wrong} of {n}){first}"
+                    + $"; heading NE with the wind from the SE the caravel's spans {Bearing(cNE - wNE / 2):0}°–{Bearing(cNE + wNE / 2):0}°");
+            }
+
             // the map: her plan turned by π/2 - yaw (GL's RotateZ on the map's x, z) puts her bow and starboard where they are
             bool map = true;
             for (int i = 0; i < 12; i++)
