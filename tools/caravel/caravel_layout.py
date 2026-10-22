@@ -516,7 +516,7 @@ def main():
         up = "-x" if hx2 < fx_ else "+x"
         at_x = fx_ / 1000.0 - 0.5 if up == "-x" else fx_ / 1000.0 + 0.5
         modular.append({"kind": "stair", "at": [r4(at_x), r4(F.y_of(fz_)), r4(-st.get("y", 0.0) / 1000.0)], "up": up,
-                        "rise": r4((hz_ - fz_) / 1000.0), "length": 2, "code": "stair-" + st["name"]})
+                        "rise": r4((hz_ - fz_) / 1000.0), "length": int(round(abs(hx2 - fx_) / 1000.0)), "code": "stair-" + st["name"]})
     hxs, hys = LAY["hatch"]["x"], LAY["hatch"]["y"]
     hzc = -(hys[0] + hys[1]) / 2000.0                  # (model Y port = game z negative)
     modular.append({"kind": "hatch", "at": [r4((hxs[0] + hxs[1]) / 2000.0), r4(deck), r4(hzc)],

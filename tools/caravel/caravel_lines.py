@@ -65,8 +65,10 @@ QD_GUN_CELLS = [-11, -9]                 # quarterdeck; the railing is open over
 # rising aft in it from its foot in cell -6 out onto cell -8 of the main deck, beside the mizzen.
 HATCH = {"x": [-7, -4], "y": [0.5, 1.5]}
 STAIRS = [
-    {"name": "quarterdeck", "cell": [-5, -1], "foot": [-3.0, Z_DECK], "head": [-5.0, Z_QD], "y": -1.0},
-    {"name": "hold", "cell": [-7, 1], "foot": [-5.0, Z_HOLD], "head": [-7.0, Z_DECK], "y": 1.0},
+    # (22 October 2026, chalk note 36, the user's OK for the step it needs) the one-cell ship's stair, about 72 degrees:
+    # its head where it was, its foot a cell nearer
+    {"name": "quarterdeck", "cell": [-5, -1], "foot": [-4.0, Z_DECK], "head": [-5.0, Z_QD], "y": -1.0},
+    {"name": "hold", "cell": [-7, 1], "foot": [-6.0, Z_HOLD], "head": [-7.0, Z_DECK], "y": 1.0},
 ]
 # 10) gates in the waist's bulwark with a rope ladder down the side (the user, 18 October)
 GATE_CELL = -1

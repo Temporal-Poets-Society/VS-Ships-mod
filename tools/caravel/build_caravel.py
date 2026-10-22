@@ -358,12 +358,23 @@ SKETCH = {
 }
 
 
+YARD_SCALE = 0.85
+
+
 def lateen_points(key, r, name):
     """A lateen yard straight from its tack to its peak, slung where it crosses its mast; the sail tack-peak-clew."""
     sk = SKETCH[key]
     x = M[key]["cell"] * 1000 + 500
     (tx, tz), (px, pz) = sk["tack"], sk["peak"]
     cross = tz + (pz - tz) * (tx - x) / (tx - px)
+    # (22 October 2026, the user's choice: the main yard 1.2 times her length looked too long; both shortened by 15 %)
+    # the yard, its sail's corners and where its sail is cut drawn in toward where the yard crosses its mast
+    k = YARD_SCALE
+    tx, tz = x + k * (tx - x), cross + k * (tz - cross)
+    px, pz = x + k * (px - x), cross + k * (pz - cross)
+    clew = (x + k * (sk["clew"][0] - x), cross + k * (sk["clew"][1] - cross))
+    sk = dict(sk, tack=(tx, tz), peak=(px, pz), clew=clew,
+              **({"sail_to": x + k * (sk["sail_to"] - x)} if sk.get("sail_to") is not None else {}))
     angle = math.degrees(math.atan2(pz - tz, tx - px))
     fore, aft = math.hypot(tx - x, cross - tz), math.hypot(x - px, pz - cross)
     yard, sl, _, _ = lateen(M[key]["cell"], cross, fore, aft, angle, sk["clew"], r, name=name, sail_to=sk.get("sail_to"))
