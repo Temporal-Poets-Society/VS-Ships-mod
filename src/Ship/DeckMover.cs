@@ -533,4 +533,75 @@ namespace Hansa
             return Math.Sqrt(dx * dx + dy * dy + dz * dz);
         }
     }
+    /// <summary>
+    /// (22 October 2026, the user: "Items cannot be dropped and picked on ship - they fall through") A thing lying loose
+    /// aboard, a vanilla dropped item: a small box that falls, slides and rests against her voxels in her level ship-local
+    /// frame, as <see cref="DeckMover"/> walks a player. X, Y, Z is the middle of its bottom; speeds in blocks per second.
+    /// </summary>
+    public class DeckItemMover
+    {
+        public double X, Y, Z;
+        public double VX, VY, VZ;
+        public bool OnGround;
+        public readonly double HalfWidth, Height;
+
+        public DeckItemMover(double x, double y, double z, double halfWidth = 0.25, double height = 0.25)
+        {
+            X = x; Y = y; Z = z;
+            HalfWidth = halfWidth;
+            Height = height;
+        }
+
+        /// <summary>Is she under it: inside her footprint, with something of her below it to land on?</summary>
+        public bool Over(VoxelGrid g)
+        {
+            if (X < g.OX || X > g.MaxX || Z < g.OZ || Z > g.MaxZ || Y < g.OY) return false;
+            return g.Collides(X - HalfWidth, g.OY, Z - HalfWidth, X + HalfWidth, Y + 0.01, Z + HalfWidth);
+        }
+
+        public bool Stuck(VoxelGrid g) => g.Collides(X - HalfWidth, Y, Z - HalfWidth, X + HalfWidth, Y + Height, Z + HalfWidth);
+
+        /// <summary>
+        /// Started inside her (dropped against a bulwark, a broken block's drop in its own cell): lifted clear, at most
+        /// <paramref name="up"/> blocks. False if there's no room that near.
+        /// </summary>
+        public bool Free(VoxelGrid g, double up = 1.0)
+        {
+            double y0 = Y;
+            for (double d = 0; d <= up + 1e-9; d += g.V / 2)
+            {
+                Y = y0 + d;
+                if (!Stuck(g)) return true;
+            }
+            Y = y0;
+            return false;
+        }
+
+        /// <returns>False when it has left her: nothing of her under it any more (over the side, off her ends).</returns>
+        public bool Step(VoxelGrid g, double dt)
+        {
+            // on her deck it stops within a block or so; in the air it hardly slows
+            double a = Math.Exp(-(OnGround ? 10 : 0.5) * dt);
+            VX *= a;
+            VZ *= a;
+            if (OnGround && VX * VX + VZ * VZ < 1e-4) { VX = 0; VZ = 0; }
+            VY = Math.Max(VY - DeckMover.Gravity * dt, -DeckMover.TerminalFall);
+
+            double dy = VY * dt;
+            double my = g.Sweep(1, dy, X - HalfWidth, Y, Z - HalfWidth, X + HalfWidth, Y + Height, Z + HalfWidth);
+            Y += my;
+            if (my != dy) { OnGround = dy < 0; VY = 0; }
+            else OnGround = false;
+
+            double dx = VX * dt;
+            double mx = g.Sweep(0, dx, X - HalfWidth, Y, Z - HalfWidth, X + HalfWidth, Y + Height, Z + HalfWidth);
+            X += mx;
+            if (mx != dx) VX = 0;
+            double dz = VZ * dt;
+            double mz = g.Sweep(2, dz, X - HalfWidth, Y, Z - HalfWidth, X + HalfWidth, Y + Height, Z + HalfWidth);
+            Z += mz;
+            if (mz != dz) VZ = 0;
+            return Over(g);
+        }
+    }
 }

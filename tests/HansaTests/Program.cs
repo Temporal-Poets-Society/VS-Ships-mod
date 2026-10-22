@@ -350,6 +350,7 @@ namespace HansaTests
             WorkingBlocks(def);
             Modular(def, root);
             ShipStairs(def);
+            DeckItems(root);
             CastleGunPorts(root);
             Notes0324(root);
             Notes0325(root);

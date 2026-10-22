@@ -165,6 +165,15 @@ namespace Hansa
 
             Try("deck walking", () => harmony.Patch(AccessTools.Method(typeof(EntityBehaviorPlayerPhysics), "SimPhysics"),
                 prefix: new HarmonyMethod(typeof(Patches), nameof(SimPhysicsPrefix))));
+            // ((22 October 2026) things dropped aboard lie on her decks: DeckItems moves them, vanilla's physics leaves them be)
+            Try("things dropped aboard", () =>
+            {
+                harmony.Patch(AccessTools.Method(typeof(EntityBehaviorPassivePhysics), nameof(EntityBehaviorPassivePhysics.OnPhysicsTick)),
+                    prefix: new HarmonyMethod(typeof(Patches), nameof(DeckItemPhysicsPrefix)));
+                harmony.Patch(AccessTools.Method(typeof(EntityBehaviorPassivePhysics), nameof(EntityBehaviorPassivePhysics.HandleRemotePhysics)),
+                    prefix: new HarmonyMethod(typeof(Patches), nameof(DeckItemRemotePrefix)));
+                DeckItemsPatched = true;
+            });
             Try("wait for ship before mounting", () => harmony.Patch(AccessTools.Method(typeof(EntityAgent), "updateMountedState"),
                 prefix: new HarmonyMethod(typeof(Patches), nameof(UpdateMountedStatePrefix))));
             Try("sleep screen in bunks", () => harmony.Patch(AccessTools.Method(typeof(ModSleeping), "FastTick"),
@@ -285,6 +294,16 @@ namespace Hansa
                 ShipClientSystem.Instance?.StepLocal(ep, dt);
             }
         }
+
+        /// <summary>Both of the patches for things dropped aboard took (for the self-test).</summary>
+        public static bool DeckItemsPatched;
+
+        /// <summary>Server: an item lying aboard is moved by DeckItems, not by vanilla's physics (which would drop it through her).</summary>
+        static bool DeckItemPhysicsPrefix(EntityBehaviorPassivePhysics __instance) =>
+            !(__instance.Entity?.World?.Side == EnumAppSide.Server && DeckItems.HeldOnServer(__instance.Entity));
+
+        /// <summary>Client: an item the server says is aboard is drawn on her deck (DeckItems.ClientFrame), not run through vanilla's physics.</summary>
+        static bool DeckItemRemotePrefix(EntityBehaviorPassivePhysics __instance) => !DeckItems.ClientRemote(__instance.Entity);
 
         /// <summary>On clients the ship entity may arrive after a player's "mounted on" info; don't drop it, wait.</summary>
         static bool UpdateMountedStatePrefix(EntityAgent __instance)

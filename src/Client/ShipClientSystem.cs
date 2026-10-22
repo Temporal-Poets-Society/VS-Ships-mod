@@ -318,6 +318,7 @@ namespace Hansa
         {
             if (capi.IsGamePaused) return;
             foreach (var ship in Ships) ship.ClientFrame(dt);
+            DeckItems.ClientFrame(capi);
             Cannons?.Update();
 
             var ep = capi.World.Player?.Entity;

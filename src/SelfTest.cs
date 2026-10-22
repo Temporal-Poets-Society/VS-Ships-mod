@@ -408,6 +408,11 @@ namespace Hansa
             ship.SailSet = 2;
             var start = ship.Pos.XYZ;
             double startBase = ship.BaseY;
+            // (22 October 2026, the user: "Items cannot be dropped and picked on ship - they fall through") as she gets
+            // under way, sticks tossed on her main deck and over her side
+            var (dropped, overSide) = DropAboard(def, ship);
+            var overFrom = overSide.Pos.XYZ;
+            Vec3d droppedAt = null, shipAt = null;
             int t = 0;
             double maxSpeed = 0;
             long id = 0;
@@ -415,9 +420,22 @@ namespace Hansa
             {
                 t++;
                 maxSpeed = Math.Max(maxSpeed, ship.Speed);
-                if (t == 60) Log($"after 6 s: x {ship.Pos.X - start.X:0.0} blocks, speed {ship.Speed:0.00}, sails {ship.SailFraction:0.00}");
+                if (t == 60)
+                {
+                    Log($"after 6 s: x {ship.Pos.X - start.X:0.0} blocks, speed {ship.Speed:0.00}, sails {ship.SailFraction:0.00}");
+                    DroppedAboard(ship, def, dropped, "after 6 s under sail", null, null);
+                    // (with no player near, an item is Inactive: vanilla's physics leaves it hanging where it was dropped)
+                    double left = Math.Sqrt(Math.Pow(overSide.Pos.X - overFrom.X, 2) + Math.Pow(overSide.Pos.Z - overFrom.Z, 2));
+                    Check(overSide.Alive && !DeckItems.IsAboard(overSide, ship) && ship.Pos.X - start.X > 3 && left < 1,
+                        $"one dropped over her side isn't hers: she leaves it behind (it moved {left:0.0} blocks, she went {ship.Pos.X - start.X:0.0})");
+                    droppedAt = dropped.Pos.XYZ;
+                    shipAt = ship.Pos.XYZ;
+                }
                 if (t < 400 && !ship.Aground) return;
                 sapi.Event.UnregisterGameTickListener(id);
+                if (droppedAt != null) DroppedAboard(ship, def, dropped, "when she has run aground", droppedAt, shipAt);
+                dropped.Die(EnumDespawnReason.Removed);
+                overSide.Die(EnumDespawnReason.Removed);
 
                 Check(ship.Pos.X - start.X > 15, $"ship sailed east {ship.Pos.X - start.X:0.0} blocks (top speed {maxSpeed:0.00} b/s)");
                 Check(Math.Abs(ship.Pos.Z - start.Z) < 0.5, "held its course");
@@ -515,6 +533,46 @@ namespace Hansa
                     }, 100);
                 }, 100);
             }, 100);
+        }
+
+        /// <summary>
+        /// A stick tossed on her main deck (a little aft of her middle, off her middle line and her masts, from a man's
+        /// height, a little forward and up as Q throws it), and one dropped over her side into the sea.
+        /// </summary>
+        (EntityItem, EntityItem) DropAboard(ShipDefinition def, EntityShip ship)
+        {
+            var stick = new ItemStack(sapi.World.GetItem(new AssetLocation("game", "stick")), 3);
+            ship.LocalToWorld(-2.5, def.DeckY + 1.5, 1.25, out double x, out double y, out double z);
+            var toss = ship.LocalDirToWorld(0.05, 0.05, 0);
+            var onDeck = sapi.World.SpawnItemEntity(stick, new Vec3d(x, y, z), toss) as EntityItem;
+            ship.LocalToWorld(-2.5, def.DeckY + 1.5, def.Beam / 2 + 2, out x, out y, out z);
+            var over = sapi.World.SpawnItemEntity(stick.Clone(), new Vec3d(x, y, z), new Vec3d()) as EntityItem;
+            return (onDeck, over);
+        }
+
+        /// <summary>
+        /// The stick tossed on her deck lies on it, aboard her, where a player beside it would pick it up (vanilla collects
+        /// what's within 1.5 blocks); since <paramref name="itemFrom"/> it has gone as far as she has.
+        /// </summary>
+        void DroppedAboard(EntityShip ship, ShipDefinition def, EntityItem item, string when, Vec3d itemFrom, Vec3d shipFrom)
+        {
+            var g = ship.Grid;
+            if (!DeckItems.IsAboard(item, ship) || !DeckItems.PlaceAboard(item, out var l, out bool rest))
+            {
+                Check(false, $"an item dropped on her deck is aboard {when} ({(item.Alive ? "not aboard" : "gone")}, at y {item.Pos.Y - ship.Pos.Y:0.00} from her)");
+                return;
+            }
+            var here = ship.WorldToLocal(item.Pos.X, item.Pos.Y, item.Pos.Z);
+            bool lies = rest && g.Collides(l.X - 0.2, l.Y - 0.05, l.Z - 0.2, l.X + 0.2, l.Y, l.Z + 0.2) && here.DistanceTo(l) < 0.01 && l.Y > def.DeckY - 0.5;
+            Check(item.Alive && lies, $"an item dropped on her deck lies on it {when} (ship-local {l.X:0.00} {l.Y:0.00} {l.Z:0.00}, her deck at {def.DeckY:0.00}, {(rest ? "at rest" : "moving")})");
+            ship.LocalToWorld(l.X + 0.6, l.Y + 0.9, l.Z, out double px, out double py, out double pz);
+            bool near = sapi.World.GetEntitiesAround(new Vec3d(px, py, pz), 1.5f, 1.5f, e => e == item && e.CanCollect(null)).Length == 1;
+            Check(near && Patches.DeckItemsPatched, "a player standing beside it on her deck would pick it up (within vanilla's reach for collecting items)");
+            if (itemFrom != null)
+            {
+                double went = item.Pos.XYZ.DistanceTo(itemFrom), she = ship.Pos.XYZ.DistanceTo(shipFrom);
+                Check(she > 5 && Math.Abs(went - she) < 0.05, $"it rode along with her ({went:0.00} blocks as she went {she:0.00})");
+            }
         }
 
         /// <summary>

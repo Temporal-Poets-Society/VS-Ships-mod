@@ -22,6 +22,7 @@
     <Compile Include="CaravelInspect.cs" />
     <Compile Include="ModularTests.cs" />
     <Compile Include="StairTests.cs" />
+    <Compile Include="DeckItemTests.cs" />
     <Compile Include="DamageTests.cs" />
     <Compile Include="FloodReport.cs" />
     <Compile Include="DamageSkinTests.cs" />
