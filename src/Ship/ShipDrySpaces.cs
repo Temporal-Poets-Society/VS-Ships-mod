@@ -17,6 +17,9 @@ namespace Hansa
         /// <summary>The ships on this side, taken again whenever one comes or goes.</summary>
         public void Set(IEnumerable<EntityShip> list) => ships = list.ToArray();
 
+        /// <summary>(22 October 2026) Any ships on this side (ShipDryParticles asks before it looks at a particle's block).</summary>
+        public bool Any => ships.Length > 0;
+
         public bool IsDry(double x, double y, double z)
         {
             foreach (var ship in ships)

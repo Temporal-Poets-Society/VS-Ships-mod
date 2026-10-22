@@ -84,7 +84,7 @@ namespace Hansa
                 var eye = sapi.World.DefaultSpawnPosition.XYZ.Add(0, 2, 0);
                 sapi.World.RayTraceForSelection(new Ray(eye, new Vec3d(0, -5, 0)), ref bs, ref es);
             });
-            Check(clientPatches == null, "the client's patches (the crosshair on ships, the look-at box, the view on a rolling deck) find what they patch" +
+            Check(clientPatches == null, "the client's patches (the crosshair on ships, the look-at box, the view on a rolling deck, particles in her dry hold) find what they patch" +
                 (clientPatches != null ? ": " + clientPatches : ""));
             Check(Patches.ReachPatched, "the server measures the reach to a ship to her hull (anti-abuse), not to a box round her middle");
             ShadowPlans(mod);
@@ -333,6 +333,7 @@ namespace Hansa
             Decorating(ship, def);
             ShipSpawnChecks(mod, ship, def);
             DryHold(ship, def);
+            DryParticleChecks(mod, ship, def);
 
             // put something in the hold
             var hold = ship.Storages["hold"];

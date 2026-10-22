@@ -76,6 +76,8 @@ namespace Hansa
             Instance = this;
             mod = api.ModLoader.GetModSystem<HansaMod>();
             mod.Client = this;
+            // (22 October 2026) particles in her dry hold behave as in air (ShipDryParticles)
+            ShipDryParticles.Dry = mod.Dry;
 
             Cannons = new CannonClient(api);
             channel = api.Network.GetChannel(HansaMod.ChannelName)
@@ -229,6 +231,7 @@ namespace Hansa
                 capi.Input.InWorldAction -= OnInWorldAction;
             }
             if (renderer != null) sea?.RemoveWaterClipSource(renderer);
+            if (ShipDryParticles.Dry == mod?.Dry) ShipDryParticles.Dry = null;
             renderer?.Dispose();
             Cannons?.Dispose();
             Chalk?.Dispose();
