@@ -310,7 +310,8 @@ namespace HansaTests
         {
             Console.WriteLine($"modular design {md.Code}");
             var l = md.Mounts;
-            Check(md.Grid != null && md.Grid.CountSolid() > 20000 && md.Fixture("helm") != null, $"{md.Code}: her collision decoded, a helm");
+            // ((21 October 2026) any ship's size: the caravel's collision is some 16 000 voxels, a carrack's over 20 000)
+            Check(md.Grid != null && md.Grid.CountSolid() > 5000 && md.Fixture("helm") != null, $"{md.Code}: her collision decoded, a helm");
             ModularEntries(md);
             // (0.3.17) the castle decks' front edges: a railing place on every cell's front (the binnacle's and the helm's
             // margins kept it from the quarterdeck's front by them: note 155)
@@ -384,7 +385,9 @@ namespace HansaTests
             Console.WriteLine($"         {raked} railings raked beside her stairs");
             Check(blocked.Count == 0 && byEntry.Count + besideStairs.Count == (md.ModularPieces?.Count(x => x.Kind != "hatch") ?? 0), $"{md.Code}: all {byEntry.Count} modular pieces laid ({blocked.Count} in another's way; the hatches over her deck cells: DesignSlots)");
             var doors = byEntry.Where(kv => kv.Key.Kind == "door").ToList();
-            Check(doors.Count > 0 && doors.All(kv => kv.Value.Role == PieceRole.Door && kv.Value.Mounts.Length == 2 &&
+            // ((21 October 2026) a design with door entries: the caravel has none, carrack-m's cabins have theirs)
+            bool hasDoors = md.ModularPieces?.Any(x => x.Kind == "door") == true;
+            if (hasDoors) Check(doors.Count > 0 && doors.All(kv => kv.Value.Role == PieceRole.Door && kv.Value.Mounts.Length == 2 &&
                                                      (kv.Key.Into == null || kv.Value.Dir == MountLayout.DirOf(kv.Key.Into))),
                 $"{md.Code}: her {doors.Count} doors laid, two rows each, swinging where their entries say ({string.Join(", ", doors.Select(kv => kv.Key.Key + " " + MountLayout.DirCode[kv.Value.Dir]))})");
             // her collision with the pieces in it (as her grid is built: doors open for walking, shut for sealing)
@@ -576,7 +579,7 @@ namespace HansaTests
                 }
                 kv.Value.Open = false;
             }
-            Check(opens > 0, $"{md.Code}: a door opened opens a room ({opens} of {doors.Count} doors do)");
+            if (hasDoors) Check(opens > 0, $"{md.Code}: a door opened opens a room ({opens} of {doors.Count} doors do)");
             // (0.3.18, note 165) her hearth, oven and flue as pieces: one of each, the hearth's smoke out through its flue
             var hearths = byEntry.Where(kv => kv.Key.Kind == "hearth").Select(kv => kv.Value).ToList();
             var ovens = byEntry.Where(kv => kv.Key.Kind == "oven").Select(kv => kv.Value).ToList();

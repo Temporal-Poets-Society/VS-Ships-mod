@@ -64,7 +64,7 @@ TEX = ["game:block/wood/planks/oak1++3~hansa:block/tar", "game:block/wood/planks
        "game:block/cloth/reedrope", "game:block/metal/plate/tinbronze", "game:block/metal/tarnished/iron"]
 T_HULL, T_HULL2, T_DECK, T_DECK2, T_TIMBER, T_SPAR, T_SAIL, T_COPPER, T_ROPE, T_BRONZE, T_IRON = range(len(TEX))
 BODY_TEX = {"Shell": T_HULL, "Decks": T_DECK, "Ribs": T_TIMBER, "Beams": T_TIMBER, "Backbone": T_TIMBER,
-            "Railings": T_DECK2, "Stairs": T_DECK2, "Gates": T_DECK2}
+            "Railings": T_DECK2, "Stairs": T_DECK2, "Gates": T_ROPE}   # (the Gates body: the rope ladders)
 
 groups = {}
 
@@ -89,6 +89,32 @@ def uv_box(p, n, origin):
     if ax == 1:
         return (lx * 16, (1 - lz) * 16)
     return (ly * 16, (1 - lz) * 16)
+
+
+def uv_grain(p, n, origin, grain):
+    """(21 October 2026, chalk note 20: "texture directions on ribs are wrong") As uv_box, but the wood's grain (the
+    texture's u) along the piece's own length: grain 0 X, 1 Y, 2 Z (model axes). A face across the grain (end grain)
+    keeps uv_box's way."""
+    ax = max(range(3), key=lambda a: abs(n[a]))
+    l = [(p[a] - origin[a]) / 1000.0 for a in range(3)]
+    if grain == ax:
+        return uv_box(p, n, origin)
+    other = [a for a in range(3) if a != ax and a != grain][0]
+    return (l[grain] * 16, (1 - l[other]) * 16 if other == 2 else l[other] * 16)
+
+
+def piece_grain(body, so):
+    """Which way a piece's wood runs: the shell's and the decks' planks along the keel; a beam athwartships; a rib, the
+    backbone and a carling along their own longest extent in the cell."""
+    if body in ("Shell", "Decks"):
+        return 0
+    b = so.BoundBox
+    ext = [b.XLength, b.YLength, b.ZLength]
+    if body == "Ribs":
+        return 1 if ext[1] >= ext[2] else 2
+    if body == "Beams":
+        return 0 if ext[0] > 1.5 * ext[1] else 1
+    return max(range(3), key=lambda a: ext[a])
 
 
 def border_axis(pts):
@@ -132,6 +158,77 @@ cells = json.load(open(os.path.join(MOD, "cells.json")))
 pieces = Part.read(os.path.join(MOD, "cells.brep")).Solids
 log("cells", cells["summary"]["cells"], "pieces", len(pieces))
 cell_solids = {tuple(c["cell"]): [pieces[p["index"]] for p in c["pieces"]] for c in cells["cells"]}
+# (21 October 2026, chalk notes 16 and 22) her deck cells as slots (docs/legacy/slots.md): every whole cell of the main
+# deck's and the quarterdeck's planking, but the fixed ones (under a mast, the pump, the capstan, the wheel; the rows of
+# the gun places, whose crews work across the deck; the gates' row); the hatchway's cells are slots that start empty
+FIT = L["layout"]["fittings"]
+DECK_Z = {"main": LV["mainDeck"], "quarterdeck": LV["quarterdeck"]}
+fixed = set()
+for m in L["layout"]["masts"].values():
+    for d_ in DECK_Z:
+        fixed.add((d_, m["cell"], 0))
+for key in ("pump", "capstan", "wheel"):
+    fixed.add((FIT[key]["deck"], FIT[key]["cell"][0], FIT[key]["cell"][1]))
+for c_ in L["layout"]["guns"]:
+    fixed |= {("main", c_, j) for j in range(-4, 5)}
+for c_ in L["layout"]["quarterdeckGuns"]:
+    fixed |= {("quarterdeck", c_, j) for j in range(-4, 5)}
+fixed |= {("main", L["layout"]["gate"]["x"][0] // 1000, j) for j in range(-4, 5)}
+HX = [int(v // 1000) for v in L["layout"]["hatch"]["x"]]
+HY = [int(round(v / 1000 + 0.5)) for v in L["layout"]["hatch"]["y"]]          # Y cells: j spans (j - 0.5 .. j + 0.5) blocks
+hatch_cells = {("main", i, j) for i in range(HX[0], HX[1]) for j in range(HY[0], HY[1])}
+
+
+def deck_of(so):
+    for d_, z in DECK_Z.items():
+        if abs(so.BoundBox.ZMax - z) < 2 and abs(so.BoundBox.ZMin - (z - L["deckThickness"])) < 2:
+            return d_
+    return None
+
+
+deck_piece = {}                      # (deck, i, j) -> the cell's planking piece
+for c in cells["cells"]:
+    for p in c["pieces"]:
+        if p["body"] == "Decks":
+            so = pieces[p["index"]]
+            d_ = deck_of(so)
+            if d_:
+                deck_piece[(d_, c["cell"][0], c["cell"][1])] = so
+
+
+def whole(so, i, j):
+    b = so.BoundBox
+    return (b.XMin <= i * 1000 + 1 and b.XMax >= (i + 1) * 1000 - 1 and b.YMin <= (j - 0.5) * 1000 + 1 and
+            b.YMax >= (j + 0.5) * 1000 - 1 and abs(so.Volume - 1000 * 1000 * L["deckThickness"]) < 0.01 * 1e9 * 0.2)
+
+
+slot_keys = sorted([k for k, so in deck_piece.items() if k not in fixed and whole(so, k[1], k[2])] + sorted(hatch_cells))
+slot_of = {k: n for n, k in enumerate(slot_keys)}
+deck_slots = []
+for (d_, i, j) in slot_keys:
+    top = DECK_Z[d_] / 1000.0 - WL
+    z0 = -(j + 0.5)
+    e = {"id": f"{d_}:{i}:{int(round(z0 - 0.5))}", "deck": d_,
+         "box": [float(i), r4(top - L["deckThickness"] / 1000.0), z0, float(i + 1), r4(top), z0 + 1.0]}
+    if (d_, i, j) in hatch_cells:
+        e["start"] = "empty"
+    deck_slots.append(e)
+log("deck slots", len(deck_slots), "of", len(deck_piece), "deck cells;", len(hatch_cells), "start empty (the hatchway)")
+slot_pairs = {}
+
+
+def add_slot_tri(group, tex, pts, uvs, n, owner, facing):
+    add_tri(group, tex, pts, uvs, n)
+    slot_pairs.setdefault(group, []).extend([owner, facing])
+
+
+def deck_lit(n, c):
+    """A deck face is lit as outside unless it's an underside or under the quarterdeck (the steerage)."""
+    if n[2] < -0.5:
+        return False
+    return not (c[0] < L["quarterdeckFront"] and c[2] < LV["quarterdeck"] - 150)
+
+
 hidden = 0
 for c in cells["cells"]:
     i, j, k = c["cell"]
@@ -142,18 +239,51 @@ for c in cells["cells"]:
         m = mesh_of(so)
         pts_all, facets = m.Topology
         normals = [f.Normal for f in m.Facets]           # (m.Facets builds the whole list on every access)
+        grain = piece_grain(body, so)
+        dk = deck_of(so) if body == "Decks" else None
+        own = slot_of.get((dk, i, j)) if dk else None
         for fi, f in enumerate(facets):
             tri = [pts_all[f[0]], pts_all[f[1]], pts_all[f[2]]]
             tri = [(q.x, q.y, q.z) for q in tri]
             nv = normals[fi]
             n = (nv.x, nv.y, nv.z)
             a = border_axis(tri)
+            cz = sum(q[2] for q in tri) / 3
+            cy = sum(q[1] for q in tri) / 3
+            cx = sum(q[0] for q in tri) / 3
+            uvs = [uv_grain(q, n, origin, grain) for q in tri]
+            if dk is not None:
+                lit = deck_lit(n, (cx, cy, cz))
+                sg = "slot:deck" if lit else "slot:deck:interior"
+                nb = None
+                if a in (0, 1):                   # a side of the cell's planking, on a border toward a neighbour
+                    nb = (dk, i + (1 if n[0] > 0 else -1), j) if a == 0 else (dk, i, j + (1 if n[1] > 0 else -1))
+                if nb is not None:
+                    other = slot_of.get(nb)
+                    if own is not None:
+                        if other is not None:
+                            add_slot_tri(sg, BODY_TEX[body], tri, uvs, n, own, other)
+                        elif nb in deck_piece:
+                            hidden += 1          # toward fixed planking: never seen while it's in
+                        else:
+                            add_slot_tri(sg, BODY_TEX[body], tri, uvs, n, own, -1)
+                        continue
+                    if other is not None:          # fixed planking's edge, seen while that cell is out
+                        add_slot_tri(sg, BODY_TEX[body], tri, uvs, n, -1, other)
+                        continue
+                elif own is not None:
+                    add_slot_tri(sg, BODY_TEX[body], tri, uvs, n, own, -1)
+                    continue
+            if body == "Beams" and n[2] > 0.9:
+                # a beam's or a carling's top under a deck cell: seen only while that cell is out
+                under = next((slot_of[(d_, i, j)] for d_, z in DECK_Z.items()
+                              if (d_, i, j) in slot_of and abs(cz - (z - L["deckThickness"])) < 2), None)
+                if under is not None:
+                    add_slot_tri("slot:deck:interior", BODY_TEX[body], tri, uvs, n, -1, under)
+                    continue
             if a is not None and covered(tri, n, (i, j, k), a, cell_solids):
                 hidden += 1
                 continue
-            cz = sum(q[2] for q in tri) / 3
-            cy = sum(q[1] for q in tri) / 3
-            uvs = [uv_box(q, n, origin) for q in tri]
             if body == "Shell":
                 outward = (n[1] * (1 if cy >= 0 else -1) > 0.25) or n[2] < -0.5 or (n[0] < -0.6 and cz > 2000)
                 if outward and cz < LV["waterline"] + 50:
@@ -166,8 +296,39 @@ for c in cells["cells"]:
                 else:
                     add_tri("exterior", T_HULL2, tri, uvs, n)
             else:
-                grp = "interior" if cz < LV["mainDeck"] - 200 else "exterior"
-                add_tri(grp, BODY_TEX[body], tri, uvs, n)
+                inside = cz < LV["mainDeck"] - 200 or (cx < L["quarterdeckFront"] and cz < LV["quarterdeck"] - 150)
+                if body == "Decks":
+                    inside = not deck_lit(n, (cx, cy, cz))
+                add_tri("interior" if inside else "exterior", BODY_TEX[body], tri, uvs, n)
+
+
+# the hatchway's cells: no planking in the model (they start empty); their planking as a player lays it
+def slot_box_quads(key, n_slot):
+    d_, i, j = key
+    z1 = DECK_Z[d_]
+    z0 = z1 - L["deckThickness"]
+    x0, x1, y0, y1 = i * 1000.0, (i + 1) * 1000.0, (j - 0.5) * 1000.0, (j + 0.5) * 1000.0
+    origin = (x0, y0, (k_ := math.floor(z0 / 1000)) * 1000.0)
+    faces = [((0, 0, 1), [(x0, y0, z1), (x1, y0, z1), (x1, y1, z1), (x0, y1, z1)], None),
+             ((0, 0, -1), [(x0, y0, z0), (x0, y1, z0), (x1, y1, z0), (x1, y0, z0)], None),
+             ((1, 0, 0), [(x1, y0, z0), (x1, y1, z0), (x1, y1, z1), (x1, y0, z1)], (d_, i + 1, j)),
+             ((-1, 0, 0), [(x0, y0, z0), (x0, y0, z1), (x0, y1, z1), (x0, y1, z0)], (d_, i - 1, j)),
+             ((0, 1, 0), [(x0, y1, z0), (x0, y1, z1), (x1, y1, z1), (x1, y1, z0)], (d_, i, j + 1)),
+             ((0, -1, 0), [(x0, y0, z0), (x1, y0, z0), (x1, y0, z1), (x0, y0, z1)], (d_, i, j - 1))]
+    for n, q, nb in faces:
+        facing = -1
+        if nb is not None:
+            if nb in slot_of:
+                facing = slot_of[nb]
+            elif nb in deck_piece:
+                continue
+        sg = "slot:deck" if deck_lit(n, (x0 + 500, y0 + 500, z1 if n[2] >= 0 else z0)) else "slot:deck:interior"
+        for tri in ([q[0], q[1], q[2]], [q[0], q[2], q[3]]):
+            add_slot_tri(sg, T_DECK, tri, [uv_grain(t, n, origin, 0) for t in tri], n, n_slot, facing)
+
+
+for key in sorted(hatch_cells):
+    slot_box_quads(key, slot_of[key])
 log("structure quads", {k: len(v) for k, v in groups.items()}, "border faces hidden by their neighbours", hidden)
 
 # hull damage drawing (no hull slots yet): the shell's outer quads come first in exterior and bottom, its inner first
@@ -198,8 +359,10 @@ def add_shape(group, tex, shape, defl=6.0, cell_uv=True):
         add_tri(group, tex, tri, [uv_box(q, n, origin) for q in tri], n)
 
 
-for name in ("Railings", "Stairs", "Gates"):
+for name in ("Railings", "Gates"):          # (21 October 2026) the stairs are the game's ship's stairs (pieces) now
     add_shape("exterior", BODY_TEX[name], OBJ[name].Shape)
+for side, leaf in zip(("port", "starboard"), OBJ["GateLeaves"].Shape.SubShapes):
+    add_shape("part:gate-" + side, T_DECK2, leaf, 4.0)
 fit = OBJ["Fittings"].Shape.SubShapes            # rudder, tiller, mizzen step
 add_shape("part:rudder", T_TIMBER, fit[0])
 add_shape("part:tiller", T_TIMBER, fit[1])
@@ -212,7 +375,8 @@ add_shape("part:yard-mizzen", T_SPAR, rig[4], 10.0)
 add_shape("exterior", T_SPAR, rig[6], 10.0)
 
 # the guns (20 October 2026): the model's Guns body, run out, four parts a gun (bed, outboard trucks, inboard trucks,
-# barrel) in the report's order; named gun-<side>-<n>, aft to fore along each side
+# barrel) in the report's order; named gun-<side>-<n>, aft to fore along each side. (22 October 2026) caravel_layout.py
+# replaces these meshes and the guns' moving parts with the detailed gun and its lid (caravel_gun.py)
 GF = REP["guns"]
 GG = REP["gunGeometry"]
 gun_subs = OBJ["Guns"].Shape.SubShapes
@@ -242,8 +406,8 @@ def add_sail(group, face):
         add_tri(group, T_SAIL, [tri[0], tri[2], tri[1]], [uvs[0], uvs[2], uvs[1]], (0.0, -1.0, 0.0))
 
 
-add_sail("sail:main", rig[2])
-add_sail("sail:mizzen", rig[5])
+# (21 October 2026) the sails are made by caravel_layout.py (bellied, one-sided as the carrack's: the flat sail drawn
+# both ways round flickered)
 
 
 def add_shot(group, r=0.065, sides=10, rings=8):
@@ -278,15 +442,19 @@ log("all quads", {k: len(v) for k, v in groups.items()})
 
 skin = {"textures": TEX, "groups": groups,
         "hullOut": {"exterior": [0, n_ext], "bottom": [0, n_bot]}, "hullIn": {"interior": [0, n_int]},
-        "hullThickness": L["skin"] / 1000.0}
-with open(os.path.join(ASSETS, "config", "shipmeshes", f"{CODE}.json"), "w") as f:
+        "hullThickness": L["skin"] / 1000.0, "slotQuads": slot_pairs}
+BASE = os.path.join(MOD, "export")
+os.makedirs(BASE, exist_ok=True)
+with open(os.path.join(BASE, "caravel-mesh-base.json"), "w") as f:
     json.dump(skin, f, separators=(",", ":"))
-log("wrote shipmeshes/caravel.json")
+log("wrote export/caravel-mesh-base.json")
 
 # ---------------------------------------------------------------- the voxel grid: rays across the ship through each body
 VOX = 0.25
 SOLID_BODIES = ["Shell", "Backbone", "Ribs", "Beams", "Decks", "Railings"]
-meshes = {n: mesh_of(OBJ[n].Shape, 10.0) for n in SOLID_BODIES}
+# (21 October 2026) each solid of a body on its own: two solids touching (a beam's end cut at the hatch on its carling)
+# give one hit for their shared face, and the parity of the hits along a ray then marked the hatch's gap solid
+meshes = {n: [(so.BoundBox, mesh_of(so, 10.0)) for so in OBJ[n].Shape.Solids] for n in SOLID_BODIES}
 bbs = [OBJ[n].Shape.BoundBox for n in SOLID_BODIES]
 xmin = min(b.XMin for b in bbs) / 1000.0
 xmax = max(b.XMax for b in bbs) / 1000.0
@@ -309,6 +477,16 @@ def mark(i, j, z_lo, z_hi):
         solid[(i * ny + j) * nz + k] = 1
 
 
+rail = bytearray(nx * ny * nz)        # the railings' own voxels, filled down to what they stand on afterwards
+
+
+def mark_rail(i, j, z_lo, z_hi):
+    k0 = max(0, int(math.floor((z_lo - oz) / VOX)))
+    k1 = min(nz - 1, int(math.floor((z_hi - oz) / VOX - 1e-9)))
+    for k in range(k0, k1 + 1):
+        rail[(i * ny + j) * nz + k] = 1
+
+
 rays = 0
 for i in range(nx):
     for j in range(ny):
@@ -316,17 +494,38 @@ for i in range(nx):
             for sv in (0.25, 0.75):
                 X = (ox + (i + su) * VOX) * 1000.0
                 Z = (oy + (j + sv) * VOX + WL) * 1000.0
-                for name, m in meshes.items():
-                    b = OBJ[name].Shape.BoundBox
-                    if X < b.XMin or X > b.XMax or Z < b.ZMin or Z > b.ZMax:
-                        continue
-                    hits = m.foraminate(V(X, 6000.0, Z), V(0, -1, 0))
-                    ys = sorted({round((h[1] if not hasattr(h, "y") else h.y), 1) for h in hits.values()})
-                    rays += 1
-                    for a in range(0, len(ys) - 1, 2):
-                        z0, z1 = -ys[a + 1] / 1000.0, -ys[a] / 1000.0      # game z = -Y: the interval's ends swap
-                        mark(i, j, z0, z1)
-log("voxels: rays", rays, "solid", sum(solid), "of", nx * ny * nz)
+                for name, parts_ in meshes.items():
+                    for b, m in parts_:
+                        if X < b.XMin or X > b.XMax or Z < b.ZMin or Z > b.ZMax:
+                            continue
+                        hits = m.foraminate(V(X, 6000.0, Z), V(0, -1, 0))
+                        ys = sorted({round((h[1] if not hasattr(h, "y") else h.y), 1) for h in hits.values()})
+                        rays += 1
+                        for a in range(0, len(ys) - 1, 2):
+                            z0, z1 = -ys[a + 1] / 1000.0, -ys[a] / 1000.0      # game z = -Y: the interval's ends swap
+                            (mark_rail if name == "Railings" else mark)(i, j, z0, z1)
+# (21 October 2026, chalk note 15) a railing is solid from its deck (or the bulwark it caps) up to its top rail: the
+# mod takes anything with air under it near the deck for a stair's tread and keeps the cells round it clear, so a
+# railing's bars and a cap rail's overhang left the quarterdeck no floor places, and nobody falls through a railing
+filled = 0
+SUPPORT = 6                           # voxels: a railing stands on something within 1.5 blocks under its top
+for i in range(nx):
+    for k in range(nz):
+        top = next((j for j in range(ny - 1, -1, -1) if rail[(i * ny + j) * nz + k]), None)
+        if top is None:
+            continue
+        for j in range(top + 1):
+            if rail[(i * ny + j) * nz + k]:
+                solid[(i * ny + j) * nz + k] = 1
+        sup = next((j for j in range(top - 1, max(-1, top - SUPPORT - 1), -1)
+                    if solid[(i * ny + j) * nz + k] and not rail[(i * ny + j) * nz + k]), None)
+        if sup is None:
+            continue                  # over the side (the cap rail's lip outside): only its own voxels
+        for j in range(sup + 1, top):
+            if not solid[(i * ny + j) * nz + k]:
+                solid[(i * ny + j) * nz + k] = 1
+                filled += 1
+log("voxels: rays", rays, "solid", sum(solid), "of", nx * ny * nz, "; railings filled down", filled)
 
 bits = bytearray((len(solid) + 7) // 8)
 for n_, v in enumerate(solid):
@@ -401,6 +600,22 @@ for gf in GF:
     gun_places.append({"id": code, "gun": code})
     gun_keep.append({"what": "gun", "box": [r4(xc - 0.575), dy, kz0, r4(xc + 0.575), r4(dy + 1.0), kz1]})
 log("guns", [(f["code"], f["pos"]) for f in gun_fixtures])
+
+# (21 October 2026, chalk note 12) the gates: a leaf each (GateLeaves), hinged on its after edge, swinging in; solid
+# while shut (its box)
+gate_fixtures, gate_parts = [], []
+for gl in REP["gateLeaves"]:
+    sgn = 1 if gl["side"] == "port" else -1          # model +Y = port = game -z
+    zc = r4(-gl["y"] / 1000)
+    x0, x1 = r4(gl["x0"] / 1000), r4(gl["x1"] / 1000)
+    y0, y1 = r4(gl["z0"] / 1000 - WL), r4(gl["z1"] / 1000 - WL)
+    t = gl["t"] / 1000
+    code = "gate-" + gl["side"]
+    gate_fixtures.append({"type": "gate", "code": code, "pos": [r4((x0 + x1) / 2), y0, zc], "yaw": 0.0,
+                          "sel": [x0, y0, r4(zc - 0.25), x1, y1, r4(zc + 0.25)],
+                          "box": [x0, y0, r4(zc - t / 2 - 0.05), x1, y1, r4(zc + t / 2 + 0.05)], "normal": "z"})
+    gate_parts.append({"code": code, "axisPoint": [x0, r4((y0 + y1) / 2), zc], "axisDir": [0.0, 1.0, 0.0],
+                       "source": "open:" + code, "angle": -88.0 if sgn > 0 else 88.0})
 
 rig_rec = REP["rigGeometry"]["latina"]
 
@@ -477,21 +692,12 @@ definition = {
     "maxSpeed": 5.6, "acceleration": 0.45, "deceleration": 0.6, "turnRate": 7.0, "rudderSpeed": 60.0, "reverseSpeed": 0.6,
     "hullSamples": L["hullSamples"],
     "waterClip": {"centerX": -1.2, "halfLength": 10.6, "halfWidth": 3.4, "height": 0.1},
-    "boardPoints": [[r4(gate_x), r4(deck_y), r4(gate_hb - 0.6)], [r4(gate_x), r4(deck_y), r4(-gate_hb + 0.6)], [2.5, r4(deck_y), 0.0]],
-    "fixtures": [{"type": "helm", "code": "helm", "pos": [-8.9, r4(deck_y), 0.0], "yaw": 0.0,
-                  "sel": [-9.4, r4(deck_y), -0.6, -8.4, r4(deck_y + 1.2), 0.6]},
-                 # the cargo hold: about a quarter of the carrack's (3708 slots), as its volume
-                 {"type": "storage", "code": "hold", "pos": [0.0, r4(hold_y), 0.0], "yaw": 0.0, "slots": 900},
-                 # the pump on the centreline forward of the main mast (its brake not drawn yet); the spawn plate and the
-                 # plaque on the mizzen in the steerage, by the helm
-                 {"type": "pump", "code": "pump", "pos": [0.5, r4(deck_y), 0.0], "yaw": 0.0,
-                  "sel": [0.15, r4(deck_y), -0.3, 0.85, r4(deck_y + 1.5), 0.3], "spout": [0.5, r4(deck_y + 0.65), 0.45],
-                  "spoutDir": [0.0, -0.2588, 0.9659]},
-                 {"type": "attach", "code": "plate", "pos": [-8.5, r4(deck_y + 1.45), -0.27], "yaw": 90.0,
-                  "sel": [-8.85, r4(deck_y + 1.1), -0.52, -8.15, r4(deck_y + 1.8), -0.25], "kind": "plate", "spawn": [-8.5, r4(deck_y), -1.0]},
-                 {"type": "plaque", "code": "plaque", "pos": [-8.27, r4(deck_y + 1.5), 0.0], "yaw": 180.0,
-                  "sel": [-8.39, r4(deck_y + 1.27), -0.3, -8.25, r4(deck_y + 1.73), 0.3]}] + gun_fixtures,
-    "ladders": [stair_ladder(t) for t in stairs] + [
+    # (the centreline's boarding point at x 2.5 is gone: it kept a cell of the waist clear, chalk note 15)
+    "boardPoints": [[r4(gate_x), r4(deck_y), r4(gate_hb - 0.6)], [r4(gate_x), r4(deck_y), r4(-gate_hb + 0.6)]],
+    # the cargo hold: about a quarter of the carrack's (3708 slots), as its volume; the guns; the gates. The helm, the
+    # pump, the capstan, the spawn plate and the plaque are caravel_layout.py's
+    "fixtures": [{"type": "storage", "code": "hold", "pos": [0.0, r4(hold_y), 0.0], "yaw": 0.0, "slots": 900}] + gun_fixtures + gate_fixtures,
+    "ladders": [
         {"code": f"sideladder-{side}", "kind": "rope", "outside": True,
          "bottom": [r4(gate_x), -0.6, r4(sgn * (gate_hb + 0.15))], "top": [r4(gate_x), r4(deck_y - 0.2), r4(sgn * (gate_hb + 0.1))],
          "exitBottom": [r4(gate_x), -1.0, r4(sgn * (gate_hb + 0.9))], "exitTop": [r4(gate_x), r4(deck_y), r4(sgn * (gate_hb - 0.7))]}
@@ -501,24 +707,18 @@ definition = {
               {"code": "steerage", "min": [r4(ox), r4(deck_y), r4(oz)], "max": [L["quarterdeckFront"] / 1000, r4(qd_y - 0.6), r4(-oz)],
                "enclosed": False}],
     "lights": [],
-    # what a player's build must leave clear: the pump's brake, the helm, the hatch and its stair, the spawn place, the
-    # plaque, and each gun's working room from its carriage's front to behind its gun captain
-    "keepClear": [{"what": "pump", "box": [-0.2, r4(deck_y), -0.6, 1.2, r4(deck_y + 2.0), 0.6]},
-                  {"what": "helm", "box": [-9.4, r4(deck_y), -0.7, -8.75, r4(deck_y + 1.6), 0.7]},
-                  {"what": "hatch", "box": [L["layout"]["hatch"]["x"][0] / 1000, r4(deck_y), -0.5, L["layout"]["hatch"]["x"][1] / 1000, r4(deck_y + 1.0), 0.5]},
-                  {"what": "spawn", "box": [-9.0, r4(deck_y), -1.5, -8.0, r4(deck_y + 2.0), -0.5]},
-                  {"what": "plaque", "box": [-8.4, r4(deck_y + 1.25), -0.325, -8.25, r4(deck_y + 1.75), 0.325]}] + gun_keep,
+    # each gun's working room from its carriage's front to behind its gun captain (the mod keeps the fixtures' own)
+    "keepClear": gun_keep,
+    "deckSlots": deck_slots,
     # every gun on a place of its own, laid on a new ship (no deck slots yet: the places list no cells)
     "gunPlaces": gun_places,
-    "sails": [{"code": "main", "mesh": "sail:main", "axisPoint": am, "axisDir": dm, "area": sail_area("latina main"), "mast": "main"},
-              {"code": "mizzen", "mesh": "sail:mizzen", "axisPoint": az, "axisDir": dz, "area": sail_area("latina mizzen"), "mast": "mizzen"}],
     "movingParts": [
         {"code": "rudder", "axisPoint": rud_pt, "axisDir": rud_dir, "source": "rudder", "angle": 30.0},
         {"code": "tiller", "axisPoint": rud_pt, "axisDir": rud_dir, "source": "rudder", "angle": 30.0, "interior": True},
         {"code": "yard-main", "axisPoint": [masts["main"]["x"] / 1000, r4(ym["cross"][1] / 1000 - WL), 0.0], "axisDir": [0.0, 1.0, 0.0],
          "source": "sheet", "angle": 57.29578, "limit": 25.0},
         {"code": "yard-mizzen", "axisPoint": [masts["mizzen"]["x"] / 1000, r4(yz["cross"][1] / 1000 - WL), 0.0], "axisDir": [0.0, 1.0, 0.0],
-         "source": "sheet", "angle": 57.29578, "limit": 25.0}] + gun_parts_def,
+         "source": "sheet", "angle": 57.29578, "limit": 25.0}] + gun_parts_def + gate_parts,
     "masts": [{"code": "main", "x": masts["main"]["x"] / 1000, "z": 0.0, "radius": 0.3,
                "y0": r4(masts["main"]["heel"] / 1000 - WL), "y1": r4(masts["main"]["top"] / 1000 - WL)},
               {"code": "mizzen", "x": masts["mizzen"]["x"] / 1000, "z": 0.0, "radius": 0.22,
@@ -533,6 +733,13 @@ definition = {
                "sailToughness": 25.0, "riggingToughness": 70.0,
                "rudder": [r4(rud_pt[0] - 1.6), r4(keel_y - 0.05), -0.15, r4(rud_pt[0] + 0.1), r4(deck_y + 0.5), 0.15], "pumpersPerPump": 2},
 }
-with open(os.path.join(ASSETS, "config", "ships", f"{CODE}.json"), "w") as f:
+with open(os.path.join(BASE, "caravel-def-base.json"), "w") as f:
     json.dump(definition, f, indent=1)
-log("wrote ships/caravel.json; done")
+log("wrote export/caravel-def-base.json; the layout step")
+# (21 October 2026) the fittings, rigging, sails and gameplay data on top (plain Python, rerun alone in seconds)
+import importlib.util
+_spec = importlib.util.spec_from_file_location("caravel_layout", os.path.join(ROOT, "tools", "caravel", "caravel_layout.py"))
+_lay = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_lay)
+_lay.main()
+log("done")

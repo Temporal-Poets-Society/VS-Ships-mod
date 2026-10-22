@@ -69,6 +69,7 @@ namespace HansaTests
                 DamageViews(vdef, Path.Combine(root, "assets", "hansa"));
                 return 0;
             }
+            if (Array.IndexOf(args, "inspect") >= 0) { Inspect(root, args.Length > Array.IndexOf(args, "inspect") + 1 ? args[Array.IndexOf(args, "inspect") + 1] : "caravel"); return 0; }
             if (Array.IndexOf(args, "grid-pieces") >= 0) { GridPieces(root); return 0; }
             if (Array.IndexOf(args, "holes") >= 0) return GridHoles(root, true) == 0 ? 0 : 1;
             if (Array.IndexOf(args, "startpieces") >= 0)

@@ -49,15 +49,36 @@ RIBS = list(range(-12, 7, 2))           # every 2nd cell, 1 clear between (the u
                                         # None at 8: the forefoot there is too narrow for a frame (the user, 17 October)
 GUN_CELLS = [1, 3]                       # main deck, waist (the user, 18 October)
 QD_GUN_CELLS = [-11, -7]                 # quarterdeck; the railing is open over these cells
-# 11) the main hatch, 1 x 2 on the centreline cell, with a stair down to the hold (the user, 18 October)
-HATCH = {"x": [-3, -1], "y": [-0.5, 0.5]}
-# 4, 11) stairs: one cell in plan, walked (not climbed), rising aft; the cell ahead of the foot is their approach
+# 11) the main hatch on the centreline cell, with a stair down to the hold (the user, 18 October)
+# (21 October 2026, chalk notes 18 and 22) The stairs are the game's walked ship's stairs (the user: "stair animation
+# and not ladder"): the steep one is 1 x 2 cells (foot F, head H, about 56 degrees, 3 blocks up), with a free landing
+# before F and after H, and through a deck it needs a 3 x 1 well (the cell before F too) for the walker's head. Aft of
+# the main mast there was no room for that (the mast's cell was the hold stair's landing and the quarterdeck stair's
+# landing fell into the hatch), so the hatch is forward of the main mast: cells 2..4, the stair rising aft from F (cell
+# 3, its foot on the hold floor) to H (cell 2), out onto cell 1 of the main deck. The quarterdeck stair: F cell -4, H
+# cell -5, up to the quarterdeck's front at -5, its landing cell -3.
+# (the same day, the game's checks) The guns at cell 3 swing their trails over the centreline there, and no opening may
+# lie in a gun's working room; a ship's stair is solid with its own handrails a quarter block either side, so a
+# stair's walkers keep a row away from another stair. So: the quarterdeck stair one row to starboard (Y cell -1), the
+# railing's gap with it; the hatch under the quarterdeck in the port row (Y cell 1), cells -7..-5, the hold stair
+# rising aft in it from its foot in cell -6 out onto cell -8 of the main deck, beside the mizzen.
+HATCH = {"x": [-7, -4], "y": [0.5, 1.5]}
 STAIRS = [
-    {"name": "quarterdeck", "cell": [-5, 0], "foot": [-4.0, Z_DECK], "head": [-5.0, Z_QD]},
-    {"name": "hold", "cell": [-3, 0], "foot": [-2.0, Z_HOLD], "head": [-3.0, Z_DECK]},
+    {"name": "quarterdeck", "cell": [-5, -1], "foot": [-3.0, Z_DECK], "head": [-5.0, Z_QD], "y": -1.0},
+    {"name": "hold", "cell": [-7, 1], "foot": [-5.0, Z_HOLD], "head": [-7.0, Z_DECK], "y": 1.0},
 ]
 # 10) gates in the waist's bulwark with a rope ladder down the side (the user, 18 October)
 GATE_CELL = -1
+# (21 October 2026, the user's list after trying her: no pump, no anchor, a wheel on the quarterdeck because the mizzen
+# blocks the helmsman's sight from under it, lanterns) where her fittings stand: cells [x cell, Y cell] on a deck (the Y
+# cell 0 is the centreline cell); the exporter keeps the deck cells under them fixed, the layout step draws them
+FITTINGS = {
+    "pump": {"deck": "main", "cell": [0, 0]},              # forward of the main mast; its brake athwartships
+    "capstan": {"deck": "main", "cell": [6, 0]},           # on the foredeck, the anchor's cable to it
+    "wheel": {"deck": "quarterdeck", "cell": [-10, 0]},    # just aft of the mizzen; the helmsman stands in cell -11
+    "anchor": {"side": "port", "x": 8.0},                  # hung at the port cathead, fished along the bow
+    "sternLantern": {"x": None},                           # on the taffrail's middle (x from the transom)
+}
 PORT = {"sill": 0.25, "head": 1.0, "inset": 0.125}  # 750 x 750 in a cell's middle; sill and head above its deck
 
 # ---------------------------------------------------------------- midship section half-breadth B(z)
@@ -463,7 +484,9 @@ def deck_beams(inner):
             if r not in RIB_INNER:
                 continue
             inn = RIB_INNER[r][::-1]                                   # z rising
-            half = min(float(np.interp(z, inn[:, 1], inn[:, 0])) for z in (z0, (z0 + z1) / 2, z1)) - 5.0
+            # (21 October 2026, chalk note 23: holes between the beams and the ribs) into the rib past its inner face at
+            # every height; the build cuts the beam by the rib, so it ends on the rib's own curved face
+            half = max(float(np.interp(z, inn[:, 1], inn[:, 0])) for z in (z0, (z0 + z1) / 2, z1)) + 150.0
             if half > 300:
                 out.append([round(xs[0], 1), round(xs[-1], 1), round(z0, 1), round(z1, 1), round(half, 1)])
     return out
@@ -491,7 +514,13 @@ def railings():
     yc = side_y(corner_x, zb)
     tr_ys = sorted({-yc, yc} | {float(y) for y in (-2.5, -1.5, -0.5, 0.5, 1.5, 2.5) if abs(y) < yc - 0.3})
     yf = side_y(QD_FRONT, zb)
-    fr_ys = [y for y in (2.5, 1.5, 0.5) if y < yf - 0.5]       # none crowding the side's corner post
+    # the front's posts on the Y cell borders (none crowding the side's corner post), but in the quarterdeck stair's gap;
+    # the gap's two posts stand 0.1 out of it, so their collision keeps out of the stair's walkers' room
+    qs = next(t for t in STAIRS if t["name"] == "quarterdeck")
+    gap_lo, gap_hi = qs["y"] - 0.5, qs["y"] + 0.5
+    borders = [y for y in (-2.5, -1.5, -0.5, 0.5, 1.5, 2.5) if abs(y) < yf - 0.5]
+    port_front = [gap_hi + 0.1] + [y for y in borders if y > gap_hi + 1e-6]
+    stbd_front = [y for y in borders if y < gap_lo - 1e-6] + [gap_lo - 0.1]
 
     def pt(x, y, z):
         return (x, y, z)
@@ -499,7 +528,7 @@ def railings():
     # one path round the deck: the front's port end, aft along port, across the transom, forward along starboard,
     # the front's starboard end; each point is (bottom, top) at a post
     path = []
-    for y in sorted(fr_ys):                           # front, port half, from the stair gap out to the side
+    for y in port_front:                              # front, port of the stair gap, from the gap out to the side
         path.append((pt(QD_FRONT - 0.05, y, zb), pt(QD_FRONT - 0.05, y, zt), "front"))
     for x in reversed(side_xs):                       # port side, forward to aft
         path.append((pt(x, side_y(x, zb), zb), pt(x, side_y(x, zt), zt), "side"))
@@ -507,8 +536,8 @@ def railings():
         path.append((pt(tr_x(zb), y, zb), pt(tr_x(zt), y * 0.97, zt), "transom"))
     for x in side_xs:                                 # starboard side, aft to forward
         path.append((pt(x, -side_y(x, zb), zb), pt(x, -side_y(x, zt), zt), "side"))
-    for y in sorted(fr_ys, reverse=True):             # front, starboard half, from the side in to the stair gap
-        path.append((pt(QD_FRONT - 0.05, -y, zb), pt(QD_FRONT - 0.05, -y, zt), "front"))
+    for y in stbd_front:                              # front, starboard of the gap, from the side in to the gap
+        path.append((pt(QD_FRONT - 0.05, y, zb), pt(QD_FRONT - 0.05, y, zt), "front"))
 
     posts = [[b, t] for b, t, _ in path]
     top = [t for _, t, _ in path]
@@ -606,9 +635,10 @@ def build():
                    "ribs": RIBS, "guns": GUN_CELLS, "quarterdeckGuns": QD_GUN_CELLS,
                    "hatch": {"x": [v * MM for v in HATCH["x"]], "y": [v * MM for v in HATCH["y"]]},
                    "stairs": [{"name": t["name"], "cell": t["cell"], "foot": [v * MM for v in t["foot"]],
-                               "head": [v * MM for v in t["head"]]} for t in STAIRS],
+                               "head": [v * MM for v in t["head"]], "y": t.get("y", 0.0) * MM} for t in STAIRS],
                    "gate": {"x": [GATE_CELL * MM, (GATE_CELL + 1) * MM], "sill": Z_DECK * MM, "head": Z_WAIST_RAIL * MM},
-                   "port": {k: v * MM for k, v in PORT.items()}},
+                   "port": {k: v * MM for k, v in PORT.items()},
+                   "fittings": FITTINGS},
     }
     os.makedirs(OUT, exist_ok=True)
     with open(os.path.join(OUT, "caravel-lines.json"), "w") as f:

@@ -19,6 +19,7 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="GridInspect.cs" />
+    <Compile Include="CaravelInspect.cs" />
     <Compile Include="ModularTests.cs" />
     <Compile Include="StairTests.cs" />
     <Compile Include="DamageTests.cs" />
@@ -110,6 +111,9 @@
     <Compile Include="..\..\..\Sea\src\Wind\Wind.cs" Link="Sea\Wind.cs" />
     <Compile Include="..\..\..\Sea\src\Wind\WorldShape.cs" Link="Sea\WorldShape.cs" />
     <Compile Include="..\..\..\Sea\src\Wind\Noise.cs" Link="Sea\Noise.cs" />
+    <!-- (21 October 2026) Sea 0.4's wave field takes its hours from the server's anchors -->
+    <Compile Include="..\..\..\Sea\src\SeaConfig.cs" Link="Sea\SeaConfig.cs" />
+    <Compile Include="..\..\..\Sea\src\Wind\WindModel.cs" Link="Sea\WindModel.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="$(NetCoreRuntimeDir)\System.*.dll" Exclude="$(NetCoreRuntimeDir)\System.Private.*.dll;$(NetCoreRuntimeDir)\System.IO.Compression.Native.dll" Private="false" />
@@ -118,6 +122,7 @@
     <Reference Include="$(NetCoreRuntimeDir)\mscorlib.dll" Private="false" />
     <Reference Include="VintagestoryAPI"><HintPath>$(VintageStoryPath)\VintagestoryAPI.dll</HintPath></Reference>
     <Reference Include="Newtonsoft.Json"><HintPath>$(VintageStoryPath)\Lib\Newtonsoft.Json.dll</HintPath></Reference>
+    <Reference Include="protobuf-net"><HintPath>$(VintageStoryPath)\Lib\protobuf-net.dll</HintPath></Reference>
     <Reference Include="VSSurvivalMod"><HintPath>$(VintageStoryPath)\Mods\VSSurvivalMod.dll</HintPath></Reference>
     <Reference Include="VSEssentials"><HintPath>$(VintageStoryPath)\Mods\VSEssentials.dll</HintPath></Reference>
     <!-- the chalk note's comment box: the game's text area, its text measured by Cairo -->

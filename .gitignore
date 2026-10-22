@@ -14,3 +14,5 @@ models/caravel/views/caravel-mesh.js
 models/caravel/cells.brep
 # AstoCAD's own backups
 *.FCBak
+# the caravel exporter's base (export_caravel.py writes it, caravel_layout.py builds on it)
+models/caravel/export/

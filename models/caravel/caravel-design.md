@@ -166,6 +166,37 @@ bore; moving parts `<gun>-train`, `<gun>` (runs back), `<gun>-barrel`, `<gun>-tr
 the model's parts (`part:<code>`); a gun place each (laid; no cells, as she has no deck slots yet); a `gun`
 keep-clear box from the carriage's front to 0.3 behind the gun captain, who stands 0.5 behind the carriage.
 
+**Detailed and housed (22 October 2026, chalk notes 14 and 17).** `caravel_layout.py` draws each gun again with
+`tools/caravel/caravel_gun.py` and drops the exporter's plain meshes and moving parts for it (the master model's
+`Guns` body stays the run-out place's source). The gun is the carrack's (`tools/shipgen/gun.py`, unchanged): its
+barrel turned from the carrack's lathe profile (base ring, two reinforce rings, chase girdle, muzzle swell, cascabel
+with a turn of the breeching, trunnions and rimbases), its breech end scaled to a button 620 aft of the trunnions and
+its chase to the muzzle 1050 forward of them, radii 0.82 of the carrack's (the bore as hers: the shot is); its
+carriage two stepped cheeks with cap squares, bolts, a transom, a bed and a stool bed, two axletrees, four trucks
+(r 150) with hubs, marks and linchpins; the breeching from ring bolts on her side (beside the waist's ports, on the
+quarterdeck's posts) through eyebolts on the cheeks round the cascabel. Axis 625 over the deck, carriage 700 wide from
+650 aft of the trunnions to 350 forward: everything except the button and the cheeks' tops inside the master build's
+gun, which it found clear of her side, railing and gates. Moving parts as the carrack's: `<gun>-train`, `<gun>`,
+`<gun>-barrel`, `<gun>-trucks-fore/-aft`, `<gun>-breeching-a/b` and `-a/b-out`.
+
+Each gun is housed behind a lid (`lid` `<gun>-lid`, source `open:<gun>`; `housed` = its run back): a new ship's guns
+are run in by their recoil (700 or 750) with their lids shut; laying one opens its lid and runs it out (2 s), Shift +
+right-click houses it again, as on the carrack.
+
+- **Waist** (the user: "maybe can be gate type sideways"): a side-hinged port lid of her planks (tarred outside), 40
+  past the port's jambs and under its sill, its top under the cap rail, 60 thick on her side outside; hinged on its
+  after edge along her side's lean, two strap hinges, a ring bolt near its fore edge; it swings out 110°.
+- **Quarterdeck**: the railing's section between the two posts over the gun, a small gate of two stiles, two rails and
+  three balusters as the railing's, between the bottom rail and the top rail; hinged against the after post's fore
+  outer edge, it swings out 110° the same way (hinged aft, it stays clear of the mizzen shrouds at −10.45 and −9.55).
+
+The layout checks every gun (and stops if one fails): the barrel laid anywhere clear of its carriage (9 mm in the waist,
+17 on the quarterdeck), the breeching off the barrel, inside the master build's gun (0 mm: the linchpins at its width),
+each lid swung through its arc clear of her side, the posts and the top rail (4–35 mm), open 170–250 mm from the gun
+laid to its limits, and the muzzle housed 300–330 mm behind the shut lid in the waist, 70 on the quarterdeck. Views
+(`python tools/caravel/caravel_gun_views.py`): `views/guns_waist.png`, `views/guns_quarterdeck.png` (housed, run out,
+laid +15° / full elevation; from her deck and from outside).
+
 ## Rigs
 
 Same mast cells for both. Rig bodies are placeholders for proportions, not slicer input. Study:
@@ -271,19 +302,81 @@ Pipeline, all from the master model:
      `hullOut`/`hullIn` give the shell's quads for the hull damage drawing.
    - `shot`: the cast iron ball the game draws for every cannonball in flight (as the carrack generator's; 21 October
      2026, the release had no ship mesh with one, so the balls were not drawn).
-   - Rudder, tiller and both lateen yards as moving parts; the sails as `sail:main` and `sail:mizzen`; helm at the
-     tiller; the two stairs as companion ladders and the rope ladders at the gates; masts, decks, hull samples.
-4. Kept by hand: `entities/ship/caravel.json`, the charter `shipdeed-caravel` (the only charter in the creative tab
+   - Rudder, tiller, both lateen yards, the guns and the gate leaves as moving parts; the rope ladders at the gates;
+     masts, decks, hull samples; the deck cells (below). It writes a base (`models/caravel/export/`) and runs step 4.
+4. `tools/caravel/caravel_layout.py` (plain Python, also run alone in seconds): the fittings, the rigging, the sails
+   and the gameplay data on top of the base, drawn with the carrack generator's mesh helpers (`tools/shipgen`'s
+   `Design`) in the game's frame; where each fitting stands is ship data (`caravel_lines.FITTINGS`).
+5. Kept by hand: `entities/ship/caravel.json`, the charter `shipdeed-caravel` (the only charter in the creative tab
    now), and the lang lines. Commands that name no ship now mean the caravel (`HansaMod.DefaultShip`).
-
-   - Pump on the centreline at x 0.5 (the brake not drawn yet), the spawn plate and the crew plaque on the mizzen in
-     the steerage, and keep-clear boxes for the pump, helm, hatch, spawn place and plaque (added 20 October 2026 for
-     the self-test; `export_caravel.py` writes them).
 
    - Guns (20 October 2026): 4 a side, laid on a new ship, with their ports in the waist (see Guns).
 
-Not yet: lidded gun ports, hull and deck slots (block removal and replacement in game), stairs walked
-with the stair animation (the game climbs them as ladders for now), rigging ropes, paint zones, rooms, a hearth.
+### The user's list after trying her (21 October 2026)
+
+Fourteen chalk notes (11–24) and a list: sails flicker, have no roping and may turn wrong; no plaque, lanterns,
+anchor, pump or painting; the helm blind behind the mizzen. What was done:
+
+- **Sails** (item 1): each lateen is a single-sided mesh bellied to starboard, as the carrack's (the mod mirrors it on
+  the other tack); the flat sail drawn twice, back to back, flickered. The sail's axis is its tack up along the yard
+  and its clew its sheet's tip, so the game knows it's a fore-and-aft sail (before, with no sheet, it took it for a
+  square sail hanging from its yard). Running rigging: a sheet (the main's to the quarterdeck's front rail, the
+  mizzen's out on the bumpkin), a tack and a halyard per yard, each following its yard; three shrouds a side on the
+  main to the cap rails, two on the mizzen to the quarterdeck's rail, also given to the mod to press the sails
+  against (`rigCheck`). Yards thicker: 300 at the main's sling, 200 at the mizzen's, gentler tapers. The main yard
+  stays 30.9 m (the user's sketch); shorter is the user's call.
+- **Plaque, spawn plate, lanterns** (items 2, 3): a bronze plaque on the mizzen's fore side in the steerage, the plate
+  place on its port side; a lantern post on the taffrail's middle (a lantern on it), lantern hooks at both masts (a
+  lantern on each), and the mod's own ceiling and mast hooks.
+- **Anchor** (item 4): a capstan on the foredeck (cell 6), a cathead on the port bow with the anchor hung from it
+  (stock, shank, arms, flukes; it drops 8.5 when let go), its cable from the hawse to its ring and inboard to the
+  capstan.
+- **Pump** (the user: "no pump"): forward of the main mast (cell 0), its tube down into the hold, a head with a spout
+  forward, its brake athwartships on a fork (the moving parts `pump-brake`, `pump-spear`).
+- **Painting** (item 5): nine zones (topsides with the gates, cap rails, the quarterdeck's railing, the bulwarks
+  inside, the frames standing in them, the hold's walls, its timbers, the hold's and the steerage's ceilings), each
+  quad of her hull, rails and timbers in one (`paintQuads`).
+- **Wheel** (note 21, the user's choice): a wheel on the quarterdeck aft of the mizzen (its rim at x −9.6, where the
+  user pointed; "too close to mizzen mast" at −9.3 first), the helmsman standing aft of it at −10.4 on the centreline; the tiller stays under the quarterdeck with its ropes out to blocks at her
+  sides. The steering place on the main deck is gone.
+- **Stairs** (note 18): the game's walked ship's stairs (`stair` pieces, the steep 1 × 2 one: about 56°, 3 blocks up),
+  not ladders. Through a deck it needs a 3 × 1 well (the walker's head) and free landings at both ends, and a ship's
+  stair is solid with its own handrails a quarter block either side, so two stairs' walkers keep a row apart; no
+  opening may lie in a gun's working room (the guns at cell 3 swing their trails over the centreline). So: the
+  quarterdeck's stair one row to starboard (foot cell −4, head −5 at the quarterdeck's front, landing −3), the
+  railing's gap with it, its two posts 0.1 out of the gap; **the hatch under the quarterdeck in the port row**, cells
+  −7..−5 (1 × 3), the hold stair rising aft in it from its foot in cell −6 out onto cell −8 of the main deck, beside
+  the mizzen. (Tried first: the hatch forward of the main mast, cells 2–4 on the centreline: in the gun's room.)
+- **Hatch** (note 22): carlings along its sides and headledges across its ends under the deck, the beams' size; its
+  cells are deck slots that start empty, with a trapdoor hatch over them (a `hatch` piece, laid shut).
+- **Deck cells** (note 16, part): every whole cell of the main deck and the quarterdeck is a slot (`deckSlots`, the
+  `slot:deck` groups and `slotQuads`), but those under the masts, the pump, the capstan and the wheel, the gun rows and
+  the gates' row: an axe takes them up, planks lay them. Hull panels are not slots yet.
+- **Blocks on deck** (note 15): her main deck had 15 floor places, the quarterdeck 1 (now 27 and 5: the rest is the
+  guns' working rooms, the pump's and the capstan's room, the wheel, and the cells by her sides that hold her ribs). The stairs as ladders, a boarding
+  point on the centreline, the railing's bars and the cap rail's overhang (the mod takes anything with air under it
+  near a deck for a stair's tread and keeps the cells round it clear) took the rest. The railings are now solid down
+  to what they stand on (and anything of hers standing on air within 1.25 over a deck, a rib's head leaning in), the
+  boarding point is gone, the stairs are pieces.
+- **Masts** (note 11): solid in her collision.
+- **Water** (note 24): the water is held out by her hull's exact outline from her lines (`waterClip.dryOutline`), not
+  a box that left gaps round the curved bow.
+- **Beams** (note 23): each runs into its rib and is cut by it, ending on the rib's curved face.
+- **Grain** (note 20): the wood's grain follows each piece: planks along the keel, beams athwartships, ribs, carlings
+  and the backbone along their own length.
+- **Cap rail** (note 13): on the waist's bulwark each side, 360 wide (40 proud outside), 80 thick on the sheer, broken
+  at the gates; over each gun port it is the port's head.
+- **Gates** (note 12): no posts; a leaf in each opening (planks, two ledges, a brace), hinged on its after edge,
+  swinging in (`gate-port`, `gate-starboard`). The rope ladders are drawn as rope.
+
+Checks: `dotnet run --project tests/HansaTests -- design caravel` ALL OK (deck slots, the stairs walked up and down,
+the hatch over its opening, the gun places' cells); the server self-test ALL OK, 183 checks (release 0.1.0-dev.4).
+
+Since 22 October 2026 the guns are the carrack's, fitted to hers, and housed behind lids (notes 14, 17; see Guns).
+
+Not yet: hull panels as slots
+(note 16), partitions across the ship under the quarterdeck's front (note 19: her borders face every way; to look at
+again in the game), rooms, a hearth.
 
 ### Server self-test on the caravel (20 October 2026)
 

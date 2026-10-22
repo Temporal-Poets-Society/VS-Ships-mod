@@ -173,10 +173,29 @@ qd = slab(LV["quarterdeck"], DECK_T, x1=L["quarterdeckFront"]).common(inner).cut
 decks = Part.makeCompound([hold, main, qd])
 beam_solids = []
 for x0, x1, z0, z1, half in L["beams"]:
-    b_ = Part.makeBox(x1 - x0, 2 * half, z1 - z0, V(x0, -half, z0)).cut(backbone)
+    # (21 October 2026, chalk note 23) each beam runs into its rib and is cut by it: it ends on the rib's curved face
+    b_ = Part.makeBox(x1 - x0, 2 * half, z1 - z0, V(x0, -half, z0)).cut(backbone).cut(ribs).common(inner)
     if b_.BoundBox.intersect(hatch_cut.BoundBox):
         b_ = b_.cut(hatch_cut)                       # a beam across the hatch stops at its sides
-    beam_solids += list(b_.Solids)
+    beam_solids += [so for so in b_.Solids if so.Volume > 5e6]
+# (21 October 2026, chalk note 22: "no side beams to hatch") the hatchway framed under the deck: a carling along each
+# side from beam to beam past its ends, and a headledge across each end, the beams' size, flush with the opening
+BEAM_W, BEAM_H = L["beams"][0][1] - L["beams"][0][0], L["beams"][0][3] - L["beams"][0][2]
+bz0 = LV["mainDeck"] - DECK_T - BEAM_H
+hatch_frame = []
+for sgn in (1, -1):
+    hatch_frame.append(Part.makeBox(hx[1] - hx[0] + 2 * BEAM_W, BEAM_W, BEAM_H,
+                                    V(hx[0] - BEAM_W, hy[1] if sgn > 0 else hy[0] - BEAM_W, bz0)))
+for xe in (hx[0] - BEAM_W, hx[1]):
+    hatch_frame.append(Part.makeBox(BEAM_W, hy[1] - hy[0], BEAM_H, V(xe, hy[0], bz0)))
+_frame = Part.makeCompound(hatch_frame)
+_cut = []
+for b_ in beam_solids:
+    if b_.BoundBox.intersect(_frame.BoundBox):
+        _cut += [so for so in b_.cut(_frame).Solids if so.Volume > 5e6]
+    else:
+        _cut.append(b_)
+beam_solids = _cut + hatch_frame
 beams = Part.makeCompound(beam_solids)
 log("beams", len(beam_solids))
 log("decks", [round(s.Volume / 1e9, 2) for s in (hold, main, qd)])
@@ -279,7 +298,8 @@ def lateen(cell, cross_z, fore_len, aft_len, angle_deg, clew, r, y_yard=350.0, y
     tack = cross + V(fore_len * math.cos(a), 0, -fore_len * math.sin(a))
     SAIL_FEET.append((name, (tack.x, tack.z - 100), clew))
     peak = cross + V(-aft_len * math.cos(a), 0, aft_len * math.sin(a))
-    yard = Part.makeCompound([spar(cross, tack, r, r * 0.45), spar(cross, peak, r, r * 0.35)])
+    # (21 October 2026, the user: the main yard "from outside looks maybe too long or thin") thicker toward its ends
+    yard = Part.makeCompound([spar(cross, tack, r, r * 0.55), spar(cross, peak, r, r * 0.45)])
     head = peak + V(300 * math.cos(a), 0, -300 * math.sin(a))
     if sail_to is not None:                          # the sail stops short of the peak: its after edge at X sail_to
         f = (sail_to - tack.x) / (peak.x - tack.x)
@@ -347,9 +367,9 @@ def lateen_points(key, r, name):
 # caravela latina, two masts, as the reference replica (Vera Cruz). Masts upright (the replica's rake forward).
 CUR_RIG = "latina"
 lat = []
-y, s_, top = lateen_points("main", 220, "latina main")
+y, s_, top = lateen_points("main", 300, "latina main")
 lat += [mast(M["main"]["cell"], M["main"]["heel"], top, 300, name="main"), y, s_]
-y, s_, top = lateen_points("mizzen", 160, "latina mizzen")
+y, s_, top = lateen_points("mizzen", 200, "latina mizzen")
 lat += [mast(M["mizzen"]["cell"], M["mizzen"]["heel"], top, 220, name="mizzen"), y, s_, bumpkin]
 rig_latina = Part.makeCompound(lat)
 
@@ -434,6 +454,52 @@ rail_parts += [bar(top_pts[k], top_pts[k + 1], 140, 100) for k in range(len(top_
 rail_parts += [bar(bot_pts[k], bot_pts[k + 1], 100, 80) for k in range(len(bot_pts) - 1)]
 rail_parts += [spar(V(*b_), V(*t_), 30, 30) for b_, t_ in RAIL["balusters"]]
 
+# (21 October 2026, chalk note 13: "no top closing rail on side boards. See how magelan did") a cap rail on the waist's
+# bulwark each side, from the quarterdeck's front to the bow: CAP_IN inboard over the planking and the ribs' heads and
+# CAP_OUT proud of the planking outside, CAP_H thick on the sheer (the shell's own top: the sheer prism's points),
+# broken at the gates; over each gun port it is the port's head.
+CAP_OUT, CAP_IN, CAP_H = 40.0, 320.0, 80.0
+_qf = L["quarterdeckFront"]
+_sp = [(x, z) for k, (x, z) in enumerate(sheer) if k % 5 == 0 or _qf - 200 <= x <= _qf + 2700 or k == len(sheer) - 1]
+
+
+def sheer_at(x):
+    for (xa, za), (xb, zb) in zip(_sp[:-1], _sp[1:]):
+        if xa <= x <= xb:
+            return za + (zb - za) * (x - xa) / (xb - xa)
+    return _sp[-1][1] if x > _sp[-1][0] else _sp[0][1]
+
+
+def cap_section(x, sgn):
+    z = sheer_at(x)
+    yo = half_breadth(x, z - 15) or 0.0
+    if yo < 600:
+        return None
+    y_out, y_in = yo + CAP_OUT, yo - CAP_IN
+    pts = [V(x, sgn * y_in, z), V(x, sgn * y_out, z), V(x, sgn * y_out, z + CAP_H), V(x, sgn * y_in, z + CAP_H)]
+    return Part.makePolygon(pts + [pts[0]])
+
+
+CAP_RECORD = {"out": CAP_OUT, "in": CAP_IN, "h": CAP_H, "runs": []}
+_bow_x = max(v.Point.x for v in envelope.Vertexes)
+_xs = [_qf + 100 * k for k in range(31)] + [_qf + 3000 + 250 * k for k in range(1, int((_bow_x - _qf - 3000) / 250) + 1)]
+_g0, _g1 = GATE["x"][0] + GATE_POST / 2, GATE["x"][1] - GATE_POST / 2
+# (stations at least 60 apart: a loft's sections too close together fail)
+_runs = [[x for x in _xs if x <= _g0 - 60] + [_g0], [_g1] + [x for x in _xs if x >= _g1 + 60]]
+for run in _runs:
+    for sgn in (1, -1):
+        secs = []
+        for x in run:
+            w_ = cap_section(x, sgn)
+            if w_ is None:
+                break
+            secs.append(w_)
+        if len(secs) >= 2:
+            rail_parts.append(Part.makeLoft(secs, True, True))
+            CAP_RECORD["runs"].append({"side": "port" if sgn > 0 else "starboard", "x0": run[0], "x1": run[len(secs) - 1],
+                                       "stations": len(secs)})
+log("cap rail", CAP_RECORD["runs"])
+
 
 def stair(foot, head, width=800.0, stringer=(50.0, 250.0), tread=(180.0, 40.0), rise=250.0):
     """A steep stair walked up from its foot to its head (x, z mm): two stringers and a tread every `rise`."""
@@ -457,14 +523,34 @@ def stair(foot, head, width=800.0, stringer=(50.0, 250.0), tread=(180.0, 40.0), 
     return parts
 
 
-stairs = Part.makeCompound([q for t in LAY["stairs"] for q in stair(t["foot"], t["head"])])
+stairs = Part.makeCompound([q.translated(V(0, t.get("y", 0.0), 0)) for t in LAY["stairs"] for q in stair(t["foot"], t["head"])])
 
 gate_parts = []
-for sgn in (1, -1):
-    yi = (inner_half_breadth(GATE["x"][0] + 500, GATE["sill"] + 500) or 3000) - 20
-    for gx in (GATE["x"][0], GATE["x"][1] - GATE_POST):
-        y0 = sgn * yi - (GATE_POST if sgn > 0 else 0)
-        gate_parts.append(Part.makeBox(GATE_POST, GATE_POST, GATE["head"] + 150 - GATE["sill"], V(gx, y0, GATE["sill"])))
+# (21 October 2026, chalk note 12: "no gate doors and some stupid post on sides") no posts: the opening's sides are the
+# bulwark's cut edges; a leaf in each, hinged on its after edge, swinging in (GateLeaves, the moving parts gate-port and
+# gate-starboard): vertical planks on two ledges and a brace inside
+gate_leaves = []
+GATE_LEAF = []
+GX0, GX1 = GATE["x"][0] + GATE_POST / 2, GATE["x"][1] - GATE_POST / 2
+LEAF_T, LEAF_GAP = 70.0, 15.0
+for sgn in (1, -1):                                   # port (+Y) first
+    xm, zm = (GX0 + GX1) / 2, (GATE["sill"] + GATE["head"]) / 2
+    yo, yi = half_breadth(xm, zm) or 3200, inner_half_breadth(xm, zm) or 3000
+    ym = (yo + yi) / 2
+    w, h = GX1 - GX0 - 2 * LEAF_GAP, GATE["head"] - GATE["sill"] - LEAF_GAP
+    x0 = GX0 + LEAF_GAP
+    leaf = [Part.makeBox(w, LEAF_T, h, V(x0, sgn * ym - LEAF_T / 2, GATE["sill"] + LEAF_GAP / 2))]
+    yin = sgn * (ym - LEAF_T / 2) - (40 if sgn > 0 else 0)          # the ledges on its inboard face, 40 thick
+    for zl in (GATE["sill"] + 150, GATE["head"] - 230):
+        leaf.append(Part.makeBox(w - 60, 40, 110, V(x0 + 30, yin, zl)))
+    rise_, run_ = GATE["head"] - GATE["sill"] - 480, w - 160
+    br = Part.makeBox(math.hypot(run_, rise_), 40, 100, V(0, 0, -50))
+    br.rotate(V(0, 0, 0), V(0, 1, 0), -math.degrees(math.atan2(rise_, run_)))
+    br.translate(V(x0 + 80, yin, GATE["sill"] + 260))
+    leaf.append(br)
+    gate_leaves.append(Part.makeCompound(leaf))
+    GATE_LEAF.append({"side": "port" if sgn > 0 else "starboard", "x0": x0, "x1": x0 + w, "y": sgn * ym,
+                      "t": LEAF_T, "z0": GATE["sill"], "z1": GATE["sill"] + LEAF_GAP / 2 + h})
 for ropes in L["ropeLadders"]:
     pair = [[V(*q) for q in line] for line in ropes]
     for line in pair:
@@ -472,6 +558,7 @@ for ropes in L["ropeLadders"]:
     for k in range(1, min(len(pair[0]), len(pair[1]))):
         gate_parts.append(spar(pair[0][k], pair[1][k], 18, 18))
 gates = Part.makeCompound(gate_parts)
+gate_leaves_shape = Part.makeCompound(gate_leaves)
 railings = Part.makeCompound(rail_parts)
 
 guns = []
@@ -669,6 +756,8 @@ report = {
               "skinOverlap_mm3": round(sum(b.common(shell).Volume for b in beam_solids))},
     "sailFeet": sail_clear,
     "guns": gun_fit,
+    "gateLeaves": GATE_LEAF,
+    "capRail": CAP_RECORD,
     "gunGeometry": GUN_RECORD,
     "rigs": {"latina": bbox(rig_latina), "redonda": bbox(rig_redonda)},
     "buildSeconds": round(time.time() - T0, 1),
@@ -683,7 +772,8 @@ log(json.dumps({k: report[k] for k in ("lengthOverall_mm", "beam_mm", "draft_mm"
 doc = App.newDocument("Caravel")
 bodies = {"Envelope": envelope, "Shell": shell, "Backbone": backbone, "Ribs": ribs, "Beams": beams, "Decks": decks,
           "Reference": reference,
-          "Rig_Latina": rig_latina, "Rig_Redonda": rig_redonda, "Fittings": fittings, "Railings": railings, "Stairs": stairs, "Gates": gates, "Guns": guns_shape,
+          "Rig_Latina": rig_latina, "Rig_Redonda": rig_redonda, "Fittings": fittings, "Railings": railings, "Stairs": stairs, "Gates": gates,
+          "GateLeaves": gate_leaves_shape, "Guns": guns_shape,
           "GunsParked": guns_parked, "GunPlaces": gun_places}
 ROLES = {"Envelope": "envelope", "Shell": "structure", "Backbone": "structure", "Ribs": "structure",
          "Beams": "structure", "Decks": "structure"}
@@ -723,11 +813,11 @@ mesh = {"units": "mm", "frame": "X fore, Y port, Z up",
             "Shell": tri_mesh(shell), "Decks": tri_mesh(decks), "Envelope": tri_mesh(envelope, 40.0),
             "Rig_Latina": tri_mesh(rig_latina, 30.0), "Rig_Redonda": tri_mesh(rig_redonda, 30.0),
             "Fittings": tri_mesh(fittings), "Railings": tri_mesh(railings, 15.0), "Stairs": tri_mesh(stairs),
-            "Gates": tri_mesh(gates, 15.0), "Guns": tri_mesh(guns_shape, 15.0), "Ribs": tri_mesh(ribs), "Backbone": tri_mesh(backbone), "Beams": tri_mesh(beams),
+            "Gates": tri_mesh(gates, 15.0), "GateLeaves": tri_mesh(gate_leaves_shape, 15.0), "Guns": tri_mesh(guns_shape, 15.0), "Ribs": tri_mesh(ribs), "Backbone": tri_mesh(backbone), "Beams": tri_mesh(beams),
             "GunsParked": tri_mesh(guns_parked, 15.0), "GunPlaces": tri_mesh(gun_places)},
         "lines": {"Reference": lines(reference)},
         "levels": LV, "layout": LAY,
-        "colours": {"Railings": "#6d4b2e", "GunsParked": "#3a3a3a", "Stairs": "#8a5a32", "Gates": "#6d4b2e"}}
+        "colours": {"Railings": "#6d4b2e", "GunsParked": "#3a3a3a", "Stairs": "#8a5a32", "Gates": "#6d4b2e", "GateLeaves": "#8a5a32"}}
 os.makedirs(os.path.join(OUT, "views"), exist_ok=True)
 with open(os.path.join(OUT, "views", "caravel-mesh.js"), "w") as f:
     f.write("window.CARAVEL = ")
