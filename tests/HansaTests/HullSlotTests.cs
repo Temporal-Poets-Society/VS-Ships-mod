@@ -54,7 +54,9 @@ namespace HansaTests
         {
             var l = def.Hull;
             // ((0.3.29, LINED) under her weather decks two layers: a planking panel and a ceiling panel each)
-            Check(l != null && l.Count >= 120 && l.Slots.Count(s => !s.IsInner) <= 600, $"{def.Code}: {l?.Count ?? 0} hull panels (planking between 120 and 600; {l?.Slots.Count(s => s.IsInner) ?? 0} of them ceilings), {l?.Slots.Count(s => s.Sill < def.Waterline) ?? 0} reaching under her waterline");
+            // ((22 October 2026) the fewest for her size: carrack-m's 120, a 22 m caravel's four a metre of her length)
+            int fewest = (int)Math.Min(120, 4 * def.Length);
+            Check(l != null && l.Count >= fewest && l.Slots.Count(s => !s.IsInner) <= 600, $"{def.Code}: {l?.Count ?? 0} hull panels (planking between {fewest} and 600; {l?.Slots.Count(s => s.IsInner) ?? 0} of them ceilings), {l?.Slots.Count(s => s.Sill < def.Waterline) ?? 0} reaching under her waterline");
             if (l == null) return;
             foreach (var p in l.Problems.Take(10)) Console.WriteLine("         " + p);
             Check(l.Problems.Count == 0, $"{def.Code}: the panels' ids, places and voxels are each one panel's ({l.Problems.Count} problems)");

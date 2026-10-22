@@ -407,6 +407,34 @@ partitions up to the quarterdeck (38).
 
 Not yet: hull panels as slots (note 16 and the user's item 3), rooms, a hearth.
 
+### The third trial (22 October 2026, release 0.1.0-dev.6, chalk notes 41-52)
+
+- **Hull panels** (the user, the fourth time: "still cannot remove hull elements"): `export_caravel.py` makes her side's
+  planking `hullSlots` (docs/legacy/slots.md §9, §11.1): one a cell of her side (a block along by a block up) in the
+  rows between her decks (the hold's 1 and 2, the steerage's and the waist's 4 and 5; row 5 only where row 6 has
+  planking). Fixed: the bottom row, the decks' rows, a cell reaching the centreline (stem, sternpost), the waist guns'
+  ports, the gates, three cells round the anchor and its hawse. A panel owns the shell's voxels in its cell that no
+  other body shares (a rib crossing it stays when it is out); its edges toward a neighbouring panel are pairs, the
+  fixed pieces' faces toward it are drawn only while it is out. The old `hullOut`/`hullIn` are gone. Taken out in
+  building mode with an axe; afloat only over her waterline (rows 4 and 5).
+- **Flicker** (the user: "check 3D model overlaps ... for ALL models ... rule for any new or modified models"):
+  `tools/caravel/overlap_check.py` finds drawn faces in one plane, facing one way, overlapping (806 pairs on dev.6). Fixed
+  at the source: the railings one fused solid (posts' caps, bars' joints), the gate leaves fused, the mizzen step under
+  the mast's heel, the wheel's drum turns and the capstan's coil apart; `caravel_layout.deflicker` then spreads what is
+  left 2 mm a face along its normal (slots' faces stay). The layout prints how many are left (0 wanted).
+- **Textures** (notes 42, 44, the user's item 3): rails, caps and gates take the grain along each face's longest edge from
+  one origin for the whole ship (no longer per triangle); the gate leaves' outsides and insides the hull's planking
+  (note 41).
+- **Quarterdeck gun lids** (note 45): the railing's style, the member the posts' size between two light rails; the port
+  between the bottom rail's top and the top rail's underside.
+- **Tiller** (note 46): the sternpost's head stops 0.25 under the tiller, which passes over it.
+- **Capstan** (note 47): Magelan's size (radius 0.48, bars 0.95); the hawse at x 6.75, just forward of rib 6.
+- **Yards** (the user's item 7): 165 at the main's sling and 125 at the mizzen's, tapering to 0.6 and 0.5 of that.
+
+In other sessions (mod code): items shuffling on deck (1), partitions through a beam and where stairs were (48, 49),
+stairs in the hold (51, 52), building mode without block snapping (5), the telescope taken for a gun (6), lanterns'
+light (43). Note 50 (the carlings left after closing a hatch): they are the opening's framing, part of her structure.
+
 ### Server self-test on the caravel (20 October 2026)
 
 `tools/run_selftest.sh` on the Release build tests the caravel (the configured `carrack` isn't in it). The test is

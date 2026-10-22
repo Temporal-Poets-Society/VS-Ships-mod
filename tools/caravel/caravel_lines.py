@@ -79,7 +79,8 @@ FITTINGS = {
     "pump": {"deck": "main", "cell": [0, 0]},              # forward of the main mast; its brake athwartships
     "capstan": {"deck": "main", "cell": [6, 0]},           # on the foredeck abreast the cathead (the user, 22 October
                                                            # 2026), the cable on the deck straight from the hawse
-    "hawse": {"x": 8.2},                                   # the hawse hole's middle, on the anchor's side
+    "hawse": {"x": 6.75},                                  # the hawse hole's middle, on the anchor's side, just forward
+                                                           # of rib 6 (chalk note 47: "next to the rib")
     "wheel": {"deck": "quarterdeck", "cell": [-7, 0]},     # (22 October 2026, chalk note 30) forward of the mizzen,
                                                            # where the user marked it (x -6.77): its rim there, the
                                                            # helmsman aft of it in cell -8, the waist in sight
@@ -398,7 +399,9 @@ def backbone_outline(step=0.1):
     sternpost's head down the post, along the bottom and up the stem to the bow rail, moved out by the protrusion, and
     the same line BB_MOULDED further in."""
     pts = []
-    z_post_top = Z_QD - DECK_T                                 # no higher than the quarterdeck's floor
+    # (22 October 2026, chalk note 46: "rudder handle perforates keel rib") the post's head under the tiller, which runs
+    # in over it from the rudder's head to the wheel's ropes (the tiller's axis 150 under the quarterdeck's beams)
+    z_post_top = Z_QD - DECK_T - 0.4 - 0.15 - 0.25
     for z in np.arange(z_post_top, LIFT, -step):
         pts.append((x_post(shape_z(z)), z))
     for x in np.arange(x_post(0.0), x_stem(0.0), step * 2):

@@ -245,6 +245,104 @@ def deck_lit(n, c):
     return not (c[0] < L["quarterdeckFront"] and c[2] < LV["quarterdeck"] - 150)
 
 
+# ---------------------------------------------------------------- her hull's panels
+# (22 October 2026, the user, the fourth time: "still cannot remove hull elements !!!") Her side's planking as hull
+# panels (docs/legacy/slots.md §9, §11.1): one a cell of her side, a block along her by a block up, the shell's pieces in
+# that cell on that side; its id hull:<p|s>:<station>:<band>:<a|f>, the band its cell row from the keel, the half which
+# block of the frame space (frames every 2 from -12). Panels in the rows between her decks (the hold's 1 and 2, the
+# steerage's and the waist's 4 and 5); fixed: her bottom row (the floor timbers, the keel), the decks' rows (the
+# waterways), a cell reaching her centreline (the stem, the sternpost), the waist guns' ports, the gates, where the anchor
+# hangs and its hawse; row 5 only under the quarterdeck's. A panel owns its shell's voxels not another body's (a rib
+# crossing it stays when it's out).
+PANEL_ROWS = (1, 2, 4, 5)
+FR = {"x0": -12, "space": 2, "count": 10}
+cell_pieces_ix = {tuple(c["cell"]): [p["index"] for p in c["pieces"]] for c in cells["cells"]}
+shell_cells = {}
+for c in cells["cells"]:
+    for p in c["pieces"]:
+        if p["body"] == "Shell":
+            shell_cells.setdefault(tuple(c["cell"]), []).append(p["index"])
+
+
+def side_of_j(j):
+    """The game's side of a cell column: model +Y (j > 0) is port (-1), -Y starboard (+1); 0 the centreline's."""
+    return -1 if j > 0 else 1 if j < 0 else 0
+
+
+fixed_hull = set()                       # (side, i, row)
+for gf_ in REP["guns"]:
+    if abs(gf_["deck"] - LV["mainDeck"]) < 1:
+        for k_ in (4, 5):
+            fixed_hull.add((-1 if gf_["side"] == "port" else 1, gf_["cell"], k_))
+for gx in range(int(math.floor(L["layout"]["gate"]["x"][0] / 1000)), int(math.ceil(L["layout"]["gate"]["x"][1] / 1000))):
+    for s_ in (-1, 1):
+        for k_ in (4, 5):
+            fixed_hull.add((s_, gx, k_))
+s_an = -1 if FIT["anchor"]["side"] == "port" else 1
+for x_ in (FIT["hawse"]["x"], FIT["anchor"]["x"]):
+    for i_ in range(int(math.floor(x_)) - 1, int(math.floor(x_)) + 2):
+        for k_ in PANEL_ROWS:
+            fixed_hull.add((s_an, i_, k_))
+panel_cells = {}                          # (side, i, row) -> its cells
+for (ci, cj, ck) in shell_cells:
+    s_ = side_of_j(cj)
+    if ck in PANEL_ROWS and s_ != 0 and FR["x0"] <= ci < FR["x0"] + FR["space"] * FR["count"] and (s_, ci, ck) not in fixed_hull:
+        panel_cells.setdefault((s_, ci, ck), []).append((ci, cj, ck))
+for key in list(panel_cells):
+    s_, ci, ck = key
+    if any((ci, 0, ck_) in shell_cells for ck_ in (ck,)) or \
+            ck == 5 and not any((ci, cj, 6) in shell_cells and side_of_j(cj) == s_ for cj in range(-6, 7)):
+        del panel_cells[key]
+panel_of_cell = {c_: key for key, cl in panel_cells.items() for c_ in cl}
+panel_of_piece = {ix: key for key, cl in panel_cells.items() for c_ in cl for ix in shell_cells[c_]}
+log("hull panels: candidates", len(panel_cells))
+hull_tris = []                            # (group, tex, tri, uvs, n, owner key or None, facing key or None)
+
+
+def cover_pieces(tri, n, cell, a):
+    """covered()'s samples just across a border face: the neighbouring cell's piece filling each (its index), or None
+    if any isn't filled."""
+    d = 1 if n[a] > 0 else -1
+    nb = list(cell)
+    nb[a] += d
+    ixs = cell_pieces_ix.get(tuple(nb))
+    if not ixs:
+        return None
+    c = [sum(q[k_] for q in tri) / 3 for k_ in range(3)]
+    found = []
+    for q in [c] + [[c[k_] + 0.9 * (p_[k_] - c[k_]) for k_ in range(3)] for p_ in tri]:
+        q = list(q)
+        q[a] += d * 1.0
+        pt = V(*q)
+        hit = next((ix for ix in ixs if pieces[ix].BoundBox.isInside(pt) and pieces[ix].isInside(pt, 0.1, False)), None)
+        if hit is None:
+            return None
+        found.append(hit)
+    return found
+
+
+def in_room(cx, cz):
+    """Is a point (model mm) in one of her rooms (the hold under the main deck, the steerage under the quarterdeck)?"""
+    return cz < LV["mainDeck"] or (cx < L["quarterdeckFront"] and cz < LV["quarterdeck"] - 150)
+
+
+def hull_tri(body, tri, uvs, n, c3, own, fac):
+    """A triangle of her side's planking (or a fixed piece's face toward a panel) for the hull's slot groups."""
+    cx, cy, cz = c3
+    if own is not None and fac is None and body == "Shell":
+        outward = outside_hull(cx + n[0] * 30.0, cy + n[1] * 30.0, cz + n[2] * 30.0)
+        if outward and cz < LV["waterline"] + 50:
+            hull_tris.append(("slot:hull:bottom", T_HULL, tri, uvs, n, own, fac))
+            hull_tris.append(("slot:hull:bottomclad", T_COPPER, tri, uvs, n, own, fac))
+        elif outward:
+            hull_tris.append(("slot:hull", T_HULL, tri, uvs, n, own, fac))
+        else:
+            hull_tris.append(("slot:hull:interior" if in_room(cx, cz) else "slot:hull", T_HULL2, tri, uvs, n, own, fac))
+        return
+    tex = T_HULL2 if body == "Shell" else BODY_TEX[body]
+    hull_tris.append(("slot:hull:interior" if in_room(cx, cz) else "slot:hull", tex, tri, uvs, n, own, fac))
+
+
 hidden = 0
 for c in cells["cells"]:
     i, j, k = c["cell"]
@@ -296,6 +394,27 @@ for c in cells["cells"]:
                               if (d_, i, j) in slot_of and abs(cz - (z - L["deckThickness"])) < 2), None)
                 if under is not None:
                     add_slot_tri("slot:deck:interior", BODY_TEX[body], tri, uvs, n, -1, under)
+                    continue
+            P = panel_of_piece.get(p["index"]) if body == "Shell" else None
+            nbP = None
+            if a is not None:
+                nbc = [i, j, k]
+                nbc[a] += 1 if n[a] > 0 else -1
+                nbP = panel_of_cell.get(tuple(nbc))
+            if P is not None or nbP is not None:
+                if a is not None:
+                    cov = cover_pieces(tri, n, (i, j, k), a)
+                    if cov is not None:
+                        other = next((o for o in (panel_of_piece.get(ix) for ix in cov) if o is not None and o != P), None)
+                        if other is not None:
+                            # a panel's edge toward the panel next to it, or a fixed piece's face toward a panel: drawn
+                            # while that one is out (and this one in)
+                            hull_tri(body, tri, uvs, n, (cx, cy, cz), P, other)
+                        else:
+                            hidden += 1
+                        continue
+                if P is not None:
+                    hull_tri(body, tri, uvs, n, (cx, cy, cz), P, None)
                     continue
             if a is not None and covered(tri, n, (i, j, k), a, cell_solids):
                 hidden += 1
@@ -397,10 +516,66 @@ def add_shape(group, tex, shape, defl=6.0, cell_uv=True, along=False):
             add_tri(group, tex, tri, [uv_box(q, n, origin) for q in tri], n)
 
 
+def add_faces_grain(group, tex, shape, defl=6.0):
+    """(22 October 2026, chalk notes 42, 44: "textures are complete mess", "railing textures all over the place") Each
+    face of the shape meshed alone, the wood's grain (u) along that face's longest edge, from one origin for the whole
+    ship, so a face's triangles and its neighbours along the same run share one continuous texture; v across it in its
+    plane. 16 texels a block."""
+    for face in shape.Faces:
+        chords = []
+        for e in face.Edges:
+            vs = e.Vertexes
+            if len(vs) == 2:
+                d_ = vs[1].Point - vs[0].Point
+                chords.append((d_.Length, (d_.x, d_.y, d_.z)))
+        if not chords:
+            continue
+        ln_, ud = max(chords)
+        ud = [c / ln_ for c in ud]
+        big = max(range(3), key=lambda a_: abs(ud[a_]))
+        if ud[big] < 0:
+            ud = [-c for c in ud]
+        m = mesh_of(face, defl)
+        pts_all, facets = m.Topology
+        normals = [f.Normal for f in m.Facets]
+        tris = []
+        for fi, f in enumerate(facets):
+            tri = [(pts_all[f[q]].x, pts_all[f[q]].y, pts_all[f[q]].z) for q in range(3)]
+            n = (normals[fi].x, normals[fi].y, normals[fi].z)
+            dn = sum(ud[k] * n[k] for k in range(3))
+            u = [ud[k] - dn * n[k] for k in range(3)]
+            lu = math.sqrt(sum(c * c for c in u))
+            if lu < 0.2:                                 # the face across its longest edge: an end, as uv_box
+                tris.append((tri, n, [uv_box(q, n, (0.0, -500.0, 0.0)) for q in tri]))
+                continue
+            u = [c / lu for c in u]
+            v = [n[1] * u[2] - n[2] * u[1], n[2] * u[0] - n[0] * u[2], n[0] * u[1] - n[1] * u[0]]
+            tris.append((tri, n, [(sum(q[k] * u[k] for k in range(3)) / 1000.0 * 16,
+                                   sum(q[k] * v[k] for k in range(3)) / 1000.0 * 16) for q in tri]))
+        if not tris:
+            continue
+        # (the whole face shifted by whole tiles near 0: small numbers, its texture unbroken)
+        u0 = math.floor(min(uv[0] for _, _, uvs in tris for uv in uvs) / 16) * 16
+        v0 = math.floor(min(uv[1] for _, _, uvs in tris for uv in uvs) / 16) * 16
+        for tri, n, uvs in tris:
+            add_tri(group, tex, tri, [(q[0] - u0, q[1] - v0) for q in uvs], n)
+
+
 for name in ("Railings", "Gates"):          # (21 October 2026) the stairs are the game's ship's stairs (pieces) now
-    add_shape("exterior", BODY_TEX[name], OBJ[name].Shape, along=True)
+    add_faces_grain("exterior", BODY_TEX[name], OBJ[name].Shape)
+# (chalk note 41: "gate inside/outside not same as hull") the leaves' outer faces the hull's outside planking, their
+# inner faces its inside, planks along the keel from the hull's own origin; their edges the deck's wood
 for side, leaf in zip(("port", "starboard"), OBJ["GateLeaves"].Shape.SubShapes):
-    add_shape("part:gate-" + side, T_DECK2, leaf, 4.0)
+    s_ = 1.0 if side == "port" else -1.0               # (model Y is port)
+    for face in leaf.Faces:
+        m = mesh_of(face, 4.0)
+        pts_all, facets = m.Topology
+        normals = [f.Normal for f in m.Facets]
+        for fi, f in enumerate(facets):
+            tri = [(pts_all[f[q]].x, pts_all[f[q]].y, pts_all[f[q]].z) for q in range(3)]
+            n = (normals[fi].x, normals[fi].y, normals[fi].z)
+            tex = T_HULL if n[1] * s_ > 0.7 else T_HULL2 if n[1] * s_ < -0.7 else T_DECK2
+            add_tri("part:gate-" + side, tex, tri, [uv_grain(q, n, (0.0, -500.0, 0.0), 0) for q in tri], n)
 fit = OBJ["Fittings"].Shape.SubShapes            # rudder, tiller, mizzen step
 add_shape("part:rudder", T_TIMBER, fit[0])
 add_shape("part:tiller", T_TIMBER, fit[1])
@@ -478,14 +653,6 @@ def add_shot(group, r=0.065, sides=10, rings=8):
 add_shot("shot")
 log("all quads", {k: len(v) for k, v in groups.items()})
 
-skin = {"textures": TEX, "groups": groups,
-        "hullOut": {"exterior": [0, n_ext], "bottom": [0, n_bot]}, "hullIn": {"interior": [0, n_int]},
-        "hullThickness": L["skin"] / 1000.0, "slotQuads": slot_pairs}
-BASE = os.path.join(MOD, "export")
-os.makedirs(BASE, exist_ok=True)
-with open(os.path.join(BASE, "caravel-mesh-base.json"), "w") as f:
-    json.dump(skin, f, separators=(",", ":"))
-log("wrote export/caravel-mesh-base.json")
 
 # ---------------------------------------------------------------- the voxel grid: rays across the ship through each body
 VOX = 0.25
@@ -516,6 +683,15 @@ def mark(i, j, z_lo, z_hi):
 
 
 rail = bytearray(nx * ny * nz)        # the railings' own voxels, filled down to what they stand on afterwards
+shellv = bytearray(nx * ny * nz)      # (the hull panels') the shell's voxels, and every other body's
+otherv = bytearray(nx * ny * nz)
+
+
+def mark_in(arr, i, j, z_lo, z_hi):
+    k0 = max(0, int(math.floor((z_lo - oz) / VOX)))
+    k1 = min(nz - 1, int(math.floor((z_hi - oz) / VOX - 1e-9)))
+    for k in range(k0, k1 + 1):
+        arr[(i * ny + j) * nz + k] = 1
 
 
 def mark_rail(i, j, z_lo, z_hi):
@@ -542,6 +718,8 @@ for i in range(nx):
                         for a in range(0, len(ys) - 1, 2):
                             z0, z1 = -ys[a + 1] / 1000.0, -ys[a] / 1000.0      # game z = -Y: the interval's ends swap
                             (mark_rail if name == "Railings" else mark)(i, j, z0, z1)
+                            if name != "Railings":
+                                mark_in(shellv if name == "Shell" else otherv, i, j, z0, z1)
 # (21 October 2026, chalk note 15) a railing is solid from its deck (or the bulwark it caps) up to its top rail: the
 # mod takes anything with air under it near the deck for a stair's tread and keeps the cells round it clear, so a
 # railing's bars and a cap rail's overhang left the quarterdeck no floor places, and nobody falls through a railing
@@ -570,6 +748,148 @@ for n_, v in enumerate(solid):
     if v:
         bits[n_ >> 3] |= 1 << (n_ & 7)
 solid_b64 = base64.b64encode(zlib.compress(bytes(bits), 9)).decode()
+
+# ---------------------------------------------------------------- the hull panels settled
+panel_vox = {}
+for i in range(nx):
+    xc_ = ox + (i + 0.5) * VOX
+    for j in range(ny):
+        row = int(math.floor(((oy + (j + 0.5) * VOX) + WL) * 1000.0 / 1000.0 + 1e-9))
+        for k in range(nz):
+            v = (i * ny + j) * nz + k
+            if not (shellv[v] and solid[v]) or otherv[v] or rail[v]:
+                continue
+            zc_ = oz + (k + 0.5) * VOX
+            key = (1 if zc_ > 0 else -1, int(math.floor(xc_)), row)
+            if key in panel_cells:
+                panel_vox.setdefault(key, []).append((i, j, k))
+
+
+def gtri(tri):
+    return [g(q) for q in tri]
+
+
+info = {}
+for grp, tex, tri, uvs, n, own, fac in hull_tris:
+    if grp.endswith("bottomclad"):
+        continue
+    if own is not None and fac is None:
+        e = info.setdefault(own, {"out": [], "in": [], "pts": [], "strips": 0})
+        gt = gtri(tri)
+        gn_ = gn(n)
+        e["pts"] += gt
+        (e["out"] if gn_[2] * own[0] > 0 else e["in"]).append((gt, gn_))
+    elif own is None and fac is not None:
+        info.setdefault(fac, {"out": [], "in": [], "pts": [], "strips": 0})["strips"] += 1
+    if own is not None:
+        info.setdefault(own, {"out": [], "in": [], "pts": [], "strips": 0})["pts"] += gtri(tri)
+
+
+def tri_area(t):
+    a_ = [t[1][q] - t[0][q] for q in range(3)]
+    b_ = [t[2][q] - t[0][q] for q in range(3)]
+    c_ = (a_[1] * b_[2] - a_[2] * b_[1], a_[2] * b_[0] - a_[0] * b_[2], a_[0] * b_[1] - a_[1] * b_[0])
+    return 0.5 * math.sqrt(sum(v * v for v in c_))
+
+
+def corners(tris):
+    """A face's four corners (aft-low, fwd-low, fwd-high, aft-high) from its triangles (game coordinates)."""
+    pts = [q for t, _ in tris for q in t]
+    x0_, x1_ = min(q[0] for q in pts), max(q[0] for q in pts)
+    aft = [q for q in pts if q[0] < x0_ + 0.02]
+    fwd = [q for q in pts if q[0] > x1_ - 0.02]
+    return [list(map(r4, min(aft, key=lambda q: q[1]))), list(map(r4, min(fwd, key=lambda q: q[1]))),
+            list(map(r4, max(fwd, key=lambda q: q[1]))), list(map(r4, max(aft, key=lambda q: q[1])))]
+
+
+def vox_boxes(vs):
+    """A panel's voxels as boxes: runs along z, then runs of those of one height up."""
+    cols = {}
+    for (i, j, k) in sorted(vs):
+        cols.setdefault((i, j), []).append(k)
+    runs = []
+    for (i, j), ks in cols.items():
+        start = prev = ks[0]
+        for k in ks[1:] + [None]:
+            if k is not None and k == prev + 1:
+                prev = k
+                continue
+            runs.append((i, j, start, prev))
+            if k is not None:
+                start = prev = k
+    runs.sort()
+    boxes = []
+    for (i, j, k0, k1) in runs:
+        if boxes and boxes[-1][0] == i and boxes[-1][4] == k0 and boxes[-1][5] == k1 and boxes[-1][3] == j - 1:
+            boxes[-1][3] = j
+            continue
+        boxes.append([i, j, j, j, k0, k1])
+    return [[r4(ox + i * VOX), r4(oy + j0 * VOX), r4(oz + k0 * VOX), r4(ox + (i + 1) * VOX), r4(oy + (j1 + 1) * VOX), r4(oz + (k1 + 1) * VOX)]
+            for i, j0, _, j1, k0, k1 in boxes]
+
+
+hull_slots, panel_index, why = [], {}, {}
+for key in sorted(panel_cells, key=lambda t: (t[1], t[0], t[2])):
+    s_, ci, ck = key
+    e = info.get(key)
+    vs = panel_vox.get(key, [])
+    if e is None or not e["out"] or not e["in"]:
+        why[key] = "no outside or ceiling"
+        continue
+    area = sum(tri_area(t) for t, _ in e["out"])
+    nm = [sum(nn[q] * tri_area(t) for t, nn in e["out"]) for q in range(3)]
+    ln_ = math.sqrt(sum(v * v for v in nm)) or 1.0
+    nm = [v / ln_ for v in nm]
+    if area <= 0.3 or nm[2] * s_ <= 0.2 or e["strips"] < 2:
+        why[key] = f"area {area:.2f}, normal {nm[2] * s_:.2f}, {e['strips']} strips"
+        continue
+    pts = e["pts"]
+    box = [min(q[0] for q in pts), min(q[1] for q in pts), min(q[2] for q in pts),
+           max(q[0] for q in pts), max(q[1] for q in pts), max(q[2] for q in pts)]
+    sol = vox_boxes([v for v in vs if box[0] <= ox + (v[0] + 0.5) * VOX <= box[3] and box[1] <= oy + (v[1] + 0.5) * VOX <= box[4]])
+    if sum(round((b_[3] - b_[0]) * (b_[4] - b_[1]) * (b_[5] - b_[2]) / VOX ** 3) for b_ in sol) < 4:
+        why[key] = f"{len(vs)} voxels of its own"
+        continue
+    for b_ in sol:
+        box = [min(box[0], b_[0]), min(box[1], b_[1]), min(box[2], b_[2]), max(box[3], b_[3]), max(box[4], b_[4]), max(box[5], b_[5])]
+    station = int(math.floor((ci + 0.5 - FR["x0"]) / FR["space"]))
+    half = "a" if (ci - FR["x0"]) % FR["space"] == 0 else "f"
+    out_c = corners(e["out"])
+    ys = [q[1] for t, _ in e["out"] for q in t]
+    panel_index[key] = len(hull_slots)
+    hull_slots.append({
+        "id": f"hull:{'s' if s_ > 0 else 'p'}:{station}:{ck}:{half}", "side": s_, "station": station, "band": ck, "half": half,
+        "box": [r4(v) for v in box], "outer": out_c, "inner": corners(e["in"]),
+        "normal": [round(v, 3) for v in nm], "area": round(area, 3), "sill": r4(min(ys)), "head": r4(max(ys)),
+        "room": ("hold" if ck < 3 else "steerage" if ci + 1 <= L["quarterdeckFront"] / 1000 + 1e-6 else None),
+        "solids": sol,
+        # (a block of her side: one planks block, or 4 boards, lays it again, as carrack-m's)
+        "material": {"block": "game:planks-oak-ud", "count": 1}})
+log("hull panels:", len(hull_slots), "of", len(panel_cells), "candidates; fixed:", dict(list(why.items())[:12]))
+# their triangles: a panel left fixed is drawn as her fixed planking (its faces always, the faces toward it gone)
+n_hull = {}
+for grp, tex, tri, uvs, n, own, fac in hull_tris:
+    if fac is not None and fac not in panel_index:
+        continue
+    o_ = panel_index.get(own, -1) if own is not None else -1
+    f_ = panel_index[fac] if fac is not None else -1
+    if o_ < 0 and f_ < 0 and own is not None and fac is None:
+        # (a fixed one's own faces: as the plain hull's)
+        add_slot_tri(grp, tex, tri, uvs, n, -1, -1)
+    else:
+        add_slot_tri(grp, tex, tri, uvs, n, o_, f_)
+    n_hull[grp] = n_hull.get(grp, 0) + 1
+log("hull slot quads", n_hull)
+for grp in ("slot:hull", "slot:hull:bottom", "slot:hull:bottomclad", "slot:hull:interior"):
+    groups.setdefault(grp, [])
+    slot_pairs.setdefault(grp, [])
+
+skin = {"textures": TEX, "groups": groups, "slotQuads": slot_pairs}
+BASE = os.path.join(MOD, "export")
+os.makedirs(BASE, exist_ok=True)
+with open(os.path.join(BASE, "caravel-mesh-base.json"), "w") as f:
+    json.dump(skin, f, separators=(",", ":"))
+log("wrote export/caravel-mesh-base.json")
 
 # ---------------------------------------------------------------- the definition
 def side_faces(shape, x, z):
@@ -603,7 +923,9 @@ for gf in GF:
     kz0, kz1 = zr(seat - 300, front)
     if on_qd:
         # over the side, between the railing's posts and under its top rail; its faces those of the bottom and top rails
-        port_box = [c + 0.075, r4(RAILS["bottom"][0][2] / 1000 + 0.04 - WL), c + 0.925, r4(RAILS["top"][0][2] / 1000 - 0.1 - WL)]
+        # (the bottom rail 80 high lying on the deck, the top rail 140 high centred 50 under the posts' tops: their faces
+        # and 5 mm clear)
+        port_box = [c + 0.075, r4(RAILS["bottom"][0][2] / 1000 + 0.085 - WL), c + 0.925, r4(RAILS["top"][0][2] / 1000 - 0.125 - WL)]
         wi0, wo0 = side_faces(OBJ["Railings"].Shape, xc * 1000, RAILS["bottom"][0][2])
         wi1, wo1 = side_faces(OBJ["Railings"].Shape, xc * 1000, RAILS["top"][0][2] - 50)
         bound = "the railing"
@@ -749,6 +1071,7 @@ definition = {
     # each gun's working room from its carriage's front to behind its gun captain (the mod keeps the fixtures' own)
     "keepClear": gun_keep,
     "deckSlots": deck_slots,
+    "hullSlots": hull_slots,
     # every gun on a place of its own, laid on a new ship (no deck slots yet: the places list no cells)
     "gunPlaces": gun_places,
     "movingParts": [

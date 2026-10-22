@@ -215,8 +215,9 @@ def rail_lid(d, f, line, bottom, top, wood="timber", iron="iron"):
     """
     The quarterdeck gun's lid: the railing's section between the two posts over the gun (line(x, y): the railing's
     middle line's half-breadth, ship-local; bottom, top: the bottom rail's top and the top rail's underside), a small
-    gate of two stiles, two rails and three balusters, hinged against the after post's fore outer edge (two knuckles on
-    straps from its after stile). Returns its moving part.
+    gate in the railing's own style (22 October 2026, chalk note 45): the member between the posts every other span has,
+    the posts' size, held by a light rail under the top rail and over the bottom one, hinged against the after post's
+    fore outer edge (two knuckles on straps). Returns its moving part.
     """
     code = f["code"]
     grp = f"part:{code}-lid"
@@ -228,14 +229,11 @@ def rail_lid(d, f, line, bottom, top, wood="timber", iron="iron"):
     def P(x, y, off=0.0):
         return np.array([x, y, s * (line(x, y) + off)])
 
-    for xa, xb in ((x0, x0 + 0.05), (x1 - 0.05, x1)):                                    # the stiles
-        xm = (xa + xb) / 2
-        d.add_beam_mesh(grp, wood, P(xm, y0), P(xm, y1), RAIL_T, xb - xa, up=(1.0, 0, 0))
     for ya, yb in ((y0, y0 + 0.06), (y1 - 0.06, y1)):                                    # its rails
         ym = (ya + yb) / 2
-        d.add_beam_mesh(grp, wood, P(x0 + 0.05, ym), P(x1 - 0.05, ym), RAIL_T, yb - ya, up=(0, 1.0, 0))
-    for xb in (c + 0.3, c + 0.5, c + 0.7):                                                # balusters, as the railing's
-        d.add_cylinder(grp, wood, P(xb, y0 + 0.06), P(xb, y1 - 0.06), 0.022, 0.022, sides=8)
+        d.add_beam_mesh(grp, wood, P(x0, ym), P(x1, ym), RAIL_T, yb - ya, up=(0, 1.0, 0))
+    # the member, between the rails (not into them: their faces would meet in one plane)
+    d.add_beam_mesh(grp, wood, P(c + 0.5, y0 + 0.06), P(c + 0.5, y1 - 0.06), 2 * POST_HALF, 2 * POST_HALF, up=(1.0, 0, 0))
     # the hinge: on the after post's fore outer edge
     h0 = np.array([c + POST_HALF + KNUCKLE_R, y0, s * (line(c, y0) + POST_HALF + KNUCKLE_R)])
     h1 = np.array([c + POST_HALF + KNUCKLE_R, y1, s * (line(c, y1) + POST_HALF + KNUCKLE_R)])

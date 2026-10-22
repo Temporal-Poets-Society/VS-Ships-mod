@@ -305,7 +305,9 @@ def lateen(cell, cross_z, fore_len, aft_len, angle_deg, clew, r, y_yard=350.0, y
     peak = cross + V(-aft_len * math.cos(a), 0, aft_len * math.sin(a))
     # (21 October 2026, the user: the main yard "from outside looks maybe too long or thin") thicker toward its ends
     # (22 October 2026, the user: "Mast yards now are too thick") between the two: the sling 240 / 170, tapering
-    yard = Part.makeCompound([spar(cross, tack, r, r * 0.5), spar(cross, peak, r, r * 0.4)])
+    # (22 October 2026, the user: "yard looks too thick in middle compared to masts") under the mast's own thickness at
+    # its sling, tapering to its ends
+    yard = Part.makeCompound([spar(cross, tack, r, r * 0.6), spar(cross, peak, r, r * 0.5)])
     head = peak + V(300 * math.cos(a), 0, -300 * math.sin(a))
     if sail_to is not None:                          # the sail stops short of the peak: its after edge at X sail_to
         f = (sail_to - tack.x) / (peak.x - tack.x)
@@ -384,9 +386,9 @@ def lateen_points(key, r, name):
 # caravela latina, two masts, as the reference replica (Vera Cruz). Masts upright (the replica's rake forward).
 CUR_RIG = "latina"
 lat = []
-y, s_, top = lateen_points("main", 240, "latina main")
+y, s_, top = lateen_points("main", 165, "latina main")
 lat += [mast(M["main"]["cell"], M["main"]["heel"], top, 300, name="main"), y, s_]
-y, s_, top = lateen_points("mizzen", 170, "latina mizzen")
+y, s_, top = lateen_points("mizzen", 125, "latina mizzen")
 lat += [mast(M["mizzen"]["cell"], M["mizzen"]["heel"], top, 220, name="mizzen"), y, s_, bumpkin]
 rig_latina = Part.makeCompound(lat)
 
@@ -433,7 +435,8 @@ TILLER_END = -11000.0                                    # 2.4 long (it reached 
 tiller = spar(V(rudder_lead(RUD_TOP - 60) - 200, 0, RUD_TOP - 60), V(TILLER_END, 0, RUD_TOP), 90, 70)
 # the mizzen's step: a timber between the main deck's beams either side of its cell, under its heel
 mx = M["mizzen"]["cell"] * 1000
-mizzen_step = Part.makeBox(1800, 600, 400, V(mx - 400, -300, M["mizzen"]["heel"]))
+# (under its heel: the mast stands on it, not in it; their bottoms in one plane flickered)
+mizzen_step = Part.makeBox(1800, 600, 400, V(mx - 400, -300, M["mizzen"]["heel"] - 400))
 fittings = Part.makeCompound([rudder, tiller, mizzen_step])
 # openings through the transom for the tiller (with room to swing) and the bumpkin (a fitted socket)
 tiller_port = Part.makeBox(800, 900, 400, V(transom_x(RUD_TOP) - 500, -450, RUD_TOP - 320))
@@ -577,7 +580,7 @@ for sgn in (1, -1):                                   # port (+Y) first
     br.rotate(V(0, 0, 0), V(0, 1, 0), -math.degrees(math.atan2(rise_, run_)))
     br.translate(V(x0 + 80, yin, GATE["sill"] + 260))
     leaf.append(br)
-    gate_leaves.append(Part.makeCompound(leaf))
+    gate_leaves.append(leaf[0].multiFuse(leaf[1:]).removeSplitter())      # (one solid: the brace lay on the ledges)
     GATE_LEAF.append({"side": "port" if sgn > 0 else "starboard", "x0": x0, "x1": x0 + w, "y": sgn * ym,
                       "t": LEAF_T, "z0": GATE["sill"], "z1": GATE["sill"] + LEAF_GAP / 2 + h + CAP_H})
 for ropes in L["ropeLadders"]:
@@ -588,7 +591,14 @@ for ropes in L["ropeLadders"]:
         gate_parts.append(spar(pair[0][k], pair[1][k], 18, 18))
 gates = Part.makeCompound(gate_parts)
 gate_leaves_shape = Part.makeCompound(gate_leaves)
-railings = Part.makeCompound(rail_parts)
+# (22 October 2026, the user: "visible surface overlaps create texture flickers ... railings") one solid: the posts'
+# caps, the bars' joints and the members overlapped, their faces in one plane drawn twice
+try:
+    railings = rail_parts[0].multiFuse(rail_parts[1:]).removeSplitter()
+    print("railings fused:", len(railings.Solids), "solids,", len(railings.Faces), "faces")
+except Exception as e_:
+    print("railings fuse failed, left a compound:", e_)
+    railings = Part.makeCompound(rail_parts)
 
 guns = []
 parked = []

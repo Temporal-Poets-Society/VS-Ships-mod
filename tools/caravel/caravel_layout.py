@@ -242,7 +242,7 @@ def square_slot_faces(M, D):
     """A whole deck cell's top and underside are flat squares: each drawn as one quad (the mesher's fans of triangles
     round a vertex overlapped in their boxes), its texture where the cell's own faces had it (their UVs, fitted)."""
     slots = D.get("deckSlots", [])
-    for g in [g for g in M["groups"] if g.startswith("slot:")]:
+    for g in [g for g in M["groups"] if g.startswith("slot:deck")]:
         quads, pairs = M["groups"][g], M["slotQuads"][g]
         groups_ = {}
         for n, q in enumerate(quads):
@@ -347,6 +347,46 @@ def paint_quads(M, L, F):
 
 
 # ---------------------------------------------------------------------------------------------------------- the build
+def deflicker(M, D):
+    """(22 October 2026, the user: "For ANY visible elements - check 3D model overlaps ... visible surface overlaps
+    create texture flickers ... This is also rule for any new or modified models") Drawn faces in one plane, facing one
+    way and overlapping (overlap_check.py) flicker. Each cluster of them (faces joined by overlaps) is spread out along
+    its normal 2 mm a face: a slot's faces first and staying (the hull's and the decks' meet their neighbours exactly),
+    then the larger, the smaller ones in front. Returns (moved, still overlapping after)."""
+    import overlap_check as OC
+    empty = OC.empty_slots(D)
+    found = OC.find_clashes(M, empty)
+    link, nrm_of, area_of = {}, {}, {}
+    for ga, na, gb, nb, ov, c, nrm, aa, ab in found:
+        a, b = (ga, na), (gb, nb)
+        link.setdefault(a, set()).add(b)
+        link.setdefault(b, set()).add(a)
+        nrm_of[a] = nrm_of[b] = nrm
+        area_of[a], area_of[b] = aa, ab
+    seen, moved = set(), 0
+    for start in link:
+        if start in seen:
+            continue
+        comp, todo = [], [start]
+        seen.add(start)
+        while todo:
+            f = todo.pop()
+            comp.append(f)
+            for o in link[f]:
+                if o not in seen:
+                    seen.add(o)
+                    todo.append(o)
+        comp.sort(key=lambda f: (not f[0].startswith("slot:"), -area_of[f]))
+        nrm = nrm_of[comp[0]]
+        for k, (g_, n_) in enumerate(comp[1:], start=1):
+            q = M["groups"][g_][n_]
+            for c_ in range(4):
+                for a_ in range(3):
+                    q[1 + 8 * c_ + a_] = round(q[1 + 8 * c_ + a_] + 0.002 * k * float(nrm[a_]), 4)
+            moved += 1
+    return moved, len(OC.find_clashes(M, empty))
+
+
 def main():
     L, REP, D, M = load()
     F = Frame(L)
@@ -712,6 +752,8 @@ def main():
     M["paintFaces"] = {}
     qf_x = L["quarterdeckFront"] / 1000.0
     counts = merge_quads(d, M, lambda p: p[1] < deck - 0.1 or (p[0] < qf_x and p[1] < qd - 0.1))
+    n_pushed, n_left = deflicker(M, D)
+    print(f"[layout] overlapping faces in one plane: {n_pushed} pushed 2 mm out, {n_left} left")
     out = os.environ.get("CARAVEL_LAYOUT_OUT")             # (a check: somewhere else than the mod's assets)
     with open(os.path.join(out, "caravel.json") if out else os.path.join(ASSETS, "config", "ships", f"{CODE}.json"), "w") as f:
         json.dump(D, f, indent=1)

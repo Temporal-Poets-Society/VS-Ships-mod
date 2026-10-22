@@ -1,7 +1,7 @@
 {
  "massProps": {
   "Shell": {
-   "volume_m3": 64.6908,
+   "volume_m3": 64.6907,
    "centroid_mm": [
     -2561,
     0,
@@ -9,11 +9,11 @@
    ]
   },
   "Backbone": {
-   "volume_m3": 3.7646,
+   "volume_m3": 3.6593,
    "centroid_mm": [
-    -1314,
+    -987,
     0,
-    1855
+    1724
    ]
   },
   "Ribs": {
@@ -41,11 +41,11 @@
    ]
   },
   "Railings": {
-   "volume_m3": 3.0672,
+   "volume_m3": 2.8764,
    "centroid_mm": [
-    -5408,
-    22,
-    6859
+    -5144,
+    20,
+    6810
    ]
   },
   "Fittings": {
@@ -53,7 +53,7 @@
    "centroid_mm": [
     -11104,
     0,
-    2953
+    2846
    ]
   },
   "Stairs": {
@@ -73,19 +73,19 @@
    ]
   },
   "Rig_Latina": {
-   "volume_m3": 9.5214,
+   "volume_m3": 8.0727,
    "centroid_mm": [
-    -2765,
-    118,
-    13091
+    -2900,
+    76,
+    12330
    ]
   },
   "Rig_Redonda": {
-   "volume_m3": 10.99,
+   "volume_m3": 11.0754,
    "centroid_mm": [
-    -459,
-    22,
-    11799
+    -526,
+    25,
+    11842
    ]
   },
   "Guns": {
@@ -503,7 +503,7 @@
  },
  "backbone": {
   "valid": true,
-  "volume_m3": 3.765,
+  "volume_m3": 3.659,
   "bottomZ_mm": 125,
   "skinOverlap_mm3": 0,
   "draftToKeel_mm": 2750
@@ -839,9 +839,9 @@
    -15906,
    -300,
    1000,
-   6907,
-   590,
-   27580
+   6890,
+   520,
+   27572
   ],
   "redonda": [
    -15906,
@@ -852,5 +852,5 @@
    24835
   ]
  },
- "buildSeconds": 1423.9
+ "buildSeconds": 2221.1
 }

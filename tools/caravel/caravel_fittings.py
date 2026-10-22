@@ -62,9 +62,10 @@ def wheel(d, wheel_x, deck_y, ropes_to=None):
         d.add_cylinder("part:wheel", "bronze", a_ + np.array([sgn * 0.022, 0, 0]), a_ + np.array([sgn * 0.04, 0, 0]),
                        0.05, 0.035, sides=12)
     # the rope's turns on the drum
-    for k in range(5):
-        x = xd - 0.1 + 0.05 * k
-        rope_path(d, ring_points((x, wc[1], 0.0), 0.15, "x", 12), r=0.026)
+    # (apart by more than the rope's thickness: touching turns flickered where their faces met)
+    for k in range(4):
+        x = xd - 0.0825 + 0.055 * k
+        rope_path(d, ring_points((x, wc[1], 0.0), 0.15, "x", 12), r=0.024)
     part = {"code": "wheel", "axisPoint": _r(wc), "axisDir": [1.0, 0.0, 0.0], "source": "rudder", "angle": 240.0}
     helm = {"type": "helm", "code": "helm", "pos": _r((wheel_x - 0.75, deck_y, 0.0)), "yaw": 0.0,
             "sel": _r((wheel_x - 0.2, deck_y + 0.25, -0.62, wheel_x + 0.75, deck_y + 1.5, 0.62))}
@@ -97,7 +98,7 @@ def wheel_ropes(d, xd, wc, deck_y, deck_t, beam_y, side_z, tiller_x, tiller_tip)
 
 
 # ---------------------------------------------------------------------------------------------- the capstan and cable
-def capstan(d, cx, cz, deck_y, hawse_in, radius=0.45, bars=1.0):
+def capstan(d, cx, cz, deck_y, hawse_in, radius=0.48, bars=0.95):
     """carrack.capstan_and_cable (GRID) and capstan_cable_grid: its base, the barrel with eight whelps, the drumhead, a
     pawl ring on the deck with two pawls, two bars shipped; the cable from the hawse in along the deck onto the barrel's
     outboard side, two and a half turns round it, off and down into a coil of its slack on the deck. Returns the
@@ -156,7 +157,7 @@ def capstan(d, cx, cz, deck_y, hawse_in, radius=0.45, bars=1.0):
     rope_path(d, [off, off + lead_dir * 0.35 + np.array([0, deck_y + 0.12 - off[1], 0]),
                   np.array([fk[0], deck_y + r, fk[2]]) - lead_dir * 0.2], r=r)
     for layer in range(2):
-        for k, rad in enumerate((0.25, 0.18, 0.11)):
+        for k, rad in enumerate((0.31, 0.19)):              # (two turns, a rope's width apart: they touched)
             rope_path(d, ring_points((fk[0], deck_y + r + 0.12 * layer, fk[2]), rad, "y", 14, a0=0.3 * k), r=r)
     return {"type": "anchor", "code": "capstan", "pos": _r((cx, deck_y, cz)), "yaw": 0.0,
             "sel": _r((cx - 0.6, deck_y, cz - 0.6, cx + 0.6, deck_y + 1.1, cz + 0.6))}
