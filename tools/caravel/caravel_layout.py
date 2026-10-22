@@ -238,6 +238,70 @@ def merge_slot_triangles(M):
     return merged_total
 
 
+def merge_plain_triangles(M):
+    """(22 October 2026, the user: "Specifically look at performance aspects") The exporter's meshes are triangles, each
+    a quad with its last corner doubled (four corners drawn for three): 81,000 of her 102,000. In the groups drawn whole
+    (not the slot groups, which merge_slot_triangles pairs by owner), two triangles of one texture and one flat normal
+    sharing an edge, its two corners with the same UVs in both (one texture mapping), become one quad where it's convex.
+    Returns how many were merged."""
+    def corner(q, k):
+        return tuple(q[1 + 8 * k: 9 + 8 * k])
+
+    def pkey(c):
+        return (round(c[0], 4), round(c[1], 4), round(c[2], 4), round(c[3], 3), round(c[4], 3))
+
+    merged_total = 0
+    for g in [g for g in M["groups"] if not g.startswith("slot:") and g != "shot"]:
+        quads = M["groups"][g]
+        tris = [n for n, q in enumerate(quads) if pkey(corner(q, 2)) == pkey(corner(q, 3))]
+        edges = {}
+        for n in tris:
+            q = quads[n]
+            nk = (q[0], round(q[6], 2), round(q[7], 2), round(q[8], 2))
+            ks = [pkey(corner(q, k)) for k in range(3)]
+            for e in range(3):
+                a, b = ks[e], ks[(e + 1) % 3]
+                edges.setdefault((nk, min(a, b), max(a, b)), []).append(n)
+        used, new_of = set(), {}
+        for n in tris:
+            if n in used:
+                continue
+            q = quads[n]
+            nk = (q[0], round(q[6], 2), round(q[7], 2), round(q[8], 2))
+            ca = [corner(q, k) for k in range(3)]
+            ks = [pkey(c) for c in ca]
+            for rot in range(3):
+                # tri n cyclic (p, q, r), the shared edge q -> r
+                p_, q_, r_ = ca[rot], ca[(rot + 1) % 3], ca[(rot + 2) % 3]
+                kq, kr = ks[(rot + 1) % 3], ks[(rot + 2) % 3]
+                other = next((m for m in edges.get((nk, min(kq, kr), max(kq, kr)), []) if m != n and m not in used), None)
+                if other is None:
+                    continue
+                cb = [corner(quads[other], k) for k in range(3)]
+                s_ = next((c for c in cb if pkey(c) not in (kq, kr)), None)
+                if s_ is None:
+                    continue
+                # convex: p and s on either side of q-r, and q and r on either side of p-s (in the plane)
+                P = [np.array(c[:3]) for c in (p_, q_, s_, r_)]
+                nrm = np.cross(P[1] - P[0], P[3] - P[0])
+                ln = float(np.linalg.norm(nrm))
+                # (flat: s in the triangle's plane; a smooth fitting's two faces at an angle stay two)
+                if ln < 1e-12 or abs(float(np.dot(P[2] - P[0], nrm / ln))) > 1e-4:
+                    continue
+
+                def side(a, b, c):
+                    return float(np.dot(np.cross(b - a, c - a), nrm))
+                if side(P[1], P[3], P[0]) * side(P[1], P[3], P[2]) >= 0 or side(P[0], P[2], P[1]) * side(P[0], P[2], P[3]) >= 0:
+                    continue
+                # the same winding as the triangle: p, q, s, r
+                new_of[n] = [q[0]] + [v for c in (p_, q_, s_, r_) for v in c]
+                used |= {n, other}
+                merged_total += 1
+                break
+        M["groups"][g] = [new_of.get(n, qq) for n, qq in enumerate(quads) if n not in used or n in new_of]
+    return merged_total
+
+
 def square_slot_faces(M, D):
     """A whole deck cell's top and underside are flat squares: each drawn as one quad (the mesher's fans of triangles
     round a vertex overlapped in their boxes), its texture where the cell's own faces had it (their UVs, fitted)."""
@@ -747,6 +811,8 @@ def main():
                        and s["box"][2] < zb - 0.02 and s["box"][5] > za + 0.02]
     n_merged = merge_slot_triangles(M)
     square_slot_faces(M, D)
+    n_plain = merge_plain_triangles(M)
+    print(f"[layout] triangles paired into quads: {n_merged} in the slot groups, {n_plain} elsewhere")
     D["paintZones"] = PAINT_ZONES
     M["paintQuads"] = paint_quads(M, L, F)          # (before the fittings' quads join the groups: they aren't painted)
     M["paintFaces"] = {}
