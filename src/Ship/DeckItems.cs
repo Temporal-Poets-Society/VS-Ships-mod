@@ -25,8 +25,8 @@ namespace Hansa
     ///   It's no longer hers when nothing of her is under it (over the side, off her ends) or she's gone.
     ///   Its place aboard is kept in its WatchedAttributes (<see cref="Key"/>: her entity id, ship-local x y z, at rest):
     ///   saved with it (after a restart it waits for her to load) and sent to clients.
-    /// - Client: an item with that place is drawn there on her as she's drawn (her pitch and roll, her smoothed place),
-    ///   not where the server's level frame puts it, and vanilla's remote physics leaves it be (no splashing in her hold,
+    /// - Client: an item with that place is drawn there on her as she's drawn (her pitch and roll, her smoothed place, round
+    ///   the camera of a player aboard), not where the server's level frame puts it, and vanilla's remote physics leaves it be (no splashing in her hold,
     ///   no tumbling as if falling).
     /// Floating items she sails over aren't taken in; nor are items lying on world blocks (a quay beside her).
     /// </summary>
@@ -246,8 +246,14 @@ namespace Hansa
             e.FeetInLiquid = e.Swimming = false;
         }
 
-        /// <summary>Client, each frame after the ships have moved: the items aboard where their places on her are drawn.</summary>
-        public static void ClientFrame(ICoreClientAPI capi)
+        /// <summary>
+        /// Client, each frame after the ships and the player have moved: the items aboard where their places on her are
+        /// drawn. (dev.6, the user: "they bit shuffle around when player moves") From where her hull is drawn
+        /// (<see cref="ShipRenderer.RenderOrigin"/>), not her position: for whoever is aboard she's drawn round their
+        /// camera, which runs ahead of or behind their seat between physics ticks as they walk; placed from her position the
+        /// items slid about on her deck by that much.
+        /// </summary>
+        public static void ClientFrame(ICoreClientAPI capi, ShipRenderer renderer, EntityPlayer ep)
         {
             if (clientHeld.Count == 0) return;
             foreach (var (id, e) in clientHeld.ToArray())
@@ -258,7 +264,9 @@ namespace Hansa
                     continue;
                 }
                 if (capi.World.GetEntityById(t.GetLong("ship")) is not EntityShip ship || ship.Def == null) continue;
-                ship.LocalToWorld(t.GetDouble("x"), t.GetDouble("y"), t.GetDouble("z"), out double wx, out double wy, out double wz);
+                var o = renderer != null && ep != null ? renderer.RenderOrigin(ship, ep) : new Vec3d(ship.Pos.X, ship.Pos.Y, ship.Pos.Z);
+                ShipFrame.ToWorld(ship.Pos.Yaw, ship.Pitch, ship.Roll, t.GetDouble("x"), t.GetDouble("y"), t.GetDouble("z"), out double dx, out double dy, out double dz);
+                double wx = o.X + dx, wy = o.Y + dy, wz = o.Z + dz;
                 e.Pos.SetPos(wx, wy, wz);
                 Settle(e, t.GetBool("rest"));
                 // vanilla's item renderer eases toward the place (a moving ship would leave it trailing behind her)

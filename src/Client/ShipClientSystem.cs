@@ -318,7 +318,6 @@ namespace Hansa
         {
             if (capi.IsGamePaused) return;
             foreach (var ship in Ships) ship.ClientFrame(dt);
-            DeckItems.ClientFrame(capi);
             Cannons?.Update();
 
             var ep = capi.World.Player?.Entity;
@@ -349,6 +348,8 @@ namespace Hansa
             {
                 TryLadderBoard(ep, inBoat.Controls, inBoat.Ship);
             }
+            // things lying on her decks, where she's drawn now (once the player is where they'll be this frame)
+            DeckItems.ClientFrame(capi, renderer, ep);
 
             // (0.3.13) the weather by what's overhead in her rooms, not by the room being sealed: none under her decks, and
             // under the open hatch only through it; on her open deck vanilla's
