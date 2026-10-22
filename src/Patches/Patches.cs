@@ -258,6 +258,8 @@ namespace Hansa
                 h.Patch(AccessTools.Method(hud, "EntityInView") ?? throw new Exception("EntityInView not found"),
                     postfix: new HarmonyMethod(typeof(Patches), nameof(EntityInViewPostfix)));
             });
+            // (22 October 2026) particles in her dry hold: no floating, no water specks
+            ShipDryParticles.Patch(h, failed);
         }
 
         public static void Remove(ICoreAPI api)

@@ -69,6 +69,13 @@ namespace HansaTests
                 DamageViews(vdef, Path.Combine(root, "assets", "hansa"));
                 return 0;
             }
+            if (Array.IndexOf(args, "dry") >= 0)
+            {
+                // the dry holds and particles in them alone (22 October 2026): dotnet run -- dry
+                foreach (var dcode in new[] { "caravel", "hansa-carrack", "carrack" }) DryHold(root, dcode);
+                Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
+                return failures == 0 ? 0 : 1;
+            }
             if (Array.IndexOf(args, "inspect") >= 0) { Inspect(root, args.Length > Array.IndexOf(args, "inspect") + 1 ? args[Array.IndexOf(args, "inspect") + 1] : "caravel"); return 0; }
             if (Array.IndexOf(args, "grid-pieces") >= 0) { GridPieces(root); return 0; }
             if (Array.IndexOf(args, "holes") >= 0) return GridHoles(root, true) == 0 ? 0 : 1;
@@ -335,6 +342,7 @@ namespace HansaTests
             Helm(def, boatDef);
             Rain(def);
             SweptSpecks(def);
+            foreach (var dcode in new[] { "caravel", "hansa-carrack", "carrack" }) DryHold(root, dcode);
             StrainNotice();
             PartitionsToHer(def);
             PartitionsMeetHer(def, Path.Combine(root, "assets", "hansa"));
