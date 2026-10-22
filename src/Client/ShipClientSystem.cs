@@ -942,9 +942,9 @@ namespace Hansa
                 return;
             }
 
-            // the guns: hold right mouse on one (or by its breech, or at its gun captain's place) to lay it where you look;
-            // left-click fires the one you're laying (or laid a moment ago and are still by), or the one in the crosshair,
-            // wherever you look: the click is the gun's, it doesn't swing at her or break anything
+            // the guns: hold right mouse on one (in reach, or at its gun captain's place) to lay it where you look;
+            // left-click fires the one you're laying (or laid a moment ago and are still by), or the one in the crosshair:
+            // the click is the gun's, it doesn't swing at her or break anything
             if (GunClick(ep, action))
             {
                 handled = EnumHandling.PreventDefault;
@@ -1128,11 +1128,11 @@ namespace Hansa
         const double LayReach = 2.5;
 
         /// <summary>
-        /// A click by the guns (<see cref="GunButtons"/>): right mouse down on one (it in the crosshair, or at its gun
-        /// captain's place, or by its breech with nothing else in reach in the crosshair) starts laying it, Ctrl + right-click
-        /// on one stands to it; a left-click fires the one being laid (or laid a moment ago, still by it), the one in the
-        /// crosshair, or the one whose gun captain this player is. True: the click was the guns' (nothing else gets it: no
-        /// swing at her, no block broken, no item used).
+        /// A click by the guns (<see cref="GunButtons"/>): right mouse down on one (it in the crosshair within reach of its
+        /// breech, or at its gun captain's place with nothing in hand that has a right-click of its own) starts laying it,
+        /// Ctrl + right-click on one stands to it; a left-click fires the one being laid (or laid a moment ago, still by it),
+        /// the one in the crosshair within reach, or the one whose gun captain this player is. True: the click was the guns'
+        /// (nothing else gets it: no swing at her, no block broken, no item used).
         /// </summary>
         bool GunClick(EntityPlayer ep, EnumEntityAction action)
         {
@@ -1167,14 +1167,20 @@ namespace Hansa
                     if (inSight.Ship.GunOpen(inSight.Gun)) channel.SendPacket(new FixturePacket { ShipId = inSight.Ship.EntityId, Fixture = inSight.Gun.Index, Sneak = true });
                     return true;
                 }
-                // by its breech: only with nothing of hers (a door, the gate), no block and nothing she'd be mended at in the
-                // crosshair, so those still take a right-click there
-                (EntityShip Ship, FixtureDef Gun) gun = seat != null ? (seat.Ship, seat.Fixture) : inSight.Ship != null ? inSight :
-                    look.Ship == null && NothingElseInReach() ? NearestGun(ep) : default;
-                // (0.3.13, note 131: clicking the bulwark by the pin rail ran a gun out) by its breech only while the
-                // crosshair isn't on her woodwork away from that gun's port: her bulwark, rail or deck a block and a half
-                // or more from it is something else being clicked
-                if (seat == null && inSight.Ship == null && gun.Ship != null && HerWorkAwayFromGun(ep, gun.Ship, gun.Gun, range: capi.World.Player.WorldData.PickingRange)) return false;
+                // (0.1.0-dev.7, the user: "Trying to use telescope from Astra on deck and almost everywhere it tries to use
+                // cannon instead") the one stood to (unless what's in hand has a right-click of its own), else the one in the
+                // crosshair within reach; never the nearest by its breech with the crosshair elsewhere (GunButtons.LaysGun)
+                bool ownUse = HeldUse.OwnRightClick(capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack?.Collectible);
+                bool inReach = inSight.Ship != null && inSight.Ship.ByGun(inSight.Gun, ep, LayReach);
+                var lays = GunButtons.LaysGun(seat?.Fixture, inSight.Gun, inReach, ownUse);
+                if (lays == null)
+                {
+                    // aimed at one from further off: the click is still that gun's (passed on, the fixture's click fires it)
+                    if (inSight.Ship == null) return false;
+                    capi.TriggerIngameError(this, "hansa-gun", Lang.Get("hansa:gun-far"));
+                    return true;
+                }
+                (EntityShip Ship, FixtureDef Gun) gun = lays == seat?.Fixture ? (seat.Ship, seat.Fixture) : inSight;
                 if (gun.Ship == null || gun.Ship.GoneDown) return false;
                 if (!gun.Ship.CannonsOn)
                 {
@@ -1189,69 +1195,19 @@ namespace Hansa
             }
             if (!GunButtons.Fires(action)) return false;
             // (the one laid a moment ago only with nothing else of a ship's in the crosshair: a door by it still opens)
-            (EntityShip Ship, FixtureDef Gun) fire = laying.Ship != null ? laying : seat != null ? (seat.Ship, seat.Fixture) : inSight.Ship != null ? inSight :
+            // ((0.1.0-dev.7) the one in the crosshair only within reach of its breech, as laying it)
+            bool fireReach = inSight.Ship != null && inSight.Ship.ByGun(inSight.Gun, ep, LayReach);
+            (EntityShip Ship, FixtureDef Gun) fire = laying.Ship != null ? laying : seat != null ? (seat.Ship, seat.Fixture) : fireReach ? inSight :
                 look.Ship == null && lastLaid.Ship != null && capi.World.ElapsedMilliseconds < lastLaidUntil && lastLaid.Ship.ByGun(lastLaid.Gun, ep, LayReach + 0.5)
                     ? lastLaid : default;
+            if (fire.Ship == null && inSight.Ship != null)
+            {
+                capi.TriggerIngameError(this, "hansa-gun", Lang.Get("hansa:gun-far"));
+                return true;
+            }
             if (fire.Ship == null) return false;
             FireGun(fire.Ship, fire.Gun);
             return true;
-        }
-
-        /// <summary>
-        /// The crosshair is on nothing a right-click by a gun's breech would be for instead: no block in reach, no other
-        /// creature or boat, and nothing of a ship's that what's in hand mends.
-        /// </summary>
-        bool NothingElseInReach()
-        {
-            var player = capi.World.Player;
-            if (player.CurrentBlockSelection != null) return false;
-            var sel = player.CurrentEntitySelection;
-            if (sel == null) return true;
-            if (sel.Entity is not EntityShip ship || ship.Def?.PickUpItem != null) return false;
-            if (ship.PartDamage == null || !ship.DamageOn) return true;
-            string held = player.InventoryManager.ActiveHotbarSlot?.Itemstack?.Collectible?.Code?.ToString();
-            if (held == null) return true;
-            // ((0.3.28) a cracked piece put aboard, mended with boards and nails)
-            var sp = ShipPart.Decode(sel.SelectionBoxIndex);
-            if (sp.Kind == ShipPartKind.Piece) return ship.PieceRepairFor(sp.Index, held) == null;
-            int part = ship.DamagePartFor(sp);
-            return part < 0 || ShipRepairs.For(ship.DamageParts, ship.PartDamage, part, held) == null;
-        }
-
-        /// <summary>
-        /// (0.3.13, note 131) Is the crosshair on her structure within reach (her collision: the bulwark, the rail, the
-        /// deck) at a spot a block and a half or more from this gun's port, across her deck?
-        /// </summary>
-        bool HerWorkAwayFromGun(EntityPlayer ep, EntityShip ship, FixtureDef gun, double range)
-        {
-            if (ship?.Grid == null || gun?.Pos == null) return false;
-            var eye = EyePos(ep);
-            var dir = EntityPos.GetViewVector(ep.Pos.Pitch, ep.Pos.Yaw);
-            var lo = ship.WorldToLocal(eye.X, eye.Y, eye.Z);
-            var ld = ship.WorldDirToLocal(dir.X, dir.Y, dir.Z);
-            double t = ship.Grid.Raycast(lo, ld, range);
-            if (t > range) return false;
-            double hx = lo.X + ld.X * t, hz = lo.Z + ld.Z * t;
-            double dx = hx - gun.Pos[0], dz = hz - gun.Pos[2];
-            return dx * dx + dz * dz >= 1.5 * 1.5;
-        }
-
-        /// <summary>The nearest gun aboard the ship this player is on whose breech is within reach, or none.</summary>
-        (EntityShip Ship, FixtureDef Gun) NearestGun(EntityPlayer ep)
-        {
-            if (ep.MountedOn is not ShipSeat on || on.Ship.Def == null) return default;
-            var ship = on.Ship;
-            FixtureDef best = null;
-            double bd = double.MaxValue;
-            var l = ship.WorldToLocal(ep.Pos.X, ep.Pos.Y, ep.Pos.Z);
-            foreach (var f in ship.Def.Fixtures)
-            {
-                if (f.Type != "gun" || ship.GunAbsent(f) || !ship.ByGun(f, ep, LayReach)) continue;
-                var b = ship.GunBreechLocal(f);
-                double d = (l.X - b.X) * (l.X - b.X) + (l.Z - b.Z) * (l.Z - b.Z);
-                if (d < bd) { bd = d; best = f; }
-            }
-            return best == null ? default : (ship, best);
         }
 
         /// <summary>

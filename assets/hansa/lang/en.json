@@ -568,7 +568,7 @@
 	"hint-gun-taken": "Someone is at the {0} · {1}",
 	"gun-taken": "Someone else is laying that gun.",
 	"gun-seat-taken": "Someone else is at that gun.",
-	"gun-far": "Too far from the gun's breech to lay it.",
+	"gun-far": "Too far from the gun's breech: step up to it.",
 	"gate-gun": "The gun beside it is trained into the gateway: lay it square first.",
 	"gun-train-square": "trained square",
 	"gun-train-bow": "trained {0}° to the bow",

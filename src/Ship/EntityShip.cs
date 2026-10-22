@@ -862,6 +862,8 @@ namespace Hansa
                         ep.TryMount(gs);
                         break;
                     }
+                    // ((0.1.0-dev.7) by it: within reach of its breech, or its gun captain)
+                    if (!ByGun(f, ep, LayReach)) { player.SendIngameError("hansa-gun", Lang.GetL(player.LanguageCode, "hansa:gun-far")); break; }
                     string err = FireGun(f, ep, player);
                     if (err == "hansa:gun-reloading") player.SendIngameError("hansa-gun", Lang.GetL(player.LanguageCode, err, Math.Ceiling(GunReloading(f))));
                     else if (err != null) player.SendIngameError("hansa-gun", Lang.GetL(player.LanguageCode, err));

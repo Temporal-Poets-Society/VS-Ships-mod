@@ -33,6 +33,20 @@ namespace Hansa
 
         /// <summary>Is the laying button still held (the in-world mouse buttons' state)?</summary>
         public static bool LayHeld(bool left, bool right) => right;
+
+        /// <summary>
+        /// (0.1.0-dev.7, the user on the caravel: "Trying to use telescope from Astra on deck and almost everywhere it tries
+        /// to use cannon instead") The gun a right-click lays: the one this player stands to (atGun, its gun captain's place),
+        /// unless what's in hand has a right-click of its own (ownUse: <see cref="HeldUse.OwnRightClick"/>); else the gun in
+        /// the crosshair (inSight: the fixture the ray meets first, its own selection box), within reach of its breech. Nothing
+        /// else: no gun "by its breech" with the crosshair on the sky, the sea or her deck (till 0.1.0-dev.6 the nearest
+        /// within 2.5 blocks took the click, which on the caravel's waist is everywhere).
+        /// </summary>
+        public static FixtureDef LaysGun(FixtureDef atGun, FixtureDef inSight, bool inReach, bool ownUse)
+        {
+            if (atGun != null && !ownUse) return atGun;
+            return inSight?.Type == "gun" && inReach ? inSight : null;
+        }
     }
 
     /// <summary>
@@ -127,6 +141,23 @@ namespace Hansa
         {
             OutOf(gun, out _, out double oz);
             return oz >= 0 ? 1 : -1;
+        }
+
+        /// <summary>Where its breech is laid so (ship-local, on the deck under it): what "by the gun" is measured from.</summary>
+        public static Vec3d Breech(FixtureDef gun, GunLay lay)
+        {
+            var p = gun?.Pos;
+            if (p == null) return new Vec3d();
+            OutOf(gun, out double ox, out double oz);
+            return Place(gun, lay, 0, new Vec3d(p[0] - ox * 1.15, p[1], p[2] - oz * 1.15), false);
+        }
+
+        /// <summary>Is a ship-local spot within reach of its breech laid so (on its deck: under 1.5 up or down)?</summary>
+        public static bool InReach(FixtureDef gun, GunLay lay, double x, double y, double z, double reach)
+        {
+            if (gun?.Pos == null) return false;
+            var b = Breech(gun, lay);
+            return Math.Abs(y - b.Y) < 1.5 && (x - b.X) * (x - b.X) + (z - b.Z) * (z - b.Z) <= reach * reach;
         }
 
         static Vec3d V(double[] a, Vec3d fallback) => a?.Length >= 3 ? new Vec3d(a[0], a[1], a[2]) : fallback;

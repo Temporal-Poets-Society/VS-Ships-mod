@@ -81,6 +81,8 @@
     <Compile Include="..\..\src\Ship\PartMotion.cs" Link="Ship\PartMotion.cs" />
     <Compile Include="..\..\src\Ship\Cannons.cs" Link="Ship\Cannons.cs" />
     <Compile Include="..\..\src\Ship\GunLaying.cs" Link="Ship\GunLaying.cs" />
+    <Compile Include="..\..\src\Ship\HeldUse.cs" Link="Ship\HeldUse.cs" />
+    <Compile Include="GunClickTests.cs" />
     <Compile Include="..\..\src\Ship\PumpJet.cs" Link="Ship\PumpJet.cs" />
     <Compile Include="..\..\src\Ship\OvenFire.cs" Link="Ship\OvenFire.cs" />
     <Compile Include="..\..\src\Ship\Oars.cs" Link="Ship\Oars.cs" />

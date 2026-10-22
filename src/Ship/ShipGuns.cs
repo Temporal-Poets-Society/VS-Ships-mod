@@ -235,13 +235,7 @@ namespace Hansa
         readonly Dictionary<string, GunLay> gunLayOffset = new(), gunLayClient = new();
 
         /// <summary>Where a gun's breech is now (ship-local, on the deck under it): what "by the gun" is measured from.</summary>
-        public Vec3d GunBreechLocal(FixtureDef gun)
-        {
-            var p = gun?.Pos;
-            if (p == null) return new Vec3d();
-            GunLaying.OutOf(gun, out double ox, out double oz);
-            return GunLaying.Place(gun, GunLayNow(gun), 0, new Vec3d(p[0] - ox * 1.15, p[1], p[2] - oz * 1.15), false);
-        }
+        public Vec3d GunBreechLocal(FixtureDef gun) => GunLaying.Breech(gun, GunLayNow(gun));
 
         /// <summary>Is someone by this gun (within reach of its breech, on its deck), or at its gun captain's place?</summary>
         public bool ByGun(FixtureDef gun, Entity who, double reach)
@@ -249,8 +243,7 @@ namespace Hansa
             if (gun == null || who == null || Def == null) return false;
             if ((who as EntityAgent)?.MountedOn is GunSeat gs && gs.Ship == this && gs.Fixture == gun) return true;
             var l = WorldToLocal(who.Pos.X, who.Pos.Y, who.Pos.Z);
-            var b = GunBreechLocal(gun);
-            return Math.Abs(l.Y - b.Y) < 1.5 && (l.X - b.X) * (l.X - b.X) + (l.Z - b.Z) * (l.Z - b.Z) <= reach * reach;
+            return GunLaying.InReach(gun, GunLayNow(gun), l.X, l.Y, l.Z, reach);
         }
 
         /// <summary>How far from a gun's breech a player may lay it (blocks): the client's 2.5, and a little for the lag.</summary>
