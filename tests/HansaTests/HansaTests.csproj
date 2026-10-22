@@ -92,6 +92,9 @@
     <Compile Include="..\..\src\Ship\ShipPlan.cs" Link="Ship\ShipPlan.cs" />
     <Compile Include="..\..\src\Client\ShipCamera.cs" Link="Client\ShipCamera.cs" />
     <Compile Include="..\..\src\Client\ShipShadows.cs" Link="Client\ShipShadows.cs" />
+    <!-- (0.1.0-dev.7, note 43) a lantern's glass drawn with a ship's glass -->
+    <Compile Include="LanternGlassTests.cs" />
+    <Compile Include="..\..\src\Client\SeeThroughFaces.cs" Link="Client\SeeThroughFaces.cs" />
     <!-- decorating: mount points, pieces, paint -->
     <Compile Include="DecorTests.cs" />
     <Compile Include="DriveTests.cs" />

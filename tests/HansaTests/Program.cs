@@ -360,6 +360,7 @@ namespace HansaTests
             ShipStairs(def);
             DeckItems(root);
             GunClicks(root);
+            LanternGlass();
             CastleGunPorts(root);
             Notes0324(root);
             Notes0325(root);
