@@ -96,7 +96,8 @@ namespace Hansa
             noGo = 0;
             if (ship.SailByWind && ship.MastUp && ship.Def.Sailing != null)
             {
-                HelmMath.NoGoWedge(w.X, w.Z, yaw, ship.SailingNow.NoGo, out noGoFrom, out noGoTo);
+                // (cairo's angles on the card: the same wedge as the map's, HelmMath.MapNoGo)
+                HelmMath.CardNoGo(w.X, w.Z, yaw, ship.SailingNow.NoGo, out noGoFrom, out noGoTo);
                 noGo = (noGoTo - noGoFrom) / 2;
             }
 
@@ -280,8 +281,8 @@ namespace Hansa
             // where the true wind comes from (she's in it when it covers her bow, straight up)
             if (hasWind && noGo > 0)
             {
-                // (cairo's angles run clockwise from +x; the card's from straight up)
-                double a0 = noGoFrom - Math.PI / 2, a1 = noGoTo - Math.PI / 2;
+                // (cairo's angles run clockwise from +x; the card's from straight up: noGoFrom/To are already cairo's)
+                double a0 = noGoFrom, a1 = noGoTo;
                 ctx.MoveTo(cx, cy);
                 ctx.Arc(cx, cy, r, a0, a1);
                 ctx.ClosePath();
