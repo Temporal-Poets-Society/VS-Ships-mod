@@ -120,6 +120,16 @@ namespace Hansa
         public static bool IsBuildingBlock(Block b) => b != null && (IsPlanks(b) || IsPane(b) || IsFence(b) || IsShipStair(b) || IsPlankSlab(b) || IsLadder(b) || IsTrapdoor(b));
 
         /// <summary>
+        /// (after 0.1.0-dev.6, the user: "while in build mode ... we can skip regular block placement snap findings as those are
+        /// placeable with it off") What building mode puts aboard: ship structure (<see cref="IsBuildingBlock"/>) and doors.
+        /// Any other block (a chest, a lantern, decoration, the hearth, the oven, a flue) is put aboard with building mode off.
+        /// </summary>
+        public static bool IsStructureBlock(Block b) => IsBuildingBlock(b) || IsDoor(b);
+
+        /// <summary>(after 0.1.0-dev.6) Why a block in hand isn't put on a place aboard in building mode (a lang code), or null.</summary>
+        public static string BuildingRefusal(Block b, bool building) => building && b != null && !IsStructureBlock(b) ? "hansa:piece-build-decor" : null;
+
+        /// <summary>
         /// (0.3.23, the user: "maybe for ships stairs better to have a special block") The mod's ship's stairs
         /// (hansa:shipstair-steep, hansa:shipstair-long; 0.1.0-dev.6: hansa:shipstair-short): in building mode a walked stair 1,
         /// 2 or 3 cells long with its own handrails.

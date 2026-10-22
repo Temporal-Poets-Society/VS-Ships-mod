@@ -40,6 +40,7 @@
     <Compile Include="SailTests.cs" />
     <Compile Include="RainTests.cs" />
     <Compile Include="DryParticleTests.cs" />
+    <Compile Include="BuildModeTests.cs" />
     <Compile Include="PartitionTests.cs" />
     <Compile Include="PartitionGapTests.cs" />
     <Compile Include="SailPressTests.cs" />
