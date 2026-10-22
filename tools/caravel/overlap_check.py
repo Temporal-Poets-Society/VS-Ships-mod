@@ -138,14 +138,24 @@ def find_clashes(mesh, empty):
     for idx in byn.values():
         if len(idx) < 2:
             continue
-        idx.sort(key=lambda i: items[i][4])
-        # clusters of planes within 1 mm of the next
-        start = 0
+        # ((after Codex's second review) the faces' distances along one normal, the bucket's, as an interval over each
+        # face's corners: two faces 0.1 degrees apart 20 m from her origin differ by 40 mm in their own n.p)
+        n0 = items[idx[0]][3]
+        span = {}
+        for i in idx:
+            dd = items[i][2] @ n0
+            span[i] = (float(dd.min()) - TOL, float(dd.max()) + TOL)
+        idx.sort(key=lambda i: span[i][0])
+        # clusters of faces whose intervals overlap
+        start, reach = 0, span[idx[0]][1]
         for e in range(1, len(idx) + 1):
-            if e < len(idx) and items[idx[e]][4] - items[idx[e - 1]][4] <= TOL:
+            if e < len(idx) and span[idx[e]][0] <= reach:
+                reach = max(reach, span[idx[e]][1])
                 continue
             cl = idx[start:e]
             start = e
+            if e < len(idx):
+                reach = span[idx[e]][1]
             if len(cl) < 2:
                 continue
             nrm0 = items[cl[0]][3]

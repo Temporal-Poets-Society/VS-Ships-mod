@@ -44,8 +44,21 @@ namespace Hansa
         /// (0.3.27) The beam segments a planned piece runs into that could come out for it (<see cref="BeamRules.InTheWay"/>),
         /// or null.
         /// </summary>
-        public List<int> BeamsInTheWay(PiecePlan plan) =>
-            SlotLayout == null || Slots == null ? null : BeamRules.InTheWay(Mounts, SlotLayout, Slots, plan, PlaceGrid ?? Grid, n => BeamTakeProblem(n) == null);
+        /// ((after 0.1.0-dev.6, Codex's review) worked out once for a plan while her collision is as it was (FitVersion): the
+        /// hint asks every frame for the stair in the crosshair. Callers only read the list.)
+        public List<int> BeamsInTheWay(PiecePlan plan)
+        {
+            if (SlotLayout == null || Slots == null) return null;
+            if (ReferenceEquals(plan, beamsPlan) && beamsVersion == FitVersion) return beamsSaid;
+            beamsSaid = BeamRules.InTheWay(Mounts, SlotLayout, Slots, plan, PlaceGrid ?? Grid, n => BeamTakeProblem(n) == null);
+            beamsPlan = plan;
+            beamsVersion = FitVersion;
+            return beamsSaid;
+        }
+
+        PiecePlan beamsPlan;
+        int beamsVersion = -1;
+        List<int> beamsSaid;
 
         /// <summary>
         /// (0.3.27) Is a deck beam in this box (a stair's clash): a beam segment's index, -1 for a beam with no segments there

@@ -224,7 +224,7 @@ def merge_slot_triangles(M):
                         if key(q_) in shared and key(r_) in shared:
                             break
                     s_ = next(c for c in cb if key(c) not in shared)
-                    if not affine_ok(p_, q_, r_, s_):        # (one texture mapping over both: drawn across either diagonal)
+                    if not pair_ok(p_, q_, r_, s_, cb):       # (flat, convex, wound alike, one texture mapping over both)
                         continue
                     quad = [quads[a][0]] + [v for c in (p_, q_, s_, r_) for v in c]
                     new_of[a] = quad
@@ -238,6 +238,31 @@ def merge_slot_triangles(M):
             out_p += [pairs[2 * n], pairs[2 * n + 1]]
         M["groups"][g], M["slotQuads"][g] = out_q, out_p
     return merged_total
+
+
+def pair_ok(p_, q_, r_, s_, other):
+    """(after Codex's second review) May triangle p q r (q -> r the edge it shares) and the other triangle (its corners,
+    s its third) be drawn as the quad p q s r? Their shared corners alike in both (place, UV, normal), the other wound
+    the same way, flat (s in p q r's plane), convex (p and s either side of q r, q and r either side of p s), and one
+    texture mapping and normal over all four (affine_ok)."""
+    def same(a, b):
+        return all(abs(a[k] - b[k]) < (1e-4 if k < 3 else 1e-3) for k in range(8))
+
+    if sum(1 for c in other if same(c, q_) or same(c, r_)) != 2:
+        return False
+    P = [np.array(c[:3]) for c in (p_, q_, s_, r_)]
+    na = np.cross(P[1] - P[0], P[3] - P[0])
+    o = [np.array(c[:3]) for c in other]
+    nb = np.cross(o[1] - o[0], o[2] - o[0])
+    ln = float(np.linalg.norm(na))
+    if ln < 1e-12 or float(na @ nb) <= 0 or abs(float((P[2] - P[0]) @ (na / ln))) > 1e-4:
+        return False
+
+    def side(a, b, c):
+        return float(np.cross(b - a, c - a) @ na)
+    if side(P[1], P[3], P[0]) * side(P[1], P[3], P[2]) >= 0 or side(P[0], P[2], P[1]) * side(P[0], P[2], P[3]) >= 0:
+        return False
+    return affine_ok(p_, q_, r_, s_)
 
 
 def affine_ok(p_, q_, r_, s_, tol=0.01):
@@ -298,23 +323,7 @@ def merge_plain_triangles(M):
                     continue
                 cb = [corner(quads[other], k) for k in range(3)]
                 s_ = next((c for c in cb if pkey(c) not in (kq, kr)), None)
-                if s_ is None:
-                    continue
-                # convex: p and s on either side of q-r, and q and r on either side of p-s (in the plane)
-                P = [np.array(c[:3]) for c in (p_, q_, s_, r_)]
-                nrm = np.cross(P[1] - P[0], P[3] - P[0])
-                ln = float(np.linalg.norm(nrm))
-                # (flat: s in the triangle's plane; a smooth fitting's two faces at an angle stay two)
-                if ln < 1e-12 or abs(float(np.dot(P[2] - P[0], nrm / ln))) > 1e-4:
-                    continue
-
-                def side(a, b, c):
-                    return float(np.dot(np.cross(b - a, c - a), nrm))
-                if side(P[1], P[3], P[0]) * side(P[1], P[3], P[2]) >= 0 or side(P[0], P[2], P[1]) * side(P[0], P[2], P[3]) >= 0:
-                    continue
-                # (after Codex's review) one texture mapping over both: s's UV where the triangle's own mapping puts it
-                # (the quad is drawn across its other diagonal), and one normal at its four corners
-                if not affine_ok(p_, q_, r_, s_):
+                if s_ is None or not pair_ok(p_, q_, r_, s_, cb):
                     continue
                 # the same winding as the triangle: p, q, s, r
                 new_of[n] = [q[0]] + [v for c in (p_, q_, s_, r_) for v in c]
@@ -555,16 +564,18 @@ def deflicker(M, D):
         # faces in one plane are left as they are (counted in what's left)
         slots_ = [f for f in comp if f[0].startswith("slot:")]
         rest = sorted((f for f in comp if not f[0].startswith("slot:")), key=lambda f: -area_of[f])
-        # (two faces of one slot's own, one group, in one plane: the mesher's overlapping fan; the smaller moves with it)
-        own_ = {}
-        for f in sorted(slots_, key=lambda f: -area_of[f]):
+        # (a face of a slot's own overlapping another of the same slot's, one group: the mesher's overlapping fan; the
+        # smaller moves with it. Only faces that overlap each other: two side by side under one fitting both stay)
+        def owner(f):
             pr = M["slotQuads"][f[0]][2 * f[1]: 2 * f[1] + 2]
-            k_ = (f[0], pr[0], pr[1])
-            if k_ in own_ and pr[0] >= 0:
+            return (f[0], pr[0], pr[1]) if pr[0] >= 0 else None
+        anchored = []
+        for f in sorted(slots_, key=lambda f: -area_of[f]):
+            if owner(f) is not None and any(owner(a) == owner(f) and a in link[f] for a in anchored):
                 rest.append(f)
             else:
-                own_[k_] = f
-        slots_ = list(own_.values())
+                anchored.append(f)
+        slots_ = anchored
         nrm = nrm_of[comp[0]]
         movable = rest if slots_ else rest[1:]
         for k, (g_, n_) in enumerate(movable, start=1):
@@ -955,6 +966,9 @@ def main():
         n_pushed += moved_
         passes += 1
     print(f"[layout] overlapping faces in one plane: {n_pushed} pushed 2 mm out in {passes} passes, {n_left} left")
+    if n_left:
+        # (the user's rule: no visible faces overlapping; tools/caravel/overlap_check.py lists them)
+        raise SystemExit(f"[layout] {n_left} pairs of faces still overlap in one plane: not written")
     out = os.environ.get("CARAVEL_LAYOUT_OUT")             # (a check: somewhere else than the mod's assets)
     with open(os.path.join(out, "caravel.json") if out else os.path.join(ASSETS, "config", "ships", f"{CODE}.json"), "w") as f:
         json.dump(D, f, indent=1)

@@ -257,10 +257,11 @@ namespace Hansa
         /// </summary>
         public static void ClientFrame(ICoreClientAPI capi, ShipRenderer renderer, EntityPlayer ep)
         {
-            if (clientHeld.Count == 0) return;
-            // ((after 0.1.0-dev.6, Codex's review) no copy of the list, and each ship's drawn place once a frame)
+            // ((after 0.1.0-dev.6, Codex's review) no copy of the list, and each ship's drawn place once a frame; cleared
+            // first, so nothing of a ship is kept once nothing lies aboard)
             gone.Clear();
             frameShips.Clear();
+            if (clientHeld.Count == 0) return;
             foreach (var (id, e) in clientHeld)
             {
                 if (!e.Alive || e.State == EnumEntityState.Despawned || e.WatchedAttributes[Key] is not ITreeAttribute t)
