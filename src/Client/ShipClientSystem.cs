@@ -453,6 +453,7 @@ namespace Hansa
             m.TopClosed = ship.LadderTopClosed;
             m.ThroughClosed = ship.LadderThroughClosed;
             m.CoverUnder = ship.LadderCover;
+            m.SteepFlights = ship.SteepFlights;
             if (pendingLadder != null && capi.World.ElapsedMilliseconds > pendingLadderUntil) pendingLadder = null;
             if (pendingLadder != null)
             {

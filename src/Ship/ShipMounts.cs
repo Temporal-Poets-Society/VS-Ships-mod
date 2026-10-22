@@ -69,7 +69,7 @@ namespace Hansa
         /// <summary>(0.3.20, step B) A hatch: its opening's cells along x and along z (docs/slots.md §5), and the way its leaves' hinges run ("x", "z"; null: along its long sides, along x when square).</summary>
         public int[] Size;
         public string Hinge;
-        /// <summary>(0.3.23) A stair's cells along its run: 3 (default, the long ship's stair) or 2 (the steep one); 0: not given.</summary>
+        /// <summary>(0.3.23) A stair's cells along its run: 3 (default, the long ship's stair) or 2 (the steep one); (0.1.0-dev.6, note 36) 1 (the short one); 0: not given.</summary>
         public int Length;
         /// <summary>
         /// (0.3.29, notes 230, 233: the companion walled in) A wall piece's anchor: the way from its line into the cell it stands
@@ -82,15 +82,23 @@ namespace Hansa
         /// <summary>(0.3.29) The layout revision (her design's "layoutRev") that brought this entry: a ship laid before it isn't given it.</summary>
         public int Since;
 
-        /// <summary>(0.3.23) The ship's stairs, by their cells: the steep one (2) and the long one (3).</summary>
-        public const string SteepStair = "hansa:shipstair-steep", LongStair = "hansa:shipstair-long";
+        /// <summary>(0.3.23) The ship's stairs, by their cells: the steep one (2) and the long one (3); (0.1.0-dev.6, note 36) the short one (1).</summary>
+        public const string SteepStair = "hansa:shipstair-steep", LongStair = "hansa:shipstair-long", ShortStair = "hansa:shipstair-short";
+
+        /// <summary>(0.1.0-dev.6) The ship's stair of so many cells (any other: the long one).</summary>
+        public static string StairBlock(int cells) => cells switch
+        {
+            PiecePlanner.ShortCells => ShortStair,
+            PiecePlanner.SteepCells => SteepStair,
+            _ => LongStair
+        };
 
         /// <summary>(0.3.23) The block an entry is laid with: its own, else its kind's (a stair's by its length); a stair entry naming a block that isn't a ship's stair (vanilla plank stairs before 0.3.23) gets the ship's stair of its length.</summary>
         public string BlockFor(string kind)
         {
             if (kind == "stair")
             {
-                string want = Length == 2 ? SteepStair : LongStair;
+                string want = StairBlock(Length);
                 return Block != null && Block.StartsWith("hansa:shipstair-") && (Length == 0 || Block == want) ? Block : want;
             }
             return Block ?? DefaultBlock(kind);
@@ -1903,8 +1911,8 @@ namespace Hansa
         /// </summary>
         public string LaidKind(ModularPieceDef e)
         {
-            // ((0.3.23) a stair entry with its length given is a ship's stair of that length)
-            if (e?.Kind != "stair" || e.Length is 2 or 3 || Def?.Decks == null) return e?.Kind;
+            // ((0.3.23) a stair entry with its length given is a ship's stair of that length; (0.1.0-dev.6) 1 too)
+            if (e?.Kind != "stair" || e.Length is PiecePlanner.ShortCells or PiecePlanner.SteepCells or PiecePlanner.FlightCells || Def?.Decks == null) return e?.Kind;
             var foot = ForModular(e);
             if (foot == null) return e.Kind;
             int up = DirOf(e.Up);

@@ -334,7 +334,7 @@ namespace Hansa
             PieceRole.Window => Lang.Get("hansa:hint-place-window"),
             PieceRole.Railing => Lang.Get("hansa:hint-place-railing"),
             PieceRole.Ladder => Lang.Get("hansa:hint-place-ladder", plan.Rise),
-            PieceRole.Stair => Lang.Get(plan.Cells == PiecePlanner.SteepCells ? "hansa:hint-place-steepstair" : "hansa:hint-place-stair", plan.Rise),
+            PieceRole.Stair => Lang.Get(plan.Cells == PiecePlanner.ShortCells ? "hansa:hint-place-shortstair" : plan.Cells == PiecePlanner.SteepCells ? "hansa:hint-place-steepstair" : "hansa:hint-place-stair", plan.Rise),
             PieceRole.Shelf => Lang.Get(MountLayout.IsHood(plan.Mount?.Id) ? "hansa:hint-place-hood" : plan.Mount?.Level >= 3 ? "hansa:hint-place-welltop" : "hansa:hint-place-shelf"),
             PieceRole.Partition => Lang.Get("hansa:hint-place-partition"),
             PieceRole.Hearth => Lang.Get("hansa:hint-place-hearth"),

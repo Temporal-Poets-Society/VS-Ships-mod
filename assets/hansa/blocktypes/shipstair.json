@@ -2,12 +2,13 @@
 	code: "shipstair",
 	class: "hansa.BlockShipStair",
 	variantgroups: [
-		{ code: "length", states: ["steep", "long"] }
+		{ code: "length", states: ["steep", "long", "short"] }
 	],
 	creativeinventory: { "general": ["*"] },
 	shapebytype: {
 		"*-steep": { base: "hansa:block/shipstair-steep" },
-		"*-long": { base: "hansa:block/shipstair-long" }
+		"*-long": { base: "hansa:block/shipstair-long" },
+		"*-short": { base: "hansa:block/shipstair-short" }
 	},
 	attributes: {
 		shipStair: true,

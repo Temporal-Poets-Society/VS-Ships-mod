@@ -21,7 +21,7 @@ the shared code). Different companion layouts are tried on carrack-m by rearrang
 | `window`    | a border place, one row              | a glass pane (`game:glasspane-*`)                | `game:glasspane-leaded-oak-ew`        | yes   | yes   | yes (casing) |
 | `door`      | a border place, rows 0 and 1         | a vanilla door (`game:door-*`)                   | `game:door-solid-oak`                 | shut  | shut  | yes       |
 | `railing`   | a border place, one row              | a wooden fence (`game:woodenfence-*`, `roughhewnfence-*`) | `game:woodenfence-oak-ew-free` | no    | yes   | yes       |
-| `stair`     | floor cells F, (M,) H, 1 × 3 or (0.3.23, `length` 2) 1 × 2: a walked ship's stair with its own handrails (§10; 0.3.19 §8) | a ship's stair (`magelan:shipstair-long`, `-steep`) | `magelan:shipstair-long` (`-steep` for length 2) | no | its steps and handrails | yes |
+| `stair`     | floor cells F, (M,) H, 1 × 3 or (0.3.23, `length` 2) 1 × 2 or (0.1.0-dev.6, `length` 1) 1 × 1: a walked ship's stair with its own handrails (§10, §15; 0.3.19 §8) | a ship's stair (`hansa:shipstair-long`, `-steep`, `-short`) | `hansa:shipstair-long` (`-steep` for length 2, `-short` for 1) | no | its steps and handrails | yes |
 | `ladder`    | two floor cells (foot + head), 1 × 2: the companion ladder-stair (0.3.19, §8; §7.1) | a ladder (`game:ladder-*`) | `game:ladder-wood-oak-north` | no | its ladder | yes |
 | `panel`     | a horizontal place (a cell's top or a shelf) | a plank slab (`game:plankslab-*`)        | `game:plankslab-oak-down-free`        | yes   | yes   | yes       |
 | `hearth`    | a floor place (0.3.18, §7)           | a block of fire bricks (`game:claybricks-good-fire`; a vanilla firepit in creative) | `game:claybricks-good-fire` | — | yes | no |
@@ -341,6 +341,7 @@ the handbook. Put aboard in building mode only (out of it the hint says so; asho
 |---|---|---|---|---|---|
 | `magelan:shipstair-long` | `stair` (`length` 3 or none) | F, M, H (1 × 3) | 45° | 12, 0.25 high × 0.25 deep | 12 columns, a tread each |
 | `magelan:shipstair-steep` | `stair`, `"length": 2` | F, H (1 × 2) | ≈ 56° | 12, 0.25 high × 1/6 deep | 8 columns a voxel long, tops 0.25 0.75 1 1.5 1.75 2.25 2.5 3 |
+| `hansa:shipstair-short` (0.1.0-dev.6, §15) | `stair`, `"length": 1` | F (1 × 1) | ≈ 72° | 12, 0.25 high × 1/12 apart, overlapping | 4 columns a voxel long, tops 0.75 1.5 2.25 3 |
 
 Both are walked by the deck mover (no climbing), their top flush with the deck above at H's far edge. Fields as before:
 `at` = the middle of F on its deck, `up` = the way it climbs, `rise` optional (default the deck above half a block past
@@ -504,3 +505,41 @@ room, and the sea through it lands on that deck (no downflood point below). No g
 - **A stair's guard beside a design well** (the companion's beside the quarterdeck stair) starts over a man's height, as
   beside a deck; a wall stops at the face of a door across its end; a hood's board lies a hair over the walls' tops.
 - **A walked stair's landing past its head** must be her deck itself (a beam's top a quarter under it doesn't count).
+
+## 15. Changes in 0.1.0-dev.6 (the caravel's chalk notes 36, 39)
+
+### 15.1 The short ship's stair (note 36)
+
+The user, on the steep stair: "can we make these kind of stairs but to fit in 2 block opening aka stairs taking 1 block -
+NOT LADDERS?" A third ship's stair, **`hansa:shipstair-short`** (grid recipe: three planks' places in a column, 6 planks),
+entry `stair` with **`"length": 1`**: one cell F, rising a deck (3 blocks) at about 72°, walked (no climbing), its own
+handrails as the others' (4 balusters a side), its top flush with the deck above at F's far edge.
+
+- **Where it goes.** Up to a deck's edge (a castle front) with F's far edge on that edge, the deck above reaching back over
+  F at most a quarter, as the others; or **up through a deck: a 2 × 1 well over P (the cell before F) and F.** The
+  walker's head goes up over P: from the second step on it is 0.35 back over P, so a well over F alone, or cut back a
+  quarter, is refused (`flight-no-well`). P itself is the landing at its foot and stays free.
+- **Its steps (her collision).** Four columns a voxel long, tops 0.75, 1.5, 2.25 and 3 over its deck (each the drawn tread
+  at the column's far end, so the last is flush with the deck above as the others' are). Twelve treads are drawn, 0.25
+  apart in height and 1/12 along, each 0.16 deep (reaching under the next).
+- **The rule it needs (a proposal for the user's word).** The deck mover steps up at most 0.6 (`DeckMover.StepHeight`) and
+  her collision is in quarter blocks, so the steepest stair a man walks under the old rule rises 0.5 a quarter block:
+  2 blocks per block of run (about 63°), and a deck's 3 blocks need 1.5 cells. One cell needs 0.75 a quarter block.
+  So the walker takes a **ship's stair's step**, `DeckMover.ShipStairStep` = 0.75, up and down (the snap down the steps
+  too), **only over a short stair** (`DeckMover.SteepFlights`, from `PiecePlanner.SteepFlightBox`: its cell and 0.35
+  before and past it, from its deck to over the deck above); everywhere else the 0.6 stands. The camera glides over the
+  steps as on the other stairs. Without it the walker stands at its foot (the offline test shows it). If the user turns
+  this down, the short stair goes and the nearest walked stair is 2 cells (the steep one).
+- **Laid from a design**: `MountLayout.LaidKind` takes `length` 1 as a stair entry; `ModularPieceDef.StairBlock(cells)`
+  names the block; an entry naming another ship's stair than its length gets the right one.
+
+### 15.2 Stair beams under the deck (note 39)
+
+"stair beams protrude": a ship's stair's stringers (0.36 deep, upright) started where their top met the deck at the foot,
+so their feet were 0.35 under the deck's top: through the caravel's 0.2 deck and the carrack's 0.25, seen from below.
+Now nothing of a ship's stair is drawn under its deck's underside (`ModularGeometry.Flight`'s `footDeck`, from her deck
+slots' planking, `ModularGeometry.DeckThickness`; 0.2 where they don't say): each stringer starts where its bottom is a
+hair over that underside, and a shallower piece of it (a hair lower and narrower, overlapping it) carries its top line
+down to the deck, so the stair looks the same from above. At the head the stringers stop 0.05 short of the deck above's
+edge, under its top (their underside there hangs under that deck's edge, as a stringer on its trimmer: nothing passes
+through it). The short stair's stringers are deeper (0.2 square to their line, 0.63 upright). Nothing for the generator.

@@ -63,7 +63,8 @@ namespace Hansa
                     break;
                 case PieceRole.Stair:
                     // ((0.3.23) a ship's stair: its length, its own handrails)
-                    parts = ModularGeometry.Flight(m, pc.Dir, pc.Rise > 0 ? pc.Rise : 3, PiecePlanner.RunOf(pc), pc.Rails);
+                    // ((0.1.0-dev.6, note 39) cut at its deck's underside)
+                    parts = ModularGeometry.Flight(m, pc.Dir, pc.Rise > 0 ? pc.Rise : 3, PiecePlanner.RunOf(pc), pc.Rails, ModularGeometry.DeckThickness(ship.Def, m.Y));
                     break;
                 case PieceRole.Shelf when pc.Box != null:
                     parts = new List<ModularPart> { ModularPart.B(PartMat.Planks, pc.Box) };
