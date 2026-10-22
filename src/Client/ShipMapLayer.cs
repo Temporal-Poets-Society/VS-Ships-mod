@@ -14,8 +14,8 @@ namespace Hansa
     /// minimap; Wmap's own atlas draws other mods' layers too since Wmap 0.3.4): every ship drawn as her real-size plan
     /// (her outline seen from above, from her collision voxels: hull and castles), filled, a darker edge, turned to her
     /// heading, never smaller than a few pixels; the player's own ships (ones they've been aboard, or bound their spawn
-    /// to) gold, the rest pale; the rowing boats near by small and brown; her name beside her. And the wind (Sea's) where
-    /// the player is: a pale blue arrow blowing toward the player's marker. The tab "Ships" switches it on and off.
+    /// to) gold, the rest pale; the rowing boats near by small and brown; her name beside her. And, aboard a ship, the wind
+    /// (Sea's) where the player is: a pale blue arrow blowing toward the player's marker. The tab "Ships" switches it on and off.
     /// The ships come from the server (<see cref="HelmUiSystem"/>: the player's own anywhere, the loaded ones near);
     /// ships loaded here are drawn where they are this frame.
     /// </summary>
@@ -224,11 +224,16 @@ namespace Hansa
             return m;
         }
 
-        /// <summary>The wind where the player is: a pale blue arrow blowing toward their marker, from upwind.</summary>
+        /// <summary>
+        /// The wind where the player is: a pale blue arrow blowing toward their marker, from upwind. Only aboard a ship (her
+        /// helm, her deck; the user: ashore it is "not needed").
+        /// </summary>
+        static bool Aboard(EntityPlayer ep) => ep.MountedOn is ShipSeat seat && seat.Ship is EntityShip ship && ship.Def != null && !ship.GoneDown;
+
         void DrawWind(GuiElementMap map, IShaderProgram prog, EntityPlayer ep)
         {
             var sea = Sys?.Sea;
-            if (sea == null) return;
+            if (sea == null || !Aboard(ep)) return;
             var w = sea.WindAt(ep.Pos.X, ep.Pos.Z);
             double strength = w.Strength;
             if (strength < 0.02) return;
@@ -267,7 +272,7 @@ namespace Hansa
             }
             var ep = capi.World.Player?.Entity;
             var sea = sys.Sea;
-            if (ep != null && sea != null)
+            if (ep != null && sea != null && Aboard(ep))
             {
                 Screen(map, ep.Pos.X, ep.Pos.Z, out float px, out float py);
                 if (Math.Abs(args.X - px) < 40 * GuiElement.scaled(1) && Math.Abs(args.Y - py) < 40 * GuiElement.scaled(1))
