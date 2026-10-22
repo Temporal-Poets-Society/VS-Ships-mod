@@ -144,6 +144,11 @@ the table), `"paint"` (a dye colour as pieces are painted: `"red"`, `"white"`, .
   rule stays: it swings into its anchor cell. Between two floor cells the anchor is the west/north one, except where one
   side is a closed room and the other an open deck: then the closed room's cell (so `door-companion-cabin` at x -3 opens
   into the landing, the closed room, without `into`).
+- **A closed room's front from the open deck** (22 October 2026, caravel note 38): where an open deck's cell borders a
+  closed room across a line but the room has no floor cell there (a rib's cell, her side), that border column is the
+  room's: up to the room's top, its partial row under the beams included, as from the room's own side. A room the
+  players close with pieces (an open cabin under a castle deck, the caravel's steerage) is `"enclosed": true,
+  "pieces": true` and its `max` y the beams' underside; as `"enclosed": false` it's open deck, two rows to deck + 2.
 - **Open decks get partial places too**: along a line past the last floor cell out to her side (the wedge cells, cut to
   what's free of her), as the rooms have, so the castle fronts' corners by her sides take railing pieces. A railing (not
   a window, not a door) may stand on a partial place; it's drawn and solid along the free part only.

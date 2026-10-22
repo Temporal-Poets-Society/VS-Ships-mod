@@ -1144,7 +1144,8 @@ namespace Hansa
                         double cx = m.X + di * step, cz = m.Z + dk * step;
                         var rc = Def.RoomAt(cx + 0.5, m.Y + 0.5, cz + 0.5);
                         if (room.Enclosed ? rc?.Code != room.Code : rc?.Enclosed == true) break;
-                        if (!BorderColumn(m.Deck, room, ci, ck, cx, m.Y, cz, dir, FloorAt(m.Deck, ci + DX[dir], ck + DZ[dir]) == null, panels, ids, true)) break;
+                        if (!BorderColumn(m.Deck, room.Enclosed ? room : FrontRoom(room, cx, m.Y, cz, dir), ci, ck, cx, m.Y, cz, dir,
+                                          FloorAt(m.Deck, ci + DX[dir], ck + DZ[dir]) == null, panels, ids, true)) break;
                     }
                 }
             }
@@ -1158,7 +1159,7 @@ namespace Hansa
                 {
                     var n = FloorAt(m.Deck, m.I + DX[dir], m.K + DZ[dir]);
                     if (n != null && (dir >= 2 || Def.RoomAt(n.X + 0.5, n.Y + 0.5, n.Z + 0.5)?.Enclosed == true)) continue;
-                    if (BorderColumn(m.Deck, room, m.I, m.K, m.X, m.Y, m.Z, dir, n == null, panels, ids, false)) openLines.Add((m, room, dir));
+                    if (BorderColumn(m.Deck, FrontRoom(room, m.X, m.Y, m.Z, dir), m.I, m.K, m.X, m.Y, m.Z, dir, n == null, panels, ids, false)) openLines.Add((m, room, dir));
                 }
             }
             foreach (var (m, room, dir) in openLines) Wedges(m, room, dir);
@@ -1175,6 +1176,18 @@ namespace Hansa
                     BorderColumn(m.Deck, room, m.I, m.K, m.X, m.Y, m.Z, dir, true, panels, ids, false);
                 }
             }
+        }
+
+        /// <summary>
+        /// (22 October 2026, caravel note 38: "cannot close of aft deck (open cabin) with partition walls up to upper deck") The
+        /// room an open deck's border column on a cell's side dir is in: a closed room's where the cell across the line is in
+        /// it but no floor cell of it (a rib's cell at the steerage's front, by her side), so the column goes up to that room's
+        /// top under the deck over it (its partial top row) as from the room's own side; else the open deck's.
+        /// </summary>
+        RoomDef FrontRoom(RoomDef open, double x0, double y0, double z0, int dir)
+        {
+            var across = Def.RoomAt(x0 + DX[dir] + 0.5, y0 + 0.5, z0 + DZ[dir] + 0.5);
+            return across?.Enclosed == true ? across : open;
         }
 
         /// <summary>

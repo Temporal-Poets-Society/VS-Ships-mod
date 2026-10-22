@@ -20,6 +20,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="GridInspect.cs" />
     <Compile Include="CaravelInspect.cs" />
+    <Compile Include="SteerageTests.cs" />
     <Compile Include="ModularTests.cs" />
     <Compile Include="StairTests.cs" />
     <Compile Include="DeckItemTests.cs" />
