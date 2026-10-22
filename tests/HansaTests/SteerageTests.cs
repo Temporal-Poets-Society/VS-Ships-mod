@@ -101,6 +101,106 @@ namespace HansaTests
             }
         }
 
+        /// <summary>
+        /// (22 October 2026, caravel note 49: "where stairs were i cannot build partition wall over") The hatch's cells on the
+        /// main deck (empty in the design, a keep-clear "hatch" box over them) taken in: the steerage's front on x = -5 over
+        /// them has its places (all three rows), usable only while the cells are laid, and the steerage is sealed with every
+        /// place on the line taken, over the laid cells too.
+        /// </summary>
+        static void CaravelNote49(string root)
+        {
+            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "caravel.json");
+            if (!File.Exists(path)) return;
+            var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
+            def.Init();
+            var l = def.Mounts;
+            var room = def.Rooms?.FirstOrDefault(r => r.Code == "steerage");
+            var hatch = def.KeepClear?.FirstOrDefault(k => k.What == "hatch");
+            if (room == null || hatch == null || def.Slots == null) { Console.WriteLine("  --   caravel: no steerage, hatch or deck cells (note 49)"); return; }
+            double front = room.Max[0];
+            var cells = Enumerable.Range(0, def.Slots.Count).Where(n => def.Slots.Slots[n] is DeckSlotDef c && c.IsCell && c.StartsEmpty &&
+                                                                    c.Box[0] < hatch.Box[3] && c.Box[3] > hatch.Box[0] && c.Box[2] < hatch.Box[5] && c.Box[5] > hatch.Box[2]).ToList();
+            var over = l.Borders.Where(b => b.Deck == "main" && !b.TwinSide && b.In % 2 == 0 && Math.Abs(MountLayout.BorderLine(b).Line - front) < 1e-6 &&
+                                            b.Z > hatch.Box[2] && b.Z < hatch.Box[5]).OrderBy(b => b.Row).ToList();
+            var shut = new SlotStates(def.Slots);
+            var laid = new SlotStates(def.Slots);
+            foreach (int n in cells) laid.Set(n, SlotState.Filled);
+            bool rows = over.Select(b => b.Row).SequenceEqual(new[] { 0, 1, 2 }) && over.All(b => b.Room == room.Code);
+            bool usable = over.Count > 0 && over.All(b => DeckCells.MountOpen(b, laid) && !DeckCells.MountOpen(b, shut));
+            Check(cells.Count >= 2 && rows && usable, $"note 49: the hatch's {cells.Count} cells laid, the steerage's front (x = {front}) over them takes partitions " +
+                $"({string.Join(" ", over.Select(b => b.Id))}: rows 0-2 {rows}, usable laid and not open {usable})");
+            // the whole front closed over the laid cells: sealed, with no carrying across a gap
+            var line = l.Borders.Where(b => b.Deck == "main" && !b.TwinSide && b.In % 2 == 0 && Math.Abs(MountLayout.BorderLine(b).Line - front) < 1e-6).ToList();
+            var planks = new FakePiece { Code = "game:planks-oak-ud", Family = "game:planks-oak", Planks = true };
+            var set = new ShipPieceSet();
+            foreach (var b in line) set.Add(ShipPiece.From(PiecePlanner.Plan(l, b, planks, 0), set.NextId, null));
+            var delta = cells.ToDictionary(n => def.Slots.IdOf(n), n => (int)SlotState.Filled);
+            var grid = DeckCells.Applied(def, delta);
+            foreach (var p in set.All) foreach (var b in p.Solids) grid.Fill(b);
+            var deck = l.FloorOf(room);
+            bool sealedNow = ShipCompartments.Sealed(l, grid, set.All, room, ShipCompartments.WellLeaks(def, room, set.All), front - 3, deck.Y + 0.1, 0);
+            Check(sealedNow, $"note 49: the steerage sealed with its front's {set.Count} partitions up, over the hatch's laid cells too");
+        }
+
+        /// <summary>
+        /// (22 October 2026, caravel note 48: "partition penetrates deck beam below") Her partial border places' partitions as
+        /// drawn (DrawnClip) don't go up through her timbers: up each drawn column from its foot, at either face, no surface
+        /// of hers (a carling's or a beam's underside) is met short of its top: checked along the hatch's carlings (flush with the
+        /// hold's lines z -0.5 and -1.5: the top row's partitions along them stood half in them), the rest listed.
+        /// </summary>
+        static void CaravelNote48(string root)
+        {
+            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "caravel.json");
+            if (!File.Exists(path)) return;
+            var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
+            def.Init();
+            var l = def.Mounts;
+            var surf = SurfacesOf(def, Path.Combine(root, "assets", "hansa"));
+            if (surf == null) { Console.WriteLine("  --   caravel: no surfaces (note 48)"); return; }
+            const double h = MountLayout.PartitionThickness / 2 * 0.9, step = 1.0 / 8;
+            var through = new List<string>();
+            int places = 0;
+            foreach (var b in l.Borders.Where(b => b.Clip != null && !b.TwinSide))
+            {
+                var drawn = l.DrawnClip(b, surf) ?? b.Clip;
+                var (line, alongX) = MountLayout.BorderLine(b);
+                double along0 = (alongX ? b.X : b.Z) - 0.5;
+                bool bad = false;
+                places++;
+                for (double al = along0 + 0.5 / MountLayout.DrawCells; al < along0 + 1 && !bad; al += step)
+                {
+                    var col = drawn.Where(c => al > c[0] && al < c[2]).ToList();
+                    if (col.Count == 0) continue;
+                    double foot = Math.Max(b.Y, col.Min(c => c[1])) + 0.01, tp = col.Max(c => c[3]);
+                    foreach (double off in new[] { -h, h })
+                    {
+                        double o = line + off;
+                        if (alongX ? def.Grid.SolidAt(al, foot, o) : def.Grid.SolidAt(o, foot, al)) continue;
+                        double t = alongX ? surf.Ray(al, foot, o, 0, 1, 0, tp - foot) : surf.Ray(o, foot, al, 0, 1, 0, tp - foot);
+                        // (a gap in the drawn column is its own: only from its lowest run up to its top)
+                        if (t < tp - foot - 0.03 && !col.Any(c => c[3] > foot + t - 0.02 && c[3] < foot + t + 0.02) &&
+                            col.Any(c => c[1] < foot + t && c[3] > foot + t + 0.03))
+                        {
+                            through.Add($"{b.Id} at {(alongX ? "x" : "z")} {al:0.###} y {foot + t:0.###} (top {tp:0.###})");
+                            bad = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            var carling = through.Where(t => t.StartsWith("b:hold:") && (t.Contains(":s:2") || t.Contains(":n:2"))).ToList();
+            // (and meets it: the top row on the line z -0.5 under the hatch, drawn up to the carling's underside, 0.525)
+            var along = l.Borders.Where(b => b.Deck == "hold" && b.Row == 2 && !b.TwinSide && b.In % 2 == 1 && Math.Abs(b.Z + 0.5) < 1e-6 && b.X > -7.5 && b.X < -4).ToList();
+            var tops = along.Select(b => (b.Id, Top: (l.DrawnClip(b, surf) ?? b.Clip).Where(c => b.X > c[0] && b.X < c[2]).Select(c => c[3]).DefaultIfEmpty(double.NaN).Max())).ToList();
+            bool meets = along.Count >= 2 && tops.All(t => t.Top > 0.52 && t.Top < 0.56);
+            Check(carling.Count == 0 && meets, $"note 48: the hold's top row along the hatch's carlings stops at their undersides ({string.Join(", ", tops.Select(t => $"{t.Id} to {t.Top:0.###}"))})" +
+                                               $"{(carling.Count == 0 ? "" : ": through at " + string.Join(", ", carling.Take(4)))}");
+            // (the others, there before note 48's rule: a drawn column's fine cell at a crossing beam's face, her side's slope by the
+            // tumblehome, the castle's knees and railing; listed, not checked; HANSA_N48_ALL=1 lists them all)
+            Console.WriteLine($"         note 48: {through.Count} of her {places} partial places drawn up past a surface of hers elsewhere" +
+                              $"{(through.Count == 0 ? "" : ": " + string.Join(", ", through.Take(Environment.GetEnvironmentVariable("HANSA_N48_ALL") != null ? 100 : 4)))}");
+        }
+
         const double OpenRowsTop = MountLayout.OpenDeckRows;
     }
 }
