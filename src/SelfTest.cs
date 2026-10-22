@@ -212,7 +212,7 @@ namespace Hansa
                 // (a grid ship's mesh is built in memory: def.SkinFile)
                 var file = def.SkinFile ?? (asset == null ? null : Newtonsoft.Json.JsonConvert.DeserializeObject<ShipSkinFile>(System.Text.Encoding.UTF8.GetString(asset.Data)));
                 if (file == null) { Log($"{def.Code} has no mesh file here: her partitions' surfaces aren't checked"); return; }
-                var surfaces = ShipSurfaces.From(file);
+                var surfaces = ShipSurfaces.From(file, def.Slots);
                 foreach (var loc in new[] { def.Shapes.Interior, def.Shapes.Exterior })
                     if (loc != null && Shape.TryGet(sapi, AssetLocation.Create(loc, "hansa").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json")) is Shape sh) surfaces.AddShape(sh);
                 var l = def.Mounts;

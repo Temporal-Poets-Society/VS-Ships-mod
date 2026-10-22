@@ -6,9 +6,9 @@ namespace Hansa
     /// <summary>
     /// (0.3.14, notes 148, 149) Her timbers and planking as drawn: the mesh file's triangles a partition meets (every quad of
     /// the "interior" group: frames, beams, knees, clamps, the ceiling; of the "exterior": her planking, the strips closing
-    /// her decks to her sides; and the inside planking marked in the other groups,
-    /// <see cref="ShipSkinFile.HullIn"/>), and the faces her shapes draw on her cells (decks, cabin walls: <see cref="AddShape"/>),
-    /// in a grid of half-block cells, for short rays. Her collision is on a quarter-block
+    /// her decks to her sides; the inside planking marked in the other groups, <see cref="ShipSkinFile.HullIn"/>; the deck
+    /// slots' timbers, <see cref="From"/>), and the faces her shapes draw on her cells (decks, cabin walls:
+    /// <see cref="AddShape"/>), in a grid of half-block cells, for short rays. Her collision is on a quarter-block
     /// grid and covers each timber's cells whole, so a partition cut to its free cells stopped up to a quarter block short of
     /// a beam or her curved side; it's drawn out to these surfaces now (<see cref="MountLayout.DrawnClip"/>).
     /// </summary>
@@ -20,7 +20,14 @@ namespace Hansa
 
         public int Count => tris.Count / 9;
 
-        public static ShipSurfaces From(ShipSkinFile file)
+        /// <summary>
+        /// Her surfaces from her mesh file. slots: her deck slots, for the "slot:deck" groups' timbers (23 October 2026, the
+        /// caravel's beams in one-cell lengths): the fixed quads there (a hatch's carlings, beam ends) and a beam length's
+        /// own, as they're drawn all in, under her decks' planking; a deck's planking isn't one (its planks are drawn on her
+        /// cells). Met only by rays going up (a partition's top row drawn up to a carling's underside): one standing on the
+        /// deck over them isn't drawn down through it to them.
+        /// </summary>
+        public static ShipSurfaces From(ShipSkinFile file, DeckSlotLayout slots = null)
         {
             var s = new ShipSurfaces();
             if (file?.Groups == null) return s;
@@ -39,6 +46,22 @@ namespace Hansa
                         if (refs[2 * q] < 0 || refs[2 * q + 1] >= 0 || quad == null || quad.Length < 33) continue;
                         s.AddTri(quad, 0, 1, 2);
                         s.AddTri(quad, 0, 2, 3);
+                    }
+                    continue;
+                }
+                else if (kv.Key.StartsWith("slot:deck") && file.SlotQuads != null && file.SlotQuads.TryGetValue(kv.Key, out var deckRefs))
+                {
+                    for (int q = 0; q < kv.Value.Length && 2 * q + 1 < deckRefs.Length; q++)
+                    {
+                        var quad = kv.Value[q];
+                        int owner = deckRefs[2 * q];
+                        if (deckRefs[2 * q + 1] >= 0 || quad == null || quad.Length < 33) continue;
+                        if (owner >= 0 && (slots == null || owner >= slots.Count || slots.Slots[owner]?.IsCell != false)) continue;
+                        // (not a deck's planking: a fixed strip of it, a timber's face hidden in it)
+                        double qy = (quad[2] + quad[10] + quad[18] + quad[26]) / 4;
+                        if (slots == null || slots.Tops.Exists(t => qy > t.Top - t.Thick - 0.01 && qy < t.Top + 0.01)) continue;
+                        s.AddTri(quad, 0, 1, 2, true);
+                        s.AddTri(quad, 0, 2, 3, true);
                     }
                     continue;
                 }
@@ -106,9 +129,13 @@ namespace Hansa
             }
         }
 
-        void AddTri(float[] q, int a, int b, int c)
+        /// <summary>(23 October 2026) The triangles only rays going up meet: a deck slot's timbers under her decks (<see cref="From"/>).</summary>
+        readonly HashSet<int> upOnly = new();
+
+        void AddTri(float[] q, int a, int b, int c, bool up = false)
         {
             int id = tris.Count / 9;
+            if (up) upOnly.Add(id);
             double x0 = double.MaxValue, y0 = double.MaxValue, z0 = double.MaxValue, x1 = double.MinValue, y1 = double.MinValue, z1 = double.MinValue;
             foreach (int k in new[] { a, b, c })
             {
@@ -131,7 +158,7 @@ namespace Hansa
 
         /// <summary>
         /// How far a ray (ship-local; d need not be normalised, t is in its lengths) goes before it meets one of her surfaces,
-        /// within maxT; double.MaxValue if it doesn't. Either side of a surface counts.
+        /// within maxT; double.MaxValue if it doesn't. Either side of a surface counts (a deck slot's timber only going up).
         /// </summary>
         public double Ray(double ox, double oy, double oz, double dx, double dy, double dz, double maxT)
         {
@@ -147,6 +174,7 @@ namespace Hansa
                         if (!cells.TryGetValue((i, j, k), out var list)) continue;
                         foreach (int id in list)
                         {
+                            if (dy <= 0 && upOnly.Contains(id)) continue;
                             double t = HitTri(id, ox, oy, oz, dx, dy, dz);
                             if (t >= 0 && t <= maxT && t < best) best = t;
                         }

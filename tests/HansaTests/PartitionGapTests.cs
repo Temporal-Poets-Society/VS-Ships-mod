@@ -18,7 +18,7 @@ namespace HansaTests
             if (surfacesFor == def.Code && surfacesCache != null) return surfacesCache;
             string p = Path.Combine(assets, "config", "shipmeshes", def.Code + ".json");
             if (!File.Exists(p)) return null;
-            var s = ShipSurfaces.From(JsonConvert.DeserializeObject<ShipSkinFile>(File.ReadAllText(p)));
+            var s = ShipSurfaces.From(JsonConvert.DeserializeObject<ShipSkinFile>(File.ReadAllText(p)), def.Slots);
             foreach (var shapeLoc in new[] { def.Shapes?.Interior, def.Shapes?.Exterior })
             {
                 if (shapeLoc == null) continue;

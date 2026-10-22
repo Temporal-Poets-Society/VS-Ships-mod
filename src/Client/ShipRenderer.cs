@@ -359,7 +359,7 @@ namespace Hansa
             {
                 try
                 {
-                    var s = ShipSurfaces.From(file);
+                    var s = ShipSurfaces.From(file, def.Slots);
                     foreach (var sh in shapes) s.AddShape(sh);
                     def.Surfaces = s;
                 }
