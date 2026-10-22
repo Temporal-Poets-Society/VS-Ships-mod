@@ -10,7 +10,8 @@ namespace Hansa
     /// The pieces put aboard (ShipDecor), drawn among her vanilla blocks: each block of a piece (a bed's head and feet) from
     /// its own mesh as vanilla draws it (a typed container's or crate's by its type, a lantern's with its metal and glass),
     /// turned by its quarter turns about the block's middle, at its cell; one hung from a hook by its mesh's bounds; one on
-    /// a wall tilted onto the wall's face. A light piece gives its block's light, as a lantern on a hook did.
+    /// a wall tilted onto the wall's face. A light piece gives its block's light, as a lantern on a hook did. A block's
+    /// see-through faces (a lantern's glass) are drawn with her glass.
     /// </summary>
     public partial class ShipRenderer
     {
@@ -25,8 +26,9 @@ namespace Hansa
                 {
                     // (0.3.20, step B) a hatch: its leaves, each turning about its own hinge
                     if (pc.Role == PieceRole.Hatch) { d.Pieces.AddRange(HatchPieces(ship, pc)); continue; }
-                    var p = BuildPlacedPiece(ship, pc);
+                    var p = BuildPlacedPiece(ship, pc, out var seen);
                     if (p != null) d.Pieces.Add(p);
+                    if (seen != null) d.Pieces.Add(seen);
                 }
                 catch (Exception e)
                 {
@@ -36,9 +38,11 @@ namespace Hansa
             }
         }
 
-        Piece BuildPlacedPiece(EntityShip ship, ShipPiece pc)
+        /// <param name="seen">its blocks' see-through faces (a lantern's glass), drawn with her glass; null if none</param>
+        Piece BuildPlacedPiece(EntityShip ship, ShipPiece pc, out Piece seen)
         {
-            MeshData all = null;
+            seen = null;
+            MeshData all = null, clear = null;
             bool glass = false;
             if (pc.Role is PieceRole.Panel or PieceRole.Partition) return PanelPiece(ship, pc);
             if (pc.Role == PieceRole.Door) return DoorPiece(ship, pc);
@@ -57,14 +61,34 @@ namespace Hansa
                 if (block.RenderPass is EnumChunkRenderPass.Transparent or EnumChunkRenderPass.BlendNoCull) glass = true;
                 var md = VanillaPieceBlock.IsOverlay(block) ? OverlayMesh(block) : PieceMesh(block, pc.Stack);
                 if (md == null || md.VerticesCount == 0) continue;
+                // ((0.1.0-dev.7, note 43: "lanterns does not have light") a block drawn solid with see-through faces in its
+                // shape (vanilla's transparent pass: a lantern's glowing glass) has them drawn with her glass: drawn solid
+                // they were black panes hiding the lit candle)
+                MeshData see = null;
+                if (!glass) md = SeeThroughFaces.Split(md, out see);
                 if (pc.Kind != MountKind.Hook)
                 {
-                    if (part.Quarter != 0) md.Rotate(new Vec3f(0.5f, 0.5f, 0.5f), 0, part.Quarter * GameMath.PIHALF, 0);
+                    if (part.Quarter != 0)
+                    {
+                        md.Rotate(new Vec3f(0.5f, 0.5f, 0.5f), 0, part.Quarter * GameMath.PIHALF, 0);
+                        see?.Rotate(new Vec3f(0.5f, 0.5f, 0.5f), 0, part.Quarter * GameMath.PIHALF, 0);
+                    }
                     md.Translate((float)part.Origin[0], (float)part.Origin[1], (float)part.Origin[2]);
+                    see?.Translate((float)part.Origin[0], (float)part.Origin[1], (float)part.Origin[2]);
                 }
-                if (all == null) all = md;
-                else all.AddMeshData(md);
+                if (md.VerticesCount > 0)
+                {
+                    if (all == null) all = md;
+                    else all.AddMeshData(md);
+                }
+                if (see != null)
+                {
+                    if (clear == null) clear = see;
+                    else clear.AddMeshData(see);
+                }
             }
+            // (all of it see-through: drawn as a pane is)
+            if (all == null || all.VerticesCount == 0) { all = clear; clear = null; glass = true; }
             if (all == null || all.VerticesCount == 0) return null;
             var p = new Piece { Fixture = ship.PieceFixture(pc), Glass = glass };
             var c = pc.Center;
@@ -74,10 +98,20 @@ namespace Hansa
             {
                 // hung from the hook (or stood on it): the mesh's middle under it, its top (bottom) at it
                 Bounds(all, out var min, out var max);
+                if (clear != null)
+                {
+                    Bounds(clear, out var cmin, out var cmax);
+                    min.Set(Math.Min(min.X, cmin.X), Math.Min(min.Y, cmin.Y), Math.Min(min.Z, cmin.Z));
+                    max.Set(Math.Max(max.X, cmax.X), Math.Max(max.Y, cmax.Y), Math.Max(max.Z, cmax.Z));
+                }
                 var m = ship.Mounts?.Get(pc.Mount);
                 double hx = m?.X ?? pc.Parts[0].Origin[0] + 0.5, hy = m?.Y ?? pc.Parts[0].Origin[1] + 1, hz = m?.Z ?? pc.Parts[0].Origin[2] + 0.5;
                 float y = pc.Hang == "up" ? (float)hy - min.Y : (float)hy - max.Y;
-                if (pc.Parts[0].Quarter != 0) all.Rotate(new Vec3f((min.X + max.X) / 2, 0, (min.Z + max.Z) / 2), 0, pc.Parts[0].Quarter * GameMath.PIHALF, 0);
+                if (pc.Parts[0].Quarter != 0)
+                {
+                    all.Rotate(new Vec3f((min.X + max.X) / 2, 0, (min.Z + max.Z) / 2), 0, pc.Parts[0].Quarter * GameMath.PIHALF, 0);
+                    clear?.Rotate(new Vec3f((min.X + max.X) / 2, 0, (min.Z + max.Z) / 2), 0, pc.Parts[0].Quarter * GameMath.PIHALF, 0);
+                }
                 float tx = (float)hx - (min.X + max.X) / 2, tz = (float)hz - (min.Z + max.Z) / 2;
                 Mat4f.Translate(p.Fit, p.Fit, tx, y, tz);
                 // (0.3.16, note 161) on a ceiling hook the mod found: the iron eye the design's ceiling hooks have (in the
@@ -110,6 +144,11 @@ namespace Hansa
                 }
             }
             p.Mesh = capi.Render.UploadMultiTextureMesh(all);
+            if (clear != null && clear.VerticesCount > 0)
+            {
+                seen = new Piece { Fixture = p.Fixture, Glass = true, Interior = p.Interior, Mesh = capi.Render.UploadMultiTextureMesh(clear) };
+                Array.Copy(p.Fit, seen.Fit, 16);
+            }
             return p;
         }
 
@@ -441,21 +480,32 @@ namespace Hansa
         void AddPieceLights(EntityShip ship, System.Collections.Generic.List<ShipLight> list)
         {
             foreach (var pc in ship.Pieces.All)
-            {
-                // (any piece whose block gives light: a lantern, a candle, a torch holder; not only those put as lights)
-                if (pc.Role == PieceRole.Panel || pc.Stack?.Block == null || pc.Parts.Count == 0) continue;
-                var block = capi.World.GetBlock(new AssetLocation(pc.Parts[0].Block)) ?? pc.Stack.Block;
-                byte[] hsv;
-                try { hsv = block.GetLightHsv(capi.World.BlockAccessor, null, pc.Stack) ?? pc.Stack.Block.GetLightHsv(capi.World.BlockAccessor, null, pc.Stack); }
-                catch (Exception) { hsv = block.LightHsv; }
-                if (hsv == null || hsv.Length < 3 || hsv[2] == 0) continue;
-                int rgb = ColorUtil.HsvToRgb(hsv[0] * 4, hsv[1] * 32, 255);
-                float r = ((rgb >> 16) & 255) / 255f, g = ((rgb >> 8) & 255) / 255f, b = (rgb & 255) / 255f;
-                float strength = Math.Max(4, hsv[2] * 0.55f);
-                var c = pc.Center;
-                double y = pc.Hang == "down" ? (pc.Box?[1] ?? c[1]) + 0.3 : c[1];
-                list.Add(new ShipLight { Local = new[] { c[0], y, c[2] }, On = new Vec3f(b * strength, g * strength, r * strength) });
-            }
+                if (PieceLight(capi.World, pc, out var local, out var on)) list.Add(new ShipLight { Local = local, On = on });
+        }
+
+        /// <summary>
+        /// A piece's light, if its block gives light (a lantern, a candle, a torch holder; not only those put as lights):
+        /// where it is (ship-local; a hung one's a little under its top) and its colour on the lanterns' scale (blue, green,
+        /// red, as the game's point lights have it). Either side (the self-test checks it on the server).
+        /// </summary>
+        public static bool PieceLight(IWorldAccessor world, ShipPiece pc, out double[] local, out Vec3f on)
+        {
+            local = null;
+            on = null;
+            if (pc.Role == PieceRole.Panel || pc.Stack?.Block == null || pc.Parts.Count == 0) return false;
+            var block = world.GetBlock(new AssetLocation(pc.Parts[0].Block)) ?? pc.Stack.Block;
+            byte[] hsv;
+            try { hsv = block.GetLightHsv(world.BlockAccessor, null, pc.Stack) ?? pc.Stack.Block.GetLightHsv(world.BlockAccessor, null, pc.Stack); }
+            catch (Exception) { hsv = block.LightHsv; }
+            if (hsv == null || hsv.Length < 3 || hsv[2] == 0) return false;
+            int rgb = ColorUtil.HsvToRgb(hsv[0] * 4, hsv[1] * 32, 255);
+            float r = ((rgb >> 16) & 255) / 255f, g = ((rgb >> 8) & 255) / 255f, b = (rgb & 255) / 255f;
+            float strength = Math.Max(4, hsv[2] * 0.55f);
+            var c = pc.Center;
+            double y = pc.Hang == "down" ? (pc.Box?[1] ?? c[1]) + 0.3 : c[1];
+            local = new[] { c[0], y, c[2] };
+            on = new Vec3f(b * strength, g * strength, r * strength);
+            return true;
         }
     }
 }

@@ -354,6 +354,7 @@ namespace HansaTests
             Modular(def, root);
             ShipStairs(def);
             DeckItems(root);
+            LanternGlass();
             CastleGunPorts(root);
             Notes0324(root);
             Notes0325(root);

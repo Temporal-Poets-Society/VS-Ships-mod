@@ -733,6 +733,41 @@ namespace Hansa
             MountPoint FreeIn(string room, ItemStack s, int dir = 1) =>
                 l.Floors.FirstOrDefault(m => m.Room == room && !ship.Pieces.Taken(m.Id) && ship.PlaceProblem(PlanOn(m, s, dir), true) == null);
 
+            // ---- her lanterns: the design's start pieces on their hooks (as a new ship gets them), lit, taken down and hung again
+            // ((0.1.0-dev.7) first: a ship without a lower deck (the caravel) stops after the next section's first check)
+            if (def.StartPieces?.Length > 0)
+            {
+                ship.PlaceStartPieces();
+                var lights = def.StartPieces.Select(sp => ship.Pieces.At(sp.Mount)).ToList();
+                bool allLit = lights.All(p => p != null && p.Role == PieceRole.Light && p.Solids.Count == 0 &&
+                    sapi.World.GetBlock(new AssetLocation(p.Parts[0].Block)) is Block lb &&
+                    lb.GetLightHsv(sapi.World.BlockAccessor, null, p.Stack)?[2] > 0 &&
+                    p.Parts[0].Block.EndsWith(l.Get(p.Mount).Hang == "up" ? "-up" : "-down"));
+                Check(allLit, $"her {def.StartPieces.Length} lanterns on their hooks as a new ship has them: each a light ({lights.FirstOrDefault()?.Parts[0].Block}), hanging or standing as its hook is, not solid");
+                // (0.1.0-dev.7, note 43: "lanterns does not have light") each gives her a light (the point light her client
+                // adds) at it (its glass drawn with her glass: offline, SeeThroughFaces)
+                int shining = 0;
+                string dark = null;
+                foreach (var p in lights)
+                {
+                    var hook = p == null ? null : l.Get(p.Mount);
+                    if (p != null && hook != null && ShipRenderer.PieceLight(sapi.World, p, out var shone, out var on) &&
+                        on.X + on.Y + on.Z > 4 && Math.Abs(shone[0] - hook.X) < 0.75 && Math.Abs(shone[1] - hook.Y) < 1.25 && Math.Abs(shone[2] - hook.Z) < 0.75) shining++;
+                    else dark ??= p?.Mount ?? "(none)";
+                }
+                Check(shining == lights.Count, $"each of her {lights.Count} lanterns gives a light where it hangs or stands{(dark != null ? "; not: " + dark : "")}");
+                var first = lights.FirstOrDefault();
+                if (first != null)
+                {
+                    var stack = first.Stack.Clone();
+                    var hook = l.Get(first.Mount);
+                    Check(ship.RemovePiece(first, null) == null && !ship.Pieces.Taken(hook.Id) &&
+                          ship.PlacePiece(PlanOn(hook, stack), stack, true, out var again) == null && again.Role == PieceRole.Light,
+                        $"one taken down from {hook.Id} and hung up again");
+                }
+            }
+            else Log("the design has no start pieces (lanterns): not checked");
+
             // ---- a chest on the lower deck: a storage; things put in and taken out; not taken up full; taken up empty
             var chest = new ItemStack(B("chest-east"));
             if (!l.Floors.Any(m => m.Room == "lowerdeck"))
@@ -1034,28 +1069,6 @@ namespace Hansa
                 }
                 Check(ship.RemovePiece(bp, null) == null && ship.GetSeat("bunk:" + bp.StorageCode) == null, "got up, the bed is taken up: its bunk gone");
             }
-
-            // ---- her lanterns: the design's start pieces on their hooks (as a new ship gets them), lit, taken down and hung again
-            if (def.StartPieces?.Length > 0)
-            {
-                ship.PlaceStartPieces();
-                var lights = def.StartPieces.Select(sp => ship.Pieces.At(sp.Mount)).ToList();
-                bool allLit = lights.All(p => p != null && p.Role == PieceRole.Light && p.Solids.Count == 0 &&
-                    sapi.World.GetBlock(new AssetLocation(p.Parts[0].Block)) is Block lb &&
-                    lb.GetLightHsv(sapi.World.BlockAccessor, null, p.Stack)?[2] > 0 &&
-                    p.Parts[0].Block.EndsWith(l.Get(p.Mount).Hang == "up" ? "-up" : "-down"));
-                Check(allLit, $"her {def.StartPieces.Length} lanterns on their hooks as a new ship has them: each a light ({lights.FirstOrDefault()?.Parts[0].Block}), hanging or standing as its hook is, not solid");
-                var first = lights.FirstOrDefault();
-                if (first != null)
-                {
-                    var stack = first.Stack.Clone();
-                    var hook = l.Get(first.Mount);
-                    Check(ship.RemovePiece(first, null) == null && !ship.Pieces.Taken(hook.Id) &&
-                          ship.PlacePiece(PlanOn(hook, stack), stack, true, out var again) == null && again.Role == PieceRole.Light,
-                        $"one taken down from {hook.Id} and hung up again");
-                }
-            }
-            else Log("the design has no start pieces (lanterns): not checked");
 
             // ---- paint: a zone painted with dye from a bucket (its cost by the zone's area), scraped back with a knife; a
             // carving gilded with gold plates
