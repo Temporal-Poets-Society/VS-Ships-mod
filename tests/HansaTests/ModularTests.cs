@@ -301,6 +301,33 @@ namespace HansaTests
         }
 
         /// <summary>
+        /// (22 October 2026, caravel note 38) Plank partitions on a room's free border places on its outline (the lines of its
+        /// box's ends and sides: an open front a player closes), one side's of each segment (not the twins), none in another
+        /// piece's way.
+        /// </summary>
+        static List<ShipPiece> OutlinePartitions(ShipDefinition md, ShipPieceSet set, RoomDef r)
+        {
+            var l = md.Mounts;
+            var planks = new FakePiece { Code = "game:planks-oak-ud", Family = "game:planks-oak", Planks = true };
+            var list = new List<ShipPiece>();
+            var taken = new ShipPieceSet();
+            foreach (var p in set.All) taken.Add(p);
+            foreach (var b in l.Borders.Where(b => b.Room == r.Code && !b.TwinSide && !taken.Taken(b.Id) && (b.Twin == null || !taken.Taken(b.Twin))))
+            {
+                var (line, alongX) = MountLayout.BorderLine(b);
+                bool onOutline = alongX ? Math.Abs(line - r.Min[2]) < 1e-6 || Math.Abs(line - r.Max[2]) < 1e-6
+                                        : Math.Abs(line - r.Min[0]) < 1e-6 || Math.Abs(line - r.Max[0]) < 1e-6;
+                if (!onOutline) continue;
+                var plan = PiecePlanner.Plan(l, b, planks, 0);
+                if (plan.Error != null || taken.Blocking(plan) != null) continue;
+                var pc = ShipPiece.From(plan, taken.NextId, null);
+                taken.Add(pc);
+                list.Add(pc);
+            }
+            return list;
+        }
+
+        /// <summary>
         /// (0.3.17) A modular design's own checks (instead of the carracks' door-fixture ones): its entries find their places
         /// and are all laid (none in another's way); its laid doors (each a door, swinging where its entry says); each stair
         /// walked up and down in her collision with the pieces in it (doors open); its wells; its rooms walled by pieces
@@ -550,7 +577,10 @@ namespace HansaTests
                 Check(overStair, $"{md.Code}: well {w.Code} over one of her stairs, in {below?.Code ?? "no room"}'s ceiling ({(leaks?.Count > 0 ? "open to the deck above" : "onto a closed room")})");
             }
             // her rooms walled by pieces: sealed with the doors shut, and a door opened opens one
+            // ((22 October 2026, caravel note 38) a room a new ship has open, the caravel's steerage under the quarterdeck, its
+            // front for the players to close: sealed once partitions stand on the free border places of its outline)
             var shut = With(true);
+            var closing = new List<ShipPiece>(set.All);
             foreach (var r in md.Rooms.Where(r => r.Pieces))
             {
                 var f = l.Floors.FirstOrDefault(m => m.Room == r.Code && !set.Taken(m.Id));
@@ -558,15 +588,28 @@ namespace HansaTests
                 string why = null;
                 ShipCompartments.Why = w2 => why = w2;
                 bool sealedNow = ShipCompartments.Sealed(l, shut, set.All, r, ShipCompartments.WellLeaks(md, r, set.All), f.X + 0.5, f.Y + 0.6, f.Z + 0.5);
+                string front = "";
+                if (!sealedNow)
+                {
+                    var walls = OutlinePartitions(md, set, r);
+                    var grid = shut.Clone();
+                    foreach (var p in walls) foreach (var s in p.Solids) grid.Fill(s);
+                    var all = set.All.Concat(walls).ToList();
+                    sealedNow = walls.Count > 0 && ShipCompartments.Sealed(l, grid, all, r, ShipCompartments.WellLeaks(md, r, all), f.X + 0.5, f.Y + 0.6, f.Z + 0.5);
+                    front = $" once its outline's {walls.Count} free border places have partitions (open as a new ship has her)";
+                    closing.AddRange(walls);
+                }
                 ShipCompartments.Why = null;
-                Check(sealedNow, $"{md.Code}: {r.Code} (walled by pieces) sealed with her doors shut{(sealedNow ? "" : ": open " + why)}");
+                Check(sealedNow, $"{md.Code}: {r.Code} (walled by pieces) sealed with her doors shut{front}{(sealedNow ? "" : ": open " + why)}");
             }
+            if (closing.Count > set.All.Count())
+                foreach (var p in closing.Skip(set.All.Count())) foreach (var s in p.Solids) shut.Fill(s);
             // (0.3.22, step C) her lidded gun ports in her rooms (the great cabin's guns): a lid seals its port while shut,
             // cut in her collision or not; a synthetic port cut in a room's side, the same
-            LiddedPortRooms(md, shut, set.All, r => l.Floors.FirstOrDefault(m => m.Room == r.Code && !set.Taken(m.Id)));
+            LiddedPortRooms(md, shut, closing, r => l.Floors.FirstOrDefault(m => m.Room == r.Code && !set.Taken(m.Id)));
             var portRoom = md.Rooms.FirstOrDefault(r => r.Pieces && ShipCompartments.LiddedPorts(md).Any(f => ShipCompartments.PortRoom(md, f) == r))
                            ?? md.Rooms.FirstOrDefault(r => r.Pieces);
-            if (portRoom != null) LiddedPortSeal(md, shut, set.All, portRoom, md.Code, m => !set.Taken(m.Id));
+            if (portRoom != null) LiddedPortSeal(md, shut, closing, portRoom, md.Code, m => !set.Taken(m.Id));
             int opens = 0;
             foreach (var kv in doors)
             {
