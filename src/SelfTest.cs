@@ -2851,7 +2851,10 @@ namespace Hansa
             ship.Anchored = false;
             ship.SailSet = 2;
             var l = def.DamageParts;
-            var panel = l.Parts.Where(p => p.Kind == DamageKind.Hull && p.Center.Y < def.Waterline - 1.5 && Math.Abs(p.Center.X) < 4).First();
+            // ((23 October 2026) her lowest panel under the waterline amidships: the caravel's bottom row is fixed, her lowest
+            // panels' middles 1.4 under it, and none 1.5 under it threw here and left the server running)
+            var panel = l.Parts.Where(p => p.Kind == DamageKind.Hull && p.Center.Y < def.Waterline - 0.5 && Math.Abs(p.Center.X) < 4)
+                .OrderBy(p => p.Center.Y).First();
             WaitFor(() => ship.LaidUp && ship.Anchored && ship.SailSet == 0, 3, laid =>
             {
                 Check(laid && ship.Anchored && ship.SailSet == 0 && ship.WatchedAttributes.GetBool("hansaLaidUp") && !ship.MayBoard(null),
