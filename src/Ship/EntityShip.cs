@@ -764,11 +764,12 @@ namespace Hansa
             return null;
         }
 
-        public bool Board(EntityPlayer ep, Vec3d local)
+        /// <param name="unstick">lifted out of her collision if it's in it (not at a ladder's foot, review H3-5: that's outside her)</param>
+        public bool Board(EntityPlayer ep, Vec3d local, bool unstick = true)
         {
             if (Def == null || !ep.Alive || !HasRoomFor(ep) || GoneDown) return false;
             var mover = new DeckMover(local.X, local.Y, local.Z);
-            mover.Unstick(Grid);
+            if (unstick) mover.Unstick(Grid);
             var seat = GetOrCreateDeckSeat(ep.PlayerUID, mover.X, mover.Y, mover.Z);
             return ep.TryMount(seat);
         }
@@ -780,8 +781,12 @@ namespace Hansa
         /// (stepping or jumping aboard from a dock or another deck). Never a point inside her that a wall or her hull stands
         /// between, nor a ship in another dimension.
         /// </summary>
-        public bool MayBoardAt(EntityPlayer ep, double x, double y, double z)
+        /// <param name="spot">where they're put aboard: on a ladder its foot as she has it (review H3-5), else the point asked for</param>
+        /// <param name="ladder">at a ladder's foot</param>
+        public bool MayBoardAt(EntityPlayer ep, double x, double y, double z, out Vec3d spot, out bool ladder)
         {
+            spot = new Vec3d(x, y, z);
+            ladder = false;
             var g = Grid;
             if (g == null || ep == null || ep.Pos.Dimension != Pos.Dimension) return false;
             if (!double.IsFinite(x) || !double.IsFinite(y) || !double.IsFinite(z)) return false;
@@ -795,8 +800,10 @@ namespace Hansa
                 if (!l.Outside || l.Bottom == null) continue;
                 double dx = l.Bottom[0] - x, dy = l.Bottom[1] - y, dz = l.Bottom[2] - z;
                 if (dx * dx + dy * dy + dz * dz >= 0.5 * 0.5) continue;
-                // (review H2-2) from beside its foot, as their client takes it (within 1.4), their lag allowed for
-                double fx = l.Bottom[0] - me.X, fz = l.Bottom[2] - me.Z, fy = l.Bottom[1] - me.Y, near = 3 + lag;
+                // (review H2-2) from beside its foot, (review H3-3) as far as their client lets it be clicked, their lag allowed for
+                double fx = l.Bottom[0] - me.X, fz = l.Bottom[2] - me.Z, fy = l.Bottom[1] - me.Y, near = Boarding.LadderReach + 0.5 + lag;
+                spot = new Vec3d(l.Bottom[0], l.Bottom[1], l.Bottom[2]);
+                ladder = true;
                 return fx * fx + fz * fz <= near * near && fy > -3.5 && fy < 3;
             }
             if (Def.BoardFromWater)
@@ -823,11 +830,15 @@ namespace Hansa
             return g.Raycast(new Vec3d(x, y + 1, z), d, len) >= len - 0.25 || g.Raycast(new Vec3d(x, y + 1.6, z), d, len) >= len - 0.25;
         }
 
-        /// <summary>(review H2-2) Is the water up to their waist, as the server has them (it doesn't run players' physics)?</summary>
+        /// <summary>
+        /// (review H2-2) Is the water up to their waist, as the server has them (it doesn't run players' physics)? Not in a
+        /// hull's dry inside (review H3-3: standing in a skiff, her floor under the sea outside).
+        /// </summary>
         bool Swimmer(EntityPlayer ep)
         {
-            var bp = new BlockPos((int)Math.Floor(ep.Pos.X), (int)Math.Floor(ep.Pos.Y + 0.8), (int)Math.Floor(ep.Pos.Z), ep.Pos.Dimension);
-            return World.BlockAccessor.GetBlock(bp, BlockLayersAccess.Fluid)?.IsLiquid() == true;
+            double wy = ep.Pos.Y + 0.8;
+            var bp = new BlockPos((int)Math.Floor(ep.Pos.X), (int)Math.Floor(wy), (int)Math.Floor(ep.Pos.Z), ep.Pos.Dimension);
+            return World.BlockAccessor.GetBlock(bp, BlockLayersAccess.Fluid)?.IsLiquid() == true && Mod?.Dry.IsDry(ep.Pos.X, wy, ep.Pos.Z) != true;
         }
 
         public void StandUp(EntityAgent agent, FixtureDef near)
@@ -1967,7 +1978,6 @@ namespace Hansa
                     if (!Aground)
                     {
                         Aground = true;
-                        SaveState(true);
                         // she bumps off and drives on again with the sails set: say it once, not at every bump
                         if (World.ElapsedMilliseconds - lastAgroundNoticeMs > 20000)
                         {
@@ -1986,7 +1996,8 @@ namespace Hansa
                 else
                 {
                     Waiting = false;
-                    if (Aground) { Aground = false; SaveState(true); }
+                    // (review H3-9: as running aground, with the next sync)
+                    if (Aground) { Aground = false; SaveState(false); }
                     Pos.X = nx;
                     Pos.Z = nz;
                     Pos.Yaw = GameMath.Mod((float)newYaw, GameMath.TWOPI);

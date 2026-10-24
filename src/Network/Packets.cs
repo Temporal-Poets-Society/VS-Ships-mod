@@ -13,6 +13,8 @@ namespace Hansa
         [ProtoMember(5)] public byte Flags;
         /// <summary>Server -> clients: whose deck position this is.</summary>
         [ProtoMember(6)] public long PlayerEntityId;
+        /// <summary>(review H3-3) Server -> the client that asked: boarding her (ShipId) was refused; it puts them back.</summary>
+        [ProtoMember(7)] public bool Refused;
     }
 
     /// <summary>Client -> server: put me on this ship at this local position.</summary>

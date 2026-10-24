@@ -42,6 +42,8 @@ namespace Hansa
         (long ship, float x, float y, float z, byte flags) lastSentDeck;
         long lastSentDeckMs;
         long boardCooldownUntil;
+        Vec3d boardedFrom;
+        long boardedShip;
         FixtureHit lookedAt;
         // the gun last clicked (the game repeats a held click: one shot a click)
         (long Ship, int Gun, long Ms) lastGunClick;
@@ -830,7 +832,10 @@ namespace Hansa
                 return;
             }
             var seat = ship.GetOrCreateDeckSeat(ep.PlayerUID, x, y, z);
-            ep.TryMount(seat);   // predicted; the server confirms through the "mountedOn" attribute
+            // (review H3-3: where they were, should the server refuse it)
+            boardedFrom = ep.Pos.XYZ;
+            boardedShip = ship.EntityId;
+            ep.TryMount(seat);   // predicted; the server confirms through the "mountedOn" attribute, or refuses (OnRemoteDeckState)
             channel.SendPacket(new BoardPacket { ShipId = ship.EntityId, X = (float)x, Y = (float)y, Z = (float)z });
             boardCooldownUntil = capi.World.ElapsedMilliseconds + 500;
         }
@@ -1479,6 +1484,23 @@ namespace Hansa
             if (e == null) return;
             if (e == capi.World.Player.Entity)
             {
+                // (review H3-3) the server refused our boarding: off the seat we took, back where we were, not again at once
+                if (p.Refused)
+                {
+                    if (e.MountedOn is DeckSeat taken && taken.Ship.EntityId == p.ShipId)
+                    {
+                        e.TryUnmount();
+                        if (boardedShip == p.ShipId && boardedFrom != null)
+                        {
+                            e.Pos.SetPos(boardedFrom.X, boardedFrom.Y, boardedFrom.Z);
+                            e.Pos.Motion.Set(0, 0, 0);
+                            e.PositionBeforeFalling.Set(boardedFrom.X, boardedFrom.Y, boardedFrom.Z);
+                        }
+                        pendingLadder = null;
+                        boardCooldownUntil = capi.World.ElapsedMilliseconds + 1500;
+                    }
+                    return;
+                }
                 // (review H1-2) the server refused a move of ours: back to where it has us
                 if (e.MountedOn is DeckSeat own && own.Ship.EntityId == p.ShipId && own.Mover is DeckMover m)
                 {

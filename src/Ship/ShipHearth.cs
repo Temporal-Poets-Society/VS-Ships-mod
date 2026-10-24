@@ -397,6 +397,9 @@ namespace Hansa
             hearthHeldSince[player.PlayerUID] = (World.ElapsedMilliseconds, player.InventoryManager.ActiveHotbarSlotNumber, held.Collectible.Code.ToString());
         }
 
+        /// <summary>(review H3-8) Server: a player out of reach of it, or refused it: their holding something to it ends.</summary>
+        public void HearthLeftBy(IServerPlayer player) => hearthHeldSince.Remove(player.PlayerUID);
+
         /// <summary>Server: a player's try at lighting it (HearthPacket), at most one in 2.5 s each.</summary>
         public void HearthIgniteFrom(IServerPlayer player, float seconds)
         {

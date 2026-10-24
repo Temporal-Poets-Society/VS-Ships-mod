@@ -141,6 +141,9 @@ namespace Hansa
         public double BudgetLevel, BudgetUp, BudgetDown;
         public long BudgetMs, PacketWindowMs, RelayMs;
         public int PacketsInWindow;
+        /// <summary>(server, review H3-7) The newest position held back by the rate limit; a relay held back a moment.</summary>
+        public DeckStatePacket PendingState;
+        public bool RelayPending;
 
         // remote interpolation (client)
         readonly Queue<(long ms, double x, double y, double z)> remote = new();
