@@ -90,10 +90,17 @@ namespace Hansa
 
         // ------------------------------------------------------------------ server
 
+        // (review H1-18: kept, not made each tick)
+        readonly List<EntityShip> ships = new();
+        readonly List<(double X, double Z, int Dim)> playersAt = new();
+        readonly Vec3d scanMid = new();
+        static readonly ActionConsumable<Entity> fallingItem = e => e is EntityItem && e.Alive && !serverHeld.ContainsKey(e.EntityId);
+
         void Tick(float dt)
         {
             dt = Math.Min(dt, 0.2f);
-            var ships = mod.ServerShips.Where(Usable).ToArray();
+            ships.Clear();
+            foreach (var s in mod.ServerShips) if (Usable(s)) ships.Add(s);
             // new ones over her: hers even afloat in her hold (that's where they were dropped)
             if (fresh.Count > 0)
             {
@@ -104,14 +111,19 @@ namespace Hansa
                 }
                 fresh.Clear();
             }
-            // ones falling onto her out of the air
+            // ones falling onto her out of the air: around ships someone's near (who drops, throws or mines them), each tick
+            // (an item falls through her deck between two looks a fifth of a second apart)
+            playersAt.Clear();
+            foreach (IServerPlayer pl in sapi.World.AllOnlinePlayers)
+                if (pl.ConnectionState == EnumClientState.Playing && pl.Entity != null) playersAt.Add((pl.Entity.Pos.X, pl.Entity.Pos.Z, pl.Entity.Pos.Dimension));
             foreach (var ship in ships)
             {
                 var g = ship.Grid;
                 float r = (float)(Math.Max(Math.Max(-g.OX, g.MaxX), Math.Max(-g.OZ, g.MaxZ)) + 1);
+                if (!PlayerNear(ship, r + 48)) continue;
                 float ry = (float)((g.MaxY - g.OY) / 2 + 2);
-                var mid = new Vec3d(ship.Pos.X, ship.Pos.Y + (g.OY + g.MaxY) / 2, ship.Pos.Z);
-                foreach (var e in sapi.World.GetEntitiesAround(mid, r, ry, e => e is EntityItem && e.Alive && !serverHeld.ContainsKey(e.EntityId)))
+                scanMid.Set(ship.Pos.X, ship.Pos.Y + (g.OY + g.MaxY) / 2, ship.Pos.Z);
+                foreach (var e in sapi.World.GetEntitiesAround(scanMid, r, ry, fallingItem))
                 {
                     Take((EntityItem)e, ship, false);
                 }
@@ -119,6 +131,18 @@ namespace Hansa
             if (serverHeld.IsEmpty) return;
             long now = sapi.World.ElapsedMilliseconds;
             foreach (var h in serverHeld.Values.ToArray()) Step(h, dt, now);
+        }
+
+        /// <summary>(review H1-18) Is someone (a player, in her dimension) within this far of her, level?</summary>
+        bool PlayerNear(EntityShip ship, double reach)
+        {
+            foreach (var p in playersAt)
+            {
+                if (p.Dim != ship.Pos.Dimension) continue;
+                double dx = p.X - ship.Pos.X, dz = p.Z - ship.Pos.Z;
+                if (dx * dx + dz * dz <= reach * reach) return true;
+            }
+            return false;
         }
 
         /// <summary>Make it hers if she's under it. Not fresh: not one afloat (she sails over it) or lying on world blocks.</summary>
