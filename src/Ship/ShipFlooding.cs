@@ -603,7 +603,9 @@ namespace Hansa
             var l0 = WorldToLocal(at.X, at.Y, at.Z);
             ShipFrame.ToWorld(newYaw, l0.X, l0.Y, l0.Z, out double bx, out _, out double bz);
             double v1x = (nx + bx - at.X) / dt, v1z = (nz + bz - at.Z) / dt;
-            double v2x = Math.Sin(other.Pos.Yaw) * other.Speed, v2z = Math.Cos(other.Pos.Yaw) * other.Speed;
+            // (review H2-6: her drift sideways too, to starboard of her heading (-cos yaw, sin yaw))
+            double oy = other.Pos.Yaw;
+            double v2x = Math.Sin(oy) * other.Speed - Math.Cos(oy) * other.Leeway, v2z = Math.Cos(oy) * other.Speed + Math.Sin(oy) * other.Leeway;
             double rx = v1x - v2x, rz = v1z - v2z, v = Math.Sqrt(rx * rx + rz * rz);
             double m1 = DamageParts.Displacement + Water, m2 = other.DamageParts.Displacement + other.Water;
             double e = ShipDamage.ImpactEnergy(DamageParts.D, m1 * m2 / (m1 + m2), v) * Mod.Config.GroundingDamage;
