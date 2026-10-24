@@ -207,5 +207,12 @@ namespace Hansa
         {
             if (scarMeshes.TryGetValue(shipId, out var sm)) { sm.Dispose(); scarMeshes.Remove(shipId); }
         }
+
+        /// <summary>(review H1-23) All ships' scar meshes, the renderer going.</summary>
+        void DisposeAllScars()
+        {
+            foreach (var sm in scarMeshes.Values) sm.Dispose();
+            scarMeshes.Clear();
+        }
     }
 }

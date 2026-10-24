@@ -522,7 +522,8 @@ namespace Hansa
             if (CrewOnly(player, ship)) return;
             ship.LocalToWorld(f.Pos[0], f.Pos[1], f.Pos[2], out double wx, out double wy, out double wz);
             if (ep.Pos.SquareDistanceTo(wx, wy, wz) > 8 * 8) return;
-            ship.HearthIgniteFrom(player, p.Seconds);
+            if (p.Start) ship.HearthHeldBy(player);
+            else ship.HearthIgniteFrom(player, p.Seconds);
         }
 
         public void SendOpenStorage(IServerPlayer player, EntityShip ship, int fixture)

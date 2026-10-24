@@ -1478,6 +1478,8 @@ namespace Hansa
 
         public override void OnReceivedClientPacket(IServerPlayer player, int packetid, byte[] data)
         {
+            // (review H1-26: a ship whose design is gone has no fixtures to answer for)
+            if (Def == null) { base.OnReceivedClientPacket(player, packetid, data); return; }
             // storage dialogs: packet id = (fixture index + 1) << 11 | inventory packet
             int fi = (packetid >> 11) - 1;
             int inner = packetid & 2047;

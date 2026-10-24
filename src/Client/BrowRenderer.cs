@@ -93,5 +93,12 @@ namespace Hansa
         {
             if (browMeshes.TryGetValue(shipId, out var bm)) { bm.Mesh?.Dispose(); browMeshes.Remove(shipId); }
         }
+
+        /// <summary>(review H1-23) All ships' brow meshes, the renderer going.</summary>
+        void DisposeAllBrows()
+        {
+            foreach (var bm in browMeshes.Values) bm.Mesh?.Dispose();
+            browMeshes.Clear();
+        }
     }
 }

@@ -123,6 +123,8 @@ namespace Hansa
         /// <summary>The hearth (the fixture's index).</summary>
         [ProtoMember(2)] public int Fixture;
         [ProtoMember(3)] public float Seconds;
+        /// <summary>(review H1-25) Just begun holding it there: the server counts the seconds from here itself.</summary>
+        [ProtoMember(4)] public bool Start;
     }
 
     /// <summary>

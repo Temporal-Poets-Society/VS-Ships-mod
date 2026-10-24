@@ -1321,6 +1321,7 @@ namespace Hansa
                 Ship = ship, Hearth = hearth, Igniter = kind, Started = now, LastStroke = now, Seconds = HearthFire.IgniteSeconds + 0.2f,
                 What = ShipHud.FixtureName(ship, hearth)
             };
+            channel.SendPacket(new HearthPacket { ShipId = ship.EntityId, Fixture = hearth.Index, Start = true });
             if (kind == 2) capi.World.PlaySoundAt(new AssetLocation("sounds/torch-ignite"), ep, null, false, 16);
             else
             {

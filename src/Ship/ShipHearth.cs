@@ -70,6 +70,8 @@ namespace Hansa
         bool loadingHearth;
         // server: when each player last tried to light it (one try in a few seconds, as holding it to the fire takes)
         readonly Dictionary<string, long> hearthTries = new();
+        // (review H1-25) when each player began holding something to it, as the server saw it
+        readonly Dictionary<string, long> hearthHeldSince = new();
 
         void InitHearth()
         {
@@ -385,10 +387,18 @@ namespace Hansa
             return null;
         }
 
+        /// <summary>Server: a player has begun holding a firestarter or a torch to it (HearthPacket.Start).</summary>
+        public void HearthHeldBy(IServerPlayer player) => hearthHeldSince[player.PlayerUID] = World.ElapsedMilliseconds;
+
         /// <summary>Server: a player's try at lighting it (HearthPacket), at most one in 2.5 s each.</summary>
         public void HearthIgniteFrom(IServerPlayer player, float seconds)
         {
             long now = World.ElapsedMilliseconds;
+            // (review H1-25) no longer than the server has seen them hold it there (a little for the lag); counted afresh from
+            // now, as their client does
+            double held = hearthHeldSince.TryGetValue(player.PlayerUID, out long since) ? (now - since) / 1000.0 + 0.3 : 0;
+            hearthHeldSince[player.PlayerUID] = now;
+            seconds = (float)Math.Min(seconds, held);
             if (hearthTries.TryGetValue(player.PlayerUID, out long last) && now - last < 2500) return;
             hearthTries[player.PlayerUID] = now;
             string err = TryIgniteHearth(player.Entity, player.InventoryManager.ActiveHotbarSlot, seconds, World.Rand.NextDouble());

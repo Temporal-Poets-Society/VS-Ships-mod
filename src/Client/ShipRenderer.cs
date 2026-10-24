@@ -2753,6 +2753,8 @@ namespace Hansa
             decor.Clear();
             DisposeAllPaint();
             DisposeAllSlots();
+            DisposeAllScars();
+            DisposeAllBrows();
             foreach (var pl in registeredLights) capi.Render.RemovePointLight(pl);
             registeredLights.Clear();
             lights.Clear();
