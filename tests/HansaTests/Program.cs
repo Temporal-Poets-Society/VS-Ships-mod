@@ -79,7 +79,7 @@ namespace HansaTests
             if (Array.IndexOf(args, "inspect") >= 0) { Inspect(root, args.Length > Array.IndexOf(args, "inspect") + 1 ? args[Array.IndexOf(args, "inspect") + 1] : "caravel"); return 0; }
             if (Array.IndexOf(args, "holdstair") >= 0) { CaravelHoldStair(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "steerage") >= 0) { CaravelSteerage(root); CaravelNote49(root); CaravelNote48(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
-            if (Array.IndexOf(args, "gates") >= 0) { CaravelGates(root); CaravelLadderCatch(root); LanternOwnLight(); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
+            if (Array.IndexOf(args, "gates") >= 0) { CaravelGates(root); CaravelLadderCatch(root); CaravelFigurehead(root); LanternOwnLight(); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "gunclick") >= 0) { GunClicks(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "grid-pieces") >= 0) { GridPieces(root); return 0; }
             if (Array.IndexOf(args, "holes") >= 0) return GridHoles(root, true) == 0 ? 0 : 1;
@@ -365,6 +365,7 @@ namespace HansaTests
             // (0.1.0-dev.9) caravel notes 61 and 66: her gates where their leaves stand, a lantern in its own light
             CaravelGates(root);
             CaravelLadderCatch(root);
+            CaravelFigurehead(root);
             LanternOwnLight();
             CastleGunPorts(root);
             Notes0324(root);

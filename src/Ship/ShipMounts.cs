@@ -2015,6 +2015,15 @@ namespace Hansa
                     X = x, Y = y, Z = z, Hang = down ? "down" : "up", Kinds = h.Kinds ?? new[] { "light" }, Shown = h.Shown, Normal = h.Normal,
                     Box = down ? new[] { x - 0.3, y - 0.75, z - 0.3, x + 0.3, y, z + 0.3 } : new[] { x - 0.3, y, z - 0.3, x + 0.3, y + 0.75, z + 0.3 }
                 });
+                // ((0.1.0-dev.9, caravel note 78) a figurehead's place: the block the figure stands in, in front of her stem (and
+                // wider than it, so it's seen past it from her deck))
+                if (h.Kinds != null && Array.IndexOf(h.Kinds, PiecePlanner.FigureheadKind) >= 0)
+                {
+                    double nx = h.Normal?.Length >= 3 ? h.Normal[0] : 1, nz = h.Normal?.Length >= 3 ? h.Normal[2] : 0;
+                    double fx = Math.Abs(nx) >= Math.Abs(nz) ? (nx >= 0 ? 1 : -1) : 0, fz = fx == 0 ? (nz >= 0 ? 1 : -1) : 0;
+                    double cx = x + fx * 0.5, cz = z + fz * 0.5;
+                    All[^1].Box = new[] { cx - 0.5, y, cz - 0.5, cx + 0.5, y + 1, cz + 0.5 };
+                }
             }
         }
 

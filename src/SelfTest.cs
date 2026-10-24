@@ -790,6 +790,41 @@ namespace Hansa
             }
             else Log("the design has no start pieces (lanterns): not checked");
 
+            // ---- (0.1.0-dev.9, caravel note 78: "we could have option to add vanilla figure heads") a vanilla figurehead on her
+            // stem head's place: only a figurehead goes there, standing in front of her stem facing the bow, in its own wood,
+            // not solid; taken down and put up again; and not on a lantern's hook
+            var fhook = l.Hooks.FirstOrDefault(m => m.Kinds != null && Array.IndexOf(m.Kinds, PiecePlanner.FigureheadKind) >= 0);
+            if (fhook != null && B("figurehead-bear") is Block bearBlock)
+            {
+                var bear = new ItemStack(bearBlock);
+                bear.Attributes.SetString("material", "oak");
+                var lit = new ItemStack(B("lantern-small-up"));
+                var chiseled = B("chiseledblock") is Block cb ? new ItemStack(cb) : null;
+                Check(PlanOn(fhook, lit).Error == "hansa:piece-hook-figurehead" && (chiseled == null || PlanOn(fhook, chiseled).Error == null),
+                    $"{fhook.Id} takes a figurehead or a chiseled block{(chiseled == null ? " (no chiseled block to try)" : "")}, not a lantern");
+                var lhook = l.Hooks.FirstOrDefault(m => m.Kinds != null && m.Kinds.Length == 1 && m.Kinds[0] == "light");
+                Check(lhook == null || PlanOn(lhook, bear).Error == "hansa:piece-hook-light", $"a lantern's hook ({lhook?.Id}) doesn't take a figurehead");
+                double nx = fhook.Normal?.Length >= 3 ? fhook.Normal[0] : 1;
+                bool put = ship.PlacePiece(PlanOn(fhook, bear), bear, true, out var fig) == null && fig != null;
+                Check(put && fig.Role == PieceRole.Deco && fig.Hang == PiecePlanner.FigureheadHang && fig.Solids.Count == 0 && fig.Parts[0].Quarter == (nx >= 0 ? 1 : 3) &&
+                      (nx >= 0 ? fig.Box[0] >= fhook.X - 0.01 : fig.Box[3] <= fhook.X + 0.01) && Math.Abs(fig.Box[1] - fhook.Y) < 0.01 &&
+                      fig.Stack?.Attributes.GetString("material") == "oak",
+                    $"a bear figurehead (oak) on {fhook.Id}: in front of her stem facing the bow, not solid ({(fig == null ? "not put" : $"box {fig.Box[0]:0.00}..{fig.Box[3]:0.00}, quarter {fig.Parts[0].Quarter}, {fig.Stack?.Attributes.GetString("material")}")})");
+                if (put)
+                {
+                    ship.LocalToWorld(fhook.X + nx * 3, fhook.Y + 0.5, fhook.Z, out double fx, out double fy, out double fz);
+                    ship.LocalToWorld(fhook.X + nx * 0.5, fhook.Y + 0.5, fhook.Z, out double gx, out double gy, out double gz);
+                    bool seen = ship.RayHit(new Vec3d(fx, fy, fz), new Vec3d(gx - fx, gy - fy, gz - fz), 4, null, out var fhit) && fhit.Part.Kind == ShipPartKind.Piece && fhit.Part.Index == fig.Id;
+                    Check(seen, $"looked at from ahead of her, it's the figurehead ({(seen ? ship.PartText(fhit.Part) : "not it")})");
+                    var again = bear.Clone();
+                    Check(ship.RemovePiece(fig, null) == null && !ship.Pieces.Taken(fhook.Id) &&
+                          ship.PlacePiece(PlanOn(fhook, again), again, true, out var fig2) == null && fig2.Hang == PiecePlanner.FigureheadHang,
+                        "taken down and put up again");
+                    if (ship.Pieces.At(fhook.Id) is ShipPiece left) ship.RemovePiece(left, null);
+                }
+            }
+            else Log("the design has no figurehead place (or no vanilla figurehead): not checked");
+
             // ---- a chest on the lower deck: a storage; things put in and taken out; not taken up full; taken up empty
             var chest = new ItemStack(B("chest-east"));
             if (!l.Floors.Any(m => m.Room == "lowerdeck"))

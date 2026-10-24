@@ -219,6 +219,26 @@ namespace HansaTests
             }
         }
 
+        /// <summary>
+        /// (0.1.0-dev.9, caravel note 78: "we could have option to add vanilla figure heads") Her figurehead's place at her
+        /// stem head: a shown hook that takes figureheads, facing the bow, at her stem's fore face (her collision behind it,
+        /// the figure's block in front of it free of her, and wider than her stem, so it's seen past it from her deck).
+        /// </summary>
+        static void CaravelFigurehead(string root)
+        {
+            Console.WriteLine("the caravel's figurehead place (note 78)");
+            var (def, _) = LoadHullDesign(root, "caravel");
+            var l = MountLayout.Build(def);
+            var m = l.Hooks.FirstOrDefault(h => h.Kinds != null && Array.IndexOf(h.Kinds, PiecePlanner.FigureheadKind) >= 0);
+            Check(m != null && m.Shown && m.Hang == "up" && m.Normal?[0] > 0.9, $"a shown figurehead place facing the bow ({m?.Id ?? "none"})");
+            if (m == null) return;
+            var b = m.Box;
+            bool behind = def.Grid.SolidAt(m.X - 0.15, m.Y + 0.5, m.Z);
+            bool free = !def.Grid.Collides(b[0] + 0.03, b[1] + 0.03, b[2] + 0.03, b[3] - 0.03, b[4] - 0.03, b[5] - 0.03);
+            Check(behind && b[0] >= m.X - 0.01 && b[3] - b[0] > 0.99 && b[5] - b[2] > 0.99,
+                $"{m.Id}: against her stem's fore face at x {m.X:0.00}, its block in front ({Box(new Cuboidd(b[0], b[1], b[2], b[3], b[4], b[5]))}){(free ? "" : ", partly in her collision's cells there")}");
+        }
+
         static string Box(Cuboidd b) => b == null ? "none" : $"{b.X1:0.##} {b.Y1:0.##} {b.Z1:0.##} .. {b.X2:0.##} {b.Y2:0.##} {b.Z2:0.##}";
 
         /// <summary>

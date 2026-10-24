@@ -27897,6 +27897,24 @@
     "light"
    ],
    "shown": true
+  },
+  {
+   "code": "figurehead",
+   "pos": [
+    10.28,
+    2.9,
+    0.0
+   ],
+   "hang": "up",
+   "normal": [
+    1.0,
+    0.0,
+    0.0
+   ],
+   "kinds": [
+    "figurehead"
+   ],
+   "shown": true
   }
  ],
  "startPieces": [

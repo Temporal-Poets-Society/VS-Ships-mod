@@ -66,7 +66,8 @@ namespace Hansa
                 // they were black panes hiding the lit candle)
                 MeshData see = null;
                 if (!glass) md = SeeThroughFaces.Split(md, out see);
-                if (pc.Kind != MountKind.Hook)
+                // ((0.1.0-dev.9, note 78) a figurehead stands in its block on its place, turned as planned)
+                if (pc.Kind != MountKind.Hook || pc.Hang == PiecePlanner.FigureheadHang)
                 {
                     if (part.Quarter != 0)
                     {
@@ -94,7 +95,7 @@ namespace Hansa
             var c = pc.Center;
             p.Interior = ship.Def.RoomAt(c[0], c[1], c[2])?.Enclosed == true;
             Mat4f.Identity(p.Fit);
-            if (pc.Kind == MountKind.Hook && pc.Parts.Count > 0)
+            if (pc.Kind == MountKind.Hook && pc.Parts.Count > 0 && pc.Hang != PiecePlanner.FigureheadHang)
             {
                 // hung from the hook (or stood on it): the mesh's middle under it, its top (bottom) at it
                 Bounds(all, out var min, out var max);
@@ -168,6 +169,12 @@ namespace Hansa
             {
                 // a tapestry (or wall carving): its picture by its type, as its block entity draws it placed
                 try { md = tapestry.genMesh(false, stack.Attributes.GetString("type", ""), 0)?.Clone(); }
+                catch (Exception) { md = null; }
+            }
+            else if (block is BlockMaterialFromAttributes bma)
+            {
+                // ((0.1.0-dev.9, note 78) a vanilla figurehead: carved in the wood its stack names, as vanilla draws it)
+                try { md = bma.GetOrCreateMesh(stack?.Attributes.GetString("material", "oak") ?? "oak")?.Clone(); }
                 catch (Exception) { md = null; }
             }
             else if (block is BlockCrate crate)

@@ -99,6 +99,22 @@ namespace Hansa
         {
             if (p?.Kind != MountKind.Hook || p.Stack?.Block == null || Mounts == null || p.Box == null) return false;
             var at = Mounts.Get(p.Mount);
+            // ((0.1.0-dev.9, caravel note 78) a figurehead whose place moved with her bow (her model changes it): set on it again,
+            // where it is now; its place gone, it stays where it was)
+            if (p.Hang == PiecePlanner.FigureheadHang)
+            {
+                if (at == null || p.Parts.Count == 0) return false;
+                var again = PiecePlanner.Plan(Mounts, at, new VanillaPieceBlock(World, p.Stack, false), p.Dir);
+                if (again.Error != null || again.Parts.Count == 0) return false;
+                var o0 = p.Parts[0].Origin;
+                var o1 = again.Parts[0].Origin;
+                if (Math.Abs(o0[0] - o1[0]) + Math.Abs(o0[1] - o1[1]) + Math.Abs(o0[2] - o1[2]) < 1e-3 && p.Parts[0].Quarter == again.Parts[0].Quarter) return false;
+                var fp = ShipPiece.From(again, p.Id, p.Stack);
+                fp.Paint = p.Paint;
+                Pieces.Remove(p.Id);
+                Pieces.Add(fp);
+                return true;
+            }
             bool moved = at != null && MountLayout.IsMastHook(at.Id) && Math.Abs(at.Y - p.Box[4]) > 0.1 && p.Hang != "up";
             if (at != null && !moved) return false;
             double hx = (p.Box[0] + p.Box[3]) / 2, hy = p.Hang == "up" ? p.Box[1] : p.Box[4], hz = (p.Box[2] + p.Box[5]) / 2;
