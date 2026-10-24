@@ -1997,7 +1997,8 @@ namespace Hansa
                 {
                     Waiting = false;
                     // (review H3-9: as running aground, with the next sync)
-                    if (Aground) { Aground = false; SaveState(false); }
+                    // (review H4-7: not while she's on the bottom, where she's aground all the same)
+                    if (Aground && !OnBottom) { Aground = false; SaveState(false); }
                     Pos.X = nx;
                     Pos.Z = nz;
                     Pos.Yaw = GameMath.Mod((float)newYaw, GameMath.TWOPI);
@@ -2035,7 +2036,7 @@ namespace Hansa
             // her firehearth's fire: vanilla's firepit burn tick (ShipHearth); her oven's (ShipOven)
             HearthTick(dt);
             OvenTick(dt);
-            if (OnBottom && !Aground) { Aground = true; SaveState(true); }
+            if (OnBottom && !Aground) { Aground = true; SaveState(false); }
             if (!GoneDown)
             {
                 Pos.Y = BaseY - Sinkage + Heave;

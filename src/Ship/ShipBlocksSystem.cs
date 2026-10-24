@@ -223,7 +223,9 @@ namespace Hansa
                 sapi.Logger.Warning("[hansa] {0} #{1} has working blocks but no saved schematic: placing them anew", ship.GetName(), ship.EntityId);
                 foreach (var s in rec.Supports) SetSupport(sd, s[0], s[1], s[2]);
                 foreach (var c in rec.Cells.OrderBy(c => c.J)) SetCellBlock(sd, c, null);
-                return true;
+                // (review H4-5) placed anew all the same; but a schematic with no usable place to put it was never read: what
+                // was in them isn't known
+                return json == null;
             }
             string err = null;
             var sch = BlockSchematic.LoadFromString(json, ref err);
