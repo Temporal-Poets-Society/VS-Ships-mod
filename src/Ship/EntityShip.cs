@@ -806,13 +806,13 @@ namespace Hansa
             var me = WorldToLocal(ep.Pos.X, ep.Pos.Y, ep.Pos.Z);
             double hx = x - me.X, hz = z - me.Z, reach = 3 + Math.Abs(Speed) * 0.5;
             if (hx * hx + hz * hz > reach * reach || y - me.Y > 2.0 || me.Y - y > 1.5) return false;
-            // nothing of hers between: from the spot (waist high) back toward them; what they stand in may be met close to them
-            var from = new Vec3d(x, y + 1, z);
+            // nothing of hers between: from the spot back toward them, waist or head high (over her rail, which the server may
+            // still have them on the far side of; her hull's side stops both); what they stand in may be met close to them
             var d = new Vec3d(me.X - x, me.Y - y, me.Z - z);
             double len = d.Length();
             if (len < 1e-6) return true;
             d.Mul(1 / len);
-            return g.Raycast(from, d, len) >= len - 1.0;
+            return g.Raycast(new Vec3d(x, y + 1, z), d, len) >= len - 1.0 || g.Raycast(new Vec3d(x, y + 1.6, z), d, len) >= len - 1.0;
         }
 
         public void StandUp(EntityAgent agent, FixtureDef near)
