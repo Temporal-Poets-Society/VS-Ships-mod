@@ -1897,6 +1897,19 @@ namespace Hansa
                 UpdateScars(ship, m);
                 // ((0.3.27, note 219) her brows run out to a quay)
                 UpdateBrows(ship);
+                // her moving parts as they stand now (the shadow passes draw them with these too)
+                decor.TryGetValue(ship.EntityId, out var d);
+                if (d != null) UpdateOpenings(ship, d, dt);
+                ComputeParts(ship, d);
+
+                // (review H1-16) not drawn while she's out of view (the one they're aboard always is), as in the shadow
+                // passes; a few blocks more for what reaches out of her bounds (her brows, the sails filling)
+                if (!(ep.MountedOn is ShipSeat on && on.Ship == ship) && rapi.DefaultFrustumCuller is FrustumCulling culler)
+                {
+                    ShipShadows.Sphere(ship.Def, out double sx, out double sy, out double sz, out double radius);
+                    ShipFrame.ToWorld(ship.Pos.Yaw, ship.Pitch, ship.Roll, sx, sy, sz, out double wx, out double wy, out double wz);
+                    if (!culler.SphereInFrustum(o.X + wx, o.Y + wy, o.Z + wz, radius + 4)) continue;
+                }
 
                 int lx = (int)Math.Floor(ship.Pos.X), ly = (int)Math.Floor(ship.Pos.Y + ship.Def.DeckY + 1.5), lz = (int)Math.Floor(ship.Pos.Z);
                 var prog = rapi.PreparedStandardShader(lx, ly, lz);
@@ -1936,9 +1949,6 @@ namespace Hansa
 
                 // moving parts: the wheel, rudder and tiller with the helm, the gates and hatches as they open, the anchor
                 // going down, and the ropes that follow them
-                decor.TryGetValue(ship.EntityId, out var d);
-                if (d != null) UpdateOpenings(ship, d, dt);
-                ComputeParts(ship, d);
                 foreach (var part in ship.Def.MovingParts)
                 {
                     var mesh = SkinGroup(m, "part:" + part.Code);

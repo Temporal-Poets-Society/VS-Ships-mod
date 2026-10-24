@@ -1574,35 +1574,78 @@ namespace Hansa
 
         public void SaveState(bool force)
         {
+            // (review H1-14) written when it's sent: forced, or a fifth of a second on when anything the clients see has
+            // changed (what changes smoothly, by more than a little), else every few seconds
+            if (!force && syncAccum < 0.2f) return;
+            syncAccum = 0;
             var t = WatchedAttributes.GetOrAddTreeAttribute("hansa");
-            t.SetInt("sailSet", SailSet);
-            t.SetBool("crawl", Crawl);
-            t.SetInt("crawlDrive", CrawlDrive);
-            t.SetFloat("sail", SailFraction);
-            t.SetFloat("leeway", Leeway);
-            if (WhySlow != null) t.SetString("whySlow", WhySlow); else t.RemoveAttribute("whySlow");
-            t.SetFloat("rudder", Rudder);
-            t.SetFloat("speed", Speed);
-            t.SetFloat("yawRate", YawRate);
-            t.SetBool("anchored", Anchored);
-            t.SetBool("aground", Aground);
-            t.SetInt("rowing", Rowing);
-            t.SetBool("waiting", Waiting);
-            t.SetBool("byWind", SailByWind);
-            t.SetFloat("maxSpeed", MaxSpeedNow);
-            t.SetFloat("pointCloser", PointCloser);
-            t.SetString("stoves", string.Join(",", LitStoves));
-            t.SetBool("guns", CannonsOn);
-            t.SetBool("hearth", HearthOn);
-            t.SetBool("oven", OvenOn);
-            if (!double.IsNaN(targetY)) t.SetDouble("targetY", targetY);
-            if (!double.IsNaN(BaseY)) t.SetDouble("baseY", BaseY);
-            SaveFloodState(t);
-            if (force || syncAccum >= 0.2f)
+            long now = World.ElapsedMilliseconds;
+            if (!force && now - stateSentMs < StateHeartbeatMs && now >= stateSentMs && !WriteState(t, false)) return;
+            WriteState(t, true);
+            stateSentMs = now;
+            WatchedAttributes.MarkPathDirty("hansa");
+        }
+
+        const long StateHeartbeatMs = 3000;
+        long stateSentMs;
+        readonly StateWriter stateWriter = new();
+
+        /// <summary>Her sailing state into her "hansa" tree (write), or only whether it differs from what's in it (review H1-14).</summary>
+        bool WriteState(ITreeAttribute t, bool write)
+        {
+            var w = stateWriter;
+            w.Reset(t, write);
+            w.Int("sailSet", SailSet);
+            w.Bool("crawl", Crawl);
+            w.Int("crawlDrive", CrawlDrive);
+            w.Float("sail", SailFraction, 0.01f);
+            w.Float("leeway", Leeway, 0.01f);
+            w.Str("whySlow", WhySlow);
+            w.Float("rudder", Rudder, 0.01f);
+            w.Float("speed", Speed, 0.01f);
+            w.Float("yawRate", YawRate, 0.0005f);
+            w.Bool("anchored", Anchored);
+            w.Bool("aground", Aground);
+            w.Int("rowing", Rowing);
+            w.Bool("waiting", Waiting);
+            w.Bool("byWind", SailByWind);
+            w.Float("maxSpeed", MaxSpeedNow, 0.01f);
+            w.Float("pointCloser", PointCloser);
+            w.Str("stoves", string.Join(",", LitStoves));
+            w.Bool("guns", CannonsOn);
+            w.Bool("hearth", HearthOn);
+            w.Bool("oven", OvenOn);
+            w.Saved("targetY", targetY);
+            w.Saved("baseY", BaseY);
+            SaveFloodState(w);
+            return w.Changed;
+        }
+
+        /// <summary>
+        /// (review H1-14) Writes her state into a tree, or (not writing) only finds whether it differs from what's there: what
+        /// changes smoothly by more than its "near".
+        /// </summary>
+        sealed class StateWriter
+        {
+            ITreeAttribute t;
+            bool write;
+            public bool Changed;
+
+            public void Reset(ITreeAttribute tree, bool w) { t = tree; write = w; Changed = false; }
+
+            public void Int(string k, int v) { if (write) t.SetInt(k, v); else if (!Changed && (!t.HasAttribute(k) || t.GetInt(k) != v)) Changed = true; }
+            public void Bool(string k, bool v) { if (write) t.SetBool(k, v); else if (!Changed && (!t.HasAttribute(k) || t.GetBool(k) != v)) Changed = true; }
+            public void Float(string k, float v, float near = 0) { if (write) t.SetFloat(k, v); else if (!Changed && (!t.HasAttribute(k) || Math.Abs(t.GetFloat(k) - v) > near)) Changed = true; }
+            public void Double(string k, double v, double near = 0) { if (write) t.SetDouble(k, v); else if (!Changed && (!t.HasAttribute(k) || Math.Abs(t.GetDouble(k) - v) > near)) Changed = true; }
+
+            public void Str(string k, string v)
             {
-                WatchedAttributes.MarkPathDirty("hansa");
-                syncAccum = 0;
+                if (write) { if (v != null) t.SetString(k, v); else t.RemoveAttribute(k); }
+                else if (!Changed && t.GetString(k) != v) Changed = true;
             }
+
+            /// <summary>Kept for her save, not for the clients: written (when it's a number), never compared.</summary>
+            public void Saved(string k, double v) { if (write && !double.IsNaN(v)) t.SetDouble(k, v); }
         }
 
         /// <summary>
