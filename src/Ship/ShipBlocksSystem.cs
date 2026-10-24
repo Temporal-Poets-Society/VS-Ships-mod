@@ -661,6 +661,24 @@ namespace Hansa
         {
             var sd = DimOf(ship);
             var c = ship.BlockRecord.ByPiece(p.Id);
+            // (review H2-5) the switch turned off since she got it: its block is still in her saved schematic, made again to
+            // look in it (as for her loot), and let go of again; refused while something's in it, as with the switch on
+            if (sd == null && c != null && sapi != null)
+            {
+                bool full = false;
+                try
+                {
+                    Restore(ship);
+                    var borrowed = DimOf(ship);
+                    if (borrowed != null)
+                    {
+                        full = Contents(sapi.World.BlockAccessor.GetBlockEntity(CellPos(borrowed, c.I, c.J, c.K))).Any();
+                        Release(borrowed);
+                    }
+                }
+                catch (Exception e) { sapi.Logger.Warning("[hansa] Working block of #{0} looked into: {1}", ship.EntityId, e.Message); }
+                return full ? "hansa:piece-not-empty" : null;
+            }
             if (sd != null && c != null)
             {
                 var be = sapi.World.BlockAccessor.GetBlockEntity(CellPos(sd, c.I, c.J, c.K));
