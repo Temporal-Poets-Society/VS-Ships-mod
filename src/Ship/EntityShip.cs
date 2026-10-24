@@ -104,8 +104,15 @@ namespace Hansa
         /// <summary>How her name is painted on the board: colours, size, italic (the user's note 68).</summary>
         public NameStyle NameStyle = new();
         public const int MaxNameLength = 24;
-        /// <summary>Bumped whenever fittings change, so the renderer rebuilds what it draws.</summary>
+        /// <summary>Bumped whenever her collision is rebuilt (fittings, pieces, doors opened or shut).</summary>
         public int FitVersion;
+        /// <summary>
+        /// (review H1-17) Bumped when what the renderer builds for her fittings and pieces may have changed: not for a door, gate
+        /// or hatch only opened or shut (the renderer swings those as they are).
+        /// </summary>
+        public int DecorVersion;
+        // (client: her fittings' and pieces' trees as last loaded, to tell a door opened from anything else)
+        ITreeAttribute lastFitTree, lastPiecesTree;
         /// <summary>
         /// The players whose spawn is bound to her (at the plate by the helm), by uid; synced in WatchedAttributes
         /// "hansaSpawn". The bindings themselves are the server's (<see cref="ShipSpawns"/>).
@@ -1346,8 +1353,9 @@ namespace Hansa
             RebuildGrid();
         }
 
-        void RebuildGrid()
+        void RebuildGrid(bool openingsOnly = false)
         {
+            if (!openingsOnly) DecorVersion++;
             if (Def == null || Grid == null) return;
             ShipFittings.ApplySolids(Def, Grid, f => OpenFittings.Contains(f.Code), f => Attached.TryGetValue(f.Code, out var st) ? st : null, GunAbsent);
             // (0.3.20, step B) her deck cells as they are: one taken up is an opening
@@ -1431,9 +1439,36 @@ namespace Hansa
                 }
             }
             SyncChestStorages();
-            RebuildGrid();
+            RebuildGrid(OnlyOpeningsChanged(t, ref lastFitTree));
             // (clients: a lidded gun's port opened or shut runs it out or in from now)
             NotePorts();
+        }
+
+        /// <summary>
+        /// (review H1-17, clients) Is this tree as it was last time (kept in last) but for what's open? Then only a door, gate
+        /// or hatch was opened or shut.
+        /// </summary>
+        bool OnlyOpeningsChanged(ITreeAttribute t, ref ITreeAttribute last)
+        {
+            if (Api?.Side != EnumAppSide.Client) return false;
+            bool same = last != null && t != null && SameButOpen(t, last);
+            last = t?.Clone() as ITreeAttribute;
+            return same;
+        }
+
+        bool SameButOpen(ITreeAttribute a, ITreeAttribute b)
+        {
+            foreach (var kv in a)
+                if (kv.Key != "open" && !b.HasAttribute(kv.Key)) return false;
+            foreach (var kv in b)
+            {
+                if (kv.Key == "open") continue;
+                var av = a[kv.Key];
+                if (av == null) return false;
+                if (av is ITreeAttribute at && kv.Value is ITreeAttribute bt) { if (!SameButOpen(at, bt)) return false; }
+                else if (!av.Equals(World, kv.Value)) return false;
+            }
+            return true;
         }
 
         void Notify(IServerPlayer player, string langCode)

@@ -850,7 +850,7 @@ namespace Hansa
         {
             if (!decor.TryGetValue(ship.EntityId, out var d)) decor[ship.EntityId] = d = new Decor();
             bool skin = meshes.TryGetValue(ship.Def.Code, out var skinMeshes) && skinMeshes.File != null;
-            if (d.Version == ship.FitVersion && d.Surfaces == (ship.Def.Surfaces != null) && d.Skin == skin)
+            if (d.Version == ship.DecorVersion && d.Surfaces == (ship.Def.Surfaces != null) && d.Skin == skin)
             {
                 RefreshHearth(ship, d);
                 RefreshOven(ship, d);
@@ -858,7 +858,7 @@ namespace Hansa
             }
             // doors keep their swing across a rebuild (d.Open stays)
             d.Dispose();
-            d.Version = ship.FitVersion;
+            d.Version = ship.DecorVersion;
             d.Surfaces = ship.Def.Surfaces != null;
             d.Skin = skin;
             // (0.3.18, note 165) and a hearth's or an oven's put aboard (their stand-in fixtures: the firepit, the oven)

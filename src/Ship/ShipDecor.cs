@@ -87,7 +87,7 @@ namespace Hansa
                 SavePieces();
             }
             SyncPieceRuntime();
-            RebuildGrid();
+            RebuildGrid(OnlyOpeningsChanged(WatchedAttributes.GetTreeAttribute("hansaPieces"), ref lastPiecesTree));
         }
 
         /// <summary>
