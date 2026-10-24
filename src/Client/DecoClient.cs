@@ -290,9 +290,11 @@ namespace Hansa
                     // ((0.3.20) not a deck cell's quads that aren't drawn: a cell taken up, the edges round one that's in)
                     var sts = ship.Slots;
                     var hps = ship.HullPanels;
-                    int z = plan.Pick(o, d, Math.Min(range, Math.Min(wall, tp) + 0.4), out double tz,
+                    // ((0.1.0-dev.8, note 77) through her collision's solid layer to the surfaces drawn in it)
+                    int z = plan.Pick(o, d, PaintPlan.Reach(ship.Grid, o, d, range, wall, tp), out double tz,
                         sts == null ? null : (ow, fa) => (ow < 0 || sts.Filled(ow)) && (fa < 0 || !sts.Filled(fa)),
-                        hps == null ? null : (ow, fa) => (ow < 0 || hps.Filled(ow)) && (fa < 0 || !hps.Filled(fa)));
+                        hps == null ? null : (ow, fa) => (ow < 0 || hps.Filled(ow)) && (fa < 0 || !hps.Filled(fa)),
+                        g => PartShut(ship, g));
                     if (z >= 0 && tz < best.Dist - 0.02)
                         best = new Target { Kind = TargetKind.Zone, Ship = ship, Zone = z, Dist = tz, At = o.AddCopy(d.X * tz, d.Y * tz, d.Z * tz) };
                 }
@@ -329,6 +331,22 @@ namespace Hansa
 
         /// <summary>A piece the crosshair is on has a free place on top of it for the block in hand (Shift puts it there).</summary>
         bool stackOver;
+
+        /// <summary>
+        /// (0.1.0-dev.8, note 68) A moving part's quads (its mesh group) are painted where her mesh has them: a gate or a gun
+        /// port's lid only while it's shut (and drawn: a port planked over has no lid); any other part as before.
+        /// </summary>
+        static bool PartShut(EntityShip ship, string group)
+        {
+            var part = ship.Def.MovingParts?.FirstOrDefault(p => p.PartGroup == group);
+            if (part == null) return true;
+            if (part.Code != null && ship.Def.GunOfLid != null && ship.Def.GunOfLid.TryGetValue(part.Code, out string lidGun) && ship.PortCovered(lidGun)) return false;
+            string src = part.Source;
+            if (src == null || !src.StartsWith("open:")) return true;
+            string code = src.Substring(5);
+            var f = ship.Def.Fixture(code);
+            return f?.Lid != null ? ship.GunLidGoal(f) <= 0 : !ship.OpenFittings.Contains(code);
+        }
 
         /// <summary>A piece a right-click uses (opens, sleeps in, sits on).</summary>
         static bool Usable(ShipPiece p) => p.Role is PieceRole.Storage or PieceRole.Bed or PieceRole.Seat or PieceRole.Door or PieceRole.Hatch;

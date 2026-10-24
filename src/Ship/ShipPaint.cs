@@ -113,6 +113,29 @@ namespace Hansa
             bool caulk = texture.Contains("~hansa:block/caulk");
             return grain + "++3~hansa:block/dye/" + paint + (caulk ? "++0~hansa:block/caulk" : "");
         }
+
+        /// <summary>
+        /// (0.1.0-dev.8, note 71: "when painting partitions then they change texture direction") A vanilla block's texture as
+        /// the atlas has it baked ("game:block/wood/planks/pine2@90": vanilla's planks laid up-down or north-south turn their
+        /// grain a quarter) in a paint (any wood's planks: oak's plank grain, the same plank) and with an overlay over it
+        /// ("dmg-cracked"; null: none), its quarter turn and alpha kept: the atlas turns the paint's grain the same way.
+        /// No paint and no overlay: the name as it is.
+        /// </summary>
+        public static string PaintedBaked(string baked, string paint, string overlay = null)
+        {
+            if (baked == null || paint == null && overlay == null) return baked;
+            // (the turn, "@90", and the alpha, "å200", come last in a baked name: CompositeTexture.Bake)
+            int cut = baked.IndexOfAny(new[] { '@', Vintagestory.API.Client.CompositeTexture.AlphaSeparator });
+            string name = cut >= 0 ? baked.Substring(0, cut) : baked, tail = cut >= 0 ? baked.Substring(cut) : "";
+            if (paint != null)
+            {
+                var mm = System.Text.RegularExpressions.Regex.Match(name, @"planks/[a-z]+(\d)");
+                if (mm.Success) name = name.Substring(0, mm.Index) + "planks/oak" + mm.Groups[1].Value;
+                name = Painted(name, paint);
+            }
+            if (overlay != null) name += "++0~hansa:block/" + overlay;
+            return name + tail;
+        }
     }
 
     /// <summary>
@@ -143,6 +166,8 @@ namespace Hansa
             public int Owner, Facing;
             /// <summary>(0.3.26) Owner and facing are hull panels (a "slot:hull*" group's quad), not deck cells.</summary>
             public bool Hull;
+            /// <summary>(0.1.0-dev.8, note 68) A moving part's quad (a gate's, a gun port lid's): its group, else null.</summary>
+            public string Part;
             public double[] P;      // four corners, x y z each
             public double NX, NY, NZ;
         }
@@ -182,6 +207,7 @@ namespace Hansa
                     var r = kv.Value;
                     plan.refs = SlotRefs(file, kv.Key);
                     plan.hullRefs = kv.Key.StartsWith("slot:hull");
+                    plan.part = PartOf(kv.Key);
                     for (int i = 0; i + 2 < r.Length; i += 3)
                     {
                         int zone = r[i + 2];
@@ -204,11 +230,13 @@ namespace Hansa
                     plan.QuadZones.TryGetValue(kv.Key, out var zs);
                     plan.refs = SlotRefs(file, kv.Key);
                     plan.hullRefs = kv.Key.StartsWith("slot:hull");
+                    plan.part = PartOf(kv.Key);
                     for (int q = 0; q < kv.Value.Length; q++)
                         if (zs == null || q >= zs.Length || zs[q] < 0) { plan.slotQuad = q; plan.AddQuad(-1, kv.Value[q]); }
                     plan.refs = null;
                 }
             plan.refs = null;
+            plan.part = null;
             if (file.PaintFaces != null && shapes != null)
             {
                 foreach (var kv in file.PaintFaces)
@@ -255,6 +283,10 @@ namespace Hansa
         int[] refs;
         int slotQuad;
         bool hullRefs;
+        // (0.1.0-dev.8) while a moving part's group's quads are added: the group
+        string part;
+
+        static string PartOf(string group) => group != null && group.StartsWith("part:") ? group : null;
 
         static int[] SlotRefs(ShipSkinFile file, string group) =>
             group != null && group.StartsWith("slot:") && file.SlotQuads != null && file.SlotQuads.TryGetValue(group, out var r) ? r : null;
@@ -275,7 +307,7 @@ namespace Hansa
                 QuadCount[zone]++;
             }
             int owner = refs != null && 2 * slotQuad + 1 < refs.Length ? refs[2 * slotQuad] : -1, facing = refs != null && 2 * slotQuad + 1 < refs.Length ? refs[2 * slotQuad + 1] : -1;
-            AddPatch(zone, p, nx, ny, nz, owner, facing, hullRefs);
+            AddPatch(zone, p, nx, ny, nz, owner, facing, hullRefs, part);
         }
 
         void AddFace(int zone, double[] b, int face)
@@ -311,12 +343,12 @@ namespace Hansa
 
         static long Key(int i, int j, int k) => ((long)(i + 1024) << 42) | ((long)(j + 1024) << 21) | (long)(k + 1024);
 
-        void AddPatch(int zone, double[] p, double nx, double ny, double nz, int owner = -1, int facing = -1, bool hull = false)
+        void AddPatch(int zone, double[] p, double nx, double ny, double nz, int owner = -1, int facing = -1, bool hull = false, string part = null)
         {
             double l = Math.Sqrt(nx * nx + ny * ny + nz * nz);
             if (l > 1e-9) { nx /= l; ny /= l; nz /= l; }
             int id = patches.Count;
-            patches.Add(new Patch { Zone = zone, P = p, NX = nx, NY = ny, NZ = nz, Owner = owner, Facing = facing, Hull = hull });
+            patches.Add(new Patch { Zone = zone, P = p, NX = nx, NY = ny, NZ = nz, Owner = owner, Facing = facing, Hull = hull, Part = part });
             double x0 = Math.Min(Math.Min(p[0], p[3]), Math.Min(p[6], p[9])), x1 = Math.Max(Math.Max(p[0], p[3]), Math.Max(p[6], p[9]));
             double y0 = Math.Min(Math.Min(p[1], p[4]), Math.Min(p[7], p[10])), y1 = Math.Max(Math.Max(p[1], p[4]), Math.Max(p[7], p[10]));
             double z0 = Math.Min(Math.Min(p[2], p[5]), Math.Min(p[8], p[11])), z1 = Math.Max(Math.Max(p[2], p[5]), Math.Max(p[8], p[11]));
@@ -331,12 +363,14 @@ namespace Hansa
         }
 
         /// <summary>
-        /// The zone a ray (ship-local, d normalised) meets first within maxT (her collision's distance and a little: a
-        /// surface is drawn up to a quarter block from its collision), on a face turned toward the ray (by its normal); -1 if
+        /// The zone a ray (ship-local, d normalised) meets first within maxT (through her collision's first solid layer:
+        /// <see cref="Reach"/>), on a face turned toward the ray (by its normal); -1 if
         /// none, or if what it meets first is a surface of hers in no zone.
         /// </summary>
         /// <param name="shown">(0.3.20) for a deck cell's quad (its owner and facing slot): is it drawn on this ship now; null: all are</param>
-        public int Pick(Vec3d o, Vec3d d, double maxT, out double dist, Func<int, int, bool> shown = null, Func<int, int, bool> hullShown = null)
+        /// <param name="partShut">(0.1.0-dev.8) for a moving part's quad (its group): is the part drawn where her mesh has it (a
+        /// gate or a gun port's lid shut); null: all are</param>
+        public int Pick(Vec3d o, Vec3d d, double maxT, out double dist, Func<int, int, bool> shown = null, Func<int, int, bool> hullShown = null, Func<string, bool> partShut = null)
         {
             dist = double.MaxValue;
             int best = -1;
@@ -361,6 +395,8 @@ namespace Hansa
                         // ((0.3.26) a hull panel's quad by the hull panels' states)
                         var sh = pa.Hull ? hullShown : shown;
                         if (sh != null && (pa.Owner >= 0 || pa.Facing >= 0) && !sh(pa.Owner, pa.Facing)) continue;
+                        // ((0.1.0-dev.8) a gate or a lid swung open isn't where her mesh has it)
+                        if (partShut != null && pa.Part != null && !partShut(pa.Part)) continue;
                         // only a face turned toward the ray (the deck's underside isn't painted from over the deck: the
                         // ray meets the deck's top, and its underside lies within the allowance behind it)
                         if (pa.NX * d.X + pa.NY * d.Y + pa.NZ * d.Z > 0) continue;
@@ -375,6 +411,22 @@ namespace Hansa
                 else { tCell = tz; tz += dz; k += sk; }
             }
             return best;
+        }
+
+        /// <summary>
+        /// How far along the crosshair's ray (ship-local, d normalised) her zones are looked for: past the solid layer of her
+        /// collision it meets first (wall), as far as the ray comes out of it, at most 1.5 blocks; else a little past a
+        /// piece in front of her (front). (0.1.0-dev.8, note 77: "trying to paint the hull but it does not register") Her
+        /// collision covers whole quarter-block voxels where her surfaces are drawn anywhere in or behind them: the caravel's
+        /// bulwarks are solid from half a block in front of their inside planking, and a fixed 0.4 past the collision fell
+        /// short of it.
+        /// </summary>
+        public static double Reach(VoxelGrid grid, Vec3d o, Vec3d d, double range, double wall, double front = double.MaxValue)
+        {
+            double reach = Math.Min(wall, front) + 0.4;
+            if (grid != null && wall <= front && wall < range)
+                reach = Math.Max(reach, Math.Min(wall + 1.5, grid.SolidExit(o, d, wall, wall + 1.5) + 0.05));
+            return Math.Min(range, reach);
         }
 
         /// <summary>Has this zone a surface within r of a point (the server's check of what a player says they painted)?</summary>

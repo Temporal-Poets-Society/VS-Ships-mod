@@ -383,23 +383,24 @@ namespace Hansa
             void Add(TextureAtlasPosition from, string name)
             {
                 if (from == null || name == null) return;
-                if (paint != null)
-                {
-                    // (any wood's planks: oak's plank grain, the same plank)
-                    var mm = System.Text.RegularExpressions.Regex.Match(name, @"planks/[a-z]+(\d)");
-                    if (mm.Success) name = name.Substring(0, mm.Index) + "planks/oak" + mm.Groups[1].Value;
-                    name = ShipPaint.Painted(name, paint);
-                }
-                // ((0.3.28) cracked: the damage overlay over it)
-                if (overlay != null) name += "++0~hansa:block/" + overlay;
+                // (any wood's planks: oak's plank grain, the same plank; (0.3.28) cracked: the damage overlay over it)
+                // ((0.1.0-dev.8, note 71) by its baked name, turned as the block's own: vanilla's planks laid up-down turn
+                // their grain a quarter, and a partition's paint ran across it)
+                name = ShipPaint.PaintedBaked(name, paint, overlay);
                 atlas.GetOrInsertTexture(AssetLocation.Create(name), out _, out var to);
                 if (to != null) map.Add((from, to));
             }
             if (block?.Textures != null)
                 foreach (var ct in block.Textures.Values)
                 {
-                    int sub = ct?.Baked?.TextureSubId ?? -1;
-                    if (sub >= 0 && sub < atlas.Positions.Length) Add(atlas.Positions[sub], ct.Base?.ToString());
+                    // (each of its variants: oak1..oak4 are the planks' alternates, each baked with the turn)
+                    var baked = ct?.Baked;
+                    if (baked == null) continue;
+                    foreach (var b in baked.BakedVariants ?? new[] { baked })
+                    {
+                        int sub = b?.TextureSubId ?? -1;
+                        if (sub >= 0 && sub < atlas.Positions.Length) Add(atlas.Positions[sub], (b.BakedName ?? ct.Base)?.ToString());
+                    }
                 }
             atlas.GetOrInsertTexture(new AssetLocation("game", "block/wood/planks/oak1"), out _, out var oak);
             Add(oak, "game:block/wood/planks/oak1");
