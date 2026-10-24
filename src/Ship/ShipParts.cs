@@ -372,7 +372,7 @@ namespace Hansa
                 t = tf;
                 hit.Fixture = f;
                 hit.Part = ShipPart.Fixture(f.Index);
-                normal = BoxFace(f.SelBox, o.AddCopy(d.X * t, d.Y * t, d.Z * t), d);
+                normal = BoxFace(ShipFittings.PickBox(f, isOpen), o.AddCopy(d.X * t, d.Y * t, d.Z * t), d);
             }
             else if (tw <= range)
             {

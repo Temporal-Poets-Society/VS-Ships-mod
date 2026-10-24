@@ -733,6 +733,28 @@ namespace Hansa
             MountPoint FreeIn(string room, ItemStack s, int dir = 1) =>
                 l.Floors.FirstOrDefault(m => m.Room == room && !ship.Pieces.Taken(m.Id) && ship.PlaceProblem(PlanOn(m, s, dir), true) == null);
 
+            // ---- (0.1.0-dev.9, caravel note 61: "gates dont close when trying to close them when aim on open state gate") her
+            // gates and doors whose leaf swings: the crosshair takes one shut where it stands, open where its leaf stands open
+            foreach (var g in def.Fixtures.Where(f => f.Type == "gate" && f.OpenSel != null && f.Sel != null))
+            {
+                bool TakesAt(Cuboidd at)
+                {
+                    double gx = (at.X1 + at.X2) / 2, gy = (at.Y1 + at.Y2) / 2, gz = (at.Z1 + at.Z2) / 2;
+                    ship.LocalToWorld(-0.5, g.Sel[1] + 1.62, Math.Sign(g.Pos[2]) * 1.25, out double ex, out double ey, out double ez);
+                    ship.LocalToWorld(gx, gy, gz, out double tx, out double ty, out double tz);
+                    var to = new Vec3d(tx - ex, ty - ey, tz - ez);
+                    return ship.RayHit(new Vec3d(ex, ey, ez), to, to.Length(), null, out var gh) && gh.Fixture == g;
+                }
+                bool wasOpen = ship.OpenFittings.Contains(g.Code);
+                if (wasOpen) ship.ToggleFitting(null, g);
+                bool shutAtShut = TakesAt(g.SelBox), shutAtOpen = TakesAt(g.OpenSel);
+                ship.ToggleFitting(null, g);
+                bool openAtOpen = ship.OpenFittings.Contains(g.Code) && TakesAt(g.OpenSel), openAtShut = TakesAt(g.SelBox);
+                if (!wasOpen) ship.ToggleFitting(null, g);
+                Check(shutAtShut && !shutAtOpen && openAtOpen && !openAtShut,
+                    $"{g.Code}: used where it stands shut ({shutAtShut}, not where it'd stand open: {!shutAtOpen}); open, where its leaf stands ({openAtOpen}, not at its gap: {!openAtShut})");
+            }
+
             // ---- her lanterns: the design's start pieces on their hooks (as a new ship gets them), lit, taken down and hung again
             // ((0.1.0-dev.7) first: a ship without a lower deck (the caravel) stops after the next section's first check)
             if (def.StartPieces?.Length > 0)

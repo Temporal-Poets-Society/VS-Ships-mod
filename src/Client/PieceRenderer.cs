@@ -144,9 +144,11 @@ namespace Hansa
                 }
             }
             p.Mesh = capi.Render.UploadMultiTextureMesh(all);
+            // ((0.1.0-dev.9, note 66: "lanters does not show light") a lantern drawn in its own light, its glass glowing)
+            p.Own = SeeThroughFaces.OwnLight(PieceHsv(capi.World, pc));
             if (clear != null && clear.VerticesCount > 0)
             {
-                seen = new Piece { Fixture = p.Fixture, Glass = true, Interior = p.Interior, Mesh = capi.Render.UploadMultiTextureMesh(clear) };
+                seen = new Piece { Fixture = p.Fixture, Glass = true, Interior = p.Interior, Mesh = capi.Render.UploadMultiTextureMesh(clear), Own = p.Own, OwnAlpha = p.Own != null };
                 Array.Copy(p.Fit, seen.Fit, 16);
             }
             return p;
@@ -492,12 +494,8 @@ namespace Hansa
         {
             local = null;
             on = null;
-            if (pc.Role == PieceRole.Panel || pc.Stack?.Block == null || pc.Parts.Count == 0) return false;
-            var block = world.GetBlock(new AssetLocation(pc.Parts[0].Block)) ?? pc.Stack.Block;
-            byte[] hsv;
-            try { hsv = block.GetLightHsv(world.BlockAccessor, null, pc.Stack) ?? pc.Stack.Block.GetLightHsv(world.BlockAccessor, null, pc.Stack); }
-            catch (Exception) { hsv = block.LightHsv; }
-            if (hsv == null || hsv.Length < 3 || hsv[2] == 0) return false;
+            var hsv = PieceHsv(world, pc);
+            if (hsv == null) return false;
             int rgb = ColorUtil.HsvToRgb(hsv[0] * 4, hsv[1] * 32, 255);
             float r = ((rgb >> 16) & 255) / 255f, g = ((rgb >> 8) & 255) / 255f, b = (rgb & 255) / 255f;
             float strength = Math.Max(4, hsv[2] * 0.55f);
@@ -506,6 +504,17 @@ namespace Hansa
             local = new[] { c[0], y, c[2] };
             on = new Vec3f(b * strength, g * strength, r * strength);
             return true;
+        }
+
+        /// <summary>The light a piece's block gives (vanilla's hue, saturation, level; a lantern's by its glass and lining), or null: none.</summary>
+        static byte[] PieceHsv(IWorldAccessor world, ShipPiece pc)
+        {
+            if (pc.Role == PieceRole.Panel || pc.Stack?.Block == null || pc.Parts.Count == 0) return null;
+            var block = world.GetBlock(new AssetLocation(pc.Parts[0].Block)) ?? pc.Stack.Block;
+            byte[] hsv;
+            try { hsv = block.GetLightHsv(world.BlockAccessor, null, pc.Stack) ?? pc.Stack.Block.GetLightHsv(world.BlockAccessor, null, pc.Stack); }
+            catch (Exception) { hsv = block.LightHsv; }
+            return hsv == null || hsv.Length < 3 || hsv[2] == 0 ? null : hsv;
         }
     }
 }

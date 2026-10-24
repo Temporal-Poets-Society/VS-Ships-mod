@@ -96,6 +96,8 @@
     <!-- (0.1.0-dev.7, note 43) a lantern's glass drawn with a ship's glass -->
     <Compile Include="LanternGlassTests.cs" />
     <Compile Include="..\..\src\Client\SeeThroughFaces.cs" Link="Client\SeeThroughFaces.cs" />
+    <!-- (0.1.0-dev.9, notes 61, 66) her gates picked where their leaves stand, their swing; a lantern in its own light -->
+    <Compile Include="GateLanternTests.cs" />
     <!-- decorating: mount points, pieces, paint -->
     <Compile Include="DecorTests.cs" />
     <Compile Include="DriveTests.cs" />

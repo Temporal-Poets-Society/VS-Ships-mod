@@ -215,6 +215,37 @@ namespace Hansa
             return t0 <= t1;
         }
 
+        /// <summary>
+        /// (0.1.0-dev.9, caravel note 61) A gate's, door's or hatch's selection box as it stands all the way open: its Sel
+        /// turned (or slid) with its leaf, the one moving part whose source is "open:" + its code, as drawn; the box round
+        /// its corners. Null without a Sel or without exactly one such part (two leaves share one box: left as it is).
+        /// </summary>
+        public static Cuboidd OpenBox(ShipDefinition def, FixtureDef f)
+        {
+            if (f?.Sel == null || f.Sel.Length < 6 || f.Code == null || def?.MovingParts == null) return null;
+            MovingPartDef leaf = null;
+            foreach (var p in def.MovingParts)
+            {
+                if (p?.Source != "open:" + f.Code || p.Kind == "follow") continue;
+                if (leaf != null) return null;
+                leaf = p;
+            }
+            if (leaf == null || leaf.Parent != null || (leaf.Kind != "slide" && (leaf.AxisPoint == null || leaf.AxisDir == null))) return null;
+            var m = new float[16];
+            Place(leaf, 1, m, null);
+            double[] lo = { double.MaxValue, double.MaxValue, double.MaxValue }, hi = { double.MinValue, double.MinValue, double.MinValue };
+            for (int c = 0; c < 8; c++)
+            {
+                double x = f.Sel[(c & 1) != 0 ? 3 : 0], y = f.Sel[(c & 2) != 0 ? 4 : 1], z = f.Sel[(c & 4) != 0 ? 5 : 2];
+                double[] w =
+                {
+                    m[0] * x + m[4] * y + m[8] * z + m[12], m[1] * x + m[5] * y + m[9] * z + m[13], m[2] * x + m[6] * y + m[10] * z + m[14]
+                };
+                for (int a = 0; a < 3; a++) { lo[a] = Math.Min(lo[a], w[a]); hi[a] = Math.Max(hi[a], w[a]); }
+            }
+            return new Cuboidd(lo[0], lo[1], lo[2], hi[0], hi[1], hi[2]);
+        }
+
         /// <summary>Rotation by angle about the part's axis (through its axis point), ship-local.</summary>
         public static void PartMatrix(MovingPartDef part, float angle, float[] m)
         {
