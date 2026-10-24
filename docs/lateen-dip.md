@@ -45,7 +45,7 @@ made on, as the carracks' mizzen lateens do. Positions are ship-local blocks (x 
 |---|---|---|
 | `mast` | the mast nearest the yard's axis | the mast it dips round |
 | `pivot` | the tip of its halyard (a rope on the yard from the mast's head); else the yard part's axis point at the sail's z | the yard's sling: the point on its centre line nearest the mast's axis |
-| `standOff` | 0.4 | blocks the yard is bowsed off the mast while it comes round; it must clear the mast and what's on it (hounds, crosstree bars) |
+| `standOff` | 0.4 | blocks the yard is bowsed off the mast while it comes round; its surface must clear the mast's widest radius where it sweeps |
 | `ahead` | 0.2 | blocks the yard is carried forward as it's bowsed off (more than about 0.3 drags the yard's after side into the mainmast) |
 | `hoist` | its heel no lower than it hangs set | blocks it is hoisted while upright |
 | `seconds` | 8 | how long a whole dip takes |
@@ -55,9 +55,11 @@ rope anchor on a lateen has a mirrored partner on the hull; `masts[].radius` is 
 sweeps (the checks measure against it).
 
 The caravel's values now (put in `caravel.json` by hand until `tools/caravel` exports them): both lateens
-`{"mast": <its mast>, "standOff": 0.4, "ahead": 0.2, "seconds": 8}`. Main: crosstree bar at y 18.87 reaches 0.50 from the
-mast's axis, yard radius 0.165 at 0.35 off the axis, so standOff >= 0.37; mizzen: bar at 16.17 reaches 0.52, yard
-radius 0.125, so >= 0.35.
+`{"mast": <its mast>, "standOff": 0.4, "ahead": 0.2, "seconds": 8}`. For the mast alone the main needs
+standOff >= 0.3 + 0.165 + 0.05 - 0.35 = 0.17 (mast radius, the yard's radius at the sling, clearance, the yard centre's
+distance from the axis) and the mizzen >= 0.05; the checks pass with 0.2 as with 0.4, and the shrouds are met the same
+(0.04) either way. (An earlier note named "crosstree bars" at y 18.87 and 16.17 reaching 0.5 from the axis: those were
+the shrouds' upper ends, reed-rope quads in the `exterior` group, not a part on the mast. There are no crosstrees.)
 
 ## Checks
 
