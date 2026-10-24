@@ -110,7 +110,9 @@ namespace Hansa
         /// (0.3.14, working blocks aboard: ShipBlocks) A forge, bellows, anvil, quern, barrel, crock or bloomery put on a
         /// floor place aboard is the real vanilla block (in the ship's own mini-dimension, carried with her), working as
         /// ashore. Off (the default until it's been tried in the game): it's put as an inert piece as before, and none of
-        /// it runs (no dimension, no patches on the server).
+        /// it runs (no dimension, no patches on the server). (The user, 24 October 2026: a development switch, not a player's
+        /// choice. If working blocks are finished they're simply part of the game and this switch is removed; until then
+        /// what turning it off means for ships that have them already is not worked on further.)
         /// </summary>
         public bool WorkingBlocks = false;
         /// <summary>
