@@ -223,6 +223,7 @@ namespace Hansa
         public override void StartServerSide(ICoreServerAPI api)
         {
             sapi = api;
+            LaunchGuard.Clear();
             try
             {
                 Config = api.LoadModConfig<HansaConfig>("hansa.json") ?? new HansaConfig();

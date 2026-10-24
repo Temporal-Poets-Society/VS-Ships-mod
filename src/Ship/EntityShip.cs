@@ -344,6 +344,10 @@ namespace Hansa
             return new Vec3d(lx, ly, lz);
         }
 
+        /// <summary>(review H1-20) The same without a new Vec3d: for loops over many points.</summary>
+        public void WorldToLocal(double wx, double wy, double wz, out double lx, out double ly, out double lz) =>
+            ShipFrame.ToLocal(Pos.Yaw, Pitch, Roll, wx - Pos.X, wy - Pos.Y, wz - Pos.Z, out lx, out ly, out lz);
+
         public Vec3d LocalDirToWorld(double lx, double ly, double lz)
         {
             ShipFrame.ToWorld(Pos.Yaw, Pitch, Roll, lx, ly, lz, out double x, out double y, out double z);
@@ -1837,7 +1841,8 @@ namespace Hansa
             // (her leeway: to starboard of her heading is (-cos yaw, sin yaw) in the world)
             double nx = Pos.X + fx * Speed * dt - Math.Cos(newYaw) * Leeway * dt, nz = Pos.Z + fz * Speed * dt + Math.Sin(newYaw) * Leeway * dt;
 
-            if (Math.Abs(Speed) > 1e-4 || Math.Abs(YawRate) > 1e-5)
+            // (review H1-8: leeway alone moves her too, as clients reckon it)
+            if (Math.Abs(Speed) + Math.Abs(Leeway) > 1e-4 || Math.Abs(YawRate) > 1e-5)
             {
                 var pose = PoseToward(nx, nz, newYaw);
                 if (pose == PoseState.Unloaded)
@@ -1852,6 +1857,8 @@ namespace Hansa
                     Waiting = false;
                     Rammed(shipContact, shipContactAt, nx, nz, newYaw, dt);
                     Speed = Math.Sign(Speed) * -0.05f;
+                    // (review H1-8: and her drift sideways stops there, building up again as the wind presses her)
+                    Leeway = 0;
                     YawRate = 0;
                     SaveState(true);
                 }
@@ -1872,6 +1879,7 @@ namespace Hansa
                     // where she touched takes the blow (ShipFlooding)
                     Grounded(nx, nz, newYaw, dt);
                     Speed = Math.Sign(Speed) * -0.1f;
+                    Leeway = 0;
                     YawRate = 0;
                     SaveState(true);
                 }
@@ -1944,14 +1952,17 @@ namespace Hansa
             var ba = world.BlockAccessor;
             var bp = new BlockPos(dim);
             bool unloaded = false, blocked = false;
+            // (review H1-20: ShipFrame.ToWorld's turn, worked out once for every sample)
+            double sy = Math.Sin(yaw), cy = Math.Cos(yaw);
             for (int n = 0; n < def.HullSamples.Length; n++)
             {
                 var s = def.HullSamples[n];
-                ShipFrame.ToWorld(yaw, s[0], s[1], s[2], out double wx, out double wy, out double wz);
-                bp.Set((int)Math.Floor(x + wx), (int)Math.Floor(y + wy), (int)Math.Floor(z + wz));
+                double px = x + s[0] * sy - s[2] * cy, py = y + s[1], pz = z + s[0] * cy + s[2] * sy;
+                bp.Set((int)Math.Floor(px), (int)Math.Floor(py), (int)Math.Floor(pz));
                 if (ba.GetChunkAtBlockPos(bp) == null) { unloaded = true; continue; }
                 var block = ba.GetBlock(bp, BlockLayersAccess.Solid);
-                if (block != null && block.Id != 0 && block.CollisionBoxes != null && block.CollisionBoxes.Length > 0)
+                if (block != null && block.Id != 0 && block.CollisionBoxes != null && block.CollisionBoxes.Length > 0 &&
+                    InCollision(block.GetCollisionBoxes(ba, bp), px - bp.X, py - bp.Y, pz - bp.Z))
                 {
                     if (hits == null) return PoseState.Blocked;
                     blocked = true;
@@ -1961,6 +1972,20 @@ namespace Hansa
                 }
             }
             return blocked ? PoseState.Blocked : unloaded ? PoseState.Unloaded : PoseState.Clear;
+        }
+
+        /// <summary>
+        /// (review H1-10) Is a hull sample (its place in the block, 0..1) in one of the block's collision boxes, with a little
+        /// to spare: over a slab, beside a fence post or above a low stone she doesn't touch it.
+        /// </summary>
+        static bool InCollision(Cuboidf[] boxes, double fx, double fy, double fz)
+        {
+            if (boxes == null) return false;
+            const double spare = 0.15;
+            foreach (var b in boxes)
+                if (b != null && fx > b.X1 - spare && fx < b.X2 + spare && fy > b.Y1 - spare && fy < b.Y2 + spare && fz > b.Z1 - spare && fz < b.Z2 + spare)
+                    return true;
+            return false;
         }
 
         /// <summary>
@@ -2023,11 +2048,12 @@ namespace Hansa
                 double reach = (Def.Length + other.Def.Length) / 2 + 3;
                 double dx = other.Pos.X - x, dz = other.Pos.Z - z;
                 if (dx * dx + dz * dz > reach * reach || Math.Abs(other.Pos.Y - Pos.Y) > 30) continue;
+                double sy = Math.Sin(yaw), cy = Math.Cos(yaw);
                 foreach (var s in Def.HullSamples)
                 {
-                    ShipFrame.ToWorld(yaw, s[0], s[1], s[2], out double wx, out double wy, out double wz);
-                    var l = other.WorldToLocal(x + wx, baseY + wy, z + wz);
-                    if (other.HullAt(l.X, l.Y, l.Z)) { hit = other; at = new Vec3d(x + wx, baseY + wy, z + wz); return true; }
+                    double wx = s[0] * sy - s[2] * cy, wy = s[1], wz = s[0] * cy + s[2] * sy;
+                    other.WorldToLocal(x + wx, baseY + wy, z + wz, out double lx, out double ly, out double lz);
+                    if (other.HullAt(lx, ly, lz)) { hit = other; at = new Vec3d(x + wx, baseY + wy, z + wz); return true; }
                 }
                 foreach (var s in other.Def.HullSamples)
                 {
@@ -2096,8 +2122,8 @@ namespace Hansa
                 double x = bx + (i == 8 ? 0.5 : (i & 1) * 0.9 + 0.05);
                 double y = by + (i == 8 ? 0.5 : ((i >> 1) & 1) * 0.9 + 0.05);
                 double z = bz + (i == 8 ? 0.5 : ((i >> 2) & 1) * 0.9 + 0.05);
-                var l = WorldToLocal(x, y, z);
-                if (inside.SolidAt(l.X, l.Y, l.Z)) return true;
+                WorldToLocal(x, y, z, out double lx, out double ly, out double lz);
+                if (inside.SolidAt(lx, ly, lz)) return true;
             }
             return false;
         }
@@ -2191,8 +2217,8 @@ namespace Hansa
 
             double age = Math.Min(0.5, (World.ElapsedMilliseconds - targetMs) / 1000.0);
             double tyaw = targetYaw + YawRate * age;
-            double tx = targetPos.X + Math.Sin(tyaw) * Speed * age;
-            double tz = targetPos.Z + Math.Cos(tyaw) * Speed * age;
+            double tx = targetPos.X + Math.Sin(tyaw) * Speed * age - Math.Cos(tyaw) * Leeway * age;
+            double tz = targetPos.Z + Math.Cos(tyaw) * Speed * age + Math.Sin(tyaw) * Leeway * age;
             double k = 1 - Math.Exp(-dt * 3);
             RenderPos.X += (tx - RenderPos.X) * k;
             RenderPos.Z += (tz - RenderPos.Z) * k;

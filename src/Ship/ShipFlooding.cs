@@ -712,6 +712,8 @@ namespace Hansa
             {
                 if (next < Sinkage - 0.01 && OnBottom) OnBottom = false;
                 Sinkage = Math.Max(0, next);
+                // (review H1-7) pumped up slowly, or the ground dug away under her: off the bottom once a settling step down is free
+                if (OnBottom && !SettleBlocked(Sinkage + 0.3 * step)) OnBottom = false;
             }
             // the water runs to the low side: the way she heels, or else the side it came in on
             double heel = ServerHeel;
