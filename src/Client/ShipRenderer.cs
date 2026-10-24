@@ -1716,8 +1716,14 @@ namespace Hansa
         /// <summary>The ships' lights the game has now (<see cref="ChooseLights"/>).</summary>
         readonly HashSet<ShipLight> registeredLights = new();
         readonly List<ShipLight> lightCandidates = new();
-        long entityLightsCheckedMs = long.MinValue;
-        int entityLights;
+        // (review H1-21: kept, not made each frame)
+        readonly HashSet<ShipLight> keepLights = new();
+        readonly List<ShipLight> dropLights = new();
+        Comparison<ShipLight> lightOrder;
+        Vec3d lightEye;
+        // (review H1-3: long.MinValue made "now - it" overflow, and the lit entities were never counted)
+        long entityLightsCheckedMs = -1000;
+        int entityLights, maxLights = 10;
 
         /// <summary>
         /// The game draws only its first "max dynamic lights" (graphics settings, 10 by default) point lights, in the order
@@ -1728,38 +1734,44 @@ namespace Hansa
         /// </summary>
         void ChooseLights(Vec3d eye)
         {
-            int max = 10;
-            try { max = capi.Settings.Int["maxDynamicLights"]; } catch (Exception) { }
             long now = capi.ElapsedMilliseconds;
             if (now - entityLightsCheckedMs > 500)
             {
                 entityLightsCheckedMs = now;
+                try { maxLights = capi.Settings.Int["maxDynamicLights"]; } catch (Exception) { }
                 entityLights = capi.World.GetEntitiesAround(eye, 120f, 120f, e => e.LightHsv != null && e.LightHsv[2] > 0).Length;
             }
-            int room = Math.Max(0, max - entityLights);
+            int room = Math.Max(0, maxLights - entityLights);
             lightCandidates.Clear();
             foreach (var list in lights.Values)
                 foreach (var pl in list)
                     if (pl.Color.X + pl.Color.Y + pl.Color.Z > 0.01f) lightCandidates.Add(pl);
             if (lightCandidates.Count > room)
             {
-                double D(ShipLight l)
-                {
-                    double dx = l.Pos.X - eye.X, dy = (l.Pos.Y - eye.Y) * 2, dz = l.Pos.Z - eye.Z;
-                    return dx * dx + dy * dy + dz * dz;
-                }
-                lightCandidates.Sort((a, b) => D(a).CompareTo(D(b)));
+                lightEye = eye;
+                lightOrder ??= (a, b) => LightDistance(a).CompareTo(LightDistance(b));
+                lightCandidates.Sort(lightOrder);
                 lightCandidates.RemoveRange(room, lightCandidates.Count - room);
             }
-            var keep = new HashSet<ShipLight>(lightCandidates);
-            registeredLights.RemoveWhere(pl =>
+            keepLights.Clear();
+            foreach (var pl in lightCandidates) keepLights.Add(pl);
+            dropLights.Clear();
+            foreach (var pl in registeredLights)
+                if (!keepLights.Contains(pl)) dropLights.Add(pl);
+            foreach (var pl in dropLights)
             {
-                if (keep.Contains(pl)) return false;
+                registeredLights.Remove(pl);
                 capi.Render.RemovePointLight(pl);
-                return true;
-            });
+            }
             foreach (var pl in lightCandidates)
                 if (registeredLights.Add(pl)) capi.Render.AddPointLight(pl);
+        }
+
+        /// <summary>How far a light is from the eye being lit for (a deck between counting double), squared.</summary>
+        double LightDistance(ShipLight l)
+        {
+            double dx = l.Pos.X - lightEye.X, dy = (l.Pos.Y - lightEye.Y) * 2, dz = l.Pos.Z - lightEye.Z;
+            return dx * dx + dy * dy + dz * dz;
         }
 
         public void RemoveShip(EntityShip ship)

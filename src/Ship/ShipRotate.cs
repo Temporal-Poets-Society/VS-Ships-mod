@@ -42,6 +42,8 @@ namespace Hansa
             if (GetSeat("bunk:" + p.StorageCode)?.Passenger != null) return "hansa:bunk-taken";
             if (GetSeat("sit:" + p.StorageCode)?.Passenger != null) return "hansa:piece-seat-taken";
             if (Pieces.StandingOn(Mounts, p) != null) return "hansa:piece-under";
+            // (review H1-13) a working block's real block in her dimension isn't turned with it
+            if (IsWorkingPiece(p.Id)) return "hansa:rotate-nothing";
             if (p.Role is PieceRole.Hearth or PieceRole.Oven or PieceRole.Flue or PieceRole.Hatch or PieceRole.Shelf or PieceRole.Panel || p.Kind is MountKind.Hook or MountKind.Wall or MountKind.Horizontal or MountKind.Panel)
                 return "hansa:rotate-nothing";
             var m = Mounts.Get(p.Mount);
@@ -66,6 +68,8 @@ namespace Hansa
                 if (err != null) { first ??= err; continue; }
                 turned = ShipPiece.From(plan, p.Id, p.Stack);
                 turned.Paint = p.Paint;
+                // (review H1-5: turning it doesn't mend it)
+                turned.Hurt = p.Hurt;
                 turned.Open = p.Open && turned.Role == PieceRole.Door;
                 Pieces.Add(turned);
                 Changed();

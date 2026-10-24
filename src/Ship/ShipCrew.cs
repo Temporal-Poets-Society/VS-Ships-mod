@@ -59,6 +59,9 @@ namespace Hansa
         public static bool GuestMayUse(FixtureDef f) =>
             f.Type is "door" or "gate" or "seat" or "plaque" || f.Type == "hatch" && f.Storage == null;
 
+        /// <summary>(review H1-4) The same for a piece put aboard: its doors, hatches and seats.</summary>
+        public static bool GuestMayUse(ShipPiece p) => p != null && p.Role is PieceRole.Door or PieceRole.Hatch or PieceRole.Seat;
+
         /// <summary>May this player come aboard: anyone, except while she's laid up (then only her crew, and admins).</summary>
         public bool MayBoard(IPlayer player) => !LaidUp || MayUse(player);
 
