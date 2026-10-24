@@ -132,6 +132,8 @@ namespace Hansa
         readonly Vec3d interp = new Vec3d();
         public DeckMover Mover;          // only for the local player on the client
         public byte Flags = FlagOnGround;
+        /// <summary>(server, review H1-2) When the player's last deck position came in: how far they may have moved since.</summary>
+        public long StateMs;
 
         // remote interpolation (client)
         readonly Queue<(long ms, double x, double y, double z)> remote = new();
@@ -168,6 +170,8 @@ namespace Hansa
             Flags = flags;
             local.Set(x, y, z);
             if (!hasRemotePrev) { remotePrev = (nowMs, x, y, z); hasRemotePrev = true; }
+            // (review H1-15: nothing comes while they stand still) starting off again: from where they stood, a send ago
+            else if (remote.Count == 0 && nowMs - remotePrev.ms > 200) remotePrev = (nowMs - 67, remotePrev.x, remotePrev.y, remotePrev.z);
             remote.Enqueue((nowMs, x, y, z));
             while (remote.Count > 8) remote.Dequeue();
         }

@@ -326,19 +326,55 @@ namespace Hansa
         void OnDeckState(IServerPlayer player, DeckStatePacket p)
         {
             var ep = player.Entity;
-            if (!(ep?.MountedOn is DeckSeat seat) || seat.Ship.EntityId != p.ShipId) return;
-            var g = seat.Ship.Def.Grid;
+            if (!(ep?.MountedOn is DeckSeat seat) || seat.Ship.EntityId != p.ShipId || seat.Ship.Def == null) return;
+            // (review H1-2) not a number: dropped, and they're put back where the server has them
+            if (!float.IsFinite(p.X) || !float.IsFinite(p.Y) || !float.IsFinite(p.Z)) { SendDeckCorrection(player, seat); return; }
+            var g = seat.Ship.Grid;
             double x = GameMath.Clamp(p.X, g.OX - 1, g.MaxX + 1), y = GameMath.Clamp(p.Y, g.OY - 1, g.MaxY + 2), z = GameMath.Clamp(p.Z, g.OZ - 1, g.MaxZ + 1);
+            long now = sapi.World.ElapsedMilliseconds;
+            if (!DeckMovePossible(ep, seat, x, y, z, p.Flags, now)) { SendDeckCorrection(player, seat); return; }
             seat.SetLocal(x, y, z, p.Flags);
+            seat.StateMs = now;
 
             var relay = new DeckStatePacket { ShipId = p.ShipId, X = (float)x, Y = (float)y, Z = (float)z, Flags = p.Flags, PlayerEntityId = ep.EntityId };
             var shipPos = seat.Ship.Pos;
             foreach (IServerPlayer other in sapi.World.AllOnlinePlayers)
             {
                 if (other == player || other.ConnectionState != EnumClientState.Playing || other.Entity == null) continue;
-                if (other.Entity.Pos.SquareDistanceTo(shipPos) > 160 * 160) continue;
+                if (other.Entity.Pos.Dimension != shipPos.Dimension || other.Entity.Pos.SquareDistanceTo(shipPos) > 160 * 160) continue;
                 serverChannel.SendPacket(relay, other);
             }
+        }
+
+        /// <summary>
+        /// (review H1-2) Could they have walked, climbed or fallen from where the server has them to here since their last
+        /// position (a second at most, with some slack for lag and steps)? Not through her walls and decks either: what lies
+        /// between waist high (two positions a step apart, both free, have only free space between them there). On a ladder,
+        /// or from one, only the distance counts (its foot and top are either side of her rail).
+        /// </summary>
+        static bool DeckMovePossible(EntityPlayer ep, DeckSeat seat, double x, double y, double z, byte flags, long now)
+        {
+            var from = seat.StoredLocal;
+            double dt = GameMath.Clamp((now - seat.StateMs) / 1000.0, 0.05, 1.0);
+            double walk = 3.5 * GameMath.Clamp(ep.Stats.GetBlended("walkspeed"), 0, 5) * GlobalConstants.SprintSpeedMultiplier;
+            double dx = x - from.X, dy = y - from.Y, dz = z - from.Z;
+            double reach = walk * 1.5 * dt + 1.0;
+            if (dx * dx + dz * dz > reach * reach) return false;
+            if (dy > DeckMover.JumpSpeed * 1.5 * dt + 1.0 || -dy > DeckMover.TerminalFall * dt + 1.0) return false;
+            if (((flags | seat.Flags) & DeckSeat.FlagClimbing) != 0) return true;
+            var g = seat.Ship.Grid;
+            // (already stuck in her: a piece put where they stood; let them out)
+            if (g.Collides(from.X - DeckMover.HalfWidth, from.Y + 0.01, from.Z - DeckMover.HalfWidth, from.X + DeckMover.HalfWidth, from.Y + DeckMover.Height, from.Z + DeckMover.HalfWidth)) return true;
+            double len = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            if (len < 1e-4) return true;
+            return g.Raycast(new Vec3d(from.X, from.Y + 1, from.Z), new Vec3d(dx / len, dy / len, dz / len), len) >= len;
+        }
+
+        /// <summary>(review H1-2) A deck position refused: back to where the server has them (their own client resets its walker).</summary>
+        void SendDeckCorrection(IServerPlayer player, DeckSeat seat)
+        {
+            var l = seat.StoredLocal;
+            serverChannel.SendPacket(new DeckStatePacket { ShipId = seat.Ship.EntityId, X = (float)l.X, Y = (float)l.Y, Z = (float)l.Z, Flags = seat.Flags, PlayerEntityId = player.Entity.EntityId }, player);
         }
 
         void OnBoard(IServerPlayer player, BoardPacket p)
@@ -349,8 +385,8 @@ namespace Hansa
             if (ep.MountedOn != null && ep.MountedOn.Entity == ship) return;
             // laid up, she's closed to all but her crew (ShipCrew)
             if (!ship.MayBoard(player)) { player.SendIngameError("hansa-crew", Lang.GetL(player.LanguageCode, "hansa:laidup-closed")); return; }
-            ship.LocalToWorld(p.X, p.Y, p.Z, out double wx, out double wy, out double wz);
-            if (ep.Pos.SquareDistanceTo(wx, wy, wz) > 12 * 12) return;
+            // (review H1-1: a ladder's foot, a boarding point, or a floor beside them in sight, never anywhere in reach)
+            if (!ship.MayBoardAt(ep, p.X, p.Y, p.Z)) return;
             ship.Board(ep, new Vec3d(p.X, p.Y, p.Z));
         }
 

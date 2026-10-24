@@ -762,6 +762,48 @@ namespace Hansa
             return ep.TryMount(seat);
         }
 
+        /// <summary>
+        /// (review H1-1) May this player board her at this ship-local point (feet), as the server has them? The foot of one of
+        /// her outside ladders or, for a boat, one of her boarding points, within reach; or a spot with floor right beside them
+        /// that they can see from where they stand (stepping or jumping aboard from a dock or another deck). Never a point
+        /// inside her that a wall or her hull stands between, nor a ship in another dimension.
+        /// </summary>
+        public bool MayBoardAt(EntityPlayer ep, double x, double y, double z)
+        {
+            var g = Grid;
+            if (g == null || ep == null || ep.Pos.Dimension != Pos.Dimension) return false;
+            if (!double.IsFinite(x) || !double.IsFinite(y) || !double.IsFinite(z)) return false;
+            if (x < g.OX - 2 || x > g.MaxX + 2 || y < g.OY - 2 || y > g.MaxY + 2 || z < g.OZ - 2 || z > g.MaxZ + 2) return false;
+            LocalToWorld(x, y, z, out double wx, out double wy, out double wz);
+            if (ep.Pos.SquareDistanceTo(wx, wy, wz) > 12 * 12) return false;
+            foreach (var l in Ladders)
+            {
+                if (!l.Outside || l.Bottom == null) continue;
+                double dx = l.Bottom[0] - x, dy = l.Bottom[1] - y, dz = l.Bottom[2] - z;
+                if (dx * dx + dy * dy + dz * dz < 0.5 * 0.5) return true;
+            }
+            if (Def.BoardFromWater)
+            {
+                foreach (var b in Def.BoardPoints)
+                {
+                    double dx = b[0] - x, dy = b[1] - y, dz = b[2] - z;
+                    if (dx * dx + dy * dy + dz * dz < 0.5 * 0.5) return true;
+                }
+            }
+            // stepped or jumped aboard: a floor under that spot, close to where they are (her way and their lag allowed for)
+            if (!DeckMover.HasFloor(g, x, y + 0.01, z)) return false;
+            var me = WorldToLocal(ep.Pos.X, ep.Pos.Y, ep.Pos.Z);
+            double hx = x - me.X, hz = z - me.Z, reach = 3 + Math.Abs(Speed) * 0.5;
+            if (hx * hx + hz * hz > reach * reach || y - me.Y > 2.0 || me.Y - y > 1.5) return false;
+            // nothing of hers between: from the spot (waist high) back toward them; what they stand in may be met close to them
+            var from = new Vec3d(x, y + 1, z);
+            var d = new Vec3d(me.X - x, me.Y - y, me.Z - z);
+            double len = d.Length();
+            if (len < 1e-6) return true;
+            d.Mul(1 / len);
+            return g.Raycast(from, d, len) >= len - 1.0;
+        }
+
         public void StandUp(EntityAgent agent, FixtureDef near)
         {
             if (!(agent is EntityPlayer ep) || !ep.Alive) return;

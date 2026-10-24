@@ -39,6 +39,8 @@ namespace Hansa
         ShipHud hud;
 
         float sendAccum;
+        (long ship, float x, float y, float z, byte flags) lastSentDeck;
+        long lastSentDeckMs;
         long boardCooldownUntil;
         FixtureHit lookedAt;
         // the gun last clicked (the game repeats a held click: one shot a click)
@@ -332,7 +334,17 @@ namespace Hansa
                 {
                     sendAccum = 0;
                     var l = ds.LocalPos;
-                    channel.SendPacket(new DeckStatePacket { ShipId = ds.Ship.EntityId, X = (float)l.X, Y = (float)l.Y, Z = (float)l.Z, Flags = ds.Flags });
+                    // (review H1-15) only when we moved or our stance changed, and once a second standing still
+                    var s = (ship: ds.Ship.EntityId, x: (float)l.X, y: (float)l.Y, z: (float)l.Z, flags: ds.Flags);
+                    long now = capi.World.ElapsedMilliseconds;
+                    var o = lastSentDeck;
+                    if (s.ship != o.ship || s.flags != o.flags || Math.Abs(s.x - o.x) > 0.01f || Math.Abs(s.y - o.y) > 0.01f ||
+                        Math.Abs(s.z - o.z) > 0.01f || now - lastSentDeckMs >= 1000)
+                    {
+                        lastSentDeck = s;
+                        lastSentDeckMs = now;
+                        channel.SendPacket(new DeckStatePacket { ShipId = s.ship, X = s.x, Y = s.y, Z = s.z, Flags = s.flags });
+                    }
                 }
             }
             else if (ep.MountedOn == null)
@@ -1459,7 +1471,22 @@ namespace Hansa
         void OnRemoteDeckState(DeckStatePacket p)
         {
             var e = capi.World.GetEntityById(p.PlayerEntityId) as EntityAgent;
-            if (e == null || e == capi.World.Player.Entity) return;
+            if (e == null) return;
+            if (e == capi.World.Player.Entity)
+            {
+                // (review H1-2) the server refused a move of ours: back to where it has us
+                if (e.MountedOn is DeckSeat own && own.Ship.EntityId == p.ShipId && own.Mover is DeckMover m)
+                {
+                    m.X = p.X; m.Y = p.Y; m.Z = p.Z;
+                    m.VX = m.VY = m.VZ = 0;
+                    m.SmoothOffset = 0;
+                    m.Climbing = null;
+                    m.Unstick(own.Ship.Grid);
+                    m.OnGround = DeckMover.HasFloor(own.Ship.Grid, m.X, m.Y, m.Z);
+                    lastSentDeck = default;
+                }
+                return;
+            }
             if (e.MountedOn is DeckSeat ds && ds.Ship.EntityId == p.ShipId)
             {
                 ds.PushRemote(capi.World.ElapsedMilliseconds, p.X, p.Y, p.Z, p.Flags);
