@@ -1872,6 +1872,8 @@ namespace Hansa
             ship.Pos.SetPos(cx, wy, cz);
             ship.Pos.Yaw = (float)(Math.PI / 2);
             sapi.World.SpawnEntity(ship);
+            // ((24 October 2026) the caravel's building notes: things put and taken up again before she's loaded)
+            BuildPlaceAboard(ship);
             // a rowing boat on her gallows, a chest with something in it in the hold, someone aboard, a spawn bound to her
             var boatF = def.Fixtures.FirstOrDefault(f => f.Kind == "boat");   // (a ship without gallows carries none)
             var rowboat = sapi.World.GetItem(new AssetLocation("hansa", "rowboat-oak"));

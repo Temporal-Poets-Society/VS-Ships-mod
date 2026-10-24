@@ -77,6 +77,7 @@ namespace HansaTests
                 return failures == 0 ? 0 : 1;
             }
             if (Array.IndexOf(args, "inspect") >= 0) { Inspect(root, args.Length > Array.IndexOf(args, "inspect") + 1 ? args[Array.IndexOf(args, "inspect") + 1] : "caravel"); return 0; }
+            if (Array.IndexOf(args, "buildplace") >= 0) { CaravelBuildPlace(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "holdstair") >= 0) { CaravelHoldStair(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "steerage") >= 0) { CaravelSteerage(root); CaravelNote49(root); CaravelNote48(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "gunclick") >= 0) { GunClicks(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
@@ -218,6 +219,8 @@ namespace HansaTests
                 if (dcode == "caravel") { CaravelSteerage(root); CaravelNote49(root); CaravelNote48(root); }
                 // (22 October 2026, caravel notes 51, 52) stairs from her hold between her beams
                 if (dcode == "caravel") CaravelHoldStair(root);
+                // (24 October 2026, caravel notes 57-82) putting things aboard and taking them up
+                if (dcode == "caravel") CaravelBuildPlace(root);
                 Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
                 return failures == 0 ? 0 : 1;
             }

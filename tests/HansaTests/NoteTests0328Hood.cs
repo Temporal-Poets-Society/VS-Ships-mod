@@ -211,8 +211,11 @@ namespace HansaTests
             // ((0.3.29) not round the companion's design well: its places are its own, from her layout with the well laid)
             var waistTop = ml.Borders.Where(b => b.Deck == "main" && b.Row == 1 && !b.TwinSide && b.X > -1.5 && b.X < 10 && Math.Abs(b.Z) < 1.6 && md.RoomAt(b.X, b.Y + 0.5, b.Z) == null &&
                                                  !(b.SlotUnder >= 0 && l.Slots[b.SlotUnder].StartsEmpty)).ToList();
-            Check(waistTop.Count > 10 && waistTop.All(b => b.Clip == null || md.Grid.Collides(b.Box[0] + 0.02, b.Box[1] + 0.02, b.Box[2] + 0.02, b.Box[3] - 0.02, b.Box[4] - 0.02, b.Box[5] - 0.02)),
-                $"0.3.28: the waist's top-row places by the centreline are whole where nothing of hers is in them ({waistTop.Count(b => b.Clip == null)} of {waistTop.Count}{string.Concat(waistTop.Where(b => b.Clip != null && !md.Grid.Collides(b.Box[0] + 0.02, b.Box[1] + 0.02, b.Box[2] + 0.02, b.Box[3] - 0.02, b.Box[4] - 0.02, b.Box[5] - 0.02)).Select(b => "; cut: " + b.Id))})");
+            // ((24 October 2026, caravel note 70) with her respawn spot no longer kept clear two more by the plate, their clip
+            // the whole block (her quarter-block layer beside the line touches the next cell): whole as drawn)
+            bool Whole(MountPoint b) => b.Clip == null || b.Clip.Count == 1 && b.Clip[0][2] - b.Clip[0][0] > 1 - 1e-6 && b.Clip[0][3] - b.Clip[0][1] > 1 - 1e-6;
+            Check(waistTop.Count > 10 && waistTop.All(b => Whole(b) || md.Grid.Collides(b.Box[0] + 0.02, b.Box[1] + 0.02, b.Box[2] + 0.02, b.Box[3] - 0.02, b.Box[4] - 0.02, b.Box[5] - 0.02)),
+                $"0.3.28: the waist's top-row places by the centreline are whole where nothing of hers is in them ({waistTop.Count(Whole)} of {waistTop.Count}{string.Concat(waistTop.Where(b => !Whole(b) && !md.Grid.Collides(b.Box[0] + 0.02, b.Box[1] + 0.02, b.Box[2] + 0.02, b.Box[3] - 0.02, b.Box[4] - 0.02, b.Box[5] - 0.02)).Select(b => "; cut: " + b.Id))})");
         }
 
         static void SternStair0328(ShipDefinition md)

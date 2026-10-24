@@ -175,6 +175,58 @@ namespace Hansa
             _ => (dx, dz)
         };
 
+        /// <summary>
+        /// As <see cref="Plan(MountLayout, MountPoint, PieceBlock, int)"/>; (24 October 2026, caravel notes 70, 79: "i can place
+        /// two vessels here but cannot place trunk", "any unoccupied spot should allow placement, beds included") a piece of
+        /// two or more cells on a floor place that doesn't fit as vanilla lays it (or that fits says no to) is laid another
+        /// way over the place aimed at: its other cells on the near side, then turned a quarter (a trunk along the view, a
+        /// bed across it), then (a bed) its head toward the placer. The first way that fits and fits says yes to; else the
+        /// first. Client and server ask the same (fits leaves out who stands where: that's asked of the plan chosen).
+        /// </summary>
+        public static PiecePlan Plan(MountLayout layout, MountPoint m, PieceBlock b, int toward, System.Func<PiecePlan, bool> fits)
+        {
+            var first = Plan(layout, m, b, toward);
+            if (first.Error == null && (fits == null || fits(first)) || m?.Kind != MountKind.Floor || b == null ||
+                b.Ladder || b.Stairs || b.Hearth || b.Oven || b.Flue || b.Orient == PieceOrient.Attachable) return first;
+            int look0 = (((toward % 4) + 4) % 4 + 2) % 4;
+            bool bed = b.Orient == PieceOrient.Bed;
+            foreach (int turn in bed ? new[] { 0, 1, 3, 2 } : new[] { 0, 1, 3 })
+            {
+                int look = (look0 + turn) % 4;
+                foreach (var (di, dk) in FootprintShifts(b, look))
+                {
+                    if (turn == 0 && di == 0 && dk == 0 || bed && turn == 2 && (di != 0 || dk != 0)) continue;
+                    var at = layout.FloorAt(m.Deck, m.I - di, m.K - dk, m.Level);
+                    if (at == null) continue;
+                    var alt = Plan(layout, at, b, (look + 2) % 4);
+                    if (alt.Error != null || !alt.Mounts.Contains(m.Id) || fits != null && !fits(alt)) continue;
+                    alt.Toward = first.Toward;
+                    return alt;
+                }
+            }
+            return first;
+        }
+
+        /// <summary>(24 October 2026) The offsets of a floor piece's cells from its place, looking that way (a bed's head a block on).</summary>
+        static IEnumerable<(int, int)> FootprintShifts(PieceBlock b, int look)
+        {
+            if (b.Orient == PieceOrient.Bed)
+            {
+                yield return (0, 0);
+                yield return (MountLayout.DX[look], MountLayout.DZ[look]);
+                yield break;
+            }
+            string variant = b.Orient == PieceOrient.Orientable ? b.Variant(MountLayout.DirCode[look]) ?? b.Code : b.Orient == PieceOrient.Omni ? b.Variant("up") ?? b.Code : b.Code;
+            int q = QuarterFor((look + 2) % 4);
+            var seen = new HashSet<(int, int)>();
+            foreach (var c in b.Cells(variant) ?? new List<int[]> { new[] { 0, 0, 0 } })
+            {
+                if (c[1] != 0) continue;
+                var (dx, dz) = b.Orient == PieceOrient.None ? TurnCell(c[0], c[2], q) : (c[0], c[2]);
+                if (seen.Add((dx, dz))) yield return (dx, dz);
+            }
+        }
+
         public static PiecePlan Plan(MountLayout layout, MountPoint m, PieceBlock b, int toward)
         {
             var p = new PiecePlan { Mount = m, Kind = m?.Kind ?? MountKind.Floor, Dir = ((toward % 4) + 4) % 4 };
@@ -882,10 +934,12 @@ namespace Hansa
         /// </summary>
         static PiecePlan HearthPlan(MountLayout layout, MountPoint m, PieceBlock b, PiecePlan p, int look)
         {
-            if (m.Level != 0) { p.Error = "hansa:hearth-needs-floor"; return p; }
+            // ((24 October 2026, caravel note 74: "cannot place oven on top of these blocks, i can place on floor") the oven on
+            // a block put aboard too, as on her deck; the hearth on her deck only (its flue's places rise from there)
+            if (m.Level != 0 && !b.Oven) { p.Error = "hansa:hearth-needs-floor"; return p; }
             p.Role = b.Oven ? PieceRole.Oven : PieceRole.Hearth;
             p.Mounts.Add(m.Id);
-            for (int level = 1; level <= MountLayout.MaxStack; level++)
+            for (int level = m.Level + 1; level <= MountLayout.MaxStack; level++)
                 if (layout.FloorAt(m.Deck, m.I, m.K, level) is MountPoint up) p.Mounts.Add(up.Id);
             var origin = new[] { m.X, m.Y, m.Z };
             if (b.Oven)
@@ -1351,7 +1405,9 @@ namespace Hansa
         /// (0.3.23, note 169: "hatches cannot be opened from bottom") What the crosshair picks it by: its selection boxes, and
         /// a shut hatch also by its cells' planking under them (from below the crosshair meets that first: her collision).
         /// </summary>
-        public IEnumerable<double[]> PickBoxes => Role == PieceRole.Hatch && !Open ? Sel.Concat(Solids)
+        /// <remarks>((24 October 2026, caravel note 82: "then i cannot remove it") a panel by its whole wedge too: aimed at its
+        /// end or its top (her side's curve leaves them showing) it's the panel, not her woodwork behind)</remarks>
+        public IEnumerable<double[]> PickBoxes => Role == PieceRole.Hatch && !Open || Role == PieceRole.Panel ? Sel.Concat(Solids)
             : Role == PieceRole.Door && Open && OpenLeafBox is double[] leaf ? Sel.Append(leaf) : Sel;
 
         /// <summary>
