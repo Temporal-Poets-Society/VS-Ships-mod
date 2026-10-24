@@ -1029,7 +1029,8 @@ namespace Hansa
         /// </summary>
         void PanelPlaces()
         {
-            if (!OnShipGrid) return;
+            // ((24 October 2026, caravel note 82) not on a design that has none: their wedge is in her side's cell)
+            if (!OnShipGrid || !Def.PanelPlaces) return;
             var g = Def.Grid;
             int n = Math.Max(1, (int)Math.Round(1 / g.V));
             foreach (var m in Floors.ToList())

@@ -27796,6 +27796,7 @@
   "space": 2.0,
   "count": 10
  },
+ "panelPlaces": false,
  "grid": {
   "origin": [
    0.0,

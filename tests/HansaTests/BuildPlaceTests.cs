@@ -119,15 +119,56 @@ namespace HansaTests
                 Check(unlike.Count == 0, $"note 72: every partition place and its twin across the line drawn alike ({(unlike.Count == 0 ? "all" : string.Join(", ", unlike.Take(6)))})");
             }
 
-            // ---- note 82: a panel at her side in the hold is picked by its end too (the user aimed at it there and couldn't take it up)
+            // ---- note 82: no panels on the caravel (the user: "nothing gets placed into a cell her hull or ribs occupy"); one put
+            // before (the user's, in her hold by her side) is picked by its end too, where the user aimed at it and couldn't take it up
             {
-                var pm = l.Get("p:hold:-3:-2:n:0");
-                var set = new ShipPieceSet();
-                if (pm != null) set.Add(ShipPiece.From(PiecePlanner.Plan(l, pm, block, 1), set.NextId, null));
                 var eye = new Vec3d(-0.993, -0.177, -1.244);
                 var d = new Vec3d(-0.6899, -0.6037, -0.3994);
+                var panelled = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
+                panelled.PanelPlaces = true;
+                panelled.Init();
+                var pm = panelled.Mounts.Get("p:hold:-3:-2:n:0");
+                AimPlace.GridHit(g, eye, d, 6, out double th, out var nh);
+                var offered = AimPlace.Candidates(l, new ShipPieceSet(), eye.AddCopy(d.X * th, d.Y * th, d.Z * th), nh, null, null, true).Select(c => c.Id).ToList();
+                Check(!def.PanelPlaces && !l.Panels.Any() && !offered.Any(id => id.StartsWith("p:")) && pm != null,
+                    $"note 82: no panel places on the caravel ({l.Panels.Count()}; at the note's crosshair: {string.Join(", ", offered.DefaultIfEmpty("nothing"))}); the carracks' kind still made when a design asks ({pm?.Id})");
+                var set = new ShipPieceSet();
+                if (pm != null) set.Add(ShipPiece.From(PiecePlanner.Plan(panelled.Mounts, pm, block, 1), set.NextId, null));
                 var got = set.Pick(eye, d, 5, out double t);
-                Check(pm != null && got?.Role == PieceRole.Panel && Math.Abs(t - 1.46) < 0.05, $"note 82: the panel by her side picked where the user aimed at it, its end ({(got == null ? "nothing" : $"{got.Role} at {t:0.##}")})");
+                Check(got?.Role == PieceRole.Panel && Math.Abs(t - 1.46) < 0.05, $"note 82: a panel put before by her side picked where the user aimed at it, its end ({(got == null ? "nothing" : $"{got.Role} at {t:0.##}")})");
+            }
+
+            // ---- note 66: a lantern hung from a deck's underside, aimed at from below: the ceiling's hook in and out of building
+            // mode (in it: the hooks only); her hooks alike port and starboard
+            {
+                var lantern = new FakePiece { Code = "game:lantern-small-up", Family = "game:lantern-small", Orient = PieceOrient.Omni, OmniWalls = true, Light = true, States = new[] { "up", "down", "north", "east", "south", "west" }, Sel = new[] { 0.3125, 0, 0.3125, 0.6875, 0.5, 0.6875 } };
+                // (not under the hold's hatchway: those hang under its cells laid)
+                var ceiling = l.Hooks.Where(h => MountLayout.IsCeilingHook(h.Id) && !(h.SlotUnder >= 0 && def.Slots.Slots[h.SlotUnder].StartsEmpty)).ToList();
+                var missed = new List<string>();
+                foreach (var h in ceiling)
+                    foreach (bool building in new[] { false, true })
+                    {
+                        // (from a man's eye a block off it, looking at the ceiling right over the hook: the first way round that
+                        // meets her ceiling there, not a mast or a wall)
+                        string got = "no way to see the ceiling";
+                        foreach (var (ox, oz) in new[] { (-1.0, 0.0), (1.0, 0.0), (0.0, -1.0), (0.0, 1.0) })
+                        {
+                            var eye = new Vec3d(h.X + ox, h.Y - 1.1, h.Z + oz);
+                            var aim = new Vec3d(h.X + ox * 0.2 - eye.X, h.Y + 0.01 - eye.Y, h.Z + oz * 0.2 - eye.Z);
+                            aim.Mul(1 / aim.Length());
+                            if (!AimPlace.GridHit(g, eye, aim, 6, out double th, out var nh) || nh[1] > -0.5 || eye.Y + aim.Y * th < h.Y - 0.05) continue;
+                            var hit = eye.AddCopy(aim.X * th, aim.Y * th, aim.Z * th);
+                            var c = AimPlace.Candidates(l, new ShipPieceSet(), hit, nh, null, building ? x => x.Kind == MountKind.Hook : null).FirstOrDefault();
+                            got = c?.Kind == MountKind.Hook && PiecePlanner.Plan(l, c, lantern, 0).Error == null ? null : c?.Id ?? "nothing";
+                            break;
+                        }
+                        if (got != null) missed.Add($"{h.Id}{(building ? " building" : "")}: {got}");
+                    }
+                Check(ceiling.Count > 10 && missed.Count == 0, $"note 66: a lantern aimed at a deck's underside goes on its hook, in building mode and out ({ceiling.Count} ceiling hooks{(missed.Count == 0 ? "" : "; not: " + string.Join(", ", missed.Take(6)))})");
+                // (at her place, not her height: under the hold's hatch to port and over the quarterdeck's stair to starboard her
+                // ceilings differ, as designed)
+                var lone = l.Hooks.Where(h => !l.Hooks.Any(o => Math.Abs(o.X - h.X) < 1e-6 && Math.Abs(o.Z + h.Z) < 1e-6)).Select(h => h.Id).ToList();
+                Check(lone.Count == 0, $"note 70: her hooks alike port and starboard ({(lone.Count == 0 ? $"{l.Hooks.Count()} hooks" : "alone: " + string.Join(", ", lone.Take(6)))})");
             }
 
             // ---- note 57: the partition under the main deck's beam in her hold, aimed at with an axe: her own planking is behind it

@@ -6,9 +6,10 @@ using Vintagestory.API.Common;
 namespace Hansa
 {
     /// <summary>
-    /// (24 October 2026, caravel notes 66-79 on 0.1.0-dev.8) On the ship under test, with the game's own blocks: an oven on a
+    /// (24 October 2026, caravel notes 66-82 on 0.1.0-dev.8) On the ship under test, with the game's own blocks: an oven on a
     /// planks block put on her deck (note 74), a trunk at her hold's after end where it's one cell wide (note 79), a bed on
-    /// either side of her main deck by the mizzen (note 70), the mainmast's lantern taken down and hung back (note 66). Each
+    /// either side of her main deck by the mizzen (note 70), the mainmast's lantern taken down and hung back, and one hung
+    /// under her steerage's ceiling (note 66); no panel places (note 82). Each
     /// put as the server puts a player's (laid another way where vanilla's doesn't fit) and taken up again.
     /// </summary>
     public partial class SelfTest
@@ -75,7 +76,15 @@ namespace Hansa
                     var plan = stack == null ? null : PiecePlanner.Plan(l, hook, new VanillaPieceBlock(sapi.World, stack), 1);
                     string back = plan == null ? "no stack" : ship.PlacePiece(plan, stack, true, out _);
                     Check(down == null && back == null && ship.Pieces.At(hook.Id) != null, $"note 66: the mainmast's lantern taken down ({down ?? "ok"}) and hung back ({back ?? "ok"})");
+                    // (and under a deck: the steerage's ceiling's hook)
+                    var ceiling = l.Get("h:c:main:-11:-1");
+                    var underDeck = stack == null || ceiling == null ? null : PiecePlanner.Plan(l, ceiling, new VanillaPieceBlock(sapi.World, stack), 1);
+                    string hung = underDeck == null ? "no ceiling hook or stack" : ship.PlacePiece(underDeck, stack, true, out var hungP);
+                    string off = hung == null ? ship.RemovePiece(ship.Pieces.At(ceiling.Id), null) : "not hung";
+                    Check(hung == null && off == null, $"note 66: a lantern hung under the steerage's ceiling ({hung ?? "ok"}) and taken down ({off ?? "ok"})");
                 }
+                // ---- note 82: no panel places on her (nothing put into a cell her hull or ribs are in)
+                Check(!ship.Def.PanelPlaces && !l.Panels.Any(), $"note 82: no panel places on the caravel ({l.Panels.Count()})");
             }
             finally
             {

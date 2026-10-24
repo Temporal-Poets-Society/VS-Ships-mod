@@ -249,10 +249,11 @@ namespace Hansa
                         normal = ng;
                         hit = o.AddCopy(d.X * tg, d.Y * tg, d.Z * tg);
                     }
-                    if (hit != null && normal != null && !hooksOnly)
+                    if (hit != null && normal != null)
                     {
                         // (the first place next to the hit the block in hand fits; else the first, to say why not)
-                        foreach (var c in AimPlace.Candidates(ship.Mounts, ship.Pieces, hit, normal, hitPiece, free, onBorder && !chalk))
+                        // ((24 October 2026, note 66) a lantern in building mode: the hooks there only, a deck's underside's too)
+                        foreach (var c in AimPlace.Candidates(ship.Mounts, ship.Pieces, hit, normal, hitPiece, hooksOnly ? x => x.Kind == MountKind.Hook && free(x) : free, onBorder && !chalk))
                         {
                             if (chalk) { m = c; break; }
                             int tw = c.Kind is MountKind.Wall or MountKind.Panel ? c.In : TowardPlayer(ship, c, eye, hit);
