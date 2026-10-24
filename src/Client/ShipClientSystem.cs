@@ -709,12 +709,16 @@ namespace Hansa
 
         IMountableSeat lastMount;
 
+        // (review H1-22: made once, not each call each frame)
+        static readonly double[] InHullHeights = { 0.1, 0.6, 1.1, 1.6 };
+        const double InHullR = DeckMover.HalfWidth - 0.05;
+        static readonly (double, double)[] InHullOffsets = { (0.0, 0.0), (InHullR, 0.0), (-InHullR, 0.0), (0.0, InHullR), (0.0, -InHullR) };
+
         /// <summary>A player's body (feet at y, ship-local) in the hull: a few points of it inside her planking.</summary>
         static bool InHull(EntityShip ship, double x, double y, double z)
         {
-            const double r = DeckMover.HalfWidth - 0.05;
-            foreach (double h in new[] { 0.1, 0.6, 1.1, 1.6 })
-                foreach (var (ox, oz) in new[] { (0.0, 0.0), (r, 0.0), (-r, 0.0), (0.0, r), (0.0, -r) })
+            foreach (double h in InHullHeights)
+                foreach (var (ox, oz) in InHullOffsets)
                     if (ship.HullAt(x + ox, y + h, z + oz) && y + h < ship.Def.DeckY) return true;
             return false;
         }

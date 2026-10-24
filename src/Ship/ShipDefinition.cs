@@ -622,6 +622,10 @@ namespace Hansa
     public class MovingPartDef
     {
         public string Code;
+        string partGroup, glassGroup;
+        /// <summary>(review H1-22) Its skin groups' names ("part:" and "glass:" + its code), made once, not every frame.</summary>
+        [JsonIgnore] public string PartGroup => partGroup ??= "part:" + Code;
+        [JsonIgnore] public string GlassGroup => glassGroup ??= "glass:" + Code;
         public string Kind = "rotate";
         public double[] AxisPoint;
         public double[] AxisDir;
@@ -1112,8 +1116,11 @@ namespace Hansa
         {
             // Amanatides & Woo voxel traversal, starting where the ray enters the grid
             double tEnter = 0, tExit = maxDist;
-            double[] p = { from.X, from.Y, from.Z }, d = { dir.X, dir.Y, dir.Z };
-            double[] lo = { OX, OY, OZ }, hi = { MaxX, MaxY, MaxZ };
+            // (review H1-22: on the stack, not 9 arrays a ray; several rays a ship a frame)
+            Span<double> p = stackalloc double[] { from.X, from.Y, from.Z };
+            Span<double> d = stackalloc double[] { dir.X, dir.Y, dir.Z };
+            Span<double> lo = stackalloc double[] { OX, OY, OZ };
+            Span<double> hi = stackalloc double[] { MaxX, MaxY, MaxZ };
             for (int a = 0; a < 3; a++)
             {
                 if (Math.Abs(d[a]) < 1e-12)
@@ -1129,9 +1136,11 @@ namespace Hansa
             if (tEnter > tExit) return double.MaxValue;
 
             double t = tEnter + 1e-7;
-            int[] cell = new int[3], step = new int[3];
-            double[] tMax = new double[3], tDelta = new double[3];
-            int[] n = { NX, NY, NZ };
+            Span<int> cell = stackalloc int[3];
+            Span<int> step = stackalloc int[3];
+            Span<double> tMax = stackalloc double[3];
+            Span<double> tDelta = stackalloc double[3];
+            Span<int> n = stackalloc int[] { NX, NY, NZ };
             for (int a = 0; a < 3; a++)
             {
                 double pos = p[a] + d[a] * t;
@@ -1162,8 +1171,11 @@ namespace Hansa
             ci = cj = ck = axis = -1;
             double tEnter = 0, tExit = maxDist;
             int enterAxis = -1;
-            double[] p = { from.X, from.Y, from.Z }, d = { dir.X, dir.Y, dir.Z };
-            double[] lo = { OX, OY, OZ }, hi = { MaxX, MaxY, MaxZ };
+            // (review H1-22: on the stack, not 9 arrays a ray; several rays a ship a frame)
+            Span<double> p = stackalloc double[] { from.X, from.Y, from.Z };
+            Span<double> d = stackalloc double[] { dir.X, dir.Y, dir.Z };
+            Span<double> lo = stackalloc double[] { OX, OY, OZ };
+            Span<double> hi = stackalloc double[] { MaxX, MaxY, MaxZ };
             for (int a = 0; a < 3; a++)
             {
                 if (Math.Abs(d[a]) < 1e-12)
@@ -1179,9 +1191,11 @@ namespace Hansa
             if (tEnter > tExit) return double.MaxValue;
 
             double t = tEnter + 1e-7;
-            int[] cell = new int[3], step = new int[3];
-            double[] tMax = new double[3], tDelta = new double[3];
-            int[] n = { NX, NY, NZ };
+            Span<int> cell = stackalloc int[3];
+            Span<int> step = stackalloc int[3];
+            Span<double> tMax = stackalloc double[3];
+            Span<double> tDelta = stackalloc double[3];
+            Span<int> n = stackalloc int[] { NX, NY, NZ };
             for (int a = 0; a < 3; a++)
             {
                 double pos = p[a] + d[a] * t;
