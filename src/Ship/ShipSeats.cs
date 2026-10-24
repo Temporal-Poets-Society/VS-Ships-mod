@@ -144,6 +144,11 @@ namespace Hansa
         /// <summary>(server, review H3-7) The newest position held back by the rate limit; a relay held back a moment.</summary>
         public DeckStatePacket PendingState;
         public bool RelayPending;
+        /// <summary>
+        /// (server, review H4-3) Her collision's version when the server last took their place from their client; -1 after the
+        /// server put them somewhere itself (boarding, standing up): then a way out of her is let go, as after she changed.
+        /// </summary>
+        public int AcceptedFitVersion = -1;
 
         // remote interpolation (client)
         readonly Queue<(long ms, double x, double y, double z)> remote = new();
@@ -173,6 +178,7 @@ namespace Hansa
         {
             local.Set(x, y, z);
             Flags = flags;
+            AcceptedFitVersion = -1;
         }
 
         public void PushRemote(long nowMs, double x, double y, double z, byte flags)

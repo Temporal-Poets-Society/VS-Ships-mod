@@ -44,6 +44,7 @@ namespace Hansa
         long boardCooldownUntil;
         Vec3d boardedFrom;
         long boardedShip;
+        int boardAttempt;
         FixtureHit lookedAt;
         // the gun last clicked (the game repeats a held click: one shot a click)
         (long Ship, int Gun, long Ms) lastGunClick;
@@ -335,7 +336,10 @@ namespace Hansa
                 if (sendAccum >= 1 / 15f)
                 {
                     sendAccum = 0;
-                    var l = ds.LocalPos;
+                    // (review H4-1) where the walker's feet are (its collision height, which the server checks against her), not the
+                    // height the camera glides at over steps: others' clients glide it themselves (DeckSeat.PushRemote)
+                    var m = ds.Mover;
+                    var l = m != null ? new Vec3d(m.X, m.Y, m.Z) : ds.LocalPos;
                     // (review H1-15) only when we moved or our stance changed, and once a second standing still
                     var s = (ship: ds.Ship.EntityId, x: (float)l.X, y: (float)l.Y, z: (float)l.Z, flags: ds.Flags);
                     long now = capi.World.ElapsedMilliseconds;
@@ -835,8 +839,10 @@ namespace Hansa
             // (review H3-3: where they were, should the server refuse it)
             boardedFrom = ep.Pos.XYZ;
             boardedShip = ship.EntityId;
+            // (review H4-4: which try a refusal answers)
+            boardAttempt++;
             ep.TryMount(seat);   // predicted; the server confirms through the "mountedOn" attribute, or refuses (OnRemoteDeckState)
-            channel.SendPacket(new BoardPacket { ShipId = ship.EntityId, X = (float)x, Y = (float)y, Z = (float)z });
+            channel.SendPacket(new BoardPacket { ShipId = ship.EntityId, X = (float)x, Y = (float)y, Z = (float)z, Attempt = boardAttempt });
             boardCooldownUntil = capi.World.ElapsedMilliseconds + 500;
         }
 
@@ -1487,7 +1493,8 @@ namespace Hansa
                 // (review H3-3) the server refused our boarding: off the seat we took, back where we were, not again at once
                 if (p.Refused)
                 {
-                    if (e.MountedOn is DeckSeat taken && taken.Ship.EntityId == p.ShipId)
+                    // (review H4-4) only our latest try: a late answer to an earlier one doesn't undo a boarding since
+                    if (p.Attempt == boardAttempt && e.MountedOn is DeckSeat taken && taken.Ship.EntityId == p.ShipId)
                     {
                         e.TryUnmount();
                         if (boardedShip == p.ShipId && boardedFrom != null)

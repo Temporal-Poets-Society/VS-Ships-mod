@@ -62,6 +62,7 @@
     <Compile Include="PointingTests.cs" />
     <Compile Include="BlockTests.cs" />
     <Compile Include="..\..\src\Ship\ShipBlockMath.cs" Link="Ship\ShipBlockMath.cs" />
+    <Compile Include="..\..\src\Ship\DeckMoveCheck.cs" Link="Ship\DeckMoveCheck.cs" />
     <Compile Include="..\..\src\Ship\ShipCover.cs" Link="Ship\ShipCover.cs" />
     <Compile Include="..\..\src\Ship\HearthFire.cs" Link="Ship\HearthFire.cs" />
     <Compile Include="..\..\src\Client\SurveyNotes.cs" Link="Client\SurveyNotes.cs" />

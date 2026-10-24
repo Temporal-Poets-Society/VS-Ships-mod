@@ -15,6 +15,8 @@ namespace Hansa
         [ProtoMember(6)] public long PlayerEntityId;
         /// <summary>(review H3-3) Server -> the client that asked: boarding her (ShipId) was refused; it puts them back.</summary>
         [ProtoMember(7)] public bool Refused;
+        /// <summary>(review H4-4) With Refused: the BoardPacket.Attempt refused.</summary>
+        [ProtoMember(8)] public int Attempt;
     }
 
     /// <summary>Client -> server: put me on this ship at this local position.</summary>
@@ -25,6 +27,8 @@ namespace Hansa
         [ProtoMember(2)] public float X;
         [ProtoMember(3)] public float Y;
         [ProtoMember(4)] public float Z;
+        /// <summary>(review H4-4) The client's count of its tries, echoed if it's refused.</summary>
+        [ProtoMember(5)] public int Attempt;
     }
 
     /// <summary>Client -> server: I stepped off the ship here, with this velocity (blocks per tick).</summary>

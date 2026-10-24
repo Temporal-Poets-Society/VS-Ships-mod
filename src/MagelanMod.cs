@@ -371,6 +371,8 @@ namespace Hansa
             if (!DeckMovePossible(ep, seat, x, y, z, p.Flags, now)) { SendDeckCorrection(player, seat); return; }
             seat.SetLocal(x, y, z, p.Flags);
             seat.StateMs = now;
+            // (review H4-3: their place as taken now, in her as she is now)
+            seat.AcceptedFitVersion = ship.FitVersion;
             // (review H2-1: passed on once a server tick at most; review H3-7: one held back goes with the next tick)
             if (now - seat.RelayMs < 30) { seat.RelayPending = true; return; }
             RelayDeckState(player, seat, now);
@@ -403,73 +405,38 @@ namespace Hansa
         static bool DeckMovePossible(EntityPlayer ep, DeckSeat seat, double x, double y, double z, byte flags, long now)
         {
             var ship = seat.Ship;
+            var g = ship.Grid;
             var from = seat.StoredLocal;
             double walk = 3.5 * GameMath.Clamp(ep.Stats.GetBlended("walkspeed"), 0, 5) * GlobalConstants.SprintSpeedMultiplier;
             // (review H2-7: a jump as high as their jump height lets them, as their client's walker jumps)
             double jump = DeckMover.JumpSpeed * Math.Sqrt(Math.Max(1, ep.Stats.GetBlended("jumpHeightMul")));
-            // (review H3-10) up: a jump, or walking up stairs (they rise less than they run); on her short ship's stairs
-            // three times that (a deck's 3 blocks over 1 of run)
-            bool steep = InAny(ship.SteepFlights, from.X, from.Y, from.Z) || InAny(ship.SteepFlights, x, y, z);
-            double levelRate = walk * 1.5, upRate = Math.Max(jump, walk * (steep ? 3 : 1)), downRate = DeckMover.TerminalFall;
+            // (review H3-10, H4-6) up: a jump, or walking up stairs (they rise less than they run); on her short ship's
+            // stairs the rise that goes with the run along them (DeckMoveCheck.RiseAllowed)
+            bool steep = DeckMoveCheck.InAny(ship.SteepFlights, from.X, from.Y, from.Z) || DeckMoveCheck.InAny(ship.SteepFlights, x, y, z);
+            double levelRate = walk * 1.5, upRate = Math.Max(jump, walk), downRate = DeckMover.TerminalFall;
             double since = seat.BudgetMs == 0 ? 1 : GameMath.Clamp((now - seat.BudgetMs) / 1000.0, 0, 1);
             seat.BudgetMs = now;
             seat.BudgetLevel = Math.Min(levelRate + 1, seat.BudgetLevel + levelRate * since);
             seat.BudgetUp = Math.Min(upRate + 1, seat.BudgetUp + upRate * since);
             seat.BudgetDown = Math.Min(downRate + 1, seat.BudgetDown + downRate * since);
             double dx = x - from.X, dy = y - from.Y, dz = z - from.Z, level = Math.Sqrt(dx * dx + dz * dz);
-            if (level > seat.BudgetLevel || dy > seat.BudgetUp || -dy > seat.BudgetDown) return false;
+            if (level > seat.BudgetLevel || !DeckMoveCheck.RiseAllowed(dy, level, seat.BudgetUp, steep) || -dy > seat.BudgetDown) return false;
             // (a brow is walked as a ladder of its own kind, without the climbing flag)
             bool ladder = OnSameLadder(ship, from, x, y, z, browsOnly: ((flags | seat.Flags) & DeckSeat.FlagClimbing) == 0);
-            if (!ladder && (BodyIn(ship.Grid, x, y, z) || !PathFree(ship.Grid, from, x, y, z))) return false;
+            // (review H4-3) the way out of her only when she changed under them since the server last took their place (a
+            // place taken on a ladder's way, in her rail or gate, doesn't count)
+            bool escape = seat.AcceptedFitVersion != ship.FitVersion;
+            if (!ladder && (DeckMoveCheck.BodyIn(g, x, y, z) || !DeckMoveCheck.PathFree(g, from, x, y, z, escape))) return false;
             seat.BudgetLevel -= level;
-            if (dy > 0) seat.BudgetUp -= dy; else seat.BudgetDown += dy;
+            if (dy > 0) seat.BudgetUp = Math.Max(0, seat.BudgetUp - dy); else seat.BudgetDown += dy;
             return true;
         }
 
         /// <summary>
-        /// (review H3-2) Is their body in her collision, waist high (feet + 0.8 to + 1.1, a hundredth narrower each side)? The
-        /// height a client sends glides over steps (up to 0.75 behind its feet): this band stays inside the body all the same,
-        /// and a wall or partition reaches through it.
-        /// </summary>
-        static bool BodyIn(VoxelGrid g, double x, double y, double z)
-        {
-            const double w = DeckMover.HalfWidth - 0.01;
-            return g.Collides(x - w, y + 0.8, z - w, x + w, y + 1.1, z + w);
-        }
-
-        static bool InAny(double[][] boxes, double x, double y, double z)
-        {
-            if (boxes == null) return false;
-            foreach (var b in boxes)
-                if (b != null && x + DeckMover.HalfWidth > b[0] && x - DeckMover.HalfWidth < b[3] && y + DeckMover.Height > b[1] && y < b[4] &&
-                    z + DeckMover.HalfWidth > b[2] && z - DeckMover.HalfWidth < b[5]) return true;
-            return false;
-        }
-
-        /// <summary>(review H2-1) Nothing of hers between two deck places, waist high: straight, or round one corner (a long step at a low frame rate).</summary>
-        static bool PathFree(VoxelGrid g, Vec3d from, double x, double y, double z)
-        {
-            // (already in her where the server has them: a piece put or a door shut there; review H3-2: only a short way out,
-            // to a free place, which a client can't fake: every place it's let move to is free)
-            if (BodyIn(g, from.X, from.Y, from.Z)) return (x - from.X) * (x - from.X) + (z - from.Z) * (z - from.Z) <= 1 && Math.Abs(y - from.Y) <= 1;
-            if (Clear(g, from.X, from.Y, from.Z, x, y, z)) return true;
-            // (review H2-7) round the corner either way: along x then z, or z then x
-            return Clear(g, from.X, from.Y, from.Z, x, from.Y, from.Z) && Clear(g, x, from.Y, from.Z, x, y, z) ||
-                   Clear(g, from.X, from.Y, from.Z, from.X, from.Y, z) && Clear(g, from.X, from.Y, z, x, y, z);
-        }
-
-        static bool Clear(VoxelGrid g, double ax, double ay, double az, double bx, double by, double bz)
-        {
-            double dx = bx - ax, dy = by - ay, dz = bz - az, len = Math.Sqrt(dx * dx + dy * dy + dz * dz);
-            if (len < 1e-4) return true;
-            return g.Raycast(new Vec3d(ax, ay + 1, az), new Vec3d(dx / len, dy / len, dz / len), len) >= len;
-        }
-
-        /// <summary>
-        /// (review H2-1, H3-1) Are both places on the way up or down one of her ladders (on the line from its foot to its top
-        /// as a climber keeps to it, or where one steps on or off), and not past its shut gate, hatch or cover: with its top
-        /// shut its top end isn't on its way; with a hatch on its way shut, their body (feet to head) not into it, nor from one
-        /// side of it to the other.
+        /// (review H2-1, H3-1, H4-2) Are both places on the way up or down one of her ladders (on the line from its foot to its
+        /// top as a climber keeps to it, or where one steps on or off), and not past its shut gate, hatch or cover: with its top
+        /// shut its top end isn't on its way, and under a shut cover their head stays under it; with a hatch on its way shut,
+        /// their body (feet to head) not into it, nor from one side of it to the other.
         /// </summary>
         static bool OnSameLadder(EntityShip ship, Vec3d from, double x, double y, double z, bool browsOnly)
         {
@@ -477,7 +444,9 @@ namespace Hansa
             {
                 if (l.Bottom == null || l.Top == null || browsOnly && l.Kind != "brow") continue;
                 bool topOpen = !ship.LadderTopClosed(l);
-                if (!OnLadderWay(l, from.X, from.Y, from.Z, topOpen) || !OnLadderWay(l, x, y, z, topOpen)) continue;
+                if (!DeckMoveCheck.OnLadderWay(l, from.X, from.Y, from.Z, topOpen) || !DeckMoveCheck.OnLadderWay(l, x, y, z, topOpen)) continue;
+                double under = ship.LadderCover(l);
+                if (!double.IsNaN(under) && (from.Y + DeckMover.Height > under + 0.05 || y + DeckMover.Height > under + 0.05)) continue;
                 if (l.Through != null && !double.IsNaN(l.ThroughY) && ship.LadderThroughClosed(l))
                 {
                     double h = l.ThroughY;
@@ -493,26 +462,9 @@ namespace Hansa
         static bool OnOutsideWay(EntityShip ship, double x, double y, double z)
         {
             foreach (var l in ship.Ladders)
-                if (l.Outside && l.Bottom != null && l.Top != null && OnLadderWay(l, x, y, z, true)) return true;
+                if (l.Outside && l.Bottom != null && l.Top != null && DeckMoveCheck.OnLadderWay(l, x, y, z, true)) return true;
             return false;
         }
-
-        /// <summary>
-        /// (review H3-1) On a ladder's way: within 0.6 level of the line from its foot to its top, or of where one steps off at
-        /// its foot (or its top: exitTop), and 1.2 up or down (the height a client sends glides behind its feet).
-        /// </summary>
-        static bool OnLadderWay(LadderDef l, double x, double y, double z, bool exitTop)
-        {
-            if (exitTop && l.ExitTop != null && NearPoint(l.ExitTop[0], l.ExitTop[1], l.ExitTop[2], x, y, z) ||
-                l.ExitBottom != null && NearPoint(l.ExitBottom[0], l.ExitBottom[1], l.ExitBottom[2], x, y, z)) return true;
-            double ax = l.Top[0] - l.Bottom[0], ay = l.Top[1] - l.Bottom[1], az = l.Top[2] - l.Bottom[2];
-            double len2 = ax * ax + ay * ay + az * az;
-            double t = len2 < 1e-9 ? 0 : GameMath.Clamp(((x - l.Bottom[0]) * ax + (y - l.Bottom[1]) * ay + (z - l.Bottom[2]) * az) / len2, 0, 1);
-            return NearPoint(l.Bottom[0] + ax * t, l.Bottom[1] + ay * t, l.Bottom[2] + az * t, x, y, z);
-        }
-
-        static bool NearPoint(double px, double py, double pz, double x, double y, double z) =>
-            (px - x) * (px - x) + (pz - z) * (pz - z) <= 0.6 * 0.6 && Math.Abs(py - y) <= 1.2;
 
         /// <summary>(review H1-2) A deck position refused: back to where the server has them (their own client resets its walker).</summary>
         void SendDeckCorrection(IServerPlayer player, DeckSeat seat)
@@ -528,22 +480,22 @@ namespace Hansa
             if (ep == null) return;
             if (ship != null && ep.MountedOn != null && ep.MountedOn.Entity == ship) return;
             // (review H3-3) refused: their client took them aboard already (predicted), and is told to put them back
-            if (ship?.Def == null || !ep.Alive || ship.GoneDown) { RefuseBoard(player, p.ShipId); return; }
+            if (ship?.Def == null || !ep.Alive || ship.GoneDown) { RefuseBoard(player, p); return; }
             // laid up, she's closed to all but her crew (ShipCrew)
             if (!ship.MayBoard(player))
             {
                 player.SendIngameError("hansa-crew", Lang.GetL(player.LanguageCode, "hansa:laidup-closed"));
-                RefuseBoard(player, p.ShipId);
+                RefuseBoard(player, p);
                 return;
             }
             // (review H1-1: a ladder's foot, a boarding point, or a floor beside them in sight, never anywhere in reach;
             // review H3-5: on a ladder, at its foot as the server has it, not lifted out of her side)
-            if (!ship.MayBoardAt(ep, p.X, p.Y, p.Z, out var spot, out bool ladder) || !ship.Board(ep, spot, unstick: !ladder)) RefuseBoard(player, p.ShipId);
+            if (!ship.MayBoardAt(ep, p.X, p.Y, p.Z, out var spot, out bool ladder) || !ship.Board(ep, spot, unstick: !ladder)) RefuseBoard(player, p);
         }
 
         /// <summary>(review H3-3) Boarding refused: their client takes back the place aboard it gave them.</summary>
-        void RefuseBoard(IServerPlayer player, long shipId) =>
-            serverChannel.SendPacket(new DeckStatePacket { ShipId = shipId, PlayerEntityId = player.Entity.EntityId, Refused = true }, player);
+        void RefuseBoard(IServerPlayer player, BoardPacket p) =>
+            serverChannel.SendPacket(new DeckStatePacket { ShipId = p.ShipId, PlayerEntityId = player.Entity.EntityId, Refused = true, Attempt = p.Attempt }, player);
 
         void OnLeave(IServerPlayer player, LeavePacket p)
         {
