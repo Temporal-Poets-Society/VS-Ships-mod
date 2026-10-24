@@ -132,8 +132,15 @@ namespace Hansa
         readonly Vec3d interp = new Vec3d();
         public DeckMover Mover;          // only for the local player on the client
         public byte Flags = FlagOnGround;
-        /// <summary>(server, review H1-2) When the player's last deck position came in: how far they may have moved since.</summary>
+        /// <summary>(server, review H1-2) When the player's last deck position came in.</summary>
         public long StateMs;
+        /// <summary>
+        /// (server, review H2-1) How far they may still move level, up and down (blocks: filled over time, spent by moves),
+        /// when that was last worked out; their packets this second, and when their position was last passed on.
+        /// </summary>
+        public double BudgetLevel, BudgetUp, BudgetDown;
+        public long BudgetMs, PacketWindowMs, RelayMs;
+        public int PacketsInWindow;
 
         // remote interpolation (client)
         readonly Queue<(long ms, double x, double y, double z)> remote = new();
