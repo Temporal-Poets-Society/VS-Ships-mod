@@ -1728,7 +1728,9 @@ namespace Hansa
                     double y = m.Y + h;
                     if (g.Collides(m.X + e, y - 1 + e, m.Z + e, m.X + 1 - e, y - e, m.Z + 1 - e)) break;
                     if (h == 3) { if (!WellTop(m, y)) break; }
-                    else if (!closed) continue;
+                    // ((24 October 2026, caravel note 83: "some thin shelf ... to place vessels, chest etc on second block") on an
+                    // open deck too where a deck is over it (under a castle's overhang), not under the sky
+                    else if (!closed && Ceiling(m.X + 0.5, m.Y, m.Z + 0.5) == null) continue;
                     var box = new[] { m.X, y - ShelfThickness, m.Z, m.X + 1, y, m.Z + 1 };
                     if (h < 3 && ClearHit(box[0], box[1], box[2], box[3], box[4], box[5]) != null) continue;
                     All.Add(new MountPoint

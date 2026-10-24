@@ -111,6 +111,8 @@ namespace Hansa
                 foreach (var m in Borders(l, qx, qy, qz, pm)) Add(m);
                 foreach (var m in Shelves(l, qx, qy, qz, p.Y, true)) Add(m);
                 Add(FlueAt(l, qx, qy, qz));
+                // ((24 October 2026, caravel note 83) a floor cell aimed at: the shelves over it, the lowest first)
+                foreach (var m in ShelvesOver(l, FloorAt(l, qx, qy, qz))) Add(m);
             }
             else if (down)
             {
@@ -127,6 +129,9 @@ namespace Hansa
                 foreach (var m in Borders(l, qx, qy, qz, pm)) Add(m);
                 Add(FloorAt(l, qx, qy, qz));
                 foreach (var m in Shelves(l, qx, qy, qz, p.Y, false)) Add(m);
+                // ((24 October 2026, caravel note 83) her curved side, a block's width or so from the floor's edge: the shelf
+                // at that height over the floor cell in front of it)
+                foreach (var m in ShelvesInFront(l, qx, qy, qz, n)) Add(m);
                 Add(FlueAt(l, qx, qy, qz));
                 // ((0.3.28, note 230) on a wall's upper half: a hood's roof on its top, the side more walled in first)
                 foreach (var m in Hoods(l, pieces, qx, qy, qz, piece != null && piece.OnBorder ? pm : null)) Add(m);
@@ -192,6 +197,36 @@ namespace Hansa
                 else if (onFloor && Math.Abs(m.Y - hitY) < 0.1 && (dx <= 0.85 && dz <= 0.5 || dz <= 0.85 && dx <= 0.5)) found.Add((m, 0.6 + Math.Max(dx, dz)));
             }
             return found.OrderBy(f => f.D).Select(f => f.M);
+        }
+
+        /// <summary>
+        /// (24 October 2026, caravel note 83) The shelves over a floor place (a block up, then two), those with a place on top
+        /// of them (what a shelf is for: something stands on it); none for a stacked place or none.
+        /// </summary>
+        static IEnumerable<MountPoint> ShelvesOver(MountLayout l, MountPoint floor)
+        {
+            if (floor == null || floor.Level != 0) yield break;
+            for (int h = 1; h <= 2; h++)
+                if (l.HorizontalAt(floor.Deck, floor.I, floor.K, h) is MountPoint s && l.FloorAt(floor.Deck, floor.I, floor.K, h) != null) yield return s;
+        }
+
+        /// <summary>
+        /// (24 October 2026, caravel note 83) A wall's face at q (normal n, level): the shelf whose plane is within 0.6 of q
+        /// over the first floor cell in front of it, out to a block and a half (her side's cell lies between her planking and
+        /// the floor's edge), those with a place on top of them.
+        /// </summary>
+        static IEnumerable<MountPoint> ShelvesInFront(MountLayout l, double x, double y, double z, double[] n)
+        {
+            for (double step = 0.25; step <= 1.5 + 1e-6; step += 0.25)
+            {
+                double fx = x + n[0] * step, fz = z + n[2] * step;
+                foreach (var f in l.Floors)
+                {
+                    if (fx < f.X || fx > f.X + 1 || fz < f.Z || fz > f.Z + 1 || y < f.Y || y > f.Y + 2.6) continue;
+                    foreach (var s in ShelvesOver(l, f).Where(s => Math.Abs(s.Y - y) <= 0.6)) yield return s;
+                    yield break;
+                }
+            }
         }
 
         /// <summary>

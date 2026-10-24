@@ -9,7 +9,8 @@ namespace Hansa
     /// (24 October 2026, caravel notes 66-82 on 0.1.0-dev.8) On the ship under test, with the game's own blocks: an oven on a
     /// planks block put on her deck (note 74), a trunk at her hold's after end where it's one cell wide (note 79), a bed on
     /// either side of her main deck by the mizzen (note 70), the mainmast's lantern taken down and hung back, and one hung
-    /// under her steerage's ceiling (note 66); no panel places (note 82). Each
+    /// under her steerage's ceiling (note 66); no panel places (note 82); a shelf in her hold over a chest, a vessel on it
+    /// (note 83). Each
     /// put as the server puts a player's (laid another way where vanilla's doesn't fit) and taken up again.
     /// </summary>
     public partial class SelfTest
@@ -82,6 +83,31 @@ namespace Hansa
                     string hung = underDeck == null ? "no ceiling hook or stack" : ship.PlacePiece(underDeck, stack, true, out var hungP);
                     string off = hung == null ? ship.RemovePiece(ship.Pieces.At(ceiling.Id), null) : "not hung";
                     Check(hung == null && off == null, $"note 66: a lantern hung under the steerage's ceiling ({hung ?? "ok"}) and taken down ({off ?? "ok"})");
+                }
+                // ---- note 83: a shelf a block up in her hold, aimed at from a step away with a plank slab (building mode), over a
+                // chest; a vessel on it; not taken up from under the vessel; then each taken up
+                {
+                    var cell = l.FloorAt("hold", -3, -2);
+                    var slabStack = new ItemStack(B("plankslab-oak-down-free"));
+                    var eye = new Vintagestory.API.MathTools.Vec3d(cell.X + 1.5, cell.Y + 1.62, cell.Z + 0.5);
+                    var aim = new Vintagestory.API.MathTools.Vec3d(-1.0, -1.62, 0);
+                    aim.Mul(1 / aim.Length());
+                    MountPoint shelfAt = null;
+                    if (AimPlace.GridHit(ship.Grid, eye, aim, 6, out double th, out var nh))
+                        shelfAt = AimPlace.Candidates(l, ship.Pieces, eye.AddCopy(aim.X * th, aim.Y * th, aim.Z * th), nh, null,
+                            x => x.Kind == MountKind.Horizontal && !ship.Pieces.Taken(x.Id) && ship.MountOpen(x)).FirstOrDefault();
+                    string chestPut = Put(cell, B("chest-east"), 0, out var chestP);
+                    var shelfPlan = shelfAt == null ? null : PiecePlanner.Plan(l, shelfAt, new VanillaPieceBlock(sapi.World, slabStack, true), 0);
+                    string shelfPut = shelfPlan == null ? "nothing offered" : ship.PlacePiece(shelfPlan, slabStack, true, out var shelfP);
+                    var vesselBlock = sapi.World.Blocks.FirstOrDefault(bl => bl?.Code != null && bl.Code.Path.StartsWith("storagevessel-") && bl.Code.Path.EndsWith("-fired"));
+                    string vesselPut = Put(l.FloorAt("hold", -3, -2, 1), vesselBlock, 0, out var vesselP);
+                    var shelfPiece = shelfAt == null ? null : ship.Pieces.At(shelfAt.Id);
+                    string fromUnder = shelfPiece == null ? "no shelf" : ship.RemovePiece(shelfPiece, null);
+                    Check(shelfAt?.Id == "hb:hold:-3:-2:1" && chestPut == null && shelfPut == null && vesselPut == null && fromUnder == "hansa:piece-under",
+                        $"note 83: a shelf a block up in her hold, aimed at from a step away ({shelfAt?.Id ?? "nothing"}), over a chest ({chestPut ?? "ok"}, {shelfPut ?? "ok"}), a vessel on it ({vesselPut ?? "ok"}), not taken up from under it ({fromUnder})");
+                    string outs = string.Join(", ", new[] { vesselP, shelfPiece, chestP }.Select(p => p == null ? "none" : ship.RemovePiece(p, null) ?? "ok"));
+                    Check(outs == "ok, ok, ok", $"note 83: the vessel, the shelf and the chest taken up ({outs})");
+                    put.Clear();
                 }
                 // ---- note 82: no panel places on her (nothing put into a cell her hull or ribs are in)
                 Check(!ship.Def.PanelPlaces && !l.Panels.Any(), $"note 82: no panel places on the caravel ({l.Panels.Count()})");

@@ -11,7 +11,7 @@ namespace HansaTests
     static partial class Program
     {
         /// <summary>
-        /// (24 October 2026, caravel notes 57-82 on 0.1.0-dev.8) Putting things aboard the caravel and taking them up: her decks
+        /// (24 October 2026, caravel notes 57-83 on 0.1.0-dev.8) Putting things aboard the caravel and taking them up: her decks
         /// alike port and starboard, a bed, a trunk, a chest, a vessel, an oven wherever their cells are free, the oven on a
         /// block, a partition drawn alike from either side, a panel picked by any face, the axe's ray past a piece.
         ///   dotnet run --project tests/HansaTests -- buildplace        (HANSA_BP_MAP=1: each deck's places as a map, and why not)
@@ -20,12 +20,36 @@ namespace HansaTests
         {
             string path = Path.Combine(root, "assets", "hansa", "config", "ships", "caravel.json");
             if (!File.Exists(path)) return;
-            Console.WriteLine("caravel: building aboard (notes 57-82)");
+            Console.WriteLine("caravel: building aboard (notes 57-83)");
             var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
             def.Init();
             var l = def.Mounts;
             var g = def.Grid;
             if (Environment.GetEnvironmentVariable("HANSA_BP_MAP") != null) FloorMap(def);
+            if (Environment.GetEnvironmentVariable("HANSA_BP_SIDES") != null)
+            {
+                // how deep her side's cells are free past a room's outermost floor cells, at heights over the deck (note 83)
+                foreach (var m in l.Floors.Where(m => def.RoomAt(m.X + 0.5, m.Y + 0.5, m.Z + 0.5)?.Enclosed == true).OrderBy(m => m.Deck).ThenBy(m => m.K).ThenBy(m => m.I))
+                    for (int dir = 1; dir < 4; dir += 2)
+                    {
+                        if (l.FloorAt(m.Deck, m.I, m.K + MountLayout.DZ[dir]) != null) continue;
+                        double line = dir == 1 ? m.Z + 1 : m.Z;
+                        var row = new List<string>();
+                        foreach (double h in new[] { 0.25, 0.75, 1.25, 1.75 })
+                        {
+                            double worst = 9;
+                            foreach (double ax in new[] { 0.1, 0.5, 0.9 })
+                            {
+                                double dd = 0;
+                                while (dd < 1.5 && !g.SolidAt(m.X + ax, m.Y + h, line + MountLayout.DZ[dir] * (dd + 0.01))) dd += g.V / 2;
+                                worst = Math.Min(worst, dd);
+                            }
+                            row.Add($"{worst:0.00}");
+                        }
+                        Console.WriteLine($"  {m.Id} {(dir == 1 ? "starboard" : "port")}: free past the line at 0.25/0.75/1.25/1.75 over the deck: {string.Join(" ", row)}");
+                    }
+                Console.WriteLine($"  shelf places (hb): {string.Join(", ", l.Horizontals.Where(h => h.Id.StartsWith("hb:")).GroupBy(h => h.Deck + " level " + h.Level).Select(gr => $"{gr.Key}: {gr.Count()}"))}");
+            }
 
             var block = new FakePiece { Code = "game:planks-oak-ud", Family = "game:planks-oak", Planks = true };
             var chest = new FakePiece { Code = "game:chest-east", Family = "game:chest", Container = true, TurnMesh = true, Slots = 16, Sel = new[] { 0.0625, 0, 0.0625, 0.9375, 0.875, 0.9375 }, Col = new[] { 0.0625, 0, 0.0625, 0.9375, 0.875, 0.9375 } };
@@ -169,6 +193,62 @@ namespace HansaTests
                 // ceilings differ, as designed)
                 var lone = l.Hooks.Where(h => !l.Hooks.Any(o => Math.Abs(o.X - h.X) < 1e-6 && Math.Abs(o.Z + h.Z) < 1e-6)).Select(h => h.Id).ToList();
                 Check(lone.Count == 0, $"note 70: her hooks alike port and starboard ({(lone.Count == 0 ? $"{l.Hooks.Count()} hooks" : "alone: " + string.Join(", ", lone.Take(6)))})");
+            }
+
+            // ---- note 83: the thin shelf (a plank slab a block up over a floor cell, under a deck) found by aiming at the cell's
+            // floor from close by or at her side or a wall at its height; a chest under it, a vessel on it, not taken up from under that
+            {
+                var slab = new FakePiece { Code = "game:plankslab-oak-down-free", Family = "game:plankslab-oak", Slab = true };
+                var shelves = l.Horizontals.Where(h => h.Id.StartsWith("hb:") && h.Level <= 2).ToList();
+                var lone = shelves.Where(h => l.HorizontalAt(h.Deck, h.I, -h.K - 2, h.Level) == null).Select(h => h.Id).ToList();
+                Check(shelves.Count > 50 && lone.Count == 0, $"note 83: shelf places over her floor cells under a deck, alike port and starboard ({shelves.Count}{(lone.Count == 0 ? "" : "; alone: " + string.Join(", ", lone.Take(6)))})");
+                bool SlabOnly(MountPoint x) => x.Kind == MountKind.Horizontal;
+                var notFromFloor = new List<string>();
+                var notFromSide = new List<string>();
+                int sides = 0;
+                foreach (var f in l.Floors.Where(f => l.HorizontalAt(f.Deck, f.I, f.K, 1) != null && l.FloorAt(f.Deck, f.I, f.K, 1) != null))
+                {
+                    var want = l.HorizontalAt(f.Deck, f.I, f.K, 1);
+                    // (the floor from a step away, eye high: each way round that sees it)
+                    bool seen = false, got = false;
+                    for (int dir = 0; dir < 4 && !got; dir++)
+                    {
+                        var eye = new Vec3d(f.X + 0.5 + MountLayout.DX[dir] * 1.0, f.Y + 1.62, f.Z + 0.5 + MountLayout.DZ[dir] * 1.0);
+                        var aim = new Vec3d(f.X + 0.5 - eye.X, f.Y - eye.Y, f.Z + 0.5 - eye.Z);
+                        aim.Mul(1 / aim.Length());
+                        if (!AimPlace.GridHit(g, eye, aim, 6, out double th, out var nh) || nh[1] < 0.5 || Math.Abs(eye.Y + aim.Y * th - f.Y) > 0.01) continue;
+                        seen = true;
+                        got = AimPlace.Candidates(l, new ShipPieceSet(), eye.AddCopy(aim.X * th, aim.Y * th, aim.Z * th), nh, null, SlabOnly).FirstOrDefault() == want;
+                    }
+                    if (seen && !got) notFromFloor.Add(f.Id);
+                    // (an outermost cell: her side beyond it at the shelf's height, from over the cell)
+                    foreach (int dir in new[] { 1, 3 })
+                    {
+                        if (l.FloorAt(f.Deck, f.I, f.K + MountLayout.DZ[dir]) != null) continue;
+                        var eye = new Vec3d(f.X + 0.5, f.Y + 1.62, f.Z + 0.5);
+                        var aim = new Vec3d(0, -0.45, MountLayout.DZ[dir]);
+                        aim.Mul(1 / aim.Length());
+                        if (!AimPlace.GridHit(g, eye, aim, 3, out double th, out var nh) || Math.Abs(nh[1]) > 0.5) continue;
+                        sides++;
+                        var c = AimPlace.Candidates(l, new ShipPieceSet(), eye.AddCopy(aim.X * th, aim.Y * th, aim.Z * th), nh, null, SlabOnly).FirstOrDefault();
+                        if (c != want) notFromSide.Add($"{f.Id} {(dir == 1 ? "starboard" : "port")}: {c?.Id ?? "nothing"}");
+                    }
+                }
+                Check(notFromFloor.Count == 0, $"note 83: a slab in hand aimed at a floor cell from a step away offers the shelf over it ({(notFromFloor.Count == 0 ? "every cell" : "not: " + string.Join(", ", notFromFloor.Take(6)))})");
+                Check(sides > 20 && notFromSide.Count == 0, $"note 83: aimed at her side at the shelf's height from over the cell beside it, the shelf over that cell ({sides} looks{(notFromSide.Count == 0 ? "" : "; not: " + string.Join(", ", notFromSide.Take(6)))})");
+                var cell = l.FloorAt("hold", -3, -2);
+                var set = new ShipPieceSet();
+                set.Add(ShipPiece.From(Put(cell, chest, 1), set.NextId, null));
+                var shelfPlan = PiecePlanner.Plan(l, l.HorizontalAt("hold", -3, -2, 1), slab, 1);
+                bool overChest = shelfPlan.Error == null && set.Blocking(shelfPlan) == null;
+                var shelf = ShipPiece.From(shelfPlan, set.NextId, null);
+                set.Add(shelf);
+                var top = l.FloorAt("hold", -3, -2, 1);
+                bool holds = set.Supports(l, top) && Fits(Put(top, vessel, 1));
+                set.Add(ShipPiece.From(Put(top, vessel, 1), set.NextId, null));
+                var under = set.StandingOn(l, shelf);
+                Check(overChest && holds && under?.Role == PieceRole.Storage,
+                    $"note 83: a shelf over a chest in her hold ({shelfPlan.Error ?? (overChest ? "fits" : "blocked")}), a vessel on it ({holds}), the shelf not taken up from under the vessel ({under?.Role.ToString() ?? "nothing on it"})");
             }
 
             // ---- note 57: the partition under the main deck's beam in her hold, aimed at with an axe: her own planking is behind it
