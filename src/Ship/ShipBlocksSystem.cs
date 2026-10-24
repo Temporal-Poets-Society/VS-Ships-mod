@@ -340,6 +340,17 @@ namespace Hansa
                 sd.LastSent.TryGetValue(uid, out double last);
                 sd.Sends.TryGetValue(uid, out int sends);
                 double wait = sends < 10 ? 3 : 30;
+                // (review H1-27) a client that never has them all (a block it can't make) isn't sent them for ever: said once
+                if (!newcomer && !complete && sends >= MaxSends)
+                {
+                    if (sends == MaxSends)
+                    {
+                        sd.Sends[uid] = sends + 1;
+                        sapi.Logger.Warning("[hansa] working blocks: {0} #{1}'s dimension {2}: {3}'s client still hasn't all of them after {4} sends; not sent again until they come within view anew",
+                            sd.Ship.GetName(), sd.Ship.EntityId, sd.Sub, pl.PlayerName, sends);
+                    }
+                    continue;
+                }
                 if (!newcomer && (complete || now - last < wait)) continue;
                 string why = newcomer ? "came within view" : ack == null ? $"their client hasn't answered (send {sends + 1})"
                     : $"their client has {ack.Resolved}/{ack.Total} working block(s), {ack.Chunks} chunk(s), dimension {(ack.Registered ? "registered" : "NOT registered")} (send {sends + 1})";
@@ -352,9 +363,12 @@ namespace Hansa
             sd.SentTo.UnionWith(inView);
         }
 
+        const int MaxSends = 20;
+
         void SendChunks(ShipDim sd, IServerPlayer pl, string why, int sends)
         {
-            MarkAllDirty(sd);
+            // (review H1-27: marked dirty, they go to everyone in view; sent again, they go to this player only)
+            if (sends == 0) MarkAllDirty(sd);
             int forced = ForceSend(sd, pl, out string err);
             if (sends < 3 || sends % 10 == 0 || err != null)
                 sapi.Logger.Notification("[hansa] working blocks: {0} #{1}'s dimension {2} sent to {3} ({4}): {5} chunk(s) queued{6}", sd.Ship.GetName(), sd.Ship.EntityId, sd.Sub,
@@ -660,6 +674,14 @@ namespace Hansa
         public void Loot(EntityShip ship, List<ItemStack> into, bool take)
         {
             var sd = DimOf(ship);
+            // (review H1-12) the switch turned off since she got them: they're still in her saved schematic, made again for
+            // this so what's in them isn't lost with her, and let go of again after
+            bool borrowed = false;
+            if (sd == null && sapi != null && ship.BlockRecord.Cells.Count > 0)
+            {
+                try { Restore(ship); sd = DimOf(ship); borrowed = sd != null; }
+                catch (Exception e) { sapi.Logger.Warning("[hansa] Working blocks of #{0} for her loot: {1}", ship.EntityId, e.Message); }
+            }
             if (sd == null) return;
             foreach (var c in ship.BlockRecord.Cells)
             {
@@ -672,13 +694,12 @@ namespace Hansa
                 if (take && be is BlockEntityAnvil anvil && anvil.WorkItemStack != null) ClearAnvil(anvil);
             }
             if (take) ClearAll(sd);
+            if (borrowed) Release(sd);
         }
 
         /// <summary>Her working blocks' contents dropped where she is (she's removed for good); the dimension emptied.</summary>
         public void DropAll(EntityShip ship)
         {
-            var sd = DimOf(ship);
-            if (sd == null) return;
             var at = ship.Pos.XYZ.Add(0, ship.Def?.DeckY ?? 3, 0);
             var list = new List<ItemStack>();
             Loot(ship, list, true);
@@ -736,6 +757,12 @@ namespace Hansa
             ShipBlockMath.CellOfDim(sub, pos.X, pos.Y, pos.Z, out int i, out int j, out int k);
             var c = sd.Ship.BlockRecord.At(i, j, k);
             var p = c != null ? sd.Ship.Pieces.Get(c.Piece) : null;
+            // (review H1-11) only her crew break her working blocks up (and take what's in them)
+            if (p != null && byPlayer != null && !sd.Ship.MayUse(byPlayer))
+            {
+                claimant = Lang.GetL(byPlayer.LanguageCode, sd.Ship.LaidUp ? "hansa:laidup-closed" : "hansa:crew-only", sd.Ship.GetName());
+                return false;
+            }
             if (p != null && sd.Ship.Pieces.StandingOn(sd.Ship.Mounts, p) == null && !sd.Ship.GoneDown) return true;
             claimant = Lang.GetL(byPlayer?.LanguageCode ?? "en", p != null ? "hansa:piece-under" : "hansa:ship-in-the-way");
             return false;

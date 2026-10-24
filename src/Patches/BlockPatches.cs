@@ -96,6 +96,8 @@ namespace Hansa
             var ship = ShipBlocksSystem.ShipForSub(sub, client);
             var frac = ship?.GridFrac;
             if (frac == null) return true;
+            // (review H1-11) her working blocks are her crew's, as her chests are (ShipCrew)
+            if (!ship.MayUse(__0)) { __result = false; return false; }
             var ep = __0.Entity;
             var eye = ship.WorldToLocal(ep.Pos.X + ep.LocalEyePos.X, ep.Pos.Y + ep.LocalEyePos.Y, ep.Pos.Z + ep.LocalEyePos.Z);
             ShipBlockMath.ToLocal(sub, frac[0], frac[1], frac[2], __2.X, __2.Y, __2.Z, out double cx, out double cy, out double cz);
