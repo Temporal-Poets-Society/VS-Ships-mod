@@ -124,7 +124,11 @@ namespace HansaTests
             }
             // ((0.3.29) a two-layer panel: the planking its outside, the ceiling its inside)
             // (a two-layer panel's edges: its back toward the other layer, the space between them walled always)
-            var noFaces = Enumerable.Range(0, l.Count).Where(n => l.Slots[n].Layer == null ? outs[n] == 0 || ins[n] == 0 || strips[n] < 2
+            // ((24 October 2026, caravel note 56) a railing's span on her top deck between two posts: the posts are drawn whole
+            // whether it's in or out, no strips toward it)
+            double topDeck = def.Decks.Max(d => d.Y);
+            bool OnTop(int n) => l.Slots[n].Sill >= topDeck - 0.05;
+            var noFaces = Enumerable.Range(0, l.Count).Where(n => l.Slots[n].Layer == null ? outs[n] == 0 || ins[n] == 0 || (strips[n] < 2 && !OnTop(n))
                 : (l.Slots[n].IsInner ? ins[n] == 0 : outs[n] == 0) || !pairs.Contains((n, l.Slots[n].PartnerIndex))).ToList();
             foreach (int n in noFaces.Take(8)) Console.WriteLine($"         {l.Slots[n].Id}: {outs[n]} outside, {ins[n]} ceiling, {strips[n]} faces of her toward it");
             Check(noFaces.Count == 0, $"{def.Code}: every panel has its outside, its ceiling and the frames' strips' faces toward it ({noFaces.Count} without)");

@@ -125,10 +125,17 @@ namespace HansaTests
             var shut = new SlotStates(def.Slots);
             var laid = new SlotStates(def.Slots);
             foreach (int n in cells) laid.Set(n, SlotState.Filled);
+            // (24 October 2026, note 73: her hatch moved into the waist, on the centreline aft of the main mast: no hatch
+            // under the steerage's front, nothing of note 49's left to check there)
+            if (cells.Count == 0 || !(hatch.Box[0] < front - 1e-6 && hatch.Box[3] > front + 1e-6))
+                Console.WriteLine($"  --   note 49: her hatch (x {hatch.Box[0]}..{hatch.Box[3]}) is clear of the steerage's front (x = {front})");
+            else
+            {
             bool rows = over.Select(b => b.Row).SequenceEqual(new[] { 0, 1, 2 }) && over.All(b => b.Room == room.Code);
             bool usable = over.Count > 0 && over.All(b => DeckCells.MountOpen(b, laid) && !DeckCells.MountOpen(b, shut));
             Check(cells.Count >= 2 && rows && usable, $"note 49: the hatch's {cells.Count} cells laid, the steerage's front (x = {front}) over them takes partitions " +
                 $"({string.Join(" ", over.Select(b => b.Id))}: rows 0-2 {rows}, usable laid and not open {usable})");
+            }
             // the whole front closed over the laid cells: sealed, with no carrying across a gap
             var line = l.Borders.Where(b => b.Deck == "main" && !b.TwinSide && b.In % 2 == 0 && Math.Abs(MountLayout.BorderLine(b).Line - front) < 1e-6).ToList();
             var planks = new FakePiece { Code = "game:planks-oak-ud", Family = "game:planks-oak", Planks = true };
@@ -188,9 +195,16 @@ namespace HansaTests
                     }
                 }
             }
-            var carling = through.Where(t => t.StartsWith("b:hold:") && (t.Contains(":s:2") || t.Contains(":n:2"))).ToList();
-            // (and meets it: the top row on the line z -0.5 under the hatch, drawn up to the carling's underside, 0.525)
-            var along = l.Borders.Where(b => b.Deck == "hold" && b.Row == 2 && !b.TwinSide && b.In % 2 == 1 && Math.Abs(b.Z + 0.5) < 1e-6 && b.X > -7.5 && b.X < -4).ToList();
+            // (24 October 2026, note 73) the hatch from the design: on the centreline in the waist now, z -0.5..0.5; its carlings
+            // along its sides' lines, over the hold's top row there
+            var hb = def.KeepClear?.FirstOrDefault(k => k.What == "hatch")?.Box ?? new[] { -7.0, 0, -1.5, -4.0, 0, -0.5 };
+            // (the hatch's own cells: just past its ends a column at a crossing beam's face is listed below, as elsewhere)
+            var onLines = l.Borders.Where(b => b.Deck == "hold" && b.Row == 2 && !b.TwinSide && b.In % 2 == 1 && b.X > hb[0] && b.X < hb[3] &&
+                                               (Math.Abs(MountLayout.BorderLine(b).Line - hb[2]) < 1e-6 || Math.Abs(MountLayout.BorderLine(b).Line - hb[5]) < 1e-6))
+                                   .Select(b => b.Id + " ").ToList();
+            var carling = through.Where(t => onLines.Any(t.StartsWith)).ToList();
+            // (and meets it: the top row on the line along the hatch's side under it, drawn up to the carling's underside, 0.525)
+            var along = l.Borders.Where(b => b.Deck == "hold" && b.Row == 2 && !b.TwinSide && b.In % 2 == 1 && Math.Abs(b.Z - hb[5]) < 1e-6 && b.X > hb[0] - 0.5 && b.X < hb[3]).ToList();
             var tops = along.Select(b => (b.Id, Top: (l.DrawnClip(b, surf) ?? b.Clip).Where(c => b.X > c[0] && b.X < c[2]).Select(c => c[3]).DefaultIfEmpty(double.NaN).Max())).ToList();
             bool meets = along.Count >= 2 && tops.All(t => t.Top > 0.52 && t.Top < 0.56);
             Check(carling.Count == 0 && meets, $"note 48: the hold's top row along the hatch's carlings stops at their undersides ({string.Join(", ", tops.Select(t => $"{t.Id} to {t.Top:0.###}"))})" +

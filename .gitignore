@@ -16,3 +16,5 @@ models/caravel/cells.brep
 *.FCBak
 # the caravel exporter's base (export_caravel.py writes it, caravel_layout.py builds on it)
 models/caravel/export/
+# the caravel's draft variants (24 October 2026, note 73): built with CARAVEL_OUT, viewed with variant_views.py
+models/caravel/variants/

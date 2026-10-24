@@ -224,10 +224,13 @@ def cathead_and_anchor(d, ci, co, knee_from, side, hawse_out, shank=1.9, knee_to
 
 
 # ---------------------------------------------------------------------------------------------- the bilge pump
-def pump(d, px, pz, deck_y, deck_t, foot_y, brake_dir=1.0):
+def pump(d, px, pz, deck_y, deck_t, foot_y, brake_dir=1.0, pipe_x=None, pipe_mat="brass"):
     """carrack.pump: a cast bronze chamber on a flange with moulded rings and a cap, a spout cast on to starboard and a
-    little down, the brake on a bronze fork and pin with its spear hung over the bore; below, its pipe down to the hold
-    floor, hooped, into a strainer box. Returns the fixture and its two moving parts."""
+    little down, the brake on a bronze fork and pin with its spear hung over the bore. (24 October 2026, chalk note 81:
+    "pumps pipe down now takes 1 block floor space on lower deck and also pentetrates the deck beam ... piping next to mast
+    to fit in that block and piping would start above deck and pipe could be thinner and from brass") Its pipe leaves the
+    chamber's foot above the deck, runs aft to pipe_x (in the main mast's cell, beside the mast), down through the deck
+    there to a strainer on the hold floor: brass, 0.09 across. Returns the fixture and its two moving parts."""
     up = np.array([0.0, 1.0, 0.0])
     base = np.array([px, deck_y, pz])
     d.add_cylinder("exterior", "bronze", base, base + up * 0.05, 0.23, 0.21, sides=16, smooth=False)
@@ -267,13 +270,28 @@ def pump(d, px, pz, deck_y, deck_t, foot_y, brake_dir=1.0):
     d.add_cylinder("part:pump-spear", "iron", pin + np.array([0, 0, -0.075]), pin + np.array([0, 0, 0.075]), 0.014, 0.014, sides=6)
     disk(d, "exterior", "black", (px, deck_y + 1.063, pz), (0, 1, 0), 0.035, 8)
     rx = pin[0] - piv[0]
-    d.add_cylinder("auto", "timber", (px, deck_y - deck_t, pz), (px, foot_y + 0.2, pz), 0.13, 0.13, sides=8, smooth=False)
-    d.add_cylinder("auto", "iron", (px, deck_y - deck_t - 0.14, pz), (px, deck_y - deck_t - 0.06, pz), 0.16, 0.16, sides=8, smooth=False)
-    d.add_box_mesh("auto", "timber", (px, foot_y + 0.1, pz), (0.36, 0.2, 0.36))
-    d.add_box_mesh("auto", "iron", (px, foot_y + 0.19, pz), (0.38, 0.03, 0.38))
-    for k in range(3):
-        for s in (1, -1):
-            disk(d, "auto", "black", (px + 0.181 * s, foot_y + 0.07, pz - 0.1 + 0.1 * k), (s, 0, 0), 0.02, 5)
+    # the pipe: out of the chamber's after side 0.13 over the deck, aft along it, a bend, down beside the mast
+    PR = 0.045
+    qx = px - 0.5 if pipe_x is None else pipe_x
+    yb = deck_y + 0.13
+    c0 = np.array([px - 0.12, yb, pz])                       # in the chamber (r 0.155..0.17 there)
+    c1 = np.array([qx + 0.09, yb, pz])
+    c2 = np.array([qx, yb - 0.09, pz])
+    d.add_cylinder("exterior", pipe_mat, c0, c1, PR, PR, sides=8)
+    bend = [np.array([qx + 0.09 - 0.09 * math.sin(a_), yb - 0.09 + 0.09 * math.cos(a_), pz]) for a_ in np.linspace(0, math.pi / 2, 4)]
+    for a_, b_ in zip(bend[:-1], bend[1:]):
+        d.add_cylinder("exterior", pipe_mat, a_, b_, PR, PR, sides=8)
+    d.add_cylinder("exterior", pipe_mat, c2, np.array([qx, deck_y + 0.002, pz]), PR, PR, sides=8)
+    d.add_cylinder("exterior", pipe_mat, np.array([qx, deck_y, pz]), np.array([qx, deck_y + 0.03, pz]), PR + 0.025, PR + 0.025, sides=8, smooth=False)
+    d.add_cylinder("auto", pipe_mat, np.array([qx, deck_y - deck_t, pz]), np.array([qx, foot_y + 0.16, pz]), PR, PR, sides=8)
+    for yy in (deck_y - deck_t - 0.04, (deck_y - deck_t + foot_y) / 2):     # (a collar under the deck, one halfway down)
+        d.add_cylinder("auto", pipe_mat, np.array([qx, yy - 0.03, pz]), np.array([qx, yy + 0.03, pz]), PR + 0.015, PR + 0.015, sides=8, smooth=False)
+    # the strainer on the hold floor: a brass rose, holes round it
+    d.add_cylinder("auto", pipe_mat, np.array([qx, foot_y, pz]), np.array([qx, foot_y + 0.16, pz]), 0.075, 0.06, sides=8, smooth=False)
+    for k in range(6):
+        a_ = 2 * math.pi * k / 6
+        nrm = np.array([math.cos(a_), 0.0, math.sin(a_)])
+        disk(d, "auto", "black", np.array([qx, foot_y + 0.06, pz]) + nrm * 0.0715, nrm, 0.012, 5)
     parts = [{"code": "pump-brake", "axisPoint": _r(piv), "axisDir": [0.0, 0.0, 1.0], "source": "pump:pump", "angle": 12.0},
              {"code": "pump-spear", "kind": "slide", "axisPoint": _r(pin), "axisDir": [0.0, 1.0, 0.0], "source": "pump:pump",
               "distance": round(float(rx * math.sin(math.radians(12.0))), 4)}]
