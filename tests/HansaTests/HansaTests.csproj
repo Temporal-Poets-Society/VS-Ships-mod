@@ -59,6 +59,8 @@
     <Compile Include="..\..\src\Ship\Crawl.cs" Link="Ship\Crawl.cs" />
     <Compile Include="..\..\src\Ship\ShipSurfaces.cs" Link="Ship\ShipSurfaces.cs" />
     <Compile Include="..\..\src\Ship\SailPress.cs" Link="Ship\SailPress.cs" />
+    <Compile Include="..\..\src\Ship\LateenDip.cs" Link="Ship\LateenDip.cs" />
+    <Compile Include="LateenDipTests.cs" />
     <Compile Include="PointingTests.cs" />
     <Compile Include="BlockTests.cs" />
     <Compile Include="..\..\src\Ship\ShipBlockMath.cs" Link="Ship\ShipBlockMath.cs" />

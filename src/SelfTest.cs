@@ -393,6 +393,54 @@ namespace Hansa
             }, 100);
         }
 
+        /// <summary>
+        /// (note 64) After her run with the wind on her port beam, her dipping lateens lie to starboard of their masts (the
+        /// lee), synced to clients; drawn there (the outline of each sail, bellied, as the client poses it) they're clear of
+        /// every mast.
+        /// </summary>
+        void LateensToLee(ShipDefinition def, EntityShip ship)
+        {
+            var w = ship.WindHere(ship.Pos.X, ship.Pos.Z);
+            Sailing.Apparent(w.X, w.Z, ship.Pos.Yaw, ship.Speed, out double ax, out double az);
+            Sailing.Trim(Sailing.WindAngle(ax, az, ship.Pos.Yaw, out int side), side, ship.SailingNow, out _, out double sheet);
+            Check(ship.Lee == 1 && Math.Abs(ship.LeeShown - 1) < 1e-3 && ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetInt("lee") == 1,
+                $"note 64: with the wind on her port beam her lateens lie to starboard, the lee (lee {ship.Lee}, shown {ship.LeeShown:0.00}, synced " +
+                $"{ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetInt("lee")})");
+            var frames = def.DamageParts?.SailFrames;
+            var ym = new float[16];
+            var dm = new float[16];
+            var fb = new float[16];
+            var furl = new float[16];
+            var belly = new float[16];
+            foreach (var rig in LateenRig.Of(def))
+            {
+                if (rig == null || frames == null || frames[rig.Sail] is not SailFrame f) continue;
+                var pose = rig.Pose(ship.LeeShown, sheet, PartMotion.DrawnSail(ship.SailFraction));
+                rig.YardFrame(pose, ym);
+                rig.Drawn(pose, ym, dm);
+                PartMotion.FurlMatrix(rig.Def, pose.Frac, furl);
+                PartMotion.BellyMatrix(f, pose.Belly, belly);
+                Mat4f.Mul(fb, furl, belly);
+                Mat4f.Mul(ym, dm, fb);
+                Array.Copy(ym, dm, 16);
+                double closest = double.MaxValue, lee = 0;
+                int n = 0;
+                for (double v = 0.2; v < f.ClewV; v += 0.4)
+                    for (double u = f.U0; u <= f.U1; u += 0.4)
+                    {
+                        if (!f.Inside(u, v, -0.1)) continue;
+                        var p = f.FromSail(u, v, 0.5 * Math.Sin(Math.PI * v / f.ClewV));
+                        double x = dm[0] * p[0] + dm[4] * p[1] + dm[8] * p[2] + dm[12], y = dm[1] * p[0] + dm[5] * p[1] + dm[9] * p[2] + dm[13], z = dm[2] * p[0] + dm[6] * p[1] + dm[10] * p[2] + dm[14];
+                        foreach (var m in def.Masts)
+                            if (y >= m.Y0 && y <= m.Y1) closest = Math.Min(closest, Math.Sqrt((x - m.X) * (x - m.X) + (z - m.Z) * (z - m.Z)) - m.Radius);
+                        lee += z - rig.Mast.Z;
+                        n++;
+                    }
+                Check(n > 0 && closest > 0.02 && lee / n > 0.3 && pose.Mirror == (rig.Side < 0),
+                    $"note 64: {rig.Def.Code}'s sail drawn to starboard of its mast ({lee / Math.Max(1, n):0.00} off its middle, {(pose.Mirror ? "mirrored" : "as made")}), {closest:0.00} clear of every mast");
+            }
+        }
+
         void SailOn(HansaMod mod, ShipDefinition def, EntityShip ship, BlockPos spawn, double sx, double sz, double wy, double yaw)
         {
             mod.Config.StopWhenUnmanned = false;
@@ -445,6 +493,7 @@ namespace Hansa
                 Check(ship.Pos.X + bowX < spawn.X + 45 + 0.5, $"stopped before the wall (bow at {ship.Pos.X + bowX - spawn.X:0.0} of 45)");
                 Check(Math.Abs(ship.BaseY - startBase) < 0.1 && Math.Abs(ship.Pos.Y - (ship.BaseY - ship.Sinkage + ship.Heave)) < 1e-9,
                     "stayed at the water surface, riding the waves on it");
+                if (LateenRig.Any(def)) LateensToLee(def, ship);
                 GroundingDamage(ship, def, maxSpeed);
                 Grounding(mod, def, ship);
                 LaunchBoat(mod, ship, spawn, startBase);

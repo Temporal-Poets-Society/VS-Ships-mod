@@ -27842,7 +27842,13 @@
     0.8078,
     0.0
    ],
-   "area": 80.8
+   "area": 80.8,
+   "dip": {
+    "mast": "main",
+    "standOff": 0.4,
+    "ahead": 0.2,
+    "seconds": 8
+   }
   },
   {
    "code": "mizzen",
@@ -27857,7 +27863,13 @@
     0.8695,
     0.0
    ],
-   "area": 34.8
+   "area": 34.8,
+   "dip": {
+    "mast": "mizzen",
+    "standOff": 0.4,
+    "ahead": 0.2,
+    "seconds": 8
+   }
   }
  ],
  "hooks": [

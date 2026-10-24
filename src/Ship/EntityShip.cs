@@ -1678,6 +1678,7 @@ namespace Hansa
             w.Bool("guns", CannonsOn);
             w.Bool("hearth", HearthOn);
             w.Bool("oven", OvenOn);
+            w.Int("lee", Lee);
             w.Saved("targetY", targetY);
             // (review H2-4: the height clients draw her at)
             if (!double.IsNaN(BaseY)) w.Double("baseY", BaseY, 0.01);
@@ -1758,6 +1759,7 @@ namespace Hansa
             CannonsOn = t.GetBool("guns", true);
             HearthOn = t.GetBool("hearth", true);
             OvenOn = t.GetBool("oven", true);
+            Lee = t.GetInt("lee");
             if (t.HasAttribute("targetY")) targetY = t.GetDouble("targetY");
             if (t.HasAttribute("baseY")) BaseY = t.GetDouble("baseY");
             LoadFloodState(t);
@@ -1895,6 +1897,7 @@ namespace Hansa
 
             float sailGoal = SailSet >= 2 ? 1f : SailSet == 1 ? 0.55f : 0f;
             SailFraction += GameMath.Clamp(sailGoal - SailFraction, -0.35f * dt, 0.25f * dt);
+            ServerLateens(dt);
 
             float maxSpeed = Def.MaxSpeed * cfg.SpeedMultiplier * (Clad ? 1 + Def.CladdingSpeedBonus : 1) * (float)SpeedFactorNow;
             if (maxSpeed != MaxSpeedNow || cfg.SailByWind != SailByWind || cfg.Cannons != CannonsOn || cfg.PointCloser != PointCloser)
@@ -2395,6 +2398,8 @@ namespace Hansa
                 double kt = 1 - Math.Exp(-dt * 0.6);
                 Brace += (brace - Brace) * kt;
                 Sheet += (sheet - Sheet) * kt;
+                // (note 64) her lateens dip round their masts to the lee the server says
+                if (LateenRig.Any(Def)) LeeShown = LateenRig.Ease(LeeShown, Lee, LateenRig.DipSeconds(Def), dt);
             }
             // her lean follows the wind in her sails slowly (a heavy hull, sails steadying her, the crew easing the sheets
             // in a gust: MotionDef.HeelResponse), as on the server (ServerHeel)
@@ -2420,6 +2425,38 @@ namespace Hansa
         /// <see cref="Sailing.Trim"/>). For drawing the yards round.
         /// </summary>
         public double Brace, Sheet;
+
+        /// <summary>
+        /// (note 64) The lee her dipping lateens lie to (<see cref="LateenRig"/>; +1 starboard, -1 port, 0 not known yet): the
+        /// server's, synced. It changes when the wind is well over on her other side (past <see cref="LateenRig.Margin"/> of
+        /// her bow or stern) with sail set, and not while a dip is still under way.
+        /// </summary>
+        public int Lee;
+        /// <summary>The lee as her lateens are now, easing from one side to the other over a dip (server and client each); NaN at first.</summary>
+        public float LeeShown = float.NaN;
+
+        /// <summary>Server: which side her lateens are to lie, from the wind her sails feel, and the dip toward it.</summary>
+        void ServerLateens(float dt)
+        {
+            if (!LateenRig.Any(Def)) return;
+            var w = WindHere(Pos.X, Pos.Z);
+            Sailing.Apparent(w.X, w.Z, Pos.Yaw, Speed, out double ax, out double az);
+            int want = LateenRig.LeeOf(Sailing.WindAngle(ax, az, Pos.Yaw, out int side), side);
+            bool settled = !float.IsNaN(LeeShown) && Math.Abs(LeeShown - Lee) < 1e-3;
+            if (Lee == 0)
+            {
+                // (a new ship, or one saved before her lateens dipped: set to the lee as it is, no dip)
+                Lee = want != 0 ? want : -side;
+                LeeShown = Lee;
+                SaveState(true);
+            }
+            else if (want != 0 && want != Lee && settled && SailFraction > 0.05f)
+            {
+                Lee = want;
+                SaveState(true);
+            }
+            LeeShown = LateenRig.Ease(LeeShown, Lee, LateenRig.DipSeconds(Def), dt);
+        }
 
         /// <summary>Sea's wind at a place (the same on every side); calm if Sea isn't there.</summary>
         public Sea.Wind WindHere(double x, double z) => SeaSys != null ? SeaSys.WindAt(x, z) : default;

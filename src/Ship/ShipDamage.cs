@@ -902,16 +902,26 @@ namespace Hansa
 
         /// <summary>
         /// The sail a ray (ship-local, o + t d) meets first as the sails are set now: the square yards braced by brace and
-        /// a fore-and-aft sail sheeted by sheet (radians), furled to frac. Its damage part, or -1; t where it meets it.
+        /// a fore-and-aft sail sheeted by sheet (radians), furled to frac; (note 64) a lateen that dips where it is for the lee
+        /// shown (<see cref="LateenRig"/>). Its damage part, or -1; t where it meets it.
         /// </summary>
-        public int SailAt(Vec3d o, Vec3d d, double range, double brace, double sheet, float frac, out double t)
+        public int SailAt(Vec3d o, Vec3d d, double range, double brace, double sheet, float frac, out double t, float leeShown = float.NaN)
         {
             t = double.MaxValue;
             int best = -1;
+            var rigs = LateenRig.Of(Def);
             foreach (var p in Parts)
             {
                 if (p.Kind != DamageKind.Sail || p.Sail < 0 || p.Sail >= SailFrames.Length || SailFrames[p.Sail] is not SailFrame f) continue;
-                double ts = PartMotion.RaySail(Def, f, f.ForeAndAft ? sheet : brace, frac, o, d, range);
+                double ts;
+                if (p.Sail < rigs.Length && rigs[p.Sail] is LateenRig rig)
+                {
+                    // (in its own frame, as made: mirrored back and its yard's dip and turn undone)
+                    var pose = rig.Pose(leeShown, sheet, frac);
+                    rig.RayToFrame(pose, o, d, out var fo, out var fd);
+                    ts = PartMotion.RaySail(Def, f, 0, pose.Frac, fo, fd, range);
+                }
+                else ts = PartMotion.RaySail(Def, f, f.ForeAndAft ? sheet : brace, frac, o, d, range);
                 if (ts >= 0 && ts < t) { t = ts; best = p.Index; }
             }
             return best;
