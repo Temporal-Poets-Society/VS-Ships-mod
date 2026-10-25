@@ -78,6 +78,9 @@ namespace Hansa
                     ShipId = seat.Ship.EntityId, LX = l.X, LY = l.Y, LZ = l.Z, Seat = seat.SeatId,
                     X = ep.Pos.X, Y = ep.Pos.Y, Z = ep.Pos.Z, Dim = ep.Pos.Dimension
                 };
+                // ((0.1.0-dev.10) the last aboard logging out: she's stopped now, not seconds later, so the save written
+                // as they leave has her at anchor, Unmanned)
+                if (mod.Config.StopWhenUnmanned && !seat.Ship.Manned(ep.EntityId)) seat.Ship.StopUnmanned(false);
             }
             else Records.Remove(player.PlayerUID);
         }

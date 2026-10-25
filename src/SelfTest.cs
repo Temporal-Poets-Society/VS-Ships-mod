@@ -2242,7 +2242,7 @@ namespace Hansa
                 Log($"{def.Code} has no guns laid ({guns.Length}): the gunnery, laying and broadside checks are for ships with guns a side");
                 foreach (var e in new Entity[] { shooter, target }) if (e.Alive) e.Die(EnumDespawnReason.Removed);
                 sea?.SetOverride(null);
-                MadeUpWreck(mod, def, spawn, wy, () => CrewWorks(mod, def, spawn, wy, () => SailStrainWorks(mod, def, spawn, wy, () => HearthWorks(mod, def, spawn, wy, () => WorkingBlocksWorks(mod, def, spawn, wy, () => HullPanelsWorks(mod, spawn, wy, Finish))))));
+                MadeUpWreck(mod, def, spawn, wy, () => CrewWorks(mod, def, spawn, wy, () => LoadedUnmanned(mod, spawn, wy, () => SailStrainWorks(mod, def, spawn, wy, () => HearthWorks(mod, def, spawn, wy, () => WorkingBlocksWorks(mod, def, spawn, wy, () => HullPanelsWorks(mod, spawn, wy, Finish)))))));
                 return;
             }
             // (the carracks have 5 guns a side laid, the caravel 4: two on her quarterdeck, two in her waist)
@@ -2586,7 +2586,7 @@ namespace Hansa
                     {
                         foreach (var e in new Entity[] { shooter, target }) if (e.Alive) e.Die(EnumDespawnReason.Removed);
                         sea?.SetOverride(null);
-                        MadeUpWreck(mod, def, spawn, wy, () => CrewWorks(mod, def, spawn, wy, () => SailStrainWorks(mod, def, spawn, wy, () => HearthWorks(mod, def, spawn, wy, () => WorkingBlocksWorks(mod, def, spawn, wy, () => HullPanelsWorks(mod, spawn, wy, Finish))))));
+                        MadeUpWreck(mod, def, spawn, wy, () => CrewWorks(mod, def, spawn, wy, () => LoadedUnmanned(mod, spawn, wy, () => SailStrainWorks(mod, def, spawn, wy, () => HearthWorks(mod, def, spawn, wy, () => WorkingBlocksWorks(mod, def, spawn, wy, () => HullPanelsWorks(mod, spawn, wy, Finish)))))));
                     });
                 });
             }, 200);

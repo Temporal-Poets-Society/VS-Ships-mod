@@ -234,6 +234,7 @@ namespace HansaTests
                 Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
                 return failures == 0 ? 0 : 1;
             }
+            if (Array.IndexOf(args, "unmanned") >= 0) { UnmannedStops(); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "notes0324") >= 0) { Notes0324(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "notes0325") >= 0) { Notes0325(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "notes0327") >= 0) { Notes0327(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
@@ -378,6 +379,8 @@ namespace HansaTests
             CastleGunPorts(root);
             Notes0324(root);
             Notes0325(root);
+            // (0.1.0-dev.10) a ship with nobody aboard stopped, at once when loaded
+            UnmannedStops();
             LiddedPortSealCarrack(def);
             // (0.3.26, step D1) carrack-m's hull panels
             HullSlots(root);

@@ -38,6 +38,7 @@
     <Compile Include="PumpTests.cs" />
     <Compile Include="OvenTests.cs" />
     <Compile Include="SailTests.cs" />
+    <Compile Include="UnmannedTests.cs" />
     <Compile Include="RainTests.cs" />
     <Compile Include="DryParticleTests.cs" />
     <Compile Include="BuildModeTests.cs" />
@@ -58,6 +59,7 @@
     <Compile Include="NoteTests0330.cs" />
     <Compile Include="..\..\src\Ship\CellDamage.cs" Link="Ship\CellDamage.cs" />
     <Compile Include="..\..\src\Ship\Crawl.cs" Link="Ship\Crawl.cs" />
+    <Compile Include="..\..\src\Ship\Unmanned.cs" Link="Ship\Unmanned.cs" />
     <Compile Include="..\..\src\Ship\ShipSurfaces.cs" Link="Ship\ShipSurfaces.cs" />
     <Compile Include="..\..\src\Ship\SailPress.cs" Link="Ship\SailPress.cs" />
     <Compile Include="..\..\src\Ship\LateenDip.cs" Link="Ship\LateenDip.cs" />

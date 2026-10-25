@@ -124,6 +124,8 @@ namespace Hansa
         bool prevFwd, prevBack, prevJump, prevCtrl;
         float lastCrawlYaw;
         float unmannedFor, syncAccum, waterCheckAccum, passengerCheckAccum, weedAccum;
+        /// <summary>(0.1.0-dev.10) Server: loaded from the save (her chunk), till her first tick looks for anyone aboard.</summary>
+        bool loadedFromSave;
         readonly HashSet<long> hitsAhead = new(), hitsHere = new();
         double weedX = double.NaN, weedZ, weedYaw;
         double targetY = double.NaN;
@@ -1774,13 +1776,41 @@ namespace Hansa
             if (Api.Side == EnumAppSide.Server) ServerTick(dt);
         }
 
-        public bool Manned()
+        /// <summary>Anyone online aboard her (leaving: a player logging out, not counted; -1 for none).</summary>
+        public bool Manned(long leaving = -1)
         {
             foreach (IServerPlayer sp in ((ICoreServerAPI)Api).World.AllOnlinePlayers)
             {
-                if (sp.ConnectionState == EnumClientState.Playing && sp.Entity is EntityPlayer ep && ep.Alive && ep.MountedOn?.Entity?.EntityId == EntityId) return true;
+                if (sp.ConnectionState == EnumClientState.Playing && sp.Entity is EntityPlayer ep && ep.Alive && ep.EntityId != leaving &&
+                    ep.MountedOn?.Entity?.EntityId == EntityId) return true;
             }
             return false;
+        }
+
+        /// <summary>
+        /// (0.1.0-dev.10) Server: nobody aboard (<see cref="Unmanned"/>): her anchor down, her sails furled, off the sweeps;
+        /// loaded from the save: and no way on her at all (nobody saw her come to).
+        /// </summary>
+        public void StopUnmanned(bool loaded)
+        {
+            Anchored = true;
+            SailSet = 0;
+            Crawl = false;
+            CrawlDrive = 0;
+            if (loaded)
+            {
+                Speed = 0;
+                YawRate = 0;
+                Leeway = 0;
+                SailFraction = 0;
+            }
+            SaveState(true);
+        }
+
+        public override void OnEntityLoaded()
+        {
+            base.OnEntityLoaded();
+            if (Api?.Side == EnumAppSide.Server) loadedFromSave = true;
         }
 
         void ServerTick(float dt)
@@ -1823,12 +1853,13 @@ namespace Hansa
             BrowTick(dt);
             bool manned = Manned();
             unmannedFor = manned ? 0 : unmannedFor + dt;
-            if (cfg.StopWhenUnmanned && unmannedFor > cfg.UnmannedStopSeconds && (!Anchored || SailSet != 0))
-            {
-                Anchored = true;
-                SailSet = 0;
-                SaveState(true);
-            }
+            // ((0.1.0-dev.10) loaded from the save with nobody aboard: stopped where she lies, before anyone's put back
+            // aboard; she may have been saved under way after her people's places were, Unmanned)
+            bool loaded = loadedFromSave;
+            loadedFromSave = false;
+            if (cfg.StopWhenUnmanned && !manned && (loaded || unmannedFor > cfg.UnmannedStopSeconds) &&
+                Unmanned.UnderWay(Anchored, SailSet, Crawl, Speed, YawRate, Leeway, loaded))
+                StopUnmanned(loaded);
 
             // helm input
             var c = Helm?.Passenger != null ? Helm.Controls : null;
