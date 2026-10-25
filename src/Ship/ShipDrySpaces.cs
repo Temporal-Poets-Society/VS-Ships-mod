@@ -32,9 +32,9 @@ namespace Hansa
                 // below the water in her hold it's wet (you can drown in a flooded hold): level in the world, as it's drawn
                 if (ship.Flooded && y < ship.FloodWorldY) continue;
                 // tilted on clients (where it's drawn), level on the server
-                var l = ship.WorldToLocal(x, y, z);
-                if (mask.SolidAt(l.X, l.Y, l.Z)) return true;
-                if (DrySweep.DryLocal(ship.Def, mask, l.X, l.Y, l.Z)) return true;
+                ship.WorldToLocal(x, y, z, out double lx, out double ly, out double lz);
+                if (mask.SolidAt(lx, ly, lz)) return true;
+                if (DrySweep.DryLocal(ship.Def, mask, lx, ly, lz)) return true;
             }
             return false;
         }

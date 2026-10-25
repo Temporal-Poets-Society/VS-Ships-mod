@@ -521,6 +521,9 @@ namespace Hansa
     /// <summary>Getting aboard from the water or a dock (ShipClientSystem's clicks).</summary>
     public static class Boarding
     {
+        /// <summary>(review H3-3) How far (level) from a ladder's foot it may be clicked to climb on: the server allows as much.</summary>
+        public const double LadderReach = 5;
+
         /// <summary>
         /// A right-click on her side from the water or a dock (ship-local: where the player is, where the crosshair meets
         /// her): the rope ladder to climb (standing within 5 of its foot, aiming within 2 blocks of the ladder empty-handed,
@@ -538,7 +541,7 @@ namespace Hansa
             {
                 if (!l.Outside || l.Bottom == null || l.Top == null) continue;
                 double fx = l.Bottom[0] - me.X, fz = l.Bottom[2] - me.Z, fy = l.Bottom[1] - me.Y;
-                if (fx * fx + fz * fz > 25 || fy < -2.5 || fy > 2.0) continue;
+                if (fx * fx + fz * fz > LadderReach * LadderReach || fy < -2.5 || fy > 2.0) continue;
                 double d = SegmentDistance(aim, l.Bottom, l.Top);
                 if (d < bd) { bd = d; best = l; }
             }

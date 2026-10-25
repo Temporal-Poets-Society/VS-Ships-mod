@@ -21,6 +21,11 @@ namespace HansaTests
             var l = def.Mounts;
             Console.WriteLine($"{code}: {l.Floors.Count()} floor places, {l.Walls.Count()} wall spots, {l.All.Count(m => m.Kind == MountKind.Hook)} hooks, " +
                               $"{l.All.Count(m => m.Kind == MountKind.Border)} border, {l.All.Count(m => m.Kind == MountKind.Panel)} panel places");
+            // (HANSA_BORDERS_X=-7: her border places on that line across her, whole or clipped)
+            if (double.TryParse(Environment.GetEnvironmentVariable("HANSA_BORDERS_X"), System.Globalization.NumberStyles.Float,
+                                System.Globalization.CultureInfo.InvariantCulture, out double bx))
+                foreach (var b in l.Borders.Where(b => !b.TwinSide && Math.Abs(MountLayout.BorderLine(b).Line - bx) < 1e-6).OrderBy(b => b.Z).ThenBy(b => b.Row))
+                    Console.WriteLine($"  {b.Id} deck {b.Deck} row {b.Row} z {b.Z} room {b.Room} clip {(b.Clip == null ? "whole" : string.Join(" ", b.Clip.Select(c => "[" + string.Join(",", c.Select(v => v.ToString("0.###"))) + "]")))}");
             foreach (var deck in def.Decks)
             {
                 var fl = l.Floors.Where(m => m.Deck == deck.Code).ToList();

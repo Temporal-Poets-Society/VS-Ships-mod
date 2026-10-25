@@ -104,8 +104,15 @@ namespace Hansa
         /// <summary>How her name is painted on the board: colours, size, italic (the user's note 68).</summary>
         public NameStyle NameStyle = new();
         public const int MaxNameLength = 24;
-        /// <summary>Bumped whenever fittings change, so the renderer rebuilds what it draws.</summary>
+        /// <summary>Bumped whenever her collision is rebuilt (fittings, pieces, doors opened or shut).</summary>
         public int FitVersion;
+        /// <summary>
+        /// (review H1-17) Bumped when what the renderer builds for her fittings and pieces may have changed: not for a door, gate
+        /// or hatch only opened or shut (the renderer swings those as they are).
+        /// </summary>
+        public int DecorVersion;
+        // (client: her fittings' and pieces' trees as last loaded, to tell a door opened from anything else)
+        ITreeAttribute lastFitTree, lastPiecesTree;
         /// <summary>
         /// The players whose spawn is bound to her (at the plate by the helm), by uid; synced in WatchedAttributes
         /// "hansaSpawn". The bindings themselves are the server's (<see cref="ShipSpawns"/>).
@@ -343,6 +350,10 @@ namespace Hansa
             ShipFrame.ToLocal(Pos.Yaw, Pitch, Roll, wx - Pos.X, wy - Pos.Y, wz - Pos.Z, out double lx, out double ly, out double lz);
             return new Vec3d(lx, ly, lz);
         }
+
+        /// <summary>(review H1-20) The same without a new Vec3d: for loops over many points.</summary>
+        public void WorldToLocal(double wx, double wy, double wz, out double lx, out double ly, out double lz) =>
+            ShipFrame.ToLocal(Pos.Yaw, Pitch, Roll, wx - Pos.X, wy - Pos.Y, wz - Pos.Z, out lx, out ly, out lz);
 
         public Vec3d LocalDirToWorld(double lx, double ly, double lz)
         {
@@ -753,13 +764,81 @@ namespace Hansa
             return null;
         }
 
-        public bool Board(EntityPlayer ep, Vec3d local)
+        /// <param name="unstick">lifted out of her collision if it's in it (not at a ladder's foot, review H3-5: that's outside her)</param>
+        public bool Board(EntityPlayer ep, Vec3d local, bool unstick = true)
         {
             if (Def == null || !ep.Alive || !HasRoomFor(ep) || GoneDown) return false;
             var mover = new DeckMover(local.X, local.Y, local.Z);
-            mover.Unstick(Grid);
+            if (unstick) mover.Unstick(Grid);
             var seat = GetOrCreateDeckSeat(ep.PlayerUID, mover.X, mover.Y, mover.Z);
             return ep.TryMount(seat);
+        }
+
+        /// <summary>
+        /// (review H1-1, H2-2, H2-3) May this player board her at this ship-local point (feet), as the server has them? The foot
+        /// of one of her outside ladders (her brows' quay ends too) beside them or, for a boat, one of her boarding points
+        /// within reach; or, not swimming, a free spot with floor right beside them that nothing of hers stands between
+        /// (stepping or jumping aboard from a dock or another deck). Never a point inside her that a wall or her hull stands
+        /// between, nor a ship in another dimension.
+        /// </summary>
+        /// <param name="spot">where they're put aboard: on a ladder its foot as she has it (review H3-5), else the point asked for</param>
+        /// <param name="ladder">at a ladder's foot</param>
+        public bool MayBoardAt(EntityPlayer ep, double x, double y, double z, out Vec3d spot, out bool ladder)
+        {
+            spot = new Vec3d(x, y, z);
+            ladder = false;
+            var g = Grid;
+            if (g == null || ep == null || ep.Pos.Dimension != Pos.Dimension) return false;
+            if (!double.IsFinite(x) || !double.IsFinite(y) || !double.IsFinite(z)) return false;
+            LocalToWorld(x, y, z, out double wx, out double wy, out double wz);
+            if (ep.Pos.SquareDistanceTo(wx, wy, wz) > 12 * 12) return false;
+            var me = WorldToLocal(ep.Pos.X, ep.Pos.Y, ep.Pos.Z);
+            double lag = Math.Abs(Speed) * 0.5;
+            // (before her bounds: a brow's quay end lies beyond them, review H2-3)
+            foreach (var l in Ladders)
+            {
+                if (!l.Outside || l.Bottom == null) continue;
+                double dx = l.Bottom[0] - x, dy = l.Bottom[1] - y, dz = l.Bottom[2] - z;
+                if (dx * dx + dy * dy + dz * dz >= 0.5 * 0.5) continue;
+                // (review H2-2) from beside its foot, (review H3-3) as far as their client lets it be clicked, their lag allowed for
+                double fx = l.Bottom[0] - me.X, fz = l.Bottom[2] - me.Z, fy = l.Bottom[1] - me.Y, near = Boarding.LadderReach + 0.5 + lag;
+                spot = new Vec3d(l.Bottom[0], l.Bottom[1], l.Bottom[2]);
+                ladder = true;
+                return fx * fx + fz * fz <= near * near && fy > -3.5 && fy < 3;
+            }
+            if (Def.BoardFromWater)
+            {
+                foreach (var b in Def.BoardPoints)
+                {
+                    double dx = b[0] - x, dy = b[1] - y, dz = b[2] - z;
+                    if (dx * dx + dy * dy + dz * dz < 0.5 * 0.5) return true;
+                }
+            }
+            if (x < g.OX - 2 || x > g.MaxX + 2 || y < g.OY - 2 || y > g.MaxY + 2 || z < g.OZ - 2 || z > g.MaxZ + 2) return false;
+            // stepped or jumped aboard: not from the water (only her ladders take a swimmer up), onto a spot with room and a
+            // floor under it, close to where they are (her way and their lag allowed for)
+            if (Swimmer(ep) || StandsFree(new Vec3d(x, y, z)) == null) return false;
+            double hx = x - me.X, hz = z - me.Z, reach = 3 + lag;
+            if (hx * hx + hz * hz > reach * reach || y - me.Y > 2.0 || me.Y - y > 1.5) return false;
+            // nothing of hers between: from the spot back toward them, waist or head high (over her rail, which the server may
+            // still have them on the far side of; her hull's side stops both). Only what's within a quarter block of them is
+            // let pass (they themselves stand free of her: a wall between is farther from them than that, review H2-2)
+            var d = new Vec3d(me.X - x, me.Y - y, me.Z - z);
+            double len = d.Length();
+            if (len < 1e-6) return true;
+            d.Mul(1 / len);
+            return g.Raycast(new Vec3d(x, y + 1, z), d, len) >= len - 0.25 || g.Raycast(new Vec3d(x, y + 1.6, z), d, len) >= len - 0.25;
+        }
+
+        /// <summary>
+        /// (review H2-2) Is the water up to their waist, as the server has them (it doesn't run players' physics)? Not in a
+        /// hull's dry inside (review H3-3: standing in a skiff, her floor under the sea outside).
+        /// </summary>
+        bool Swimmer(EntityPlayer ep)
+        {
+            double wy = ep.Pos.Y + 0.8;
+            var bp = new BlockPos((int)Math.Floor(ep.Pos.X), (int)Math.Floor(wy), (int)Math.Floor(ep.Pos.Z), ep.Pos.Dimension);
+            return World.BlockAccessor.GetBlock(bp, BlockLayersAccess.Fluid)?.IsLiquid() == true && Mod?.Dry.IsDry(ep.Pos.X, wy, ep.Pos.Z) != true;
         }
 
         public void StandUp(EntityAgent agent, FixtureDef near)
@@ -1300,8 +1379,9 @@ namespace Hansa
             RebuildGrid();
         }
 
-        void RebuildGrid()
+        void RebuildGrid(bool openingsOnly = false)
         {
+            if (!openingsOnly) DecorVersion++;
             if (Def == null || Grid == null) return;
             ShipFittings.ApplySolids(Def, Grid, f => OpenFittings.Contains(f.Code), f => Attached.TryGetValue(f.Code, out var st) ? st : null, GunAbsent);
             // (0.3.20, step B) her deck cells as they are: one taken up is an opening
@@ -1385,9 +1465,36 @@ namespace Hansa
                 }
             }
             SyncChestStorages();
-            RebuildGrid();
+            RebuildGrid(OnlyOpeningsChanged(t, ref lastFitTree));
             // (clients: a lidded gun's port opened or shut runs it out or in from now)
             NotePorts();
+        }
+
+        /// <summary>
+        /// (review H1-17, clients) Is this tree as it was last time (kept in last) but for what's open? Then only a door, gate
+        /// or hatch was opened or shut.
+        /// </summary>
+        bool OnlyOpeningsChanged(ITreeAttribute t, ref ITreeAttribute last)
+        {
+            if (Api?.Side != EnumAppSide.Client) return false;
+            bool same = last != null && t != null && SameButOpen(t, last);
+            last = t?.Clone() as ITreeAttribute;
+            return same;
+        }
+
+        bool SameButOpen(ITreeAttribute a, ITreeAttribute b)
+        {
+            foreach (var kv in a)
+                if (kv.Key != "open" && !b.HasAttribute(kv.Key)) return false;
+            foreach (var kv in b)
+            {
+                if (kv.Key == "open") continue;
+                var av = a[kv.Key];
+                if (av == null) return false;
+                if (av is ITreeAttribute at && kv.Value is ITreeAttribute bt) { if (!SameButOpen(at, bt)) return false; }
+                else if (!av.Equals(World, kv.Value)) return false;
+            }
+            return true;
         }
 
         void Notify(IServerPlayer player, string langCode)
@@ -1397,6 +1504,8 @@ namespace Hansa
 
         public override void OnReceivedClientPacket(IServerPlayer player, int packetid, byte[] data)
         {
+            // (review H1-26: a ship whose design is gone has no fixtures to answer for)
+            if (Def == null) { base.OnReceivedClientPacket(player, packetid, data); return; }
             // storage dialogs: packet id = (fixture index + 1) << 11 | inventory packet
             int fi = (packetid >> 11) - 1;
             int inner = packetid & 2047;
@@ -1528,35 +1637,79 @@ namespace Hansa
 
         public void SaveState(bool force)
         {
+            // (review H1-14) written when it's sent: forced, or a fifth of a second on when anything the clients see has
+            // changed (what changes smoothly, by more than a little), else every few seconds
+            if (!force && syncAccum < 0.2f) return;
+            syncAccum = 0;
             var t = WatchedAttributes.GetOrAddTreeAttribute("hansa");
-            t.SetInt("sailSet", SailSet);
-            t.SetBool("crawl", Crawl);
-            t.SetInt("crawlDrive", CrawlDrive);
-            t.SetFloat("sail", SailFraction);
-            t.SetFloat("leeway", Leeway);
-            if (WhySlow != null) t.SetString("whySlow", WhySlow); else t.RemoveAttribute("whySlow");
-            t.SetFloat("rudder", Rudder);
-            t.SetFloat("speed", Speed);
-            t.SetFloat("yawRate", YawRate);
-            t.SetBool("anchored", Anchored);
-            t.SetBool("aground", Aground);
-            t.SetInt("rowing", Rowing);
-            t.SetBool("waiting", Waiting);
-            t.SetBool("byWind", SailByWind);
-            t.SetFloat("maxSpeed", MaxSpeedNow);
-            t.SetFloat("pointCloser", PointCloser);
-            t.SetString("stoves", string.Join(",", LitStoves));
-            t.SetBool("guns", CannonsOn);
-            t.SetBool("hearth", HearthOn);
-            t.SetBool("oven", OvenOn);
-            if (!double.IsNaN(targetY)) t.SetDouble("targetY", targetY);
-            if (!double.IsNaN(BaseY)) t.SetDouble("baseY", BaseY);
-            SaveFloodState(t);
-            if (force || syncAccum >= 0.2f)
+            long now = World.ElapsedMilliseconds;
+            if (!force && now - stateSentMs < StateHeartbeatMs && now >= stateSentMs && !WriteState(t, false)) return;
+            WriteState(t, true);
+            stateSentMs = now;
+            WatchedAttributes.MarkPathDirty("hansa");
+        }
+
+        const long StateHeartbeatMs = 3000;
+        long stateSentMs;
+        readonly StateWriter stateWriter = new();
+
+        /// <summary>Her sailing state into her "hansa" tree (write), or only whether it differs from what's in it (review H1-14).</summary>
+        bool WriteState(ITreeAttribute t, bool write)
+        {
+            var w = stateWriter;
+            w.Reset(t, write);
+            w.Int("sailSet", SailSet);
+            w.Bool("crawl", Crawl);
+            w.Int("crawlDrive", CrawlDrive);
+            w.Float("sail", SailFraction, 0.01f);
+            w.Float("leeway", Leeway, 0.01f);
+            w.Str("whySlow", WhySlow);
+            w.Float("rudder", Rudder, 0.01f);
+            w.Float("speed", Speed, 0.01f);
+            w.Float("yawRate", YawRate, 0.0005f);
+            w.Bool("anchored", Anchored);
+            w.Bool("aground", Aground);
+            w.Int("rowing", Rowing);
+            w.Bool("waiting", Waiting);
+            w.Bool("byWind", SailByWind);
+            w.Float("maxSpeed", MaxSpeedNow, 0.01f);
+            w.Float("pointCloser", PointCloser);
+            w.Str("stoves", string.Join(",", LitStoves));
+            w.Bool("guns", CannonsOn);
+            w.Bool("hearth", HearthOn);
+            w.Bool("oven", OvenOn);
+            w.Saved("targetY", targetY);
+            // (review H2-4: the height clients draw her at)
+            if (!double.IsNaN(BaseY)) w.Double("baseY", BaseY, 0.01);
+            SaveFloodState(w);
+            return w.Changed;
+        }
+
+        /// <summary>
+        /// (review H1-14) Writes her state into a tree, or (not writing) only finds whether it differs from what's there: what
+        /// changes smoothly by more than its "near".
+        /// </summary>
+        sealed class StateWriter
+        {
+            ITreeAttribute t;
+            bool write;
+            public bool Changed;
+
+            public void Reset(ITreeAttribute tree, bool w) { t = tree; write = w; Changed = false; }
+
+            public void Int(string k, int v) { if (write) t.SetInt(k, v); else if (!Changed && (!t.HasAttribute(k) || t.GetInt(k) != v)) Changed = true; }
+            public void Bool(string k, bool v) { if (write) t.SetBool(k, v); else if (!Changed && (!t.HasAttribute(k) || t.GetBool(k) != v)) Changed = true; }
+            public void Float(string k, float v, float near = 0) { if (write) t.SetFloat(k, v); else if (!Changed && (!t.HasAttribute(k) || Math.Abs(t.GetFloat(k) - v) > near)) Changed = true; }
+            public void Double(string k, double v, double near = 0) { if (write) t.SetDouble(k, v); else if (!Changed && (!t.HasAttribute(k) || Math.Abs(t.GetDouble(k) - v) > near)) Changed = true; }
+
+            public void Str(string k, string v)
             {
-                WatchedAttributes.MarkPathDirty("hansa");
-                syncAccum = 0;
+                if (write) { if (v != null) t.SetString(k, v); else t.RemoveAttribute(k); }
+                else if (!Changed && t.GetString(k) != v) Changed = true;
             }
+
+            /// <summary>Kept for her save, not for the clients: written (when it's a number), never compared.</summary>
+            public void Saved(string k, double v) { if (write && !double.IsNaN(v)) t.SetDouble(k, v); }
         }
 
         /// <summary>
@@ -1640,6 +1793,8 @@ namespace Hansa
                 BaseY = Pos.Y + Sinkage;
                 targetY = double.NaN;
                 waterCheckAccum = 99;
+                // (review H2-4) clients' height for her at once
+                SaveState(true);
             }
 
             passengerCheckAccum += dt;
@@ -1795,7 +1950,8 @@ namespace Hansa
             // (her leeway: to starboard of her heading is (-cos yaw, sin yaw) in the world)
             double nx = Pos.X + fx * Speed * dt - Math.Cos(newYaw) * Leeway * dt, nz = Pos.Z + fz * Speed * dt + Math.Sin(newYaw) * Leeway * dt;
 
-            if (Math.Abs(Speed) > 1e-4 || Math.Abs(YawRate) > 1e-5)
+            // (review H1-8: leeway alone moves her too, as clients reckon it)
+            if (Math.Abs(Speed) + Math.Abs(Leeway) > 1e-4 || Math.Abs(YawRate) > 1e-5)
             {
                 var pose = PoseToward(nx, nz, newYaw);
                 if (pose == PoseState.Unloaded)
@@ -1810,8 +1966,11 @@ namespace Hansa
                     Waiting = false;
                     Rammed(shipContact, shipContactAt, nx, nz, newYaw, dt);
                     Speed = Math.Sign(Speed) * -0.05f;
+                    // (review H1-8: and her drift sideways stops there, building up again as the wind presses her)
+                    Leeway = 0;
                     YawRate = 0;
-                    SaveState(true);
+                    // (review H2-9: sent with the next sync, a fifth of a second at most, not every bump)
+                    SaveState(false);
                 }
                 else if (pose == PoseState.Blocked)
                 {
@@ -1830,13 +1989,16 @@ namespace Hansa
                     // where she touched takes the blow (ShipFlooding)
                     Grounded(nx, nz, newYaw, dt);
                     Speed = Math.Sign(Speed) * -0.1f;
+                    Leeway = 0;
                     YawRate = 0;
-                    SaveState(true);
+                    SaveState(false);
                 }
                 else
                 {
                     Waiting = false;
-                    if (Aground) { Aground = false; SaveState(true); }
+                    // (review H3-9: as running aground, with the next sync)
+                    // (review H4-7: not while she's on the bottom, where she's aground all the same)
+                    if (Aground && !OnBottom) { Aground = false; SaveState(false); }
                     Pos.X = nx;
                     Pos.Z = nz;
                     Pos.Yaw = GameMath.Mod((float)newYaw, GameMath.TWOPI);
@@ -1874,7 +2036,7 @@ namespace Hansa
             // her firehearth's fire: vanilla's firepit burn tick (ShipHearth); her oven's (ShipOven)
             HearthTick(dt);
             OvenTick(dt);
-            if (OnBottom && !Aground) { Aground = true; SaveState(true); }
+            if (OnBottom && !Aground) { Aground = true; SaveState(false); }
             if (!GoneDown)
             {
                 Pos.Y = BaseY - Sinkage + Heave;
@@ -1902,14 +2064,17 @@ namespace Hansa
             var ba = world.BlockAccessor;
             var bp = new BlockPos(dim);
             bool unloaded = false, blocked = false;
+            // (review H1-20: ShipFrame.ToWorld's turn, worked out once for every sample)
+            double sy = Math.Sin(yaw), cy = Math.Cos(yaw);
             for (int n = 0; n < def.HullSamples.Length; n++)
             {
                 var s = def.HullSamples[n];
-                ShipFrame.ToWorld(yaw, s[0], s[1], s[2], out double wx, out double wy, out double wz);
-                bp.Set((int)Math.Floor(x + wx), (int)Math.Floor(y + wy), (int)Math.Floor(z + wz));
+                double px = x + s[0] * sy - s[2] * cy, py = y + s[1], pz = z + s[0] * cy + s[2] * sy;
+                bp.Set((int)Math.Floor(px), (int)Math.Floor(py), (int)Math.Floor(pz));
                 if (ba.GetChunkAtBlockPos(bp) == null) { unloaded = true; continue; }
                 var block = ba.GetBlock(bp, BlockLayersAccess.Solid);
-                if (block != null && block.Id != 0 && block.CollisionBoxes != null && block.CollisionBoxes.Length > 0)
+                if (block != null && block.Id != 0 && block.CollisionBoxes != null && block.CollisionBoxes.Length > 0 &&
+                    InCollision(block.GetCollisionBoxes(ba, bp), px - bp.X, py - bp.Y, pz - bp.Z))
                 {
                     if (hits == null) return PoseState.Blocked;
                     blocked = true;
@@ -1919,6 +2084,20 @@ namespace Hansa
                 }
             }
             return blocked ? PoseState.Blocked : unloaded ? PoseState.Unloaded : PoseState.Clear;
+        }
+
+        /// <summary>
+        /// (review H1-10) Is a hull sample (its place in the block, 0..1) in one of the block's collision boxes, with a little
+        /// to spare: over a slab, beside a fence post or above a low stone she doesn't touch it.
+        /// </summary>
+        static bool InCollision(Cuboidf[] boxes, double fx, double fy, double fz)
+        {
+            if (boxes == null) return false;
+            const double spare = 0.15;
+            foreach (var b in boxes)
+                if (b != null && fx > b.X1 - spare && fx < b.X2 + spare && fy > b.Y1 - spare && fy < b.Y2 + spare && fz > b.Z1 - spare && fz < b.Z2 + spare)
+                    return true;
+            return false;
         }
 
         /// <summary>
@@ -1981,16 +2160,29 @@ namespace Hansa
                 double reach = (Def.Length + other.Def.Length) / 2 + 3;
                 double dx = other.Pos.X - x, dz = other.Pos.Z - z;
                 if (dx * dx + dz * dz > reach * reach || Math.Abs(other.Pos.Y - Pos.Y) > 30) continue;
+                double sy = Math.Sin(yaw), cy = Math.Cos(yaw);
+                // (review H2-11) her turn worked out once too: on the server she's level (no pitch or roll), else as ShipFrame has it
+                bool level = other.Pitch == 0 && other.Roll == 0;
+                double so = Math.Sin(other.Pos.Yaw), co = Math.Cos(other.Pos.Yaw);
                 foreach (var s in Def.HullSamples)
                 {
-                    ShipFrame.ToWorld(yaw, s[0], s[1], s[2], out double wx, out double wy, out double wz);
-                    var l = other.WorldToLocal(x + wx, baseY + wy, z + wz);
-                    if (other.HullAt(l.X, l.Y, l.Z)) { hit = other; at = new Vec3d(x + wx, baseY + wy, z + wz); return true; }
+                    double wx = s[0] * sy - s[2] * cy, wy = s[1], wz = s[0] * cy + s[2] * sy;
+                    double lx, ly, lz;
+                    if (level)
+                    {
+                        double ox = x + wx - other.Pos.X, oz = z + wz - other.Pos.Z;
+                        lx = ox * so + oz * co; ly = baseY + wy - other.Pos.Y; lz = -ox * co + oz * so;
+                    }
+                    else other.WorldToLocal(x + wx, baseY + wy, z + wz, out lx, out ly, out lz);
+                    if (other.HullAt(lx, ly, lz)) { hit = other; at = new Vec3d(x + wx, baseY + wy, z + wz); return true; }
                 }
                 foreach (var s in other.Def.HullSamples)
                 {
-                    other.LocalToWorld(s[0], s[1], s[2], out double wx, out double wy, out double wz);
-                    ShipFrame.ToLocal(yaw, wx - x, wy - baseY, wz - z, out double lx, out double ly, out double lz);
+                    double wx, wy, wz;
+                    if (level) { wx = other.Pos.X + s[0] * so - s[2] * co; wy = other.Pos.Y + s[1]; wz = other.Pos.Z + s[0] * co + s[2] * so; }
+                    else other.LocalToWorld(s[0], s[1], s[2], out wx, out wy, out wz);
+                    double dx2 = wx - x, dz2 = wz - z;
+                    double lx = dx2 * sy + dz2 * cy, ly = wy - baseY, lz = -dx2 * cy + dz2 * sy;
                     if (HullAt(lx, ly, lz)) { hit = other; at = new Vec3d(wx, wy, wz); return true; }
                 }
             }
@@ -2054,8 +2246,8 @@ namespace Hansa
                 double x = bx + (i == 8 ? 0.5 : (i & 1) * 0.9 + 0.05);
                 double y = by + (i == 8 ? 0.5 : ((i >> 1) & 1) * 0.9 + 0.05);
                 double z = bz + (i == 8 ? 0.5 : ((i >> 2) & 1) * 0.9 + 0.05);
-                var l = WorldToLocal(x, y, z);
-                if (inside.SolidAt(l.X, l.Y, l.Z)) return true;
+                WorldToLocal(x, y, z, out double lx, out double ly, out double lz);
+                if (inside.SolidAt(lx, ly, lz)) return true;
             }
             return false;
         }
@@ -2149,8 +2341,8 @@ namespace Hansa
 
             double age = Math.Min(0.5, (World.ElapsedMilliseconds - targetMs) / 1000.0);
             double tyaw = targetYaw + YawRate * age;
-            double tx = targetPos.X + Math.Sin(tyaw) * Speed * age;
-            double tz = targetPos.Z + Math.Cos(tyaw) * Speed * age;
+            double tx = targetPos.X + Math.Sin(tyaw) * Speed * age - Math.Cos(tyaw) * Leeway * age;
+            double tz = targetPos.Z + Math.Cos(tyaw) * Speed * age + Math.Sin(tyaw) * Leeway * age;
             double k = 1 - Math.Exp(-dt * 3);
             RenderPos.X += (tx - RenderPos.X) * k;
             RenderPos.Z += (tz - RenderPos.Z) * k;

@@ -211,7 +211,8 @@ namespace Hansa
             return sd;
         }
 
-        void Restore(EntityShip ship)
+        /// <summary>Her working blocks back in her dimension from her saved schematic; false if it couldn't be read (review H3-4).</summary>
+        bool Restore(EntityShip ship)
         {
             var sd = EnsureDim(ship);
             var rec = ship.BlockRecord;
@@ -222,14 +223,17 @@ namespace Hansa
                 sapi.Logger.Warning("[hansa] {0} #{1} has working blocks but no saved schematic: placing them anew", ship.GetName(), ship.EntityId);
                 foreach (var s in rec.Supports) SetSupport(sd, s[0], s[1], s[2]);
                 foreach (var c in rec.Cells.OrderBy(c => c.J)) SetCellBlock(sd, c, null);
-                return;
+                // (review H4-5) placed anew all the same; but a schematic with no usable place to put it was never read: what
+                // was in them isn't known
+                return json == null;
             }
             string err = null;
             var sch = BlockSchematic.LoadFromString(json, ref err);
-            if (sch == null) { sapi.Logger.Error("[hansa] {0} #{1}: working blocks' schematic unreadable: {2}", ship.GetName(), ship.EntityId, err); return; }
+            if (sch == null) { sapi.Logger.Error("[hansa] {0} #{1}: working blocks' schematic unreadable: {2}", ship.GetName(), ship.EntityId, err); return false; }
             ShipBlockMath.DimPos(sd.Sub, origin.value[0], origin.value[1], origin.value[2], out int x, out int y, out int z);
             sch.PasteToMiniDimension(sapi, sapi.World.BlockAccessor, sd.Dim, new BlockPos(x, y, z, Dimensions.MiniDimensions), false);
             sapi.Logger.Notification("[hansa] {0} #{1}: {2} working block(s) back in her dimension {3}", ship.GetName(), ship.EntityId, rec.Cells.Count, sd.Sub);
+            return true;
         }
 
         /// <summary>Her dimension's blocks into her Attributes (a vanilla schematic, with the block entities' state).</summary>
@@ -340,6 +344,17 @@ namespace Hansa
                 sd.LastSent.TryGetValue(uid, out double last);
                 sd.Sends.TryGetValue(uid, out int sends);
                 double wait = sends < 10 ? 3 : 30;
+                // (review H1-27) a client that never has them all (a block it can't make) isn't sent them for ever: said once
+                if (!newcomer && !complete && sends >= MaxSends)
+                {
+                    if (sends == MaxSends)
+                    {
+                        sd.Sends[uid] = sends + 1;
+                        sapi.Logger.Warning("[hansa] working blocks: {0} #{1}'s dimension {2}: {3}'s client still hasn't all of them after {4} sends; not sent again until they come within view anew",
+                            sd.Ship.GetName(), sd.Ship.EntityId, sd.Sub, pl.PlayerName, sends);
+                    }
+                    continue;
+                }
                 if (!newcomer && (complete || now - last < wait)) continue;
                 string why = newcomer ? "came within view" : ack == null ? $"their client hasn't answered (send {sends + 1})"
                     : $"their client has {ack.Resolved}/{ack.Total} working block(s), {ack.Chunks} chunk(s), dimension {(ack.Registered ? "registered" : "NOT registered")} (send {sends + 1})";
@@ -352,9 +367,12 @@ namespace Hansa
             sd.SentTo.UnionWith(inView);
         }
 
+        const int MaxSends = 20;
+
         void SendChunks(ShipDim sd, IServerPlayer pl, string why, int sends)
         {
-            MarkAllDirty(sd);
+            // (review H1-27: marked dirty, they go to everyone in view; sent again, they go to this player only)
+            if (sends == 0) MarkAllDirty(sd);
             int forced = ForceSend(sd, pl, out string err);
             if (sends < 3 || sends % 10 == 0 || err != null)
                 sapi.Logger.Notification("[hansa] working blocks: {0} #{1}'s dimension {2} sent to {3} ({4}): {5} chunk(s) queued{6}", sd.Ship.GetName(), sd.Ship.EntityId, sd.Sub,
@@ -647,6 +665,25 @@ namespace Hansa
         {
             var sd = DimOf(ship);
             var c = ship.BlockRecord.ByPiece(p.Id);
+            // (review H2-5) the switch turned off since she got it: its block is still in her saved schematic, made again to
+            // look in it (as for her loot), and let go of again; refused while something's in it, as with the switch on
+            // (review H3-4) not known to be empty (her schematic unreadable, or looking failed): refused all the same; the
+            // dimension made for the look let go of whatever happens
+            if (sd == null && c != null && sapi != null)
+            {
+                bool empty = false;
+                try
+                {
+                    if (Restore(ship) && DimOf(ship) is ShipDim borrowed)
+                        empty = !Contents(sapi.World.BlockAccessor.GetBlockEntity(CellPos(borrowed, c.I, c.J, c.K))).Any();
+                }
+                catch (Exception e) { sapi.Logger.Warning("[hansa] Working block of #{0} looked into: {1}", ship.EntityId, e.Message); }
+                finally
+                {
+                    if (DimOf(ship) is ShipDim made) Release(made);
+                }
+                return empty ? null : "hansa:piece-not-empty";
+            }
             if (sd != null && c != null)
             {
                 var be = sapi.World.BlockAccessor.GetBlockEntity(CellPos(sd, c.I, c.J, c.K));
@@ -660,25 +697,41 @@ namespace Hansa
         public void Loot(EntityShip ship, List<ItemStack> into, bool take)
         {
             var sd = DimOf(ship);
-            if (sd == null) return;
-            foreach (var c in ship.BlockRecord.Cells)
+            // (review H1-12) the switch turned off since she got them: they're still in her saved schematic, made again for
+            // this so what's in them isn't lost with her, and let go of again after
+            bool borrowed = false;
+            if (sd == null && sapi != null && ship.BlockRecord.Cells.Count > 0)
             {
-                var be = sapi.World.BlockAccessor.GetBlockEntity(CellPos(sd, c.I, c.J, c.K));
-                foreach (var slot in Contents(be).ToArray())
-                {
-                    into.Add(slot.Itemstack.Clone());
-                    if (take && slot is not DummySlot) { slot.Itemstack = null; slot.MarkDirty(); }
-                }
-                if (take && be is BlockEntityAnvil anvil && anvil.WorkItemStack != null) ClearAnvil(anvil);
+                try { Restore(ship); }
+                catch (Exception e) { sapi.Logger.Warning("[hansa] Working blocks of #{0} for her loot: {1}", ship.EntityId, e.Message); }
+                sd = DimOf(ship);
+                borrowed = sd != null;
             }
-            if (take) ClearAll(sd);
+            if (sd == null) return;
+            // (review H3-4: a dimension made for this let go of whatever happens)
+            try
+            {
+                foreach (var c in ship.BlockRecord.Cells)
+                {
+                    var be = sapi.World.BlockAccessor.GetBlockEntity(CellPos(sd, c.I, c.J, c.K));
+                    foreach (var slot in Contents(be).ToArray())
+                    {
+                        into.Add(slot.Itemstack.Clone());
+                        if (take && slot is not DummySlot) { slot.Itemstack = null; slot.MarkDirty(); }
+                    }
+                    if (take && be is BlockEntityAnvil anvil && anvil.WorkItemStack != null) ClearAnvil(anvil);
+                }
+                if (take) ClearAll(sd);
+            }
+            finally
+            {
+                if (borrowed) Release(sd);
+            }
         }
 
         /// <summary>Her working blocks' contents dropped where she is (she's removed for good); the dimension emptied.</summary>
         public void DropAll(EntityShip ship)
         {
-            var sd = DimOf(ship);
-            if (sd == null) return;
             var at = ship.Pos.XYZ.Add(0, ship.Def?.DeckY ?? 3, 0);
             var list = new List<ItemStack>();
             Loot(ship, list, true);
@@ -736,6 +789,12 @@ namespace Hansa
             ShipBlockMath.CellOfDim(sub, pos.X, pos.Y, pos.Z, out int i, out int j, out int k);
             var c = sd.Ship.BlockRecord.At(i, j, k);
             var p = c != null ? sd.Ship.Pieces.Get(c.Piece) : null;
+            // (review H1-11) only her crew break her working blocks up (and take what's in them)
+            if (p != null && byPlayer != null && !sd.Ship.MayUse(byPlayer))
+            {
+                claimant = Lang.GetL(byPlayer.LanguageCode, sd.Ship.LaidUp ? "hansa:laidup-closed" : "hansa:crew-only", sd.Ship.GetName());
+                return false;
+            }
             if (p != null && sd.Ship.Pieces.StandingOn(sd.Ship.Mounts, p) == null && !sd.Ship.GoneDown) return true;
             claimant = Lang.GetL(byPlayer?.LanguageCode ?? "en", p != null ? "hansa:piece-under" : "hansa:ship-in-the-way");
             return false;

@@ -71,19 +71,36 @@ the length with an open railing; a broad rudder on a straight sternpost.
 
 ## Plan
 
+Since 24 October 2026, 2 blocks longer (note 73; before: 23.6 m overall, 21.3 on the deck, 20.5 on the waterline, 222 t):
+
 | | Value |
 |---|---|
-| Length overall, hull (transom top to stem head) | 23.6 m |
-| Length on the main deck | 21.3 m (transom −11.6, stem +9.7) |
-| Waterline length | 20.5 m |
+| Length overall, hull (transom top to stem head) | 25.5 m |
+| Length on the main deck | 23.8 m (transom −14.1, stem +9.7) |
+| Waterline length | 22.8 m |
 | Beam | 6.60 m (half 3300 at Z 3500; the user: 6.6 blocks) — inside 7 cells, Y ±3500 |
 | Draft | 2.75 m (the keel is flush with the planking) |
-| Displacement | ≈ 216 m³, ≈ 222 t in seawater, block coefficient ≈ 0.56 |
+| Displacement | ≈ 249 m³, ≈ 256 t in seawater, block coefficient ≈ 0.58 |
 
-For comparison the carrack is 36.4 × 12.16 m with a 4.875 m draft: the caravel is about 0.65 her length and half
-her beam. L/B is 3.58 overall (23.58 / 6.59) and 3.13 on the waterline (20.47 / 6.53).
+For comparison the carrack is 36.4 × 12.16 m with a 4.875 m draft: the caravel is about 0.7 her length and half
+her beam. L/B is 3.87 overall (25.54 / 6.60) and 3.49 on the waterline (22.78 / 6.53).
 
 ### Cells along X (named by their aft face, in blocks)
+
+Since 24 October 2026 (chalk note 73, the user: 2 blocks longer aft of the main mast; see "The fourth trial"):
+
+```
+cell  -16 -15 -14 -13 -12 -11 -10  -9  -8  -7  -6  -5  -4  -3  -2  -1   0   1   2   3   4   5   6   7   8   9
+       .   .  RIB  .  RIB MIZ RIB  W  RIB  QS RIB  HS RIB  .  RIB MAIN RIB  G  RIB  G  RIB  .  RIB FORE  .   .
+               G       G                   |   [ hatch  ]      gate pump               capstan
+       |<---------- quarterdeck --------->|<------------------------------ waist ------------------------------->
+```
+
+G a gun pair (the quarterdeck's at -14 and -12), W the wheel, QS the quarterdeck stair, HS the hold stair (both on the
+centreline), the hatch -5..-2. The text below is mostly as written before; where it gives a cell or an X aft of the main
+mast's ribs, take 2 off it (the quarterdeck, the mizzen, the wheel and the stern moved 2 aft with her lengthening).
+
+Before 24 October 2026:
 
 ```
 cell  -13 -12 -11 -10  -9  -8  -7  -6  -5  -4  -3  -2  -1   0   1   2   3   4   5   6   7   8   9
@@ -450,6 +467,81 @@ Not yet: hull panels as slots (note 16 and the user's item 3), rooms, a hearth.
 In other sessions (mod code): items shuffling on deck (1), partitions through a beam and where stairs were (48, 49),
 stairs in the hold (51, 52), building mode without block snapping (5), the telescope taken for a gun (6), lanterns'
 light (43). Note 50 (the carlings left after closing a hatch): they are the opening's framing, part of her structure.
+
+### The fourth trial (24 October 2026, release 0.1.0-dev.8, chalk notes 53-84)
+
+**Two blocks longer (note 73: "we should make our ship 1 block longer here so we can place stairs and have decent
+layout", just aft of the main mast).** With ribs 1 or 3 cells apart (`AGENTS.md`) every rib keeps its cell's parity, and
+both masts need a rib each side and the quarterdeck's front sits on a rib's forward face: one block between the masts
+can't keep all three. Two drafts went to the user (`CARAVEL_VARIANT=A|B`, `CARAVEL_OUT=models/caravel/variants/<v>`,
+the views by `tools/caravel/variant_views.py`; the folder is git-ignored): A, 1 longer, the front at -6 off a rib, the
+wheel behind the mizzen for a centreline stair; B, 1 longer, the waist 2 longer and the quarterdeck 1 shorter. The user
+chose a third: **2 blocks longer**, B's waist and the quarterdeck as it was (`caravel_lines.LAYOUTS["C"]`, the default).
+
+- 2 m more parallel middle body (`XM_A` -4.5), the stern 2 aft (the keel's after end at X -12.4, the transom's top at
+  -15.94). The bow, the main mast, the waist's guns, the gates and the pump keep their cells.
+- Ribs every 2nd cell, -14 .. 6 (11): the quarterdeck's are today's moved 2 aft, one new rib at -4 in the waist.
+- The quarterdeck's front at X -7 over rib -8; the mizzen at -11 (its heel now flush under the main deck: note 58), the
+  wheel at -9 forward of it; the quarterdeck's guns at -14 and -12 (1 aft of before from the transom: note 62). Her
+  lateen sketch's mizzen points move with the mizzen.
+- **Stairs on the centreline** (the user: "stairs should be moved to the center of the ship (if we can sort rope
+  management)"), rising aft in one line: the hold's in cell -5 up through the hatch (-5..-2, 1 wide, its carlings and
+  headledges as before), out onto -6, the landing it shares with the quarterdeck's stair in -7, whose head is the
+  quarterdeck's front. A clear cell (-2) between the hatch and the main mast. The railing's gap at the front's centre.
+- **A cabin** under the quarterdeck (the user: "add default partition wall with doors and window to rear to form cabin,
+  similar to how in current test"): its front on the line x -7, the pieces a player places (`modularPieces`): oak plank
+  partitions three rows up to the quarterdeck, a windowed sleek oak door either side of the stair (z ±1, two rows), a
+  window between them behind the stair (z 0, the middle row), no partition in the top row behind the stair's head (its
+  last tread meets that row's top). The places outboard of the doors (z ±2) are the side's wedge cells, which take no
+  window or door (the drafts drew a window there). Removable and movable as any piece.
+
+**The others:**
+
+- **53** (the cap rail's grain across it forward of x 2): its faces take u from the length along the rail's middle line
+  (in plan and in height), v across or up it (`export_caravel.cap_uv`).
+- **56** (the quarterdeck's rails can't be taken out): each span of its sides between two posts (top rail, bottom rail,
+  member) is a solid of its own ending on the posts' faces, and a hull slot of band 7 (`hull:<p|s>:<station>:7:<half>`,
+  `room` null, its voxels with the column under its top rail filled down to the deck), taken out and laid again as her
+  side's panels. No new slot kind. The spans over the guns (their lids), across the transom and the front, and short ones
+  by the corners stay fixed: the transom's would share a station and half, the runtime's hull slot key.
+- **58**: no mizzen step in the hold; the mizzen ends flush with the main deck's underside.
+- **59** (the user confirmed: the bumpkin): its heel runs in on its line to the after face of the first quarterdeck beam
+  (it stopped 0.6 inside the transom, in the air).
+- **60**: the gate leaves are plain inside, as her side (no ledges or brace).
+- **61** (the fittings session: the open leaves hit her side): each leaf hinged on its inner face at its after edge, no
+  cap of its own (the bulwark's cap breaks at the gate), narrowed so its outer forward corner passes the forward jamb
+  (15 clear); her collision's gap at the gate cleared to the opening's width (it was 0.5 against 0.82 drawn).
+- **62**: the quarterdeck's guns 1 aft (above).
+- **63** (the user): no stern lantern, post or crane.
+- **64**: a sheet's or tack's end on a sail's corner or a yard has an iron ring; a rope made fast on a rail ends on an oak
+  cleat on the rail's top, its turns across the horns: the main sheet and the mizzen's tack on the quarterdeck's front rail
+  (both sides: the mod mirrors the ropes' ends on the other tack). The halyards' falls run from a block at the masthead
+  down to a cleat on the mast, chest high (they ended in the air). The sail through the mast and the dip round it are the
+  lateen session's (`sails[].dip`; each mast's `radius` the widest where its yard sweeps).
+- **65**: the mizzen's tack led to the front rail on its yard's side, clear of the stair on the centreline.
+- **67**: the main tack to an eyebolt in the stem head's after face (it ended over the bow in the air).
+- **68**: the waist lids' insides the hull's inside planking, the quarterdeck's lids the railing's wood; both painted with
+  them (`paintQuads` for `part:*-lid`: topsides, waist bulwarks, quarterdeck railing).
+- **69** (the cap rail didn't cover the ribs' heads toward the bow, where her side narrows fastest and a rib's section,
+  the narrowest across its thickness, stands further in at its after face): the cap's inboard width measured on the built
+  ribs, 400 where that covers them and wider at each rib toward the bow, tapering between (`capRail.inAtRibs`).
+- **76**: the masts, yards and bumpkin take the wood's grain (u) along each spar, v round it (`add_pole`).
+- **80**: the hold's floor drawn as inside everywhere (forward of the quarterdeck's old front it was lit as outside).
+- **81**: the pump's pipe brass, 0.09 across, out of the chamber over the deck, aft into the main mast's cell and down
+  beside the mast to a strainer on the hold floor: no hold cell and no beam in its way.
+- **84**: no caps on the railing's posts; each ends inside the top rail.
+- For the runtime sessions: `panelPlaces` false (note 82), the figurehead's hook on the stem (note 78).
+- Beam lengths: a beam's length is judged by the beam's own piece in its rib cell, not a hatch's headledge beside it (the
+  hatch's after end shares cell -6 with rib -6's beam): 31 of 39 come out (25 before that).
+
+Checks: `tools/caravel/overlap_check.py` 0 of 79,018 faces; `dotnet run --project tests/HansaTests -c Release --` design
+caravel, holdstair, steerage, modular, gunclick, partitions, decor, stairs and hull ALL OK; slots all OK on the caravel
+(its 2 failures are carrack-m's castle gun ports, not changed here). Test changes: notes 48 and 49 take the hatch from the
+design (note 49's hatch under the steerage's front is gone); note 51's hold cell moved with her frames to x -6.241 (under
+the new hatch at -2.241; at -8.241 the hold is too narrow aft for a landing); a railing's span on her top deck needs no
+frames' strips (its posts are drawn whole). Server self-test (Release, 0.1.0-dev.8 with her new data): 198 ok, 1 FAIL,
+the broadsides' share of shots into her hull (18 of 56, 40 % wanted; she floods and founders as wanted). That check fails
+the same way on dev.8's own caravel (22 of 68): the balls are spent in the water short of her, not a change of this round.
 
 ### Server self-test on the caravel (20 October 2026)
 

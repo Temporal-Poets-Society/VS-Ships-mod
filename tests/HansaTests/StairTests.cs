@@ -179,6 +179,7 @@ namespace HansaTests
                     if (low < a[1] - 0.6) fell.Add($"side {side}: fell to {low - foot.Y:0.00}");
                 }
                 Check(fell.Count == 0, $"the {name} stair's own guards: walked sideways off its middle both ways, nobody falls{(fell.Count > 0 ? ": " + string.Join("; ", fell) : "")}");
+                StairServerChecks(gwalk, foot, plan, cells, steepBox, name);
                 // no railing beside it; a railing beside an old (0.3.19) walked stair is still raked
                 var set = new ShipPieceSet();
                 var piece = ShipPiece.From(plan, 1, null);
@@ -261,6 +262,58 @@ namespace HansaTests
         /// (the carrack's), all four ways: nothing of them below its deck's underside (the stringers' feet were 0.35 under its
         /// top), the stringers under the deck above's top at the head, and their top line still meeting the deck at the foot.
         /// </summary>
+        /// <summary>
+        /// (review H4-1) The server's checks of what a client sends (DeckMoveCheck), on her stairs as a player sprints up and
+        /// down them: the walker stepped at 60 Hz, its place sent every fourth step (15 a second), each checked against the
+        /// last as the server does: its body not in her, nothing of hers between, the rise allowed (a jump's or walking speed
+        /// up, on her short ship's stairs the rise with the run). None may be refused. The camera's gliding height (what was
+        /// sent before) is shown for comparison; a body pushed into the stair's first step is refused.
+        /// </summary>
+        static void StairServerChecks(VoxelGrid g, MountPoint foot, PiecePlan plan, int cells, double[] steepBox, string name)
+        {
+            var steep = steepBox == null ? null : new[] { steepBox };
+            double walk = 3.5 * 1.3, jump = DeckMover.JumpSpeed, dt = 1 / 60.0;
+            var a = PiecePlanner.FlightFoot(foot, plan.Dir);
+            var b = PiecePlanner.FlightTop(foot, plan.Dir, plan.Rise, cells);
+            double ax = MountLayout.DX[plan.Dir], az = MountLayout.DZ[plan.Dir];
+            var mv = new DeckMover(a[0], a[1], a[2]) { OnGround = true, SteepFlights = steep };
+            mv.Unstick(g);
+            int sent = 0, refused = 0, smoothRefused = 0;
+            double budgetUp = Math.Max(jump, walk) + 1, maxLag = 0;
+            var last = new Vec3d(mv.X, mv.Y, mv.Z);
+            var lastSmooth = new Vec3d(mv.X, mv.SmoothY, mv.Z);
+            var why = new List<string>();
+            void Walk(double dir, Func<bool> done)
+            {
+                for (int n = 0; n < 600 && !done(); n++)
+                {
+                    mv.Step(g, dt, ax * dir, az * dir, walk, false, false);
+                    maxLag = Math.Max(maxLag, Math.Abs(mv.SmoothOffset));
+                    if (n % 4 != 3) continue;
+                    sent++;
+                    budgetUp = Math.Min(Math.Max(jump, walk) + 1, budgetUp + Math.Max(jump, walk) * 4 * dt);
+                    double dy = mv.Y - last.Y, level = Math.Sqrt((mv.X - last.X) * (mv.X - last.X) + (mv.Z - last.Z) * (mv.Z - last.Z));
+                    bool st = DeckMoveCheck.InAny(steep, last.X, last.Y, last.Z) || DeckMoveCheck.InAny(steep, mv.X, mv.Y, mv.Z);
+                    bool body = DeckMoveCheck.BodyIn(g, mv.X, mv.Y, mv.Z), path = DeckMoveCheck.PathFree(g, last, mv.X, mv.Y, mv.Z, false);
+                    bool rise = DeckMoveCheck.RiseAllowed(dy, level, budgetUp, st);
+                    if (body || !path || !rise) { refused++; if (why.Count < 3) why.Add($"at {mv.Y - a[1]:0.00} up: body {body}, path {path}, rise {rise} ({dy:0.00} over {level:0.00})"); }
+                    else if (dy > 0) budgetUp = Math.Max(0, budgetUp - dy);
+                    if (DeckMoveCheck.BodyIn(g, mv.X, mv.SmoothY, mv.Z) || !DeckMoveCheck.PathFree(g, lastSmooth, mv.X, mv.SmoothY, mv.Z, false)) smoothRefused++;
+                    last.Set(mv.X, mv.Y, mv.Z);
+                    lastSmooth.Set(mv.X, mv.SmoothY, mv.Z);
+                }
+            }
+            Walk(1, () => (mv.X - b[0]) * ax + (mv.Z - b[2]) * az > 0);
+            double top = mv.Y - a[1];
+            Walk(-1, () => (mv.X - a[0]) * ax + (mv.Z - a[2]) * az < 0);
+            Check(Math.Abs(top - plan.Rise) < 0.1 && refused == 0 && sent > 10,
+                $"review H4-1: the {name} stair sprinted up ({top:0.00} of {plan.Rise}) and down, {sent} places sent at its feet' height: none refused by the server's checks{(why.Count > 0 ? ": " + string.Join("; ", why) : "")} (sent at the camera's gliding height, up to {maxLag:0.00} off, {smoothRefused} would have been)");
+            // a body pushed into its first step (where a client mustn't stand) is refused
+            var into = new Vec3d(a[0] + ax * 0.75, a[1] + 0.01, a[2] + az * 0.75);
+            Check(DeckMoveCheck.BodyIn(g, into.X, into.Y, into.Z),
+                $"review H4-1: the {name} stair: a body standing in its first step (0.75 in from its foot, on the deck) is in her collision");
+        }
+
         static void StairBeamsUnderDeck(MountLayout l)
         {
             var foot = l.Floors.First(m => m.Deck == "lower" && m.Room == "lowerdeck");

@@ -220,25 +220,25 @@ namespace Hansa
             t["wear"] = new FloatArrayAttribute((float[])PartDamage.Wear.Clone());
         }
 
-        void SaveFloodState(ITreeAttribute t)
+        void SaveFloodState(StateWriter w)
         {
-            t.SetDouble("water", Water);
-            t.SetDouble("sink", Sinkage);
-            t.SetDouble("list", ListAngle);
-            t.SetDouble("trim", Trim);
-            t.SetFloat("waterRate", WaterRate);
-            t.SetInt("pumpers", Pumpers);
-            t.SetFloat("pumped", PumpedRate);
-            t.SetString("pumpsAt", PumpsWorked ?? "");
-            t.SetFloat("foul", Fouling);
-            t.SetInt("stage", (int)Stage);
-            t.SetBool("onBottom", OnBottom);
-            t.SetBool("dmgOn", DamageOn);
-            t.SetFloat("sailStrain", SailStrain);
-            t.SetBool("sailsTear", SailsTear);
+            w.Double("water", Water, 0.01);
+            w.Double("sink", Sinkage, 0.002);
+            w.Double("list", ListAngle, 0.001);
+            w.Double("trim", Trim, 0.001);
+            w.Float("waterRate", WaterRate, 0.01f);
+            w.Int("pumpers", Pumpers);
+            w.Float("pumped", PumpedRate, 0.01f);
+            w.Str("pumpsAt", PumpsWorked ?? "");
+            w.Float("foul", Fouling, 0.001f);
+            w.Int("stage", (int)Stage);
+            w.Bool("onBottom", OnBottom);
+            w.Bool("dmgOn", DamageOn);
+            w.Float("sailStrain", SailStrain, 0.01f);
+            w.Bool("sailsTear", SailsTear);
             // (0.3.24) the server's sail limits, for the clients' warning
             var sl = SailLimits;
-            if (sl != null) { t.SetFloat("sailGaleW", sl.SailGaleWind); t.SetFloat("sailAbackW", sl.SailAbackWind); t.SetFloat("sailTearW", sl.SailTearWind); }
+            if (sl != null) { w.Float("sailGaleW", sl.SailGaleWind); w.Float("sailAbackW", sl.SailAbackWind); w.Float("sailTearW", sl.SailTearWind); }
         }
 
         void LoadFloodState(ITreeAttribute t)
@@ -603,7 +603,9 @@ namespace Hansa
             var l0 = WorldToLocal(at.X, at.Y, at.Z);
             ShipFrame.ToWorld(newYaw, l0.X, l0.Y, l0.Z, out double bx, out _, out double bz);
             double v1x = (nx + bx - at.X) / dt, v1z = (nz + bz - at.Z) / dt;
-            double v2x = Math.Sin(other.Pos.Yaw) * other.Speed, v2z = Math.Cos(other.Pos.Yaw) * other.Speed;
+            // (review H2-6: her drift sideways too, to starboard of her heading (-cos yaw, sin yaw))
+            double oy = other.Pos.Yaw;
+            double v2x = Math.Sin(oy) * other.Speed - Math.Cos(oy) * other.Leeway, v2z = Math.Cos(oy) * other.Speed + Math.Sin(oy) * other.Leeway;
             double rx = v1x - v2x, rz = v1z - v2z, v = Math.Sqrt(rx * rx + rz * rz);
             double m1 = DamageParts.Displacement + Water, m2 = other.DamageParts.Displacement + other.Water;
             double e = ShipDamage.ImpactEnergy(DamageParts.D, m1 * m2 / (m1 + m2), v) * Mod.Config.GroundingDamage;
@@ -712,6 +714,8 @@ namespace Hansa
             {
                 if (next < Sinkage - 0.01 && OnBottom) OnBottom = false;
                 Sinkage = Math.Max(0, next);
+                // (review H1-7) pumped up slowly, or the ground dug away under her: off the bottom once a settling step down is free
+                if (OnBottom && !SettleBlocked(Sinkage + 0.3 * step)) OnBottom = false;
             }
             // the water runs to the low side: the way she heels, or else the side it came in on
             double heel = ServerHeel;
@@ -818,6 +822,7 @@ namespace Hansa
         float syncedGale, syncedAback, syncedTear;
         DamageDef sailLimits;
         (DamageDef, float, float, float) sailLimitsKey;
+        (DamageDef, float, float) serverForcesKey;
 
         /// <summary>
         /// (0.3.24) Her design's sail limits with the server's SailStrainForce and SailTearForce applied (on clients, as the
@@ -833,8 +838,12 @@ namespace Hansa
                 if (Api?.Side == EnumAppSide.Server)
                 {
                     var cfg = Mod?.Config;
-                    var w = SailWear.WithForces(d, cfg?.SailStrainForce ?? 0, cfg?.SailTearForce ?? 0);
+                    float strain = cfg?.SailStrainForce ?? 0, tear = cfg?.SailTearForce ?? 0;
+                    // (review H1-24: the forces as they were last time, the same limits: no copy made to find that out)
+                    if (sailLimits != null && serverForcesKey == (d, strain, tear)) return sailLimits;
+                    var w = SailWear.WithForces(d, strain, tear);
                     (g, a, t) = (w.SailGaleWind, w.SailAbackWind, w.SailTearWind);
+                    serverForcesKey = (d, strain, tear);
                 }
                 else if (syncedGale > 0) (g, a, t) = (syncedGale, syncedAback > 0 ? syncedAback : syncedGale, syncedTear > 0 ? syncedTear : d.SailTearWind);
                 else return d;

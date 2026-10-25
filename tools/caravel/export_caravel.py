@@ -25,7 +25,7 @@ import Mesh
 import MeshPart
 
 V = App.Vector
-ROOT = r"C:/VS mods/Hansa"
+ROOT = os.environ.get("CARAVEL_ROOT", r"C:/VS mods/Hansa")     # (a worktree's own checkout: set CARAVEL_ROOT)
 MOD = os.path.join(ROOT, "models", "caravel")
 ASSETS = os.path.join(ROOT, "assets", "hansa")
 CODE = "caravel"
@@ -242,6 +242,10 @@ def deck_lit(n, c):
     """A deck face is lit as outside unless it's an underside or under the quarterdeck (the steerage)."""
     if n[2] < -0.5:
         return False
+    # (24 October 2026, chalk note 80: "lower deck floor got part in different color") the hold's floor is under the main
+    # deck everywhere: forward of the quarterdeck's front it was drawn lit, as outside
+    if c[2] < LV["mainDeck"] - 150:
+        return False
     return not (c[0] < L["quarterdeckFront"] and c[2] < LV["quarterdeck"] - 150)
 
 
@@ -255,7 +259,8 @@ def deck_lit(n, c):
 # hangs and its hawse; row 5 only under the quarterdeck's. A panel owns its shell's voxels not another body's (a rib
 # crossing it stays when it's out).
 PANEL_ROWS = (1, 2, 4, 5)
-FR = {"x0": -12, "space": 2, "count": 10}
+_ribs = L["layout"]["ribs"]
+FR = {"x0": min(_ribs), "space": 2, "count": len(_ribs)}         # (note 73: from rib -14 since she's longer)
 cell_pieces_ix = {tuple(c["cell"]): [p["index"] for p in c["pieces"]] for c in cells["cells"]}
 shell_cells = {}
 for c in cells["cells"]:
@@ -354,7 +359,10 @@ seg_cells = {}                            # (i, j) -> its beam pieces
 for c in cells["cells"]:
     ci, cj, ck = c["cell"]
     if ck == MAIN_ROW and ci in RIB_X and ("main", ci, cj) in slot_of and ("main", ci, cj) not in hatch_cells:
-        bp = [p["index"] for p in c["pieces"] if p["body"] == "Beams"]
+        # (24 October 2026, note 73) the deck beam's own piece, in the rib cell's middle: a hatch's headledge or carling in
+        # the same cell (the hatch's after end beside rib -6) stays fixed, not taken out with the beam's length
+        bp = [p["index"] for p in c["pieces"] if p["body"] == "Beams"
+              and abs((pieces[p["index"]].BoundBox.XMin + pieces[p["index"]].BoundBox.XMax) / 2 - (ci * 1000 + 500)) < 60]
         if bp:
             seg_cells[(ci, cj)] = bp
 seg_of_piece = {ix: key for key, bp in seg_cells.items() for ix in bp}
@@ -556,11 +564,86 @@ def add_shape(group, tex, shape, defl=6.0, cell_uv=True, along=False):
             add_tri(group, tex, tri, [uv_box(q, n, origin) for q in tri], n)
 
 
-def add_faces_grain(group, tex, shape, defl=6.0):
+def add_pole(group, tex, shape, defl=10.0):
+    """(24 October 2026, chalk note 76: "what material is mast? pine i had in mind. texture better should go upwards") A
+    spar's cones (a mast, a yard's two arms, the bumpkin) with the wood's grain (u) along each cone's axis and v round it
+    by the arc at that radius, 16 texels a block; an end's disc as uv_box."""
+    for face in shape.Faces:
+        srf = face.Surface
+        ax_ = getattr(srf, "Axis", None)
+        m = mesh_of(face, defl)
+        pts_all, facets = m.Topology
+        normals = [f.Normal for f in m.Facets]
+        if ax_ is None or not hasattr(srf, "Center") or isinstance(srf, Part.Plane):
+            for fi, f in enumerate(facets):
+                tri = [(pts_all[f[q]].x, pts_all[f[q]].y, pts_all[f[q]].z) for q in range(3)]
+                n = (normals[fi].x, normals[fi].y, normals[fi].z)
+                c = [sum(q[a] for q in tri) / 3 for a in range(3)]
+                origin = (math.floor(c[0] / 1000) * 1000, (math.floor(c[1] / 1000 + 0.5) - 0.5) * 1000, math.floor(c[2] / 1000) * 1000)
+                add_tri(group, tex, tri, [uv_box(q, n, origin) for q in tri], n)
+            continue
+        a_ = V(ax_.x, ax_.y, ax_.z)
+        a_.normalize()
+        o_ = srf.Center
+        e1 = V(0, 0, 1).cross(a_) if abs(a_.z) < 0.9 else V(1, 0, 0).cross(a_)
+        e1.normalize()
+        e2 = a_.cross(e1)
+        tris = []
+        for fi, f in enumerate(facets):
+            tri = [(pts_all[f[q]].x, pts_all[f[q]].y, pts_all[f[q]].z) for q in range(3)]
+            n = (normals[fi].x, normals[fi].y, normals[fi].z)
+            uv = []
+            for q in tri:
+                d_ = V(*q) - o_
+                along = d_.dot(a_)
+                rad = d_ - a_ * along
+                uv.append([along / 1000.0 * 16, math.atan2(rad.dot(e2), rad.dot(e1)), rad.Length])
+            # (a triangle across the seam at +-180 degrees: its angles on one side)
+            if max(q[1] for q in uv) - min(q[1] for q in uv) > math.pi:
+                for q in uv:
+                    if q[1] < 0:
+                        q[1] += 2 * math.pi
+            tris.append((tri, n, [(q[0], q[1] * q[2] / 1000.0 * 16) for q in uv]))
+        if not tris:
+            continue
+        u0 = math.floor(min(uv[0] for _, _, uvs in tris for uv in uvs) / 16) * 16
+        v0 = math.floor(min(uv[1] for _, _, uvs in tris for uv in uvs) / 16) * 16
+        for tri, n, uvs in tris:
+            add_tri(group, tex, tri, [(q[0] - u0, q[1] - v0) for q in uvs], n)
+
+
+# (24 October 2026, chalk note 53: "texture is in wrong direction", the waist's cap rail) the cap rail runs on round the
+# bow, and a face of it shorter than its width took its grain across. Its faces take u from the length along the rail
+# (its middle line on the sheer, in plan and in height), v across it (its top and underside) or up it (its sides)
+_CAP_XS = _np.arange(L["quarterdeckFront"] - 200.0, 12000.0, 25.0)
+_cap_mid = []
+for _x in _CAP_XS:
+    _z = float(_np.interp(_x, [q[0] for q in _SHEER], [q[1] for q in _SHEER]))
+    _cap_mid.append((_x, float(_CL.half_breadth(_np.array([_x / 1000.0]), round(_z / 1000.0 - 0.015, 3))[0]) * 1000.0 - 180.0, _z))
+_cap_mid = _np.array(_cap_mid)
+_CAP_S = _np.concatenate([[0.0], _np.cumsum(_np.linalg.norm(_np.diff(_cap_mid, axis=0), axis=1))])
+
+
+def cap_uv(q, n):
+    """A cap rail face's UV at q (model mm), or None for an end face (across the rail)."""
+    s_ = float(_np.interp(q[0], _CAP_XS, _CAP_S))
+    k = min(max(int(_np.searchsorted(_CAP_XS, q[0])), 1), len(_CAP_XS) - 1)
+    t = _cap_mid[k] - _cap_mid[k - 1]
+    t = t / (_np.linalg.norm(t) or 1.0)
+    sy = 1.0 if q[1] >= 0 else -1.0                      # (the middle line is the port side's; starboard mirrors it)
+    if abs(t[0] * n[0] + t[1] * sy * n[1] + t[2] * n[2]) > 0.7:
+        return None
+    if abs(n[2]) > 0.5:
+        return (s_ / 1000.0 * 16, abs(q[1]) / 1000.0 * 16)
+    return (s_ / 1000.0 * 16, (1 - q[2] / 1000.0) * 16)
+
+
+def add_faces_grain(group, tex, shape, defl=6.0, cap_from=None, sink=None):
     """(22 October 2026, chalk notes 42, 44: "textures are complete mess", "railing textures all over the place") Each
     face of the shape meshed alone, the wood's grain (u) along that face's longest edge, from one origin for the whole
     ship, so a face's triangles and its neighbours along the same run share one continuous texture; v across it in its
-    plane. 16 texels a block."""
+    plane. 16 texels a block. sink: a list to take the triangles (group, tex, tri, uvs, n) instead of drawing them."""
+    emit = add_tri if sink is None else (lambda *a_: sink.append(a_))
     for face in shape.Faces:
         chords = []
         for e in face.Edges:
@@ -579,6 +662,18 @@ def add_faces_grain(group, tex, shape, defl=6.0):
         pts_all, facets = m.Topology
         normals = [f.Normal for f in m.Facets]
         tris = []
+        cb = face.BoundBox
+        if cap_from is not None and (cb.XMin + cb.XMax) / 2 > cap_from:
+            for fi, f in enumerate(facets):
+                tri = [(pts_all[f[q]].x, pts_all[f[q]].y, pts_all[f[q]].z) for q in range(3)]
+                n = (normals[fi].x, normals[fi].y, normals[fi].z)
+                uvs = [cap_uv(q, n) for q in tri]
+                tris.append((tri, n, uvs if all(uvs) else [uv_box(q, n, (0.0, -500.0, 0.0)) for q in tri]))
+            u0 = math.floor(min(uv[0] for _, _, uvs in tris for uv in uvs) / 16) * 16 if tris else 0
+            v0 = math.floor(min(uv[1] for _, _, uvs in tris for uv in uvs) / 16) * 16 if tris else 0
+            for tri, n, uvs in tris:
+                emit(group, tex, tri, [(q[0] - u0, q[1] - v0) for q in uvs], n)
+            continue
         for fi, f in enumerate(facets):
             tri = [(pts_all[f[q]].x, pts_all[f[q]].y, pts_all[f[q]].z) for q in range(3)]
             n = (normals[fi].x, normals[fi].y, normals[fi].z)
@@ -598,11 +693,23 @@ def add_faces_grain(group, tex, shape, defl=6.0):
         u0 = math.floor(min(uv[0] for _, _, uvs in tris for uv in uvs) / 16) * 16
         v0 = math.floor(min(uv[1] for _, _, uvs in tris for uv in uvs) / 16) * 16
         for tri, n, uvs in tris:
-            add_tri(group, tex, tri, [(q[0] - u0, q[1] - v0) for q in uvs], n)
+            emit(group, tex, tri, [(q[0] - u0, q[1] - v0) for q in uvs], n)
 
 
-for name in ("Railings", "Gates"):          # (21 October 2026) the stairs are the game's ship's stairs (pieces) now
-    add_faces_grain("exterior", BODY_TEX[name], OBJ[name].Shape)
+# (24 October 2026, chalk note 56) the quarterdeck's railing spans that come out: the Railings body's first solids, each
+# span's count in the report's railSections; their faces are drawn as hull slots (below), the rest as before
+RAIL_SEC = REP.get("railSections", [])
+_rs = OBJ["Railings"].Shape.Solids
+sec_of_solid, _k = {}, 0
+for n_, r_ in enumerate(RAIL_SEC):
+    for _ in range(r_["solids"]):
+        sec_of_solid[_k] = n_
+        _k += 1
+rail_sec_tris = {n_: [] for n_ in range(len(RAIL_SEC))}
+for k_, so in enumerate(_rs[:_k]):
+    add_faces_grain("slot:hull", T_DECK2, so, sink=rail_sec_tris[sec_of_solid[k_]])
+add_faces_grain("exterior", T_DECK2, Part.makeCompound(_rs[_k:]), cap_from=L["quarterdeckFront"] + 30.0)
+add_faces_grain("exterior", BODY_TEX["Gates"], OBJ["Gates"].Shape)
 # (chalk note 41: "gate inside/outside not same as hull") the leaves' outer faces the hull's outside planking, their
 # inner faces its inside, planks along the keel from the hull's own origin; their edges the deck's wood
 for side, leaf in zip(("port", "starboard"), OBJ["GateLeaves"].Shape.SubShapes):
@@ -616,16 +723,15 @@ for side, leaf in zip(("port", "starboard"), OBJ["GateLeaves"].Shape.SubShapes):
             n = (normals[fi].x, normals[fi].y, normals[fi].z)
             tex = T_HULL if n[1] * s_ > 0.7 else T_HULL2 if n[1] * s_ < -0.7 else T_DECK2
             add_tri("part:gate-" + side, tex, tri, [uv_grain(q, n, (0.0, -500.0, 0.0), 0) for q in tri], n)
-fit = OBJ["Fittings"].Shape.SubShapes            # rudder, tiller, mizzen step
+fit = OBJ["Fittings"].Shape.SubShapes            # rudder, tiller (no mizzen step since note 58)
 add_shape("part:rudder", T_TIMBER, fit[0])
 add_shape("part:tiller", T_TIMBER, fit[1])
-add_shape("interior", T_TIMBER, fit[2])
 rig = OBJ["Rig_Latina"].Shape.SubShapes            # main mast, main yard, main sail, mizzen mast, its yard, its sail, bumpkin
-add_shape("exterior", T_SPAR, rig[0], 10.0)
-add_shape("part:yard-main", T_SPAR, rig[1], 10.0)
-add_shape("exterior", T_SPAR, rig[3], 10.0)
-add_shape("part:yard-mizzen", T_SPAR, rig[4], 10.0)
-add_shape("exterior", T_SPAR, rig[6], 10.0)
+add_pole("exterior", T_SPAR, rig[0])
+add_pole("part:yard-main", T_SPAR, rig[1])
+add_pole("exterior", T_SPAR, rig[3])
+add_pole("part:yard-mizzen", T_SPAR, rig[4])
+add_pole("exterior", T_SPAR, rig[6])
 
 # the guns (20 October 2026): the model's Guns body, run out, four parts a gun (bed, outboard trucks, inboard trucks,
 # barrel) in the report's order; named gun-<side>-<n>, aft to fore along each side. (22 October 2026) caravel_layout.py
@@ -700,6 +806,8 @@ SOLID_BODIES = ["Shell", "Backbone", "Ribs", "Beams", "Decks", "Railings"]
 # (21 October 2026) each solid of a body on its own: two solids touching (a beam's end cut at the hatch on its carling)
 # give one hit for their shared face, and the parity of the hits along a ray then marked the hatch's gap solid
 meshes = {n: [(so.BoundBox, mesh_of(so, 10.0)) for so in OBJ[n].Shape.Solids] for n in SOLID_BODIES}
+rail_sec_vox = {}                     # (note 56) voxel -> the railing span that owns it
+rail_fixed = set()
 bbs = [OBJ[n].Shape.BoundBox for n in SOLID_BODIES]
 xmin = min(b.XMin for b in bbs) / 1000.0
 xmax = max(b.XMax for b in bbs) / 1000.0
@@ -749,7 +857,7 @@ for i in range(nx):
                 X = (ox + (i + su) * VOX) * 1000.0
                 Z = (oy + (j + sv) * VOX + WL) * 1000.0
                 for name, parts_ in meshes.items():
-                    for b, m in parts_:
+                    for si_, (b, m) in enumerate(parts_):
                         if X < b.XMin or X > b.XMax or Z < b.ZMin or Z > b.ZMax:
                             continue
                         hits = m.foraminate(V(X, 6000.0, Z), V(0, -1, 0))
@@ -758,6 +866,15 @@ for i in range(nx):
                         for a in range(0, len(ys) - 1, 2):
                             z0, z1 = -ys[a + 1] / 1000.0, -ys[a] / 1000.0      # game z = -Y: the interval's ends swap
                             (mark_rail if name == "Railings" else mark)(i, j, z0, z1)
+                            if name == "Railings":
+                                k0_ = max(0, int(math.floor((z0 - oz) / VOX)))
+                                k1_ = min(nz - 1, int(math.floor((z1 - oz) / VOX - 1e-9)))
+                                for kk_ in range(k0_, k1_ + 1):
+                                    v_ = (i * ny + j) * nz + kk_
+                                    if si_ in sec_of_solid:
+                                        rail_sec_vox.setdefault(v_, sec_of_solid[si_])
+                                    else:
+                                        rail_fixed.add(v_)
                             if name != "Railings":
                                 mark_in(shellv if name == "Shell" else otherv, i, j, z0, z1)
 # (21 October 2026, chalk note 15) a railing is solid from its deck (or the bulwark it caps) up to its top rail: the
@@ -777,11 +894,31 @@ for i in range(nx):
                     if solid[(i * ny + j) * nz + k] and not rail[(i * ny + j) * nz + k]), None)
         if sup is None:
             continue                  # over the side (the cap rail's lip outside): only its own voxels
+        own_ = rail_sec_vox.get((i * ny + top) * nz + k)
         for j in range(sup + 1, top):
             if not solid[(i * ny + j) * nz + k]:
                 solid[(i * ny + j) * nz + k] = 1
                 filled += 1
-log("voxels: rays", rays, "solid", sum(solid), "of", nx * ny * nz, "; railings filled down", filled)
+                if own_ is not None:
+                    rail_sec_vox.setdefault((i * ny + j) * nz + k, own_)
+# (24 October 2026, the fittings session, chalk note 61) the gates' openings as wide in her collision as drawn: the jambs'
+# voxel columns over the opening (half or more of a voxel's width in it) cleared from the deck up in her side's cells
+# (the gap was 0.5 wide against 0.82 drawn: a walker couldn't reach the rope ladder's top); the leaf is solid while shut
+_g0, _g1 = L["layout"]["gate"]["x"][0] + 75.0, L["layout"]["gate"]["x"][1] - 75.0
+_gate_cleared = 0
+for i in range(nx):
+    xa_, xb_ = (ox + i * VOX) * 1000.0, (ox + (i + 1) * VOX) * 1000.0
+    if min(xb_, _g1) - max(xa_, _g0) < VOX * 500.0:
+        continue
+    for j in range(ny):
+        yc_ = oy + (j + 0.5) * VOX
+        if yc_ < LV["mainDeck"] / 1000.0 - WL:
+            continue
+        for k in range(nz):
+            if abs(oz + (k + 0.5) * VOX) > 2.25 and solid[(i * ny + j) * nz + k]:
+                solid[(i * ny + j) * nz + k] = 0
+                _gate_cleared += 1
+log("voxels: rays", rays, "solid", sum(solid), "of", nx * ny * nz, "; railings filled down", filled, "; gates' openings cleared", _gate_cleared)
 
 bits = bytearray((len(solid) + 7) // 8)
 for n_, v in enumerate(solid):
@@ -906,6 +1043,44 @@ for key in sorted(panel_cells, key=lambda t: (t[1], t[0], t[2])):
         # (a block of her side: one planks block, or 4 boards, lays it again, as carrack-m's)
         "material": {"block": "game:planks-oak-ud", "count": 1}})
 log("hull panels:", len(hull_slots), "of", len(panel_cells), "candidates; fixed:", dict(list(why.items())[:12]))
+# (24 October 2026, chalk note 56: "cant remove rails") the quarterdeck's side railing, a span between two posts a hull
+# slot of band 7 (the row it stands in), the same panel as her side's: its own faces, its own voxels (with the column
+# filled down to the deck under its top rail), the posts staying
+rail_slot_index = {}
+for n_, r_ in enumerate(RAIL_SEC):
+    s_ = -1 if r_["side"] == "port" else 1
+    ci = r_["cell"]
+    tris = rail_sec_tris[n_]
+    vs = [v_ for v_, o_ in rail_sec_vox.items() if o_ == n_ and v_ not in rail_fixed]
+    out_t = [(gtri(t), gn(nn)) for _, _, t, _, nn in tris if gn(nn)[2] * s_ > 0.3]
+    in_t = [(gtri(t), gn(nn)) for _, _, t, _, nn in tris if gn(nn)[2] * s_ < -0.3]
+    # (aft of her first frame a span has no frame space: its station would be -1, the runtime's part code clamps it to 0)
+    if not out_t or not vs or ci < FR["x0"]:
+        log("railing span", r_, "aft of her frames or with no outside or voxels of its own: drawn fixed")
+        for grp, tex, t, uvs, nn in tris:
+            add_tri("exterior", tex, t, uvs, nn)
+        continue
+    pts = [q for _, _, t, _, _ in tris for q in gtri(t)]
+    sol = vox_boxes([(v_ // nz // ny, v_ // nz % ny, v_ % nz) for v_ in vs])
+    box = [min(q[0] for q in pts), min(q[1] for q in pts), min(q[2] for q in pts),
+           max(q[0] for q in pts), max(q[1] for q in pts), max(q[2] for q in pts)]
+    for b_ in sol:
+        box = [min(box[0], b_[0]), min(box[1], b_[1]), min(box[2], b_[2]), max(box[3], b_[3]), max(box[4], b_[4]), max(box[5], b_[5])]
+    area = sum(tri_area(t) for t, _ in out_t)
+    ys = [q[1] for t, _ in out_t for q in t]
+    station = int(math.floor((ci + 0.5 - FR["x0"]) / FR["space"]))
+    half = "a" if (ci - FR["x0"]) % FR["space"] == 0 else "f"
+    rail_slot_index[n_] = len(hull_slots)
+    hull_slots.append({
+        "id": f"hull:{'s' if s_ > 0 else 'p'}:{station}:7:{half}", "side": s_, "station": station, "band": 7, "half": half,
+        "box": [r4(v) for v in box], "outer": corners(out_t), "inner": corners(in_t) if in_t else None,
+        "normal": [0.0, 0.0, float(s_)], "area": round(area, 3), "sill": r4(min(ys)), "head": r4(max(ys)), "room": None,
+        "solids": sol,
+        # (a railing's span: its wood, as the pieces' oak boards)
+        "material": {"block": "game:planks-oak-ud", "count": 1}})
+    for grp, tex, t, uvs, nn in tris:
+        add_slot_tri("slot:hull", tex, t, uvs, nn, rail_slot_index[n_], -1)
+log("railing spans as hull slots:", len(rail_slot_index), "of", len(RAIL_SEC))
 # the beam lengths: the beam's voxel columns in the cell under the deck's underside (as the deck's 0.25 voxel row
 # lies), whole across the cell, not at its fore or aft edge, nothing of her side under it, all solid
 seg_index, seg_why = {}, {}
@@ -923,9 +1098,13 @@ for key in sorted(seg_cells):
     cid = deck_slots[slot_of[("main", ci, cj)]]["id"]
     z0 = -(cj + 0.5)
     bx0, bx1, by0, whole_ = 1e9, -1e9, 1e9, True
+    # (the voxel columns the beam's own piece is in, not a hatch's framing beside it in the cell)
+    _xa = min(pieces[ix].BoundBox.XMin for ix in seg_cells[key]) / 1000.0
+    _xb = max(pieces[ix].BoundBox.XMax for ix in seg_cells[key]) / 1000.0
+    _xqs = [ci + 0.125 + 0.25 * q for q in range(4) if _xa - 0.125 < ci + 0.125 + 0.25 * q < _xb + 0.125]
     for zq in [z0 + 0.125 + 0.25 * q for q in range(4)]:
         any_ = False
-        for xq in [ci + 0.125 + 0.25 * q for q in range(4)]:
+        for xq in _xqs:
             for yq in [top_b - 0.125 - 0.25 * q for q in range(4)]:
                 if solid_at(xq, yq, zq):
                     any_ = True
@@ -1057,7 +1236,9 @@ for gl in REP["gateLeaves"]:
     gate_fixtures.append({"type": "gate", "code": code, "pos": [r4((x0 + x1) / 2), y0, zc], "yaw": 0.0,
                           "sel": [x0, y0, r4(zc - 0.25), x1, y1, r4(zc + 0.25)],
                           "box": [x0, y0, r4(zc - t / 2 - 0.05), x1, y1, r4(zc + t / 2 + 0.05)], "normal": "z"})
-    gate_parts.append({"code": code, "axisPoint": [x0, r4((y0 + y1) / 2), zc], "axisDir": [0.0, 1.0, 0.0],
+    # (note 61) the hinge on the leaf's inner face at its after edge
+    zh = r4(-gl.get("hingeY", gl["y"]) / 1000)
+    gate_parts.append({"code": code, "axisPoint": [x0, r4((y0 + y1) / 2), zh], "axisDir": [0.0, 1.0, 0.0],
                        "source": "open:" + code, "angle": -88.0 if sgn > 0 else 88.0})
 
 rig_rec = REP["rigGeometry"]["latina"]
@@ -1115,9 +1296,11 @@ def half_breadth(x, z):
 
 
 samples = []
-for x in range(-10, 6):
+# (note 73: from the keel's ends, her length changed: before x -10..5 and the bilge's every 2 from -9)
+_kx0, _kx1 = int(math.ceil(L["post"][0][0] / 1000.0)), int(math.floor(L["stem"][0][0] / 1000.0))
+for x in range(_kx0, _kx1 + 1):
     samples.append([float(x) + 0.0, r4(keel_y + 0.02), 0.0])
-for x in range(-9, 7, 2):
+for x in range(_kx0 + 1, _kx1 + 2, 2):
     hb = half_breadth(x * 1000.0, 600.0)
     if hb:
         samples += [[float(x), r4(0.6 - WL), r4(-hb + 0.02)], [float(x), r4(0.6 - WL), r4(hb - 0.02)]]
@@ -1170,7 +1353,7 @@ definition = {
                "y0": r4(masts["mizzen"]["heel"] / 1000 - WL), "y1": r4(masts["mizzen"]["top"] / 1000 - WL)}],
     "decks": [{"code": "hold", "y": r4(hold_y), "x0": -30.0, "x1": 40.0}, {"code": "main", "y": r4(deck_y), "x0": -30.0, "x1": 40.0},
               {"code": "quarterdeck", "y": r4(qd_y), "x0": -30.0, "x1": L["quarterdeckFront"] / 1000}],
-    "frames": {"x0": -12.0, "space": 2.0, "count": 10},
+    "frames": {"x0": float(FR["x0"]), "space": float(FR["space"]), "count": FR["count"]},
     "grid": {"origin": [0.0, 0.125, 0.5]},
     "motion": {"rollPeriod": 4.5},
     "sailing": {"maxBrace": 36.0, "noGo": 60.0, "maxSheet": 25.0},

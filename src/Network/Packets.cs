@@ -13,6 +13,10 @@ namespace Hansa
         [ProtoMember(5)] public byte Flags;
         /// <summary>Server -> clients: whose deck position this is.</summary>
         [ProtoMember(6)] public long PlayerEntityId;
+        /// <summary>(review H3-3) Server -> the client that asked: boarding her (ShipId) was refused; it puts them back.</summary>
+        [ProtoMember(7)] public bool Refused;
+        /// <summary>(review H4-4) With Refused: the BoardPacket.Attempt refused.</summary>
+        [ProtoMember(8)] public int Attempt;
     }
 
     /// <summary>Client -> server: put me on this ship at this local position.</summary>
@@ -23,6 +27,8 @@ namespace Hansa
         [ProtoMember(2)] public float X;
         [ProtoMember(3)] public float Y;
         [ProtoMember(4)] public float Z;
+        /// <summary>(review H4-4) The client's count of its tries, echoed if it's refused.</summary>
+        [ProtoMember(5)] public int Attempt;
     }
 
     /// <summary>Client -> server: I stepped off the ship here, with this velocity (blocks per tick).</summary>
@@ -123,6 +129,8 @@ namespace Hansa
         /// <summary>The hearth (the fixture's index).</summary>
         [ProtoMember(2)] public int Fixture;
         [ProtoMember(3)] public float Seconds;
+        /// <summary>(review H1-25) Just begun holding it there: the server counts the seconds from here itself.</summary>
+        [ProtoMember(4)] public bool Start;
     }
 
     /// <summary>

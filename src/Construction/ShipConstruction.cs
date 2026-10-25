@@ -129,17 +129,22 @@ namespace Hansa.Construction
             wrecked.Remove(c);
         }
 
-        /// <summary>A shipwright's removal. Refused when it would leave other blocks unsupported.</summary>
+        /// <summary>A shipwright's removal. Refused when it would leave other blocks, a stair or a wall unsupported.</summary>
         public string RemoveProblem(CellId c)
         {
             if (!Solid(c)) return "Nothing to remove";
             var before = Supported();
+            var fittingsBefore = SupportProblems(before).ToHashSet();
             var saved = blocks[c];
             blocks.Remove(c);
             var after = Supported();
+            var fittingsAfter = SupportProblems(after).ToList();
             blocks[c] = saved;
             var stranded = before.Where(x => x != c && !after.Contains(x)).OrderBy(x => x).ToList();
-            return stranded.Count == 0 ? null : $"Removing it would leave {stranded.Count} block(s) unsupported, e.g. {stranded[0]}";
+            if (stranded.Count > 0) return $"Removing it would leave {stranded.Count} block(s) unsupported, e.g. {stranded[0]}";
+            // (review H1-28) and the fittings standing on it
+            var fitting = fittingsAfter.FirstOrDefault(p => !fittingsBefore.Contains(p));
+            return fitting == null ? null : $"Removing it would leave a fitting unsupported: {fitting}";
         }
 
         public BlockState Remove(CellId c)
@@ -173,6 +178,8 @@ namespace Hansa.Construction
                 return;
             }
             var was = wrecked.TryGetValue(c, out var w) ? w : DesignAt(c) ?? throw new InvalidOperationException("Nothing to repair here");
+            // (review H1-28) not rebuilt through what stands there now
+            if (StairAt(c) != null) throw new InvalidOperationException("A stair stands in this cell");
             if (!Kinds.Get(was.Kind).Accepts(material)) throw new InvalidOperationException("Wrong repair material");
             var r = was.Copy(); r.Health = 1; r.Open = false;
             if (Kinds.Get(was.Kind).Material == "planks") r.Material = material;

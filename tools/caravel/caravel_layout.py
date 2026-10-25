@@ -85,6 +85,7 @@ TEXTURES = {
     "rope": "game:block/cloth/reedrope", "cloth": "game:block/linen", "timber": "game:block/wood/debarked/oak",
     "planks": "game:block/wood/planks/oak1", "iron": "game:block/metal/tarnished/iron",
     "bronze": "game:block/metal/plate/tinbronze", "spar": "game:block/wood/debarked/pine",
+    "brass": "game:block/metal/plate/brass", "tarred-in": "game:block/wood/planks/oak4++3~hansa:block/tar",
     "tarred": "game:block/wood/planks/oak1++3~hansa:block/tar", "black": "game:block/black",
     # (the carrack's fittings' materials: caravel_fittings)
     "oak": "game:block/wood/planks/oak3", "gold": "game:block/metal/plate/gold",
@@ -223,8 +224,9 @@ def merge_slot_triangles(M):
                         p_, q_, r_ = ca[rot], ca[(rot + 1) % 3], ca[(rot + 2) % 3]
                         if key(q_) in shared and key(r_) in shared:
                             break
-                    s_ = next(c for c in cb if key(c) not in shared)
-                    if not pair_ok(p_, q_, r_, s_, cb):       # (flat, convex, wound alike, one texture mapping over both)
+                    s_ = next((c for c in cb if key(c) not in shared), None)
+                    # (a degenerate triangle, two corners in one place: not paired)
+                    if s_ is None or not pair_ok(p_, q_, r_, s_, cb):       # (flat, convex, wound alike, one texture mapping over both)
                         continue
                     quad = [quads[a][0]] + [v for c in (p_, q_, s_, r_) for v in c]
                     new_of[a] = quad
@@ -479,7 +481,7 @@ PAINT_ZONES = [
 ]
 
 
-def paint_quads(M, L, F):
+def paint_quads(M, L, F, only_lids=False):
     """(21 October 2026, the user: "no painting ability (see magelan)") Each quad of her hull, its rails and timbers in
     a paint zone, by what it is (its texture), where it is and which way it faces: per group [start, end, zone, ...]."""
     tex = M["textures"]
@@ -496,6 +498,8 @@ def paint_quads(M, L, F):
         ny_ = sum(q[1 + 8 * k + 6] for k in range(4)) / 4
         if group.startswith("part:gate-"):
             return "topsides"
+        if group.endswith("-lid"):
+            return {t_hull: "topsides", t_hull2: "waist-bulwarks", t_deck2: "quarterdeck-railing"}.get(t)
         if t == t_hull:
             return "topsides"
         if t == t_hull2:
@@ -513,7 +517,10 @@ def paint_quads(M, L, F):
 
     out = {}
     for group, quads in M["groups"].items():
-        if not (group in ("exterior", "interior") or group.startswith("slot:") or group.startswith("part:gate-")):
+        if not (group in ("exterior", "interior") or group.startswith("slot:") or group.startswith("part:gate-")
+                or (only_lids and group.endswith("-lid"))):
+            continue
+        if only_lids and not group.endswith("-lid"):
             continue
         ranges = []
         for n, q in enumerate(quads):
@@ -606,6 +613,9 @@ def main():
 
     def follow(code, follow_part, anchor, tip, sail=None, interior=False, r=0.025):
         rope(anchor, tip, "part:" + code, r)
+        # (24 October 2026, chalk note 64: "Rope attached to corner has empty space in connection") a ring at its end on
+        # the sail's corner or the yard, the rope through it
+        CF.rope_path(d, CF.ring_points(tip, 0.045, "z", 10), r=0.012, group="part:" + code, mat="iron")
         p = {"code": code, "kind": "follow", "follow": follow_part, "anchor": v4(anchor), "tip": v4(tip)}
         if sail:
             p["sail"] = sail
@@ -626,11 +636,34 @@ def main():
         return tx0 + (tx1 - tx0) * (z - tz0) / (tz1 - tz0)
 
     bumpkin_end = F.g(transom_x(Q) - 2400, 0, Q + 150)
+    # (chalk note 64: "The same rope attaches to railings just like that") a rope made fast on a rail ends on a cleat on its
+    # top: a foot and two horns along the rail, the rope's last turns across them
+    rail_y = (L["railings"]["top"][0][2] - 50 + 70) / 1000.0 - F.WL          # the top rail's top (140 high, 50 under the posts')
+
+    def cleat(c, along, out=(0.0, 1.0, 0.0), group="exterior"):
+        along, out = np.asarray(along, float), np.asarray(out, float)
+        side = np.cross(along, out)
+        R = np.column_stack([along, out, side])
+        d.add_box_mesh(group, "oak", c + out * 0.02, (0.08, 0.05, 0.05), R)
+        d.add_box_mesh(group, "oak", c + out * 0.06, (0.3, 0.035, 0.045), R)
+        a_, b_ = c + out * 0.085 + along * 0.11, c + out * 0.085 - along * 0.11
+        CF.rope_path(d, [a_ + side * 0.03, b_ - side * 0.03], r=0.018, group=group)
+        CF.rope_path(d, [a_ - side * 0.03, b_ + side * 0.03], r=0.018, group=group)
+        return a_
+
+    front_x = L["quarterdeckFront"] / 1000.0 - 0.05
+    belay = {}
+    for key, z_ in (("main-sheet", 0.95), ("mizzen-tack", 1.9)):
+        for sgn in (-1.0, 1.0):                       # (both sides: on the other tack the mod mirrors the ropes' ends)
+            belay[(key, sgn)] = cleat(np.array([front_x, rail_y, sgn * z_]), (0.0, 0.0, 1.0))
     for name, code in (("latina main", "main"), ("latina mizzen", "mizzen")):
         sp = next(s for s in rig["sails"] if s["name"] == name)["pts"]           # tack, head, clew (mm)
         pts = [F.g(*p) for p in sp]
         area = round(0.5 * float(np.linalg.norm(np.cross(pts[1] - pts[0], pts[2] - pts[0]))), 1)
         sails.append(lateen_sail(d, code, pts, area))
+        # (24 October 2026, the lateen session: a lateen's yard dips round its mast when she goes about; the mod mirrors
+        # the yard, the sail and the ropes' ends across the mast's centre plane)
+        sails[-1]["dip"] = {"mast": code, "standOff": 0.4, "ahead": 0.2, "seconds": 8}
         yd = yards[name]
         mast = masts[code]
         mx = mast["x"] / 1000.0
@@ -638,20 +671,36 @@ def main():
         tack = F.g(yd["tack"][0], 350, yd["tack"][1])
         top = F.g(mast["x"], 0, mast["top"] - 300)
         clew = pts[2]
+        side_ = -1.0 if tack[2] < 0 else 1.0           # (the yard's and the sail's side: port)
         if code == "main":
-            sheet_to = np.array([L["quarterdeckFront"] / 1000.0 - 0.05, qd + 0.95, -0.9])     # the quarterdeck's front rail
-            xs_ = 9.0
-            tack_to = np.array([xs_, sheer_at(L, xs_) - F.WL - 0.15, 0.0])                  # the stem head, inside
+            sheet_to = belay[("main-sheet", side_)]                                         # the quarterdeck's front rail
+            # (chalk note 67: "rope ends nowhere with empty space") the tack to an eyebolt in the stem head's after face
+            zs_ = sheer_at(L, 9.5) + 0.45
+            sx_ = CL.x_stem(CL.shape_z(zs_)) + CL.BB_OUT_STEM - CL.BB_MOULDED
+            tack_to = np.array([sx_ - 0.05, zs_ - F.WL, 0.0])
+            d.add_cylinder("exterior", "iron", tack_to + np.array([0.06, 0, 0]), tack_to + np.array([0.015, 0, 0]), 0.014, 0.014, sides=6)
+            CF.rope_path(d, CF.ring_points(tack_to, 0.04, "z", 10), r=0.012, mat="iron")
         else:
             sheet_to = bumpkin_end                                                           # out on the bumpkin
-            tack_to = np.array([L["quarterdeckFront"] / 1000.0 - 0.05, qd + 0.95, 0.9])
+            # (chalk note 65: "this rope ends in stairs middle") the tack to the front rail on its yard's side, clear of
+            # the stair on the centreline
+            tack_to = belay[("mizzen-tack", side_)]
         follow(f"sheet-{code}", f"yard-{code}", sheet_to, clew, sail=code, r=0.03)
         follow(f"tack-{code}", f"yard-{code}", tack_to, tack, r=0.03)
         follow(f"halyard-{code}", f"yard-{code}", top, cross, r=0.035)
+        # its fall: from a block at the masthead's after side down the mast to a cleat on it, chest high (it ended in the
+        # air over the deck)
         heel_deck = deck if code == "main" else qd
-        rope(top, np.array([mx - mast["r0"] / 1000.0 - 0.08, heel_deck + 0.35, 0.18]), r=0.03)      # its fall to the deck
+        r_top, r_heel = mast["r1"] / 1000.0, mast["r0"] / 1000.0
+        blk = np.array([mx - r_top - 0.1, top[1], 0.0])
+        CF.block_at(d, "exterior", blk + np.array([0, 0.1, 0]))
+        cy_ = heel_deck + 1.1
+        rr_ = r_heel + (r_top - r_heel) * (cy_ - F.y_of(mast["heel"])) / (F.y_of(mast["top"]) - F.y_of(mast["heel"]))
+        fall_to = cleat(np.array([mx - rr_ + 0.01, cy_, 0.0]), (0.0, 1.0, 0.0), out=(-1.0, 0.0, 0.0))
+        rope(blk, fall_to, r=0.03)
     # shrouds: the main's three a side to its cap rails aft of the gate, the mizzen's two to the quarterdeck's rail
-    for code, xs, top_drop in (("main", (-1.25, -2.05, -2.85), 1.2), ("mizzen", (-9.75, -10.25), 0.9)):
+    mzx = LAY["masts"]["mizzen"]["cell"] + 0.5
+    for code, xs, top_drop in (("main", (-1.25, -2.05, -2.85), 1.2), ("mizzen", (mzx - 1.25, mzx - 1.75), 0.9)):
         mast = masts[code]
         mx = mast["x"] / 1000.0
         head = mast["top"] / 1000.0 - top_drop
@@ -686,7 +735,10 @@ def main():
 
     # ---------------------------------------------------------------- the pump (chalk note 27: Magelan's)
     px, pz = FIT["pump"]["cell"][0] + 0.5, -FIT["pump"]["cell"][1] * 1.0
-    pf, pparts = CF.pump(d, px, pz, deck, CL.DECK_T, hold, 1.0)
+    # (chalk note 81) its pipe down through the main mast's cell, forward of the mast, in that cell
+    mm_ = masts["main"]
+    pipe_x = mm_["x"] / 1000.0 + mm_["r0"] / 1000.0 + 0.09
+    pf, pparts = CF.pump(d, px, pz, deck, CL.DECK_T, hold, 1.0, pipe_x=pipe_x)
     fixtures.append(pf)
     parts += pparts
 
@@ -732,7 +784,7 @@ def main():
                      "sel": [r4(mz - 0.35), r4(deck + 1.1), r4(-mr - 0.3), r4(mz + 0.35), r4(deck + 1.8), r4(-mr + 0.02)],
                      "kind": "plate", "spawn": [r4(mz), r4(deck), -1.0]})
     # (chalk note 33: "lantern attachment to mast missing ... check magelan") the carrack's iron band and arm on each
-    # mast, 2.62 over its deck; the stern lantern on the carrack's crane from a post on the taffrail's middle
+    # mast, 2.62 over its deck
     hooks = []
     for code, deck_of_mast in (("main", deck), ("mizzen", qd)):
         mast = masts[code]
@@ -741,12 +793,16 @@ def main():
         r_ = (mast["r0"] + (mast["r1"] - mast["r0"]) * (y - heel) / (top_ - heel)) / 1000.0
         hp = CF.mast_band(d, mast["x"] / 1000.0, y, r_)
         hooks.append({"code": f"lantern-{code}mast", "pos": v4(hp), "hang": "down", "kinds": ["light"]})
-    tr_top = max((q for q in L["railings"]["top"] if abs(q[1]) < 600), key=lambda q: -q[0])
-    rail_top = (tr_top[2] - 50 + 70) / 1000.0 - F.WL
-    plate = CF.stern_lantern(d, tr_top[0] / 1000.0 - 0.1, tr_top[0] / 1000.0 + 0.02, rail_top)
-    hooks.append({"code": "lantern-stern", "pos": v4(plate), "hang": "up", "kinds": ["light"], "shown": True})
+    # (24 October 2026, chalk note 63, the user: no stern lantern, its post or its crane on the taffrail)
+    # (24 October 2026, chalk note 78: "we could have option to add vanilla figure heads"; the fittings session's place)
+    # a figurehead's place on the stem's fore face, its foot 1.2 under the stem head's top, facing forward
+    bb_ = np.array(L["backbone"]["outline"]) / 1000.0
+    head_top = float(bb_[bb_[:, 0] > 5.0][:, 1].max())
+    fz_ = head_top - 1.2
+    hooks.append({"code": "figurehead", "pos": v4((CL.x_stem(CL.shape_z(fz_)) + CL.BB_OUT_STEM, fz_ - F.WL, 0.0)), "hang": "up",
+                  "normal": [1.0, 0.0, 0.0], "kinds": ["figurehead"], "shown": True})
     lantern = {"block": "game:lantern-small-up", "attributes": {"material": "tinbronze", "lining": "plain", "glass": "quartz"}}
-    start = [dict(lantern, mount="h:" + h["code"]) for h in hooks]
+    start = [dict(lantern, mount="h:" + h["code"]) for h in hooks if "light" in h.get("kinds", [])]
 
     # ---------------------------------------------------------------- stairs, the hatch (chalk notes 18, 22)
     modular = []
@@ -757,6 +813,32 @@ def main():
         at_x = fx_ / 1000.0 - 0.5 if up == "-x" else fx_ / 1000.0 + 0.5
         modular.append({"kind": "stair", "at": [r4(at_x), r4(F.y_of(fz_)), r4(-st.get("y", 0.0) / 1000.0)], "up": up,
                         "rise": r4((hz_ - fz_) / 1000.0), "length": int(round(abs(hx2 - fx_) / 1000.0)), "code": "stair-" + st["name"]})
+    # (24 October 2026, the user: "add default partition wall with doors and window to rear to form cabin, similar to how
+    # in current test") the steerage's front on the quarterdeck's front line, the pieces a player places (as carrack-m's
+    # great cabin): oak plank partitions three rows up to the quarterdeck, a door either side of the quarterdeck stair
+    # (two rows), a window (caravel_lines.CABIN); the pieces stand in the cell aft of the line, inside the cabin. None in
+    # the top row behind the stair's head (its last tread meets that row's top)
+    cab = LAY.get("cabin")
+    if cab:
+        lx = cab["x"] / 1000.0
+        half_in = min(hb_in(lx - 0.5, Zd + 0.5), hb_in(lx - 0.5, Zq - 0.3))
+        cols = [j for j in range(-3, 4) if abs(j) + 0.5 <= half_in - 0.05]
+        for j in cols:
+            for row in range(3):
+                y_ = r4(deck + row)
+                at = [r4(lx), y_, float(j)]
+                if j in cab["doors"] and row < 2:
+                    if row == 0:
+                        modular.append({"kind": "door", "at": at, "along": "z", "code": f"door-cabin-{'port' if j < 0 else 'starboard'}",
+                                        "block": "game:door-sleek-windowed-oak", "open": False})
+                    continue
+                if j in cab["windows"] and row == 1:
+                    modular.append({"kind": "window", "at": at, "along": "z",
+                                    "code": f"window-cabin-{'port' if j < 0 else 'starboard' if j > 0 else 'middle'}"})
+                    continue
+                if row == 2 and any(abs(st["head"][0] - cab["x"]) < 1 and abs(-st.get("y", 0.0) / 1000.0 - j) < 0.5 for st in LAY["stairs"]):
+                    continue
+                modular.append({"kind": "partition", "at": at, "along": "z", "code": f"partition@{int(lx) - 1},{y_},{j},z"})
     hxs, hys = LAY["hatch"]["x"], LAY["hatch"]["y"]
     hzc = -(hys[0] + hys[1]) / 2000.0                  # (model Y port = game z negative)
     modular.append({"kind": "hatch", "at": [r4((hxs[0] + hxs[1]) / 2000.0), r4(deck), r4(hzc)],
@@ -810,12 +892,18 @@ def main():
                             n_fill += 1
                         break
     D["solid"] = base64.b64encode(zlib.compress(bytes(raw), 9)).decode()
+    # (the lateen session) each mast's radius the widest where its yard sweeps round it: at the yard's lower end's height
+    for m in D["masts"]:
+        rm, yd_ = masts[m["code"]], yards["latina " + m["code"]]
+        y_lo = max(F.y_of(rm["heel"]), F.y_of(min(yd_["tack"][1], yd_["peak"][1])))
+        f_ = (y_lo - F.y_of(rm["heel"])) / (F.y_of(rm["top"]) - F.y_of(rm["heel"]))
+        m["radius"] = r4(math.ceil((rm["r0"] + (rm["r1"] - rm["r0"]) * f_) / 10.0) / 100.0)
 
     # ---------------------------------------------------------------- the water kept out of her (chalk note 24)
     # the hull's exact half-breadth from her lines (the box clip before held the water down round her curved bow:
     # gaps between the water and her side); the carrack generator's way (water_clip)
     keel_y, deck_y = D["keelY"], D["deckY"]
-    X0, DX, DY = -14.5, 0.125, 0.25
+    X0, DX, DY = -15.5, 0.125, 0.25                 # (note 73: her stern 1 further aft)
     Y0 = keel_y - 0.5
     xs = np.arange(X0, 11.0 + 1e-9, DX)
     ys = np.arange(Y0, deck_y + 1.0 + 1e-9, DY)
@@ -875,7 +963,10 @@ def main():
             bolts = [np.array([x, y, s * (outer(x, y) - CL.SKIN)]) for x in (c + 0.03, c + 0.97)]
         info = CG.add_gun(d, f, bolts)
         parts += CG.moving_parts(code, info, recoil[code])
-        lid = CG.rail_lid(d, f, rail_line, f["port"][1], f["port"][3]) if on_qd else CG.waist_lid(d, f, outer)
+        # (24 October 2026, chalk note 68: "gun port gate inside is different color than hull inside and cannot be
+        # painted") the waist lid's inside the hull's inside planking, the quarterdeck's lid the railing's wood; both
+        # painted with them (paint_lids)
+        lid = CG.rail_lid(d, f, rail_line, f["port"][1], f["port"][3], wood="oak") if on_qd else             CG.waist_lid(d, f, outer, inside="tarred-in")
         parts.append(lid)
         f["lid"], f["housed"] = lid["code"], recoil[code]
         # its checks: the barrel clear of its carriage and inside the master build's gun; the lid swung clear of her side
@@ -921,6 +1012,8 @@ def main():
     D["startPieces"] = start
     D["modularPieces"] = modular
     D["waterClip"] = water_clip
+    # (24 October 2026, chalk note 82, the user: no panel places on the caravel; the build-place session's design flag)
+    D["panelPlaces"] = False
     D["rigCheck"] = {"standing": standing}
     # what a player's pieces must leave clear, as the carrack's design lists it (the mod keeps the fixtures' margins too)
     def box(what, x0, y0, z0, x1, y1, z1):
@@ -959,6 +1052,7 @@ def main():
     counts = merge_quads(d, M, lambda p: p[1] < deck - 0.1 or (p[0] < qf_x and p[1] < qd - 0.1))
     n_cut2, n_pieces2 = split_tiles(M, before)
     print(f"[layout] the fittings' quads cut at their texture's tile edges: {n_cut2}, into {n_pieces2}")
+    M["paintQuads"].update(paint_quads(M, L, F, only_lids=True))      # (note 68: the guns' lids with her hull and rails)
     # (a face moved out can meet another there: again, a few times at most)
     n_pushed, n_left, passes = 0, 1, 0
     while n_left and passes < 3:

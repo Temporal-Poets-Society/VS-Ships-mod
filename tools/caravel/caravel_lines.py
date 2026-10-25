@@ -17,8 +17,30 @@ import sys
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.normpath(os.path.join(HERE, "..", "..", "models", "caravel"))
+OUT = os.environ.get("CARAVEL_OUT") or os.path.normpath(os.path.join(HERE, "..", "..", "models", "caravel"))
 MM = 1000.0
+
+# (24 October 2026, chalk note 73: "we should make our ship 1 block longer here so we can place stairs and have decent
+# layout", just aft of the main mast) more length in her parallel middle body; the bow, the main mast and the waist's
+# guns keep their cells, the stern goes aft. With ribs 1 or 3 cells apart every rib keeps its parity, so with one block
+# the two masts (a rib each side) and the quarterdeck's front (on a rib's forward face) can't both keep their places. Two
+# drafts went to the user (CARAVEL_VARIANT A, B: models/caravel/variants, the views in variant_views.py):
+#   A  1 longer, the waist 1 longer: the front at -6 (no rib under its edge), the mizzen at -9, the wheel aft of it
+#   B  1 longer, the waist 2 longer, the quarterdeck 1 shorter: the front at -7 over rib -8, the mizzen at -11
+# The user chose C: 2 blocks longer, B's waist (a clear cell between the main mast and the stairs' opening, the front
+# over a rib) and the quarterdeck, its cabin, the mizzen, the wheel and the quarterdeck's guns where they were from the
+# transom (the guns 1 aft of that: note 62)
+VARIANT = os.environ.get("CARAVEL_VARIANT", "C")
+LAYOUTS = {
+    "A": {"longer": 1.0, "qd_front": -6.0, "mizzen": -9, "wheel": [-11, 0], "qd_guns": [-12, -10],
+          "stairs": {"quarterdeck": -6, "hold": -4}},
+    "B": {"longer": 1.0, "qd_front": -7.0, "mizzen": -11, "wheel": [-9, 0], "qd_guns": [-13, -11],
+          "stairs": {"quarterdeck": -7, "hold": -5}},
+    "C": {"longer": 2.0, "qd_front": -7.0, "mizzen": -11, "wheel": [-9, 0], "qd_guns": [-14, -12],
+          "stairs": {"quarterdeck": -7, "hold": -5}},
+}
+LAY_V = LAYOUTS[VARIANT]
+LONGER = LAY_V["longer"]          # the extra length (m), aft of the main mast
 
 # ---------------------------------------------------------------- vertical rules (decks 3 apart, 2 clear + 1 structure)
 Z_HOLD = 1.0          # hold floor top: the bottom block 0..1 holds planking, floors, keel
@@ -29,8 +51,9 @@ RAIL = 1.0            # bulwark 1 block above its deck (the user, 17 October)
 Z_WAIST_RAIL = Z_DECK + RAIL
 Z_QD_RAIL = Z_QD + RAIL
 Z_TOP = 9.5           # the loft goes above every sheer so the sheer cut and the shell's inner solid are open
-QD_FRONT = -5.0       # quarterdeck front on a cell face, over rib cell -6's forward face: about a third of the
-                      # length, as the reference caravels (the user, 17 October: the castle was too big)
+QD_FRONT = LAY_V["qd_front"]   # quarterdeck front on a cell face (-5 before the lengthening, over rib cell -6's forward
+                      # face): about a third of the length, as the reference caravels (the user, 17 October: the castle
+                      # was too big)
 QD_SIDE = 0.0         # the quarterdeck's solid side ends at its deck (the user, 18 October); the railing stands on it
 SKIN = 0.2            # hull planking 0.2 block (the user, 17 October; decks and floors the same)
 LIFT = 0.125          # the hull's underside sits 125 above the bottom cell border: draft 2.75, so she passes over
@@ -41,15 +64,17 @@ POST_HW = 0.1         # stem and sternpost half width where the sides close on t
 MASTS = {                       # cell, heel Z, used by which rig (the user, 17 October: main about midships, 2 masts)
     "fore": {"cell": 7, "heel": Z_HOLD, "rigs": ["redonda"]},
     "main": {"cell": -1, "heel": Z_HOLD, "rigs": ["latina", "redonda"]},
-    "mizzen": {"cell": -9, "heel": Z_DECK - 0.6, "rigs": ["latina", "redonda"]},   # down to the main deck's beams
-                                                                           # (the user, 18 October); the tiller stops short of it
-                                                                           # runs clear under it
+    # (24 October 2026, chalk note 58: "we can remove this beam and have mast end with bottom of main deck") its heel flush
+    # with the main deck's planking underneath, no step under it in the hold (it went down to the beams' underside)
+    "mizzen": {"cell": LAY_V["mizzen"], "heel": Z_DECK - 0.2, "rigs": ["latina", "redonda"]},
 }
-RIBS = list(range(-12, 7, 2))           # every 2nd cell, 1 clear between (the user, 17 October); masts in clear cells.
-                                        # None at 8: the forefoot there is too narrow for a frame (the user, 17 October)
+RIBS = list(range(-14, 7, 2))           # every 2nd cell, 1 clear between (the user, 17 October); masts in clear cells.
+                                        # None at 8: the forefoot there is too narrow for a frame (the user, 17 October).
+                                        # (note 73) from -14: the stern 2 aft (the drafts, 1 aft: a short frame there)
 GUN_CELLS = [1, 3]                       # main deck, waist (the user, 18 October)
-QD_GUN_CELLS = [-11, -9]                 # quarterdeck; the railing is open over these cells (22 October 2026: from
-                                         # -7 to -9, beside the mizzen, the wheel taking -7: chalk note 30)
+QD_GUN_CELLS = LAY_V["qd_guns"]          # quarterdeck; the railing is open over these cells (22 October 2026: from
+                                         # -7 to -9, beside the mizzen, the wheel taking -7: chalk note 30; 24 October,
+                                         # note 62: "move all 4 cannons 1 block to aft")
 # 11) the main hatch on the centreline cell, with a stair down to the hold (the user, 18 October)
 # (21 October 2026, chalk notes 18 and 22) The stairs are the game's walked ship's stairs (the user: "stair animation
 # and not ladder"): the steep one is 1 x 2 cells (foot F, head H, about 56 degrees, 3 blocks up), with a free landing
@@ -63,13 +88,21 @@ QD_GUN_CELLS = [-11, -9]                 # quarterdeck; the railing is open over
 # stair's walkers keep a row away from another stair. So: the quarterdeck stair one row to starboard (Y cell -1), the
 # railing's gap with it; the hatch under the quarterdeck in the port row (Y cell 1), cells -7..-5, the hold stair
 # rising aft in it from its foot in cell -6 out onto cell -8 of the main deck, beside the mizzen.
-HATCH = {"x": [-7, -4], "y": [0.5, 1.5]}
+# (22 October 2026, chalk note 36, the user's OK for the step it needs) the one-cell ship's stair, about 72 degrees.
+# (24 October 2026, the user: "stairs should be moved to the center of the ship (if we can sort rope management)") both
+# on the centreline, rising aft in a line: the hold's up through its hatch onto the cell before the quarterdeck's foot,
+# the quarterdeck's in front of the cabin's wall, its head at the quarterdeck's front
+_QS, _HS = LAY_V["stairs"]["quarterdeck"], LAY_V["stairs"]["hold"]
+HATCH = {"x": [_HS, _HS + 3], "y": [-0.5, 0.5]}
 STAIRS = [
-    # (22 October 2026, chalk note 36, the user's OK for the step it needs) the one-cell ship's stair, about 72 degrees:
-    # its head where it was, its foot a cell nearer
-    {"name": "quarterdeck", "cell": [-5, -1], "foot": [-4.0, Z_DECK], "head": [-5.0, Z_QD], "y": -1.0},
-    {"name": "hold", "cell": [-7, 1], "foot": [-6.0, Z_HOLD], "head": [-7.0, Z_DECK], "y": 1.0},
+    {"name": "quarterdeck", "cell": [_QS, 0], "foot": [_QS + 1.0, Z_DECK], "head": [float(_QS), Z_QD], "y": 0.0},
+    {"name": "hold", "cell": [_HS, 0], "foot": [_HS + 1.0, Z_HOLD], "head": [float(_HS), Z_DECK], "y": 0.0},
 ]
+# (24 October 2026, the user: "add default partition wall with doors and window to rear to form cabin, similar to how in
+# current test") the steerage closed at the quarterdeck's front by the pieces a player places: oak plank partitions, a
+# door either side of the quarterdeck stair, a window over the middle between them (the places outboard of the doors, at
+# z +-2, are the side's wedge cells: neither a window nor a door takes one); no top row behind the stair's head
+CABIN = {"x": QD_FRONT, "doors": [-1, 1], "windows": [0]}
 # 10) gates in the waist's bulwark with a rope ladder down the side (the user, 18 October)
 GATE_CELL = -1
 # (21 October 2026, the user's list after trying her: no pump, no anchor, a wheel on the quarterdeck because the mizzen
@@ -81,20 +114,20 @@ FITTINGS = {
                                                            # 2026), the cable on the deck straight from the hawse
     "hawse": {"x": 6.75},                                  # the hawse hole's middle, on the anchor's side, just forward
                                                            # of rib 6 (chalk note 47: "next to the rib")
-    "wheel": {"deck": "quarterdeck", "cell": [-7, 0]},     # (22 October 2026, chalk note 30) forward of the mizzen,
-                                                           # where the user marked it (x -6.77): its rim there, the
-                                                           # helmsman aft of it in cell -8, the waist in sight
+    "wheel": {"deck": "quarterdeck", "cell": LAY_V["wheel"]},   # (22 October 2026, chalk note 30) forward of the
+                                                           # mizzen, where the user marked it (x -6.77): its rim there, the
+                                                           # helmsman aft of it, the waist in sight. (note 73, draft A: aft
+                                                           # of the mizzen, the centreline stair's head where it stood)
     "anchor": {"side": "port", "x": 8.0},                  # hung at the port cathead (on the rib nearest this x)
-    "sternLantern": {"x": None},                           # on the taffrail's middle (x from the transom)
-}
+}                                                          # (no stern lantern: chalk note 63, the user, 24 October 2026)
 PORT = {"sill": 0.25, "head": 1.0, "inset": 0.125}  # 750 x 750 in a cell's middle; sill and head above its deck
 
 # ---------------------------------------------------------------- midship section half-breadth B(z)
 SEC_Z = [0.0, 0.25, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 5.25, 6.5, 8.25, 9.5]
 SEC_B = [1.6, 2.05, 2.35, 2.72, 2.96, 3.12, 3.22, 3.28, 3.30, 3.27, 3.10, 2.92, 2.62, 2.42]   # widest 3.30: beam 6.6
 
-# parallel middle body
-XM_A, XM_F = -2.5, 0.5
+# parallel middle body (note 73: 1 m longer at its after end)
+XM_A, XM_F = -2.5 - LONGER, 0.5
 
 # stem: (z, x) from the forefoot up, raked, a forefoot arc into the flat floor
 STEM = [(0.0, 5.6), (0.25, 6.85), (0.6, 7.55), (1.0, 8.0), (1.6, 8.45), (2.5, 8.95), (3.5, 9.45),
@@ -103,7 +136,7 @@ STEM = [(0.0, 5.6), (0.25, 6.85), (0.6, 7.55), (1.0, 8.0), (1.6, 8.45), (2.5, 8.
 # the sternpost and the transom in one plane (the user, 17 October): the post's slope from the keel's after end
 # continued as one straight line to the top, so the rudder hangs on one axis. The stern reaches further aft above,
 # so rib -12 stands over the post with a main-deck beam.
-STERN_KEEL_X = -10.4                # the keel's after end at the underside (Z = LIFT): 0.3 aft of before, so rib -12's band and its main-deck beam fit
+STERN_KEEL_X = -10.4 - LONGER       # the keel's after end at the underside (Z = LIFT): 0.3 aft of before, so rib -12's (now -14's) band and its main-deck beam fit; aft with note 73
 STERN_RAKE = 0.45                    # aft per unit up: the post's rake from the bottom, as before
 STERN_TOP_X = STERN_KEEL_X - STERN_RAKE * (Z_QD_RAIL - LIFT)   # -13.94 at the quarterdeck rail
 TRANSOM_FOOT_Z = 2.4                 # (shape height) where the wide transom starts; below it the hull narrows to the post
@@ -576,7 +609,7 @@ def railings():
             continue
         bal.append([tuple(0.5 * (np.asarray(b0) + np.asarray(b1))), tuple(0.5 * (np.asarray(t0) + np.asarray(t1)))])
     mm = lambda q: [round(c * MM, 1) for c in q]
-    return {"posts": [[mm(b), mm(t)] for b, t in posts], "top": [mm(q) for q in top],
+    return {"posts": [[mm(b), mm(t)] for b, t in posts], "kinds": [k for _, _, k in path], "top": [mm(q) for q in top],
             "bottom": [mm(q) for q in bottom], "balusters": [[mm(b), mm(t)] for b, t in bal]}
 
 
@@ -657,6 +690,8 @@ def build():
                                "head": [v * MM for v in t["head"]], "y": t.get("y", 0.0) * MM} for t in STAIRS],
                    "gate": {"x": [GATE_CELL * MM, (GATE_CELL + 1) * MM], "sill": Z_DECK * MM, "head": Z_WAIST_RAIL * MM},
                    "port": {k: v * MM for k, v in PORT.items()},
+                   "cabin": {"x": CABIN["x"] * MM, "doors": CABIN["doors"], "windows": CABIN["windows"]},
+                   "variant": VARIANT,
                    "fittings": FITTINGS},
     }
     os.makedirs(OUT, exist_ok=True)

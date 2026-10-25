@@ -87,7 +87,7 @@ namespace Hansa
                 SavePieces();
             }
             SyncPieceRuntime();
-            RebuildGrid();
+            RebuildGrid(OnlyOpeningsChanged(WatchedAttributes.GetTreeAttribute("hansaPieces"), ref lastPiecesTree));
         }
 
         /// <summary>
@@ -159,7 +159,14 @@ namespace Hansa
             }
             foreach (var p in Pieces.All)
             {
+                pieceFixtures.TryGetValue(p.Id, out var was);
                 var f = pieceFixtures[p.Id] = PieceFixture(p);
+                // (review H1-6) turned: its bunk or seat goes with it (RotatePiece refuses while someone's in it)
+                if (was != null && was != f)
+                {
+                    RemovePieceSeat("bunk:" + f.Code);
+                    RemovePieceSeat("sit:" + f.Code);
+                }
                 if (p.Role == PieceRole.Storage)
                 {
                     int slots = Math.Clamp(p.Slots > 0 ? p.Slots : 16, 1, 64);
@@ -214,16 +221,23 @@ namespace Hansa
         /// </summary>
         public FixtureDef PieceFixture(ShipPiece p)
         {
-            if (pieceFixtures.TryGetValue(p.Id, out var f) && f.Code == p.StorageCode) return f;
+            pieceFixtures.TryGetValue(p.Id, out var f);
+            if (f != null && f.Code == p.StorageCode && ReferenceEquals(f.Sel, p.Box)) return f;
             var c = p.Center;
-            return new FixtureDef
+            var nf = new FixtureDef
             {
                 Type = "piece", Code = p.StorageCode, Kind = p.Role == PieceRole.Bed ? "bed" : p.Role == PieceRole.Seat ? "seat" : p.Role == PieceRole.Storage ? "chest" : "piece",
                 Pos = p.Seat != null ? (double[])p.Seat.Clone() : new[] { c[0], p.Box?[1] ?? c[1], c[2] },
                 Yaw = p.Role is PieceRole.Bed or PieceRole.Seat ? p.SeatYaw : ShipMounts.YawOfDir(p.Dir),
                 Sel = p.Box, Efficiency = p.Efficiency > 0 ? p.Efficiency : 0.7f, Index = PiecePacketBase + p.Id - 1
             };
+            // (review H1-6) the cached one while the piece stands as it did (read again from a sync: what its seat holds),
+            // a new one once it's turned (its place, facing and box)
+            if (f != null && f.Code == nf.Code && f.Yaw == nf.Yaw && SameValues(f.Pos, nf.Pos) && SameValues(f.Sel, nf.Sel)) return f;
+            return nf;
         }
+
+        static bool SameValues(double[] a, double[] b) => a == b || a != null && b != null && a.AsSpan().SequenceEqual(b);
 
         /// <summary>A fixture by the index a packet gives (the design's, or a piece's stand-in), or null.</summary>
         public FixtureDef FixtureByIndex(int index)

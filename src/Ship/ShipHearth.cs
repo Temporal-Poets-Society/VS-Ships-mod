@@ -70,6 +70,9 @@ namespace Hansa
         bool loadingHearth;
         // server: when each player last tried to light it (one try in a few seconds, as holding it to the fire takes)
         readonly Dictionary<string, long> hearthTries = new();
+        // (review H1-25) when each player began holding something to it, as the server saw it
+        // (review H2-10: with what, in which hotbar slot)
+        readonly Dictionary<string, (long Ms, int Slot, string Igniter)> hearthHeldSince = new();
 
         void InitHearth()
         {
@@ -385,10 +388,36 @@ namespace Hansa
             return null;
         }
 
+        /// <summary>Server: a player has begun holding a firestarter or a torch to it (HearthPacket.Start).</summary>
+        public void HearthHeldBy(IServerPlayer player)
+        {
+            // (review H2-10) only with a firestarter or a torch in hand
+            var held = player.InventoryManager.ActiveHotbarSlot?.Itemstack;
+            if (Igniter(held) == 0) { hearthHeldSince.Remove(player.PlayerUID); return; }
+            hearthHeldSince[player.PlayerUID] = (World.ElapsedMilliseconds, player.InventoryManager.ActiveHotbarSlotNumber, held.Collectible.Code.ToString());
+        }
+
+        /// <summary>(review H3-8) Server: a player out of reach of it, or refused it: their holding something to it ends.</summary>
+        public void HearthLeftBy(IServerPlayer player) => hearthHeldSince.Remove(player.PlayerUID);
+
         /// <summary>Server: a player's try at lighting it (HearthPacket), at most one in 2.5 s each.</summary>
         public void HearthIgniteFrom(IServerPlayer player, float seconds)
         {
             long now = World.ElapsedMilliseconds;
+            // (review H1-25) no longer than the server has seen them hold it there (a little for the lag); counted afresh from
+            // now, as their client does
+            // (review H2-10) not counted from a start long ago (their client tries again every 3.2 s while it's held), nor
+            // with something else in hand since
+            var hand = player.InventoryManager.ActiveHotbarSlot?.Itemstack;
+            int slot = player.InventoryManager.ActiveHotbarSlotNumber;
+            string igniter = hand?.Collectible?.Code?.ToString();
+            double held = 0;
+            if (hearthHeldSince.TryGetValue(player.PlayerUID, out var since) && since.Slot == slot && since.Igniter == igniter &&
+                now - since.Ms <= (HearthFire.IgniteSeconds + 2) * 1000)
+                held = (now - since.Ms) / 1000.0 + 0.3;
+            if (Igniter(hand) != 0) hearthHeldSince[player.PlayerUID] = (now, slot, igniter);
+            else hearthHeldSince.Remove(player.PlayerUID);
+            seconds = (float)Math.Min(seconds, held);
             if (hearthTries.TryGetValue(player.PlayerUID, out long last) && now - last < 2500) return;
             hearthTries[player.PlayerUID] = now;
             string err = TryIgniteHearth(player.Entity, player.InventoryManager.ActiveHotbarSlot, seconds, World.Rand.NextDouble());

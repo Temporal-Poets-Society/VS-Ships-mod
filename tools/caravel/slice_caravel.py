@@ -18,7 +18,7 @@ import FreeCAD as App
 import Part
 
 V = App.Vector
-ROOT = r"C:/VS mods/Hansa"
+ROOT = os.environ.get("CARAVEL_ROOT", r"C:/VS mods/Hansa")     # (a worktree's own checkout: set CARAVEL_ROOT)
 MODEL = os.path.join(ROOT, "models", "caravel", "caravel.FCStd")
 OUT = os.path.join(ROOT, "models", "caravel")
 CELL = 1000.0

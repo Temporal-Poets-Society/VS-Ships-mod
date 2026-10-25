@@ -227,14 +227,33 @@ namespace Hansa.Construction
             wallShapes.Remove(f);
         }
 
+        /// <summary>Where the wall or door covering this face is kept (a door's upper row is kept at its lower one), or null.</summary>
+        FaceId? WallKey(FaceId f)
+        {
+            if (walls.ContainsKey(f)) return f;
+            return WallAt(f) == null ? null : new FaceId(f.Cell - CellId.Up, f.Axis);
+        }
+
+        /// <summary>(review H1-28) Taking down a wall is refused while a wall above stands on it.</summary>
+        public string RemoveWallProblem(FaceId f)
+        {
+            if (WallKey(f) is not FaceId key) return "No wall here";
+            var held = Supported();
+            var before = SupportProblems(held).ToHashSet();
+            var w = walls[key];
+            walls.Remove(key);
+            var after = SupportProblems(held).ToList();
+            walls[key] = w;
+            var fitting = after.FirstOrDefault(p => !before.Contains(p));
+            return fitting == null ? null : $"Removing it would leave a fitting unsupported: {fitting}";
+        }
+
         public WallState RemoveWall(FaceId f)
         {
-            if (!walls.TryGetValue(f, out var w))
-            {
-                var below = new FaceId(f.Cell - CellId.Up, f.Axis);
-                if (WallAt(f) == null) throw new InvalidOperationException("No wall here");
-                f = below; w = walls[f];
-            }
+            var problem = RemoveWallProblem(f);
+            if (problem != null) throw new InvalidOperationException(problem);
+            f = WallKey(f).Value;
+            var w = walls[f];
             walls.Remove(f); wallShapes.Remove(f);
             return w;
         }
@@ -249,6 +268,26 @@ namespace Hansa.Construction
         }
 
         // ---- rules and saves -----------------------------------------------------------------
+
+        /// <summary>
+        /// (review H1-28) What of the stairs and walls would stand on nothing (or a stair without its landings): what taking a
+        /// block or a wall away may cause. Only cell and wall states, no shapes (they're cached).
+        /// </summary>
+        IEnumerable<string> SupportProblems(HashSet<CellId> held)
+        {
+            foreach (var s in stairs)
+            {
+                var p = StairProblem(s, s);
+                if (p != null) yield return $"Stair at {s.FootCell}: {p}";
+                if (!held.Contains(s.FootCell - CellId.Up)) yield return $"Stair at {s.FootCell} has no supported floor";
+            }
+            foreach (var (f, w) in walls.OrderBy(kv => kv.Key))
+            {
+                var below = new FaceId(f.Cell - CellId.Up, f.Axis);
+                bool rests = WallAt(below) != null || held.Contains(f.Cell - CellId.Up) || held.Contains(f.Beyond - CellId.Up);
+                if (!rests) yield return $"{w.Kind} at {f} stands on nothing";
+            }
+        }
 
         IEnumerable<string> FittingProblems(HashSet<CellId> held)
         {

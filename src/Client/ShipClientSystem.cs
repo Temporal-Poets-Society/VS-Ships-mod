@@ -39,7 +39,12 @@ namespace Hansa
         ShipHud hud;
 
         float sendAccum;
+        (long ship, float x, float y, float z, byte flags) lastSentDeck;
+        long lastSentDeckMs;
         long boardCooldownUntil;
+        Vec3d boardedFrom;
+        long boardedShip;
+        int boardAttempt;
         FixtureHit lookedAt;
         // the gun last clicked (the game repeats a held click: one shot a click)
         (long Ship, int Gun, long Ms) lastGunClick;
@@ -331,8 +336,21 @@ namespace Hansa
                 if (sendAccum >= 1 / 15f)
                 {
                     sendAccum = 0;
-                    var l = ds.LocalPos;
-                    channel.SendPacket(new DeckStatePacket { ShipId = ds.Ship.EntityId, X = (float)l.X, Y = (float)l.Y, Z = (float)l.Z, Flags = ds.Flags });
+                    // (review H4-1) where the walker's feet are (its collision height, which the server checks against her), not the
+                    // height the camera glides at over steps: others' clients glide it themselves (DeckSeat.PushRemote)
+                    var m = ds.Mover;
+                    var l = m != null ? new Vec3d(m.X, m.Y, m.Z) : ds.LocalPos;
+                    // (review H1-15) only when we moved or our stance changed, and once a second standing still
+                    var s = (ship: ds.Ship.EntityId, x: (float)l.X, y: (float)l.Y, z: (float)l.Z, flags: ds.Flags);
+                    long now = capi.World.ElapsedMilliseconds;
+                    var o = lastSentDeck;
+                    if (s.ship != o.ship || s.flags != o.flags || Math.Abs(s.x - o.x) > 0.01f || Math.Abs(s.y - o.y) > 0.01f ||
+                        Math.Abs(s.z - o.z) > 0.01f || now - lastSentDeckMs >= 1000)
+                    {
+                        lastSentDeck = s;
+                        lastSentDeckMs = now;
+                        channel.SendPacket(new DeckStatePacket { ShipId = s.ship, X = s.x, Y = s.y, Z = s.z, Flags = s.flags });
+                    }
                 }
             }
             else if (ep.MountedOn == null)
@@ -697,12 +715,16 @@ namespace Hansa
 
         IMountableSeat lastMount;
 
+        // (review H1-22: made once, not each call each frame)
+        static readonly double[] InHullHeights = { 0.1, 0.6, 1.1, 1.6 };
+        const double InHullR = DeckMover.HalfWidth - 0.05;
+        static readonly (double, double)[] InHullOffsets = { (0.0, 0.0), (InHullR, 0.0), (-InHullR, 0.0), (0.0, InHullR), (0.0, -InHullR) };
+
         /// <summary>A player's body (feet at y, ship-local) in the hull: a few points of it inside her planking.</summary>
         static bool InHull(EntityShip ship, double x, double y, double z)
         {
-            const double r = DeckMover.HalfWidth - 0.05;
-            foreach (double h in new[] { 0.1, 0.6, 1.1, 1.6 })
-                foreach (var (ox, oz) in new[] { (0.0, 0.0), (r, 0.0), (-r, 0.0), (0.0, r), (0.0, -r) })
+            foreach (double h in InHullHeights)
+                foreach (var (ox, oz) in InHullOffsets)
                     if (ship.HullAt(x + ox, y + h, z + oz) && y + h < ship.Def.DeckY) return true;
             return false;
         }
@@ -814,8 +836,13 @@ namespace Hansa
                 return;
             }
             var seat = ship.GetOrCreateDeckSeat(ep.PlayerUID, x, y, z);
-            ep.TryMount(seat);   // predicted; the server confirms through the "mountedOn" attribute
-            channel.SendPacket(new BoardPacket { ShipId = ship.EntityId, X = (float)x, Y = (float)y, Z = (float)z });
+            // (review H3-3: where they were, should the server refuse it)
+            boardedFrom = ep.Pos.XYZ;
+            boardedShip = ship.EntityId;
+            // (review H4-4: which try a refusal answers)
+            boardAttempt++;
+            ep.TryMount(seat);   // predicted; the server confirms through the "mountedOn" attribute, or refuses (OnRemoteDeckState)
+            channel.SendPacket(new BoardPacket { ShipId = ship.EntityId, X = (float)x, Y = (float)y, Z = (float)z, Attempt = boardAttempt });
             boardCooldownUntil = capi.World.ElapsedMilliseconds + 500;
         }
 
@@ -1305,6 +1332,7 @@ namespace Hansa
                 Ship = ship, Hearth = hearth, Igniter = kind, Started = now, LastStroke = now, Seconds = HearthFire.IgniteSeconds + 0.2f,
                 What = ShipHud.FixtureName(ship, hearth)
             };
+            channel.SendPacket(new HearthPacket { ShipId = ship.EntityId, Fixture = hearth.Index, Start = true });
             if (kind == 2) capi.World.PlaySoundAt(new AssetLocation("sounds/torch-ignite"), ep, null, false, 16);
             else
             {
@@ -1459,7 +1487,40 @@ namespace Hansa
         void OnRemoteDeckState(DeckStatePacket p)
         {
             var e = capi.World.GetEntityById(p.PlayerEntityId) as EntityAgent;
-            if (e == null || e == capi.World.Player.Entity) return;
+            if (e == null) return;
+            if (e == capi.World.Player.Entity)
+            {
+                // (review H3-3) the server refused our boarding: off the seat we took, back where we were, not again at once
+                if (p.Refused)
+                {
+                    // (review H4-4) only our latest try: a late answer to an earlier one doesn't undo a boarding since
+                    if (p.Attempt == boardAttempt && e.MountedOn is DeckSeat taken && taken.Ship.EntityId == p.ShipId)
+                    {
+                        e.TryUnmount();
+                        if (boardedShip == p.ShipId && boardedFrom != null)
+                        {
+                            e.Pos.SetPos(boardedFrom.X, boardedFrom.Y, boardedFrom.Z);
+                            e.Pos.Motion.Set(0, 0, 0);
+                            e.PositionBeforeFalling.Set(boardedFrom.X, boardedFrom.Y, boardedFrom.Z);
+                        }
+                        pendingLadder = null;
+                        boardCooldownUntil = capi.World.ElapsedMilliseconds + 1500;
+                    }
+                    return;
+                }
+                // (review H1-2) the server refused a move of ours: back to where it has us
+                if (e.MountedOn is DeckSeat own && own.Ship.EntityId == p.ShipId && own.Mover is DeckMover m)
+                {
+                    m.X = p.X; m.Y = p.Y; m.Z = p.Z;
+                    m.VX = m.VY = m.VZ = 0;
+                    m.SmoothOffset = 0;
+                    m.Climbing = null;
+                    m.Unstick(own.Ship.Grid);
+                    m.OnGround = DeckMover.HasFloor(own.Ship.Grid, m.X, m.Y, m.Z);
+                    lastSentDeck = default;
+                }
+                return;
+            }
             if (e.MountedOn is DeckSeat ds && ds.Ship.EntityId == p.ShipId)
             {
                 ds.PushRemote(capi.World.ElapsedMilliseconds, p.X, p.Y, p.Z, p.Flags);

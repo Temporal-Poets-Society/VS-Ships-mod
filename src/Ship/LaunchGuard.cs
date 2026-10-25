@@ -28,7 +28,8 @@ namespace Hansa
         public static bool TryLaunch(string key, long use, long now, out string why)
         {
             why = null;
-            if (last.TryGetValue(key, out var l))
+            // (review H1-9: a time after now is another world's clock, opened before this one in the same game)
+            if (last.TryGetValue(key, out var l) && now >= l.At)
             {
                 if (use >= 0 && l.Use == use) return false;
                 if (now - l.At < CooldownMs) { why = $"{now - l.At} ms after the last"; return false; }
@@ -39,5 +40,8 @@ namespace Hansa
 
         /// <summary>Forget a key (the tests).</summary>
         public static void Reset(string key) => last.Remove(key);
+
+        /// <summary>(review H1-9) Forget them all: a new world's server starting.</summary>
+        public static void Clear() => last.Clear();
     }
 }

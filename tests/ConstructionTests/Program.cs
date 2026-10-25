@@ -290,6 +290,9 @@ static class Program
         ship.PlaceStair(S(5, 4, -3), "+x", "game:planks-oak-ud");
         var problems = ship.Problems();
         Check(problems.Count == 0, "the moved stair has its landings and well" + (problems.Count > 0 ? ": " + string.Join("; ", problems) : ""));
+        // (review H1-28)
+        Check(ship.RemoveProblem(S(4, 3, -3))?.Contains("fitting") == true, "the floor at a stair's foot can't be taken up from under it");
+        Rejects(() => ship.Repair(S(5, 6, -3), "game:planks-oak-ud"), "a deck cell the stair now rises through isn't rebuilt by a repair");
         Rejects(() => ship.PlaceWall(FaceId.Of(S(5, 4, -3), "+x"), "wall", "game:planks-oak-ud"), "a wall across the stair is refused");
         Rejects(() => ship.PlaceWall(FaceId.Of(S(4, 4, -3), "+x"), "wall", "game:planks-oak-ud"), "a wall across the stair's foot is refused");
         ship.PlaceWall(FaceId.Of(S(5, 4, -3), "+z"), "wall", "game:planks-oak-ud");
@@ -308,6 +311,8 @@ static class Program
         ship.ToggleDoor(door.Up);
         Check(!ship.WallSeals(door) && ship.WallShape(door).Faces.Any(f => f.Part == "door"), "an open door swings aside, still drawn");
         Check(ship.WallShape(door).Voxels.Count != shut, "an open door leaves its doorway passable");
+        // (review H1-28)
+        Rejects(() => ship.RemoveWall(door), "a door with wall above it isn't taken out from under that wall");
         var top = ship.WallShape(FaceId.Of(S(5, 6, 4), "-x")).Faces.Max(f => f.Points.Max(q => q.Y));
         Check(Math.Abs(top - 6.75) < 1e-9, $"a wall under a deck stops at the deck planking (top {top})");
         var nearBeam = ship.WallShape(FaceId.Of(S(5, 6, 3), "-x"));
@@ -380,7 +385,8 @@ static class Program
         ship.Remove(new CellId(2, 7, 6));
         ship.Place(new CellId(2, 7, 6), "window", "game:glasspane-plain-ew");
         ship.ToggleDoor(FaceId.Of(new CellId(6, 4, 2), "+z"));
-        ship.RemoveWall(FaceId.Of(new CellId(7, 5, 2), "+z"));
+        // (the top row: one under it would leave this one standing on nothing, review H1-28)
+        ship.RemoveWall(FaceId.Of(new CellId(7, 6, 2), "+z"));
         ship.PlaceWall(FaceId.Of(new CellId(2, 1, 1), "+x"), "wall", "game:planks-pine-ud");
         var save = ship.Serialize();
         var loaded = Fresh();

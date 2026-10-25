@@ -27,7 +27,7 @@ namespace HansaTests
             var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
             def.Init();
             var foot = HoldFoot(def);
-            Check(foot != null, $"caravel: the hold's cell at note 51 (-2.241, -0.172): {foot?.Id}");
+            Check(foot != null, $"caravel: the hold's cell at note 51's place ({FootX}, {FootZ}): {foot?.Id}");
             if (foot == null) return;
             if (Environment.GetEnvironmentVariable("HANSA_HOLDSTAIR") != null)
                 for (double z = -2.375; z < 2.5; z += 0.25)
@@ -98,7 +98,8 @@ namespace HansaTests
                         string got = f == null ? "no cell" : Along(f, cells, toward);
                         // (what has to work: the short stair up aft from the note's cell (the beam at x -2's length out), both
                         // ways from the cell to starboard of it (x -2's or x -4's); the others meet her mainmast at x -1..0 or
-                        // the old hold hatchway's carling at z -0.5..-0.25 under main:-4:-1, fixed)
+                        // the old hold hatchway's carling at z -0.5..-0.25 under main:-4:-1, fixed. (24 October 2026, note 73)
+                        // the place now under the cabin's front: the beams at x -6 and -8)
                         bool want = cells == 1 && (toward == 0 || f == starboard);
                         rows.Add(($"{f?.Id} {cells} long up {(toward == 0 ? "aft" : "forward")}", got, want));
                     }
@@ -117,8 +118,12 @@ namespace HansaTests
             }
         }
 
+        // (24 October 2026, caravel note 73: 2 blocks longer, her hold's hatch and stair on the centreline over the note's
+        // cell (x -2.241, z -0.172); the same place between her frames, a rib cell either side, where her hold is as wide:
+        // x -6.241, under the cabin's front (further aft, at -8.241, the hold's after part is too narrow for a landing)
+        const double FootX = -6.241, FootZ = -0.172;
         static MountPoint HoldFoot(ShipDefinition def) =>
-            def.Mounts.Floors.FirstOrDefault(m => m.Deck == "hold" && m.Level == 0 && m.X <= -2.241 && m.X + 1 > -2.241 && m.Z <= -0.172 && m.Z + 1 > -0.172);
+            def.Mounts.Floors.FirstOrDefault(m => m.Deck == "hold" && m.Level == 0 && m.X <= FootX && m.X + 1 > FootX && m.Z <= FootZ && m.Z + 1 > FootZ);
 
         /// <summary>A ship's stair from the hold cell toward a way, with the main deck's cells over its cells and the one before its foot taken up: the plan, her cells' states, her collision with them.</summary>
         static (PiecePlan Plan, SlotStates St, VoxelGrid Grid) HoldStairPlan(ShipDefinition def, MountPoint foot, int cells, int toward)

@@ -89,7 +89,10 @@ namespace Hansa
             var ship = ShipById(p.ShipId);
             var ep = player.Entity;
             if (ship?.Def == null || ep == null || !ep.Alive) return;
-            if (CrewOnly(player, ship)) return;
+            // (review H1-4) someone not of her crew may still open her doors and hatches put aboard and sit on her seats, as
+            // the design's (OnFixture), while she's not laid up; nothing else
+            bool guestUse = p.Action == DecorPacket.Use && !ship.LaidUp && EntityShip.GuestMayUse(ship.Pieces.Get(p.Piece));
+            if (!guestUse && CrewOnly(player, ship)) return;
             string err = null;
             object[] args = Array.Empty<object>();
             switch (p.Action)

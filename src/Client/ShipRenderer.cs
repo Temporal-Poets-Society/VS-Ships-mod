@@ -107,11 +107,16 @@ namespace Hansa
             public int Capacity;
             /// <summary>Its level as drawn (ship-local, eased toward hers), her roll it lags behind (sloshing), and its height over her origin (world, level).</summary>
             public double Level = double.NaN, LagRoll, WorldDy = double.NaN;
+            /// <summary>(review H1-19) What its mesh was last made for (level, plane, her tilt), when, and whether it has any.</summary>
+            public double BuiltLevel, BuiltAlong, BuiltAcross, BuiltPitch, BuiltRoll;
+            public long BuiltMs;
+            public bool Built;
 
             public void Dispose()
             {
                 Mesh?.Dispose();
                 Mesh = null;
+                Built = false;
             }
         }
 
@@ -783,51 +788,64 @@ namespace Hansa
                 double slosh = GameMath.Clamp((ship.Roll - f.LagRoll) * 0.5, -0.06, 0.06);
                 ShipWater.Plane(ship.Pitch, ship.Roll, out double along, out double across);
                 double inset = m.Hull != null ? m.Hull.Thickness / 2 : ShipWater.DefaultInset;
-                var runs = ShipWater.Surface(ship.Def, f.Level, along, across + slosh, inset, FloodStrips);
                 ShipFrame.ToWorld(ship.Pos.Yaw, ship.Pitch, ship.Roll, ShipWater.FloodX(ship.Def), f.Level, 0, out _, out double wy, out _);
                 f.WorldDy = wy;
-                int quads = 0;
-                foreach (var r in runs) quads += (r.Count - 1) * FloodStrips;
-                if (quads == 0) return;
-                if (waterTexture == 0) waterTexture = rapi.GetOrLoadTexture(new AssetLocation("game", "block/liquid/saltwater.png"));
-                if (waterTexture == 0) return;
+                // (review H1-19) made again when its level, its plane or her tilt changed by more than a little, else ten times a
+                // second (its texture's slow drift), not every frame
+                long builtNow = capi.ElapsedMilliseconds;
+                double acrossNow = across + slosh;
+                bool rebuild = !f.Built || builtNow - f.BuiltMs >= 100 || Math.Abs(f.BuiltLevel - f.Level) > 0.002 ||
+                               Math.Abs(f.BuiltAlong - along) > 0.002 || Math.Abs(f.BuiltAcross - acrossNow) > 0.002 ||
+                               Math.Abs(f.BuiltPitch - ship.Pitch) > 0.002 || Math.Abs(f.BuiltRoll - ship.Roll) > 0.002;
+                if (rebuild)
+                {
+                    var runs = ShipWater.Surface(ship.Def, f.Level, along, acrossNow, inset, FloodStrips);
+                    int quads = 0;
+                    foreach (var r in runs) quads += (r.Count - 1) * FloodStrips;
+                    if (quads == 0) { f.Built = false; return; }
+                    if (waterTexture == 0) waterTexture = rapi.GetOrLoadTexture(new AssetLocation("game", "block/liquid/saltwater.png"));
+                    if (waterTexture == 0) return;
 
-                if (f.Mesh == null || f.Capacity < quads)
-                {
-                    // the mesh's buffers are as big as what's first uploaded: room for more than now, updated every frame
-                    f.Dispose();
-                    f.Capacity = Math.Max(quads * 3 / 2, 256);
-                    f.Data = new MeshData(f.Capacity * 4, f.Capacity * 6, false, true, true, true);
-                    for (int q = 0; q < f.Capacity; q++)
+                    if (f.Mesh == null || f.Capacity < quads)
                     {
-                        for (int k = 0; k < 4; k++) f.Data.AddWithFlagsVertex(0, 0, 0, 0, 0, -1, 0);
-                        f.Data.AddIndices(4 * q, 4 * q + 1, 4 * q + 2, 4 * q, 4 * q + 2, 4 * q + 3);
-                    }
-                    f.Mesh = rapi.UploadMesh(f.Data);
-                }
-                var md = f.Data.Clear();
-                ShipFrame.ToLocal(0, ship.Pitch, ship.Roll, 0, 1, 0, out double nx, out double ny, out double nz);
-                int flat = VertexFlags.PackNormal(nx, ny, nz), bob = flat | LiquidWarpFlags;
-                double t = capi.ElapsedMilliseconds / 1000.0;
-                float du = (float)(t * 0.021 % 16), dv = (float)(t * 0.013 % 16);
-                void Vertex(double[] p, int k)
-                {
-                    float x = (float)p[3 * k], y = (float)p[3 * k + 1], z = (float)p[3 * k + 2];
-                    // (the texture repeats: its own GL texture, not the atlas)
-                    md.AddWithFlagsVertex(x, y, z, x * 0.5f + du, z * 0.5f + dv, -1, k == 0 || k == FloodStrips ? flat : bob);
-                }
-                foreach (var r in runs)
-                    for (int s = 0; s + 1 < r.Count; s++)
-                        for (int k = 0; k < FloodStrips; k++)
+                        // the mesh's buffers are as big as what's first uploaded: room for more than now, updated as it changes
+                        f.Dispose();
+                        f.Capacity = Math.Max(quads * 3 / 2, 256);
+                        f.Data = new MeshData(f.Capacity * 4, f.Capacity * 6, false, true, true, true);
+                        for (int q = 0; q < f.Capacity; q++)
                         {
-                            int b = md.VerticesCount;
-                            Vertex(r[s], k);
-                            Vertex(r[s + 1], k);
-                            Vertex(r[s + 1], k + 1);
-                            Vertex(r[s], k + 1);
-                            md.AddIndices(b, b + 1, b + 2, b, b + 2, b + 3);
+                            for (int k = 0; k < 4; k++) f.Data.AddWithFlagsVertex(0, 0, 0, 0, 0, -1, 0);
+                            f.Data.AddIndices(4 * q, 4 * q + 1, 4 * q + 2, 4 * q, 4 * q + 2, 4 * q + 3);
                         }
-                rapi.UpdateMesh(f.Mesh, md);
+                        f.Mesh = rapi.UploadMesh(f.Data);
+                    }
+                    var md = f.Data.Clear();
+                    ShipFrame.ToLocal(0, ship.Pitch, ship.Roll, 0, 1, 0, out double nx, out double ny, out double nz);
+                    int flat = VertexFlags.PackNormal(nx, ny, nz), bob = flat | LiquidWarpFlags;
+                    double t = capi.ElapsedMilliseconds / 1000.0;
+                    float du = (float)(t * 0.021 % 16), dv = (float)(t * 0.013 % 16);
+                    void Vertex(double[] p, int k)
+                    {
+                        float x = (float)p[3 * k], y = (float)p[3 * k + 1], z = (float)p[3 * k + 2];
+                        // (the texture repeats: its own GL texture, not the atlas)
+                        md.AddWithFlagsVertex(x, y, z, x * 0.5f + du, z * 0.5f + dv, -1, k == 0 || k == FloodStrips ? flat : bob);
+                    }
+                    foreach (var r in runs)
+                        for (int s = 0; s + 1 < r.Count; s++)
+                            for (int k = 0; k < FloodStrips; k++)
+                            {
+                                int b = md.VerticesCount;
+                                Vertex(r[s], k);
+                                Vertex(r[s + 1], k);
+                                Vertex(r[s + 1], k + 1);
+                                Vertex(r[s], k + 1);
+                                md.AddIndices(b, b + 1, b + 2, b, b + 2, b + 3);
+                            }
+                    rapi.UpdateMesh(f.Mesh, md);
+                    f.Built = true;
+                    f.BuiltMs = builtNow;
+                    (f.BuiltLevel, f.BuiltAlong, f.BuiltAcross, f.BuiltPitch, f.BuiltRoll) = (f.Level, along, acrossNow, ship.Pitch, ship.Roll);
+                }
 
                 prog.ModelMatrix = model.Values;
                 prog.RgbaTint = FloodTint;
@@ -850,7 +868,7 @@ namespace Hansa
         {
             if (!decor.TryGetValue(ship.EntityId, out var d)) decor[ship.EntityId] = d = new Decor();
             bool skin = meshes.TryGetValue(ship.Def.Code, out var skinMeshes) && skinMeshes.File != null;
-            if (d.Version == ship.FitVersion && d.Surfaces == (ship.Def.Surfaces != null) && d.Skin == skin)
+            if (d.Version == ship.DecorVersion && d.Surfaces == (ship.Def.Surfaces != null) && d.Skin == skin)
             {
                 RefreshHearth(ship, d);
                 RefreshOven(ship, d);
@@ -858,7 +876,7 @@ namespace Hansa
             }
             // doors keep their swing across a rebuild (d.Open stays)
             d.Dispose();
-            d.Version = ship.FitVersion;
+            d.Version = ship.DecorVersion;
             d.Surfaces = ship.Def.Surfaces != null;
             d.Skin = skin;
             // (0.3.18, note 165) and a hearth's or an oven's put aboard (their stand-in fixtures: the firepit, the oven)
@@ -1716,8 +1734,14 @@ namespace Hansa
         /// <summary>The ships' lights the game has now (<see cref="ChooseLights"/>).</summary>
         readonly HashSet<ShipLight> registeredLights = new();
         readonly List<ShipLight> lightCandidates = new();
-        long entityLightsCheckedMs = long.MinValue;
-        int entityLights;
+        // (review H1-21: kept, not made each frame)
+        readonly HashSet<ShipLight> keepLights = new();
+        readonly List<ShipLight> dropLights = new();
+        Comparison<ShipLight> lightOrder;
+        Vec3d lightEye;
+        // (review H1-3: long.MinValue made "now - it" overflow, and the lit entities were never counted)
+        long entityLightsCheckedMs = -1000;
+        int entityLights, maxLights = 10;
 
         /// <summary>
         /// The game draws only its first "max dynamic lights" (graphics settings, 10 by default) point lights, in the order
@@ -1728,38 +1752,44 @@ namespace Hansa
         /// </summary>
         void ChooseLights(Vec3d eye)
         {
-            int max = 10;
-            try { max = capi.Settings.Int["maxDynamicLights"]; } catch (Exception) { }
             long now = capi.ElapsedMilliseconds;
             if (now - entityLightsCheckedMs > 500)
             {
                 entityLightsCheckedMs = now;
+                try { maxLights = capi.Settings.Int["maxDynamicLights"]; } catch (Exception) { }
                 entityLights = capi.World.GetEntitiesAround(eye, 120f, 120f, e => e.LightHsv != null && e.LightHsv[2] > 0).Length;
             }
-            int room = Math.Max(0, max - entityLights);
+            int room = Math.Max(0, maxLights - entityLights);
             lightCandidates.Clear();
             foreach (var list in lights.Values)
                 foreach (var pl in list)
                     if (pl.Color.X + pl.Color.Y + pl.Color.Z > 0.01f) lightCandidates.Add(pl);
             if (lightCandidates.Count > room)
             {
-                double D(ShipLight l)
-                {
-                    double dx = l.Pos.X - eye.X, dy = (l.Pos.Y - eye.Y) * 2, dz = l.Pos.Z - eye.Z;
-                    return dx * dx + dy * dy + dz * dz;
-                }
-                lightCandidates.Sort((a, b) => D(a).CompareTo(D(b)));
+                lightEye = eye;
+                lightOrder ??= (a, b) => LightDistance(a).CompareTo(LightDistance(b));
+                lightCandidates.Sort(lightOrder);
                 lightCandidates.RemoveRange(room, lightCandidates.Count - room);
             }
-            var keep = new HashSet<ShipLight>(lightCandidates);
-            registeredLights.RemoveWhere(pl =>
+            keepLights.Clear();
+            foreach (var pl in lightCandidates) keepLights.Add(pl);
+            dropLights.Clear();
+            foreach (var pl in registeredLights)
+                if (!keepLights.Contains(pl)) dropLights.Add(pl);
+            foreach (var pl in dropLights)
             {
-                if (keep.Contains(pl)) return false;
+                registeredLights.Remove(pl);
                 capi.Render.RemovePointLight(pl);
-                return true;
-            });
+            }
             foreach (var pl in lightCandidates)
                 if (registeredLights.Add(pl)) capi.Render.AddPointLight(pl);
+        }
+
+        /// <summary>How far a light is from the eye being lit for (a deck between counting double), squared.</summary>
+        double LightDistance(ShipLight l)
+        {
+            double dx = l.Pos.X - lightEye.X, dy = (l.Pos.Y - lightEye.Y) * 2, dz = l.Pos.Z - lightEye.Z;
+            return dx * dx + dy * dy + dz * dz;
         }
 
         public void RemoveShip(EntityShip ship)
@@ -1885,6 +1915,19 @@ namespace Hansa
                 UpdateScars(ship, m);
                 // ((0.3.27, note 219) her brows run out to a quay)
                 UpdateBrows(ship);
+                // her moving parts as they stand now (the shadow passes draw them with these too)
+                decor.TryGetValue(ship.EntityId, out var d);
+                if (d != null) UpdateOpenings(ship, d, dt);
+                ComputeParts(ship, d);
+
+                // (review H1-16) not drawn while she's out of view (the one they're aboard always is), as in the shadow
+                // passes; a few blocks more for what reaches out of her bounds (her brows, the sails filling)
+                if (!(ep.MountedOn is ShipSeat on && on.Ship == ship) && rapi.DefaultFrustumCuller is FrustumCulling culler)
+                {
+                    ShipShadows.Sphere(ship.Def, out double sx, out double sy, out double sz, out double radius);
+                    ShipFrame.ToWorld(ship.Pos.Yaw, ship.Pitch, ship.Roll, sx, sy, sz, out double wx, out double wy, out double wz);
+                    if (!culler.SphereInFrustum(o.X + wx, o.Y + wy, o.Z + wz, radius + 4)) continue;
+                }
 
                 int lx = (int)Math.Floor(ship.Pos.X), ly = (int)Math.Floor(ship.Pos.Y + ship.Def.DeckY + 1.5), lz = (int)Math.Floor(ship.Pos.Z);
                 var prog = rapi.PreparedStandardShader(lx, ly, lz);
@@ -1924,17 +1967,14 @@ namespace Hansa
 
                 // moving parts: the wheel, rudder and tiller with the helm, the gates and hatches as they open, the anchor
                 // going down, and the ropes that follow them
-                decor.TryGetValue(ship.EntityId, out var d);
-                if (d != null) UpdateOpenings(ship, d, dt);
-                ComputeParts(ship, d);
                 foreach (var part in ship.Def.MovingParts)
                 {
-                    var mesh = SkinGroup(m, "part:" + part.Code);
+                    var mesh = SkinGroup(m, part.PartGroup);
                     if (mesh == null || !PartShown(ship, part)) continue;
                     Mat4f.Mul(tmp, model.Values, partMats[part.Code]);
                     prog.ModelMatrix = tmp;
                     prog.RgbaLightIn = part.Interior ? interiorLight : ext;
-                    if (!DrawPainted(rapi, ship, m, "part:" + part.Code)) rapi.RenderMultiTextureMesh(mesh, "tex");
+                    if (!DrawPainted(rapi, ship, m, part.PartGroup)) rapi.RenderMultiTextureMesh(mesh, "tex");
                 }
                 prog.RgbaLightIn = ext;
 
@@ -1993,7 +2033,7 @@ namespace Hansa
                 Draw(rapi, SkinGroup(m, "glass"));
                 foreach (var part in ship.Def.MovingParts)
                 {
-                    var mesh = SkinGroup(m, "glass:" + part.Code);
+                    var mesh = SkinGroup(m, part.GlassGroup);
                     if (mesh == null || !PartShown(ship, part)) continue;
                     Mat4f.Mul(tmp, model.Values, partMats[part.Code]);
                     prog.ModelMatrix = tmp;
@@ -2414,7 +2454,7 @@ namespace Hansa
                 Draw(rapi, SkinGroup(bm, "interior"));
                 foreach (var part in bd.MovingParts)
                 {
-                    var mesh = SkinGroup(bm, "part:" + part.Code);
+                    var mesh = SkinGroup(bm, part.PartGroup);
                     if (mesh == null || !StowedPart(part)) continue;
                     Mat4f.Mul(tmp2, boatMat, boatPart);
                     Mat4f.Mul(tmp, model.Values, tmp2);
@@ -2603,7 +2643,7 @@ namespace Hansa
             foreach (var part in def.MovingParts)
             {
                 if (!ShipShadows.CastsPart(part, far) || !PartShown(ship, part)) continue;
-                var mesh = SkinGroup(m, "part:" + part.Code);
+                var mesh = SkinGroup(m, part.PartGroup);
                 if (mesh != null && partMats.TryGetValue(part.Code, out var pm)) CastShadow(rapi, mesh, pm);
             }
             float frac = PartMotion.DrawnSail(ship.SailFraction);
@@ -2638,7 +2678,7 @@ namespace Hansa
                 CastShadow(rapi, SkinGroup(bm, "bottom"), boatMat);
                 foreach (var part in bd.MovingParts)
                 {
-                    var mesh = SkinGroup(bm, "part:" + part.Code);
+                    var mesh = SkinGroup(bm, part.PartGroup);
                     if (mesh == null || !ShipShadows.CastsPart(part, far) || !StowedPart(part)) continue;
                     Mat4f.Mul(shadowLocal, boatMat, boatPart);
                     CastShadow(rapi, mesh, shadowLocal);
@@ -2713,6 +2753,8 @@ namespace Hansa
             decor.Clear();
             DisposeAllPaint();
             DisposeAllSlots();
+            DisposeAllScars();
+            DisposeAllBrows();
             foreach (var pl in registeredLights) capi.Render.RemovePointLight(pl);
             registeredLights.Clear();
             lights.Clear();

@@ -1,59 +1,59 @@
 {
  "massProps": {
   "Shell": {
-   "volume_m3": 64.6907,
+   "volume_m3": 70.4847,
    "centroid_mm": [
-    -2561,
+    -3605,
     0,
-    2791
+    2714
    ]
   },
   "Backbone": {
-   "volume_m3": 3.6593,
+   "volume_m3": 3.8993,
    "centroid_mm": [
-    -987,
+    -1987,
     0,
-    1724
+    1644
    ]
   },
   "Ribs": {
-   "volume_m3": 9.5689,
+   "volume_m3": 10.528,
    "centroid_mm": [
-    -2821,
+    -3858,
     0,
-    2741
+    2674
    ]
   },
   "Beams": {
-   "volume_m3": 5.5679,
+   "volume_m3": 6.0139,
    "centroid_mm": [
-    -3863,
-    106,
-    4346
+    -4643,
+    0,
+    4291
    ]
   },
   "Decks": {
-   "volume_m3": 40.2537,
+   "volume_m3": 44.4966,
    "centroid_mm": [
-    -2914,
-    -15,
-    3639
+    -3994,
+    0,
+    3541
    ]
   },
   "Railings": {
-   "volume_m3": 2.8764,
+   "volume_m3": 3.1238,
    "centroid_mm": [
-    -5144,
-    20,
-    6810
+    -5766,
+    0,
+    6622
    ]
   },
   "Fittings": {
-   "volume_m3": 1.6082,
+   "volume_m3": 1.1762,
    "centroid_mm": [
-    -11104,
+    -14061,
     0,
-    2846
+    2716
    ]
   },
   "Stairs": {
@@ -73,25 +73,25 @@
    ]
   },
   "Rig_Latina": {
-   "volume_m3": 8.0727,
+   "volume_m3": 8.0704,
    "centroid_mm": [
-    -2900,
+    -3508,
     76,
-    12330
+    12361
    ]
   },
   "Rig_Redonda": {
-   "volume_m3": 11.0754,
+   "volume_m3": 11.3888,
    "centroid_mm": [
-    -526,
-    25,
-    11842
+    -1010,
+    24,
+    12381
    ]
   },
   "Guns": {
    "volume_m3": 2.6,
    "centroid_mm": [
-    -3500,
+    -5000,
     0,
     5900
    ]
@@ -110,8 +110,8 @@
     },
     {
      "name": "mizzen",
-     "x": -8500,
-     "heel": 3400.0,
+     "x": -10500,
+     "heel": 3800.0,
      "top": 21800,
      "r0": 220,
      "r1": 132.0
@@ -142,17 +142,17 @@
      "name": "latina mizzen",
      "pts": [
       [
-       -5185,
+       -7185,
        520,
        10221
       ],
       [
-       -11475,
+       -13475,
        520,
        21295
       ],
       [
-       -11475,
+       -13475,
        520,
        10236
       ]
@@ -179,17 +179,17 @@
     },
     {
      "name": "latina mizzen",
-     "mastX": -8500,
+     "mastX": -10500,
      "cross": [
-      -8500,
+      -10500,
       16104
      ],
      "tack": [
-      -5185,
+      -7185,
       10321
      ],
      "peak": [
-      -13175,
+      -15175,
       24261
      ],
      "length": 16067
@@ -210,14 +210,14 @@
      "name": "main",
      "x": -500,
      "heel": 1000.0,
-     "top": 18835,
+     "top": 20435,
      "r0": 280,
      "r1": 220
     },
     {
      "name": "mizzen",
-     "x": -8500,
-     "heel": 3400.0,
+     "x": -10500,
+     "heel": 3800.0,
      "top": 21800,
      "r0": 220,
      "r1": 132.0
@@ -255,12 +255,12 @@
       [
        10,
        -5950,
-       16685
+       18285
       ],
       [
        10,
        5950,
-       16685
+       18285
       ],
       [
        300,
@@ -280,22 +280,22 @@
       [
        10,
        -2850,
-       23485
+       25085
       ],
       [
        10,
        2850,
-       23485
+       25085
       ],
       [
        300,
        5500,
-       17235
+       18835
       ],
       [
        300,
        -5500,
-       17235
+       18835
       ]
      ]
     },
@@ -303,17 +303,17 @@
      "name": "redonda mizzen",
      "pts": [
       [
-       -5185,
+       -7185,
        520,
        10221
       ],
       [
-       -11475,
+       -13475,
        520,
        21295
       ],
       [
-       -11475,
+       -13475,
        520,
        10236
       ]
@@ -323,17 +323,17 @@
    "yards": [
     {
      "name": "redonda mizzen",
-     "mastX": -8500,
+     "mastX": -10500,
      "cross": [
-      -8500,
+      -10500,
       16104
      ],
      "tack": [
-      -5185,
+      -7185,
       10321
      ],
      "peak": [
-      -13175,
+      -15175,
       24261
      ],
      "length": 16067
@@ -341,16 +341,16 @@
    ]
   }
  },
- "hullLength_mm": 23544,
+ "hullLength_mm": 25544,
  "loft": "polygon waterlines, ruled",
  "linesFidelity": "exact at every lines point (polygon waterlines), linear between",
  "envelope": {
   "valid": true,
   "closed": true,
   "solids": 1,
-  "volume_m3": 570.8,
+  "volume_m3": 629.05,
   "bbox_mm": [
-   -13494,
+   -15494,
    -3300,
    125,
    10050,
@@ -361,7 +361,7 @@
  "shell": {
   "valid": true,
   "solids": 1,
-  "volume_m3": 64.691,
+  "volume_m3": 70.485,
   "skinSamples": [
    {
     "x": 0,
@@ -380,16 +380,16 @@
    {
     "x": -6000,
     "z": 3000,
-    "outer": 3000,
-    "inner": 2785,
-    "horizontal": 215
+    "outer": 3228,
+    "inner": 3025,
+    "horizontal": 203
    },
    {
     "x": 5000,
     "z": 3000,
     "outer": 2672,
-    "inner": 2457,
-    "horizontal": 215
+    "inner": 2458,
+    "horizontal": 214
    },
    {
     "x": 0,
@@ -402,14 +402,14 @@
     "x": -8000,
     "z": 7500,
     "outer": -1,
-    "inner": 2417,
+    "inner": 2494,
     "horizontal": -1
    }
   ],
   "innerValid": true,
   "endsOpenOnCentreline": [
    [
-    -10509,
+    -12509,
     500
    ],
    [
@@ -417,7 +417,7 @@
     500
    ],
    [
-    -10734,
+    -12734,
     1000
    ],
    [
@@ -425,7 +425,7 @@
     1000
    ],
    [
-    -10959,
+    -12959,
     1500
    ],
    [
@@ -433,7 +433,7 @@
     1500
    ],
    [
-    -11184,
+    -13184,
     2000
    ],
    [
@@ -441,7 +441,7 @@
     2000
    ],
    [
-    -11409,
+    -13409,
     2500
    ],
    [
@@ -473,7 +473,7 @@
     5500
    ],
    [
-    -12984,
+    -14984,
     6000
    ],
    [
@@ -482,34 +482,34 @@
    ]
   ]
  },
- "lengthOverall_mm": 23544,
+ "lengthOverall_mm": 25544,
  "beam_mm": 6600,
  "waterline": {
   "z_mm": 2875.0,
-  "length_mm": 20775,
+  "length_mm": 22775,
   "beam_mm": 6530,
-  "displacement_m3": 218.6,
-  "displacement_t_seawater": 224.1,
-  "blockCoefficient": 0.561
+  "displacement_m3": 249.3,
+  "displacement_t_seawater": 255.5,
+  "blockCoefficient": 0.583
  },
  "beamWithinCells": true,
  "underside_mm": 125.0,
  "draft_mm": 2750.0,
  "ribs": {
-  "count": 11,
+  "count": 12,
   "valid": true,
   "skinOverlap_mm3": 0,
   "backboneOverlap_mm3": 0
  },
  "backbone": {
   "valid": true,
-  "volume_m3": 3.659,
+  "volume_m3": 3.899,
   "bottomZ_mm": 125,
   "skinOverlap_mm3": 0,
   "draftToKeel_mm": 2750
  },
  "beams": {
-  "count": 20,
+  "count": 21,
   "ribOverlap_mm3": 0,
   "deckOverlap_mm3": 0,
   "skinOverlap_mm3": 0
@@ -523,12 +523,12 @@
   {
    "sail": "latina mizzen",
    "minHeadRoomOverDeck_mm": 3221,
-   "atX": -5185
+   "atX": -7185
   },
   {
    "sail": "redonda mizzen",
    "minHeadRoomOverDeck_mm": 3221,
-   "atX": -5185
+   "atX": -7185
   }
  ],
  "guns": [
@@ -641,19 +641,19 @@
    "clearAisle": "centre cell, Y -500..500"
   },
   {
-   "cell": -11,
+   "cell": -14,
    "deck": 7000.0,
    "side": "port",
    "axisZ": 7625.0,
-   "halfBreadth": 2525,
-   "rear_mm": 1230,
-   "front_mm": 2230.0,
-   "trunnion_mm": 1880.0,
-   "pivot_mm": 2380.0,
-   "breech_mm": 1330.0,
-   "muzzle_mm": 2930.0,
-   "recoil_mm": 710.0,
-   "runOutMuzzleOutsideHull_mm": 405,
+   "halfBreadth": 2443,
+   "rear_mm": 1140,
+   "front_mm": 2140.0,
+   "trunnion_mm": 1790.0,
+   "pivot_mm": 2290.0,
+   "breech_mm": 1240.0,
+   "muzzle_mm": 2840.0,
+   "recoil_mm": 620.0,
+   "runOutMuzzleOutsideHull_mm": 397,
    "train": [
     -15.0,
     15.0
@@ -664,23 +664,23 @@
    ],
    "trainBound": "the side or the railing",
    "skinOverlap_mm3": 0,
-   "parkedCells": "x -11, |y| cells 1..2",
+   "parkedCells": "x -14, |y| cells 1..2",
    "clearAisle": "centre cell, Y -500..500"
   },
   {
-   "cell": -11,
+   "cell": -14,
    "deck": 7000.0,
    "side": "starboard",
    "axisZ": 7625.0,
-   "halfBreadth": 2525,
-   "rear_mm": 1230,
-   "front_mm": 2230.0,
-   "trunnion_mm": 1880.0,
-   "pivot_mm": 2380.0,
-   "breech_mm": 1330.0,
-   "muzzle_mm": 2930.0,
-   "recoil_mm": 710.0,
-   "runOutMuzzleOutsideHull_mm": 405,
+   "halfBreadth": 2443,
+   "rear_mm": 1140,
+   "front_mm": 2140.0,
+   "trunnion_mm": 1790.0,
+   "pivot_mm": 2290.0,
+   "breech_mm": 1240.0,
+   "muzzle_mm": 2840.0,
+   "recoil_mm": 620.0,
+   "runOutMuzzleOutsideHull_mm": 397,
    "train": [
     -15.0,
     15.0
@@ -691,23 +691,23 @@
    ],
    "trainBound": "the side or the railing",
    "skinOverlap_mm3": 0,
-   "parkedCells": "x -11, |y| cells 1..2",
+   "parkedCells": "x -14, |y| cells 1..2",
    "clearAisle": "centre cell, Y -500..500"
   },
   {
-   "cell": -9,
+   "cell": -12,
    "deck": 7000.0,
    "side": "port",
    "axisZ": 7625.0,
-   "halfBreadth": 2661,
-   "rear_mm": 1370,
-   "front_mm": 2370.0,
-   "trunnion_mm": 2020.0,
-   "pivot_mm": 2520.0,
-   "breech_mm": 1470.0,
-   "muzzle_mm": 3070.0,
+   "halfBreadth": 2598,
+   "rear_mm": 1310,
+   "front_mm": 2310.0,
+   "trunnion_mm": 1960.0,
+   "pivot_mm": 2460.0,
+   "breech_mm": 1410.0,
+   "muzzle_mm": 3010.0,
    "recoil_mm": 750.0,
-   "runOutMuzzleOutsideHull_mm": 409,
+   "runOutMuzzleOutsideHull_mm": 412,
    "train": [
     -15.0,
     15.0
@@ -718,23 +718,23 @@
    ],
    "trainBound": "the side or the railing",
    "skinOverlap_mm3": 0,
-   "parkedCells": "x -9, |y| cells 1..2",
+   "parkedCells": "x -12, |y| cells 1..2",
    "clearAisle": "centre cell, Y -500..500"
   },
   {
-   "cell": -9,
+   "cell": -12,
    "deck": 7000.0,
    "side": "starboard",
    "axisZ": 7625.0,
-   "halfBreadth": 2661,
-   "rear_mm": 1370,
-   "front_mm": 2370.0,
-   "trunnion_mm": 2020.0,
-   "pivot_mm": 2520.0,
-   "breech_mm": 1470.0,
-   "muzzle_mm": 3070.0,
+   "halfBreadth": 2598,
+   "rear_mm": 1310,
+   "front_mm": 2310.0,
+   "trunnion_mm": 1960.0,
+   "pivot_mm": 2460.0,
+   "breech_mm": 1410.0,
+   "muzzle_mm": 3010.0,
    "recoil_mm": 750.0,
-   "runOutMuzzleOutsideHull_mm": 409,
+   "runOutMuzzleOutsideHull_mm": 412,
    "train": [
     -15.0,
     15.0
@@ -745,7 +745,7 @@
    ],
    "trainBound": "the side or the railing",
    "skinOverlap_mm3": 0,
-   "parkedCells": "x -9, |y| cells 1..2",
+   "parkedCells": "x -12, |y| cells 1..2",
    "clearAisle": "centre cell, Y -500..500"
   }
  ],
@@ -753,30 +753,32 @@
   {
    "side": "port",
    "x0": -910.0,
-   "x1": -90.0,
-   "y": 3101.300500000001,
-   "t": 201.3990000000017,
+   "x1": -115.11734023253439,
+   "y": 3101.3004999999994,
+   "t": 201.39899999999898,
    "z0": 4000.0,
-   "z1": 5072.5
+   "z1": 4992.5,
+   "hingeY": 3000.6009999999997
   },
   {
    "side": "starboard",
    "x0": -910.0,
-   "x1": -90.0,
-   "y": -3101.300500000001,
-   "t": 201.3990000000017,
+   "x1": -115.11734023253439,
+   "y": -3101.3004999999994,
+   "t": 201.39899999999898,
    "z0": 4000.0,
-   "z1": 5072.5
+   "z1": 4992.5,
+   "hingeY": -3000.6009999999997
   }
  ],
  "tiller": {
   "end": [
-   -11000.0,
+   -12999.25,
    0.0,
    6250.0
   ],
   "head": [
-   -13359,
+   -15359,
    0.0,
    6190.0
   ]
@@ -784,19 +786,49 @@
  "capRail": {
   "out": 40.0,
   "in": 400.0,
+  "inAtRibs": [
+   [
+    -5500,
+    440
+   ],
+   [
+    -3500,
+    440
+   ],
+   [
+    -1500,
+    440
+   ],
+   [
+    500,
+    440
+   ],
+   [
+    2500,
+    460
+   ],
+   [
+    4500,
+    480
+   ],
+   [
+    6500,
+    510
+   ]
+  ],
   "h": 80.0,
   "runs": [
    {
     "side": "port",
-    "x0": -5000.0,
+    "x0": -7000.0,
     "x1": -925.0,
-    "stations": 36
+    "stations": 44
    },
    {
     "side": "starboard",
-    "x0": -5000.0,
+    "x0": -7000.0,
     "x1": -925.0,
-    "stations": 36
+    "stations": 44
    },
    {
     "side": "port",
@@ -812,6 +844,92 @@
    }
   ]
  },
+ "railSections": [
+  {
+   "side": "port",
+   "x0": -8000,
+   "x1": -7000,
+   "cell": -8,
+   "solids": 1
+  },
+  {
+   "side": "port",
+   "x0": -9000,
+   "x1": -8000,
+   "cell": -9,
+   "solids": 1
+  },
+  {
+   "side": "port",
+   "x0": -10000,
+   "x1": -9000,
+   "cell": -10,
+   "solids": 1
+  },
+  {
+   "side": "port",
+   "x0": -11000,
+   "x1": -10000,
+   "cell": -11,
+   "solids": 1
+  },
+  {
+   "side": "port",
+   "x0": -13000,
+   "x1": -12000,
+   "cell": -13,
+   "solids": 1
+  },
+  {
+   "side": "port",
+   "x0": -15000,
+   "x1": -14000,
+   "cell": -15,
+   "solids": 1
+  },
+  {
+   "side": "starboard",
+   "x0": -15000,
+   "x1": -14000,
+   "cell": -15,
+   "solids": 1
+  },
+  {
+   "side": "starboard",
+   "x0": -13000,
+   "x1": -12000,
+   "cell": -13,
+   "solids": 1
+  },
+  {
+   "side": "starboard",
+   "x0": -11000,
+   "x1": -10000,
+   "cell": -11,
+   "solids": 1
+  },
+  {
+   "side": "starboard",
+   "x0": -10000,
+   "x1": -9000,
+   "cell": -10,
+   "solids": 1
+  },
+  {
+   "side": "starboard",
+   "x0": -9000,
+   "x1": -8000,
+   "cell": -9,
+   "solids": 1
+  },
+  {
+   "side": "starboard",
+   "x0": -8000,
+   "x1": -7000,
+   "cell": -8,
+   "solids": 1
+  }
+ ],
  "gunGeometry": {
   "carriage": [
    700.0,
@@ -836,7 +954,7 @@
  },
  "rigs": {
   "latina": [
-   -15906,
+   -17906,
    -300,
    1000,
    6890,
@@ -844,13 +962,13 @@
    27572
   ],
   "redonda": [
-   -15906,
+   -17906,
    -6700,
    1000,
    16078,
    6700,
-   24835
+   26435
   ]
  },
- "buildSeconds": 2221.1
+ "buildSeconds": 1225.6
 }
