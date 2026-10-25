@@ -34,7 +34,7 @@ namespace Hansa
             try
             {
                 // ---- note 74: an oven on top of planks put on her deck
-                var floor = l.FloorAt("main", -11, -1);
+                var floor = l.FloorAt("main", -13, -1);   // (her steerage, 2 aft since note 73)
                 string under = Put(floor, B("planks-oak-ud"), 1, out var planks);
                 string onTop = Put(l.Above(floor), B("clayoven-north"), 1, out var ovenP);
                 string planksOut = planks == null ? "none" : ship.RemovePiece(planks, null);
@@ -47,7 +47,7 @@ namespace Hansa
 
                 // ---- note 79: a trunk where two vessels go, her hold's after end, put looking aft
                 var trunkBlock = sapi.World.Blocks.FirstOrDefault(bl => bl is Vintagestory.GameContent.BlockGenericTypedContainerTrunk);
-                var aft = l.FloorAt("hold", -8, -1);
+                var aft = l.FloorAt("hold", -10, -1);
                 string trunk = Put(aft, trunkBlock, 0, out var trunkP);
                 Check(trunk == null && trunkP?.Mounts.Length == 2 && trunkP.Mounts.Contains(aft.Id),
                     $"note 79: a trunk at her hold's after end, put looking aft ({trunk ?? string.Join(" + ", trunkP.Mounts)})");
@@ -59,7 +59,7 @@ namespace Hansa
                 var beds = new List<string>();
                 foreach (var (k, dir) in new[] { (-2, 1), (0, 3) })
                 {
-                    string bed = Put(l.FloorAt("main", -9, k), B("bed-wood-head-north"), dir, out var bedP);
+                    string bed = Put(l.FloorAt("main", -11, k), B("bed-wood-head-north"), dir, out var bedP);
                     beds.Add($"{(k < 0 ? "port" : "starboard")} {bed ?? string.Join(" + ", bedP.Mounts)}");
                     if (bedP != null) beds[^1] += ship.RemovePiece(bedP, null) == null ? ", taken up" : ", NOT taken up";
                 }
@@ -78,7 +78,7 @@ namespace Hansa
                     string back = plan == null ? "no stack" : ship.PlacePiece(plan, stack, true, out _);
                     Check(down == null && back == null && ship.Pieces.At(hook.Id) != null, $"note 66: the mainmast's lantern taken down ({down ?? "ok"}) and hung back ({back ?? "ok"})");
                     // (and under a deck: the steerage's ceiling's hook)
-                    var ceiling = l.Get("h:c:main:-11:-1");
+                    var ceiling = l.Get("h:c:main:-13:-1");
                     var underDeck = stack == null || ceiling == null ? null : PiecePlanner.Plan(l, ceiling, new VanillaPieceBlock(sapi.World, stack), 1);
                     string hung = underDeck == null ? "no ceiling hook or stack" : ship.PlacePiece(underDeck, stack, true, out var hungP);
                     string off = hung == null ? ship.RemovePiece(ship.Pieces.At(ceiling.Id), null) : "not hung";
