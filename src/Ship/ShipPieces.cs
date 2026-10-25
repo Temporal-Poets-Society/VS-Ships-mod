@@ -80,6 +80,8 @@ namespace Hansa
         public bool StairRails, NeedsBuilding;
         /// <summary>(0.3.18, note 165) Fire bricks (or a firepit): the ship's hearth; vanilla's clay oven: her oven; a brick chimney: a flue segment.</summary>
         public bool Hearth, Oven, Flue;
+        /// <summary>(0.1.0-dev.9, caravel note 78) A figurehead: vanilla's carved ones, or a chiseled block (as the sailboat takes them).</summary>
+        public bool Figurehead;
         /// <summary>(0.3.17) A door's way to swing (0 +x, 1 +z, 2 -x, 3 -z; across its line) when it's given (a design's modular piece); -1: into the anchor cell.</summary>
         public int DoorInto = -1;
 
@@ -1233,8 +1235,16 @@ namespace Hansa
             return p;
         }
 
+        /// <summary>(0.1.0-dev.9, caravel note 78) A hook's kind that takes a figurehead: a vanilla one, or a chiseled block.</summary>
+        public const string FigureheadKind = "figurehead";
+        /// <summary>A figurehead's hang (<see cref="ShipPiece.Hang"/>): it stands in its block on the hook, facing the hook's normal, its back at the hook.</summary>
+        public const string FigureheadHang = "figurehead";
+
         static PiecePlan Hook(MountPoint m, PieceBlock b, PiecePlan p)
         {
+            // ((0.1.0-dev.9, caravel note 78: "we could have option to add vanilla figure heads") a figurehead's place at her stem
+            // head: a figurehead only, standing in its block in front of the hook, facing the hook's way (the bow), its back at it
+            if (m.Kinds != null && Array.IndexOf(m.Kinds, FigureheadKind) >= 0) return FigureheadPlan(m, b, p);
             if (m.Kinds != null && Array.IndexOf(m.Kinds, "light") >= 0 && m.Kinds.Length == 1 && !b.Light) { p.Error = "hansa:piece-hook-light"; return p; }
             if (b.Orient is PieceOrient.Attachable or PieceOrient.Bed || b.Container) { p.Error = "hansa:piece-hook-light"; return p; }
             bool down = m.Hang != "up";
@@ -1249,6 +1259,29 @@ namespace Hansa
             p.Solids.Clear();
             Finish(p, b);
             if (p.Role != PieceRole.Light) p.Role = PieceRole.Deco;
+            return p;
+        }
+
+        /// <summary>
+        /// (0.1.0-dev.9, caravel note 78) A figurehead on its place: vanilla's figureheads face +z in their shape, their back at
+        /// z 0 (as the sailboat carries them), so the block is turned to the hook's normal (level; none: the bow, +x) and stands
+        /// in the block in front of the hook, its foot level with it. Not solid (out over the water at her stem).
+        /// </summary>
+        static PiecePlan FigureheadPlan(MountPoint m, PieceBlock b, PiecePlan p)
+        {
+            if (!b.Figurehead) { p.Error = "hansa:piece-hook-figurehead"; return p; }
+            double nx = m.Normal?.Length >= 3 ? m.Normal[0] : 1, nz = m.Normal?.Length >= 3 ? m.Normal[2] : 0;
+            // the quarter turn that takes the shape's +z nearest the normal (Turn: 1 → +x, 2 → -z, 3 → -x)
+            int q = Math.Abs(nx) >= Math.Abs(nz) ? (nx >= 0 ? 1 : 3) : (nz >= 0 ? 0 : 2);
+            double fx = q == 1 ? 1 : q == 3 ? -1 : 0, fz = q == 0 ? 1 : q == 2 ? -1 : 0;
+            var origin = new[] { m.X + fx * 0.5 - 0.5, m.Y, m.Z + fz * 0.5 - 0.5 };
+            p.Parts.Add(new PiecePart { Block = b.Code, Origin = origin, Quarter = q });
+            p.Mounts.Add(m.Id);
+            p.Hang = FigureheadHang;
+            AddBoxes(p, b, b.Code, q, origin);
+            p.Solids.Clear();
+            Finish(p, b);
+            p.Role = PieceRole.Deco;
             return p;
         }
 

@@ -733,6 +733,28 @@ namespace Hansa
             MountPoint FreeIn(string room, ItemStack s, int dir = 1) =>
                 l.Floors.FirstOrDefault(m => m.Room == room && !ship.Pieces.Taken(m.Id) && ship.PlaceProblem(PlanOn(m, s, dir), true) == null);
 
+            // ---- (0.1.0-dev.9, caravel note 61: "gates dont close when trying to close them when aim on open state gate") her
+            // gates and doors whose leaf swings: the crosshair takes one shut where it stands, open where its leaf stands open
+            foreach (var g in def.Fixtures.Where(f => f.Type == "gate" && f.OpenSel != null && f.Sel != null))
+            {
+                bool TakesAt(Cuboidd at)
+                {
+                    double gx = (at.X1 + at.X2) / 2, gy = (at.Y1 + at.Y2) / 2, gz = (at.Z1 + at.Z2) / 2;
+                    ship.LocalToWorld(-0.5, g.Sel[1] + 1.62, Math.Sign(g.Pos[2]) * 1.25, out double ex, out double ey, out double ez);
+                    ship.LocalToWorld(gx, gy, gz, out double tx, out double ty, out double tz);
+                    var to = new Vec3d(tx - ex, ty - ey, tz - ez);
+                    return ship.RayHit(new Vec3d(ex, ey, ez), to, to.Length(), null, out var gh) && gh.Fixture == g;
+                }
+                bool wasOpen = ship.OpenFittings.Contains(g.Code);
+                if (wasOpen) ship.ToggleFitting(null, g);
+                bool shutAtShut = TakesAt(g.SelBox), shutAtOpen = TakesAt(g.OpenSel);
+                ship.ToggleFitting(null, g);
+                bool openAtOpen = ship.OpenFittings.Contains(g.Code) && TakesAt(g.OpenSel), openAtShut = TakesAt(g.SelBox);
+                if (!wasOpen) ship.ToggleFitting(null, g);
+                Check(shutAtShut && !shutAtOpen && openAtOpen && !openAtShut,
+                    $"{g.Code}: used where it stands shut ({shutAtShut}, not where it'd stand open: {!shutAtOpen}); open, where its leaf stands ({openAtOpen}, not at its gap: {!openAtShut})");
+            }
+
             // ---- her lanterns: the design's start pieces on their hooks (as a new ship gets them), lit, taken down and hung again
             // ((0.1.0-dev.7) first: a ship without a lower deck (the caravel) stops after the next section's first check)
             if (def.StartPieces?.Length > 0)
@@ -767,6 +789,41 @@ namespace Hansa
                 }
             }
             else Log("the design has no start pieces (lanterns): not checked");
+
+            // ---- (0.1.0-dev.9, caravel note 78: "we could have option to add vanilla figure heads") a vanilla figurehead on her
+            // stem head's place: only a figurehead goes there, standing in front of her stem facing the bow, in its own wood,
+            // not solid; taken down and put up again; and not on a lantern's hook
+            var fhook = l.Hooks.FirstOrDefault(m => m.Kinds != null && Array.IndexOf(m.Kinds, PiecePlanner.FigureheadKind) >= 0);
+            if (fhook != null && B("figurehead-bear") is Block bearBlock)
+            {
+                var bear = new ItemStack(bearBlock);
+                bear.Attributes.SetString("material", "oak");
+                var lit = new ItemStack(B("lantern-small-up"));
+                var chiseled = B("chiseledblock") is Block cb ? new ItemStack(cb) : null;
+                Check(PlanOn(fhook, lit).Error == "hansa:piece-hook-figurehead" && (chiseled == null || PlanOn(fhook, chiseled).Error == null),
+                    $"{fhook.Id} takes a figurehead or a chiseled block{(chiseled == null ? " (no chiseled block to try)" : "")}, not a lantern");
+                var lhook = l.Hooks.FirstOrDefault(m => m.Kinds != null && m.Kinds.Length == 1 && m.Kinds[0] == "light");
+                Check(lhook == null || PlanOn(lhook, bear).Error == "hansa:piece-hook-light", $"a lantern's hook ({lhook?.Id}) doesn't take a figurehead");
+                double nx = fhook.Normal?.Length >= 3 ? fhook.Normal[0] : 1;
+                bool put = ship.PlacePiece(PlanOn(fhook, bear), bear, true, out var fig) == null && fig != null;
+                Check(put && fig.Role == PieceRole.Deco && fig.Hang == PiecePlanner.FigureheadHang && fig.Solids.Count == 0 && fig.Parts[0].Quarter == (nx >= 0 ? 1 : 3) &&
+                      (nx >= 0 ? fig.Box[0] >= fhook.X - 0.01 : fig.Box[3] <= fhook.X + 0.01) && Math.Abs(fig.Box[1] - fhook.Y) < 0.01 &&
+                      fig.Stack?.Attributes.GetString("material") == "oak",
+                    $"a bear figurehead (oak) on {fhook.Id}: in front of her stem facing the bow, not solid ({(fig == null ? "not put" : $"box {fig.Box[0]:0.00}..{fig.Box[3]:0.00}, quarter {fig.Parts[0].Quarter}, {fig.Stack?.Attributes.GetString("material")}")})");
+                if (put)
+                {
+                    ship.LocalToWorld(fhook.X + nx * 3, fhook.Y + 0.5, fhook.Z, out double fx, out double fy, out double fz);
+                    ship.LocalToWorld(fhook.X + nx * 0.5, fhook.Y + 0.5, fhook.Z, out double gx, out double gy, out double gz);
+                    bool seen = ship.RayHit(new Vec3d(fx, fy, fz), new Vec3d(gx - fx, gy - fy, gz - fz), 4, null, out var fhit) && fhit.Part.Kind == ShipPartKind.Piece && fhit.Part.Index == fig.Id;
+                    Check(seen, $"looked at from ahead of her, it's the figurehead ({(seen ? ship.PartText(fhit.Part) : "not it")})");
+                    var again = bear.Clone();
+                    Check(ship.RemovePiece(fig, null) == null && !ship.Pieces.Taken(fhook.Id) &&
+                          ship.PlacePiece(PlanOn(fhook, again), again, true, out var fig2) == null && fig2.Hang == PiecePlanner.FigureheadHang,
+                        "taken down and put up again");
+                    if (ship.Pieces.At(fhook.Id) is ShipPiece left) ship.RemovePiece(left, null);
+                }
+            }
+            else Log("the design has no figurehead place (or no vanilla figurehead): not checked");
 
             // ---- a chest on the lower deck: a storage; things put in and taken out; not taken up full; taken up empty
             var chest = new ItemStack(B("chest-east"));

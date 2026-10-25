@@ -66,7 +66,8 @@ namespace Hansa
                 // they were black panes hiding the lit candle)
                 MeshData see = null;
                 if (!glass) md = SeeThroughFaces.Split(md, out see);
-                if (pc.Kind != MountKind.Hook)
+                // ((0.1.0-dev.9, note 78) a figurehead stands in its block on its place, turned as planned)
+                if (pc.Kind != MountKind.Hook || pc.Hang == PiecePlanner.FigureheadHang)
                 {
                     if (part.Quarter != 0)
                     {
@@ -94,7 +95,7 @@ namespace Hansa
             var c = pc.Center;
             p.Interior = ship.Def.RoomAt(c[0], c[1], c[2])?.Enclosed == true;
             Mat4f.Identity(p.Fit);
-            if (pc.Kind == MountKind.Hook && pc.Parts.Count > 0)
+            if (pc.Kind == MountKind.Hook && pc.Parts.Count > 0 && pc.Hang != PiecePlanner.FigureheadHang)
             {
                 // hung from the hook (or stood on it): the mesh's middle under it, its top (bottom) at it
                 Bounds(all, out var min, out var max);
@@ -144,9 +145,11 @@ namespace Hansa
                 }
             }
             p.Mesh = capi.Render.UploadMultiTextureMesh(all);
+            // ((0.1.0-dev.9, note 66: "lanters does not show light") a lantern drawn in its own light, its glass glowing)
+            p.Own = SeeThroughFaces.OwnLight(PieceHsv(capi.World, pc));
             if (clear != null && clear.VerticesCount > 0)
             {
-                seen = new Piece { Fixture = p.Fixture, Glass = true, Interior = p.Interior, Mesh = capi.Render.UploadMultiTextureMesh(clear) };
+                seen = new Piece { Fixture = p.Fixture, Glass = true, Interior = p.Interior, Mesh = capi.Render.UploadMultiTextureMesh(clear), Own = p.Own, OwnAlpha = p.Own != null };
                 Array.Copy(p.Fit, seen.Fit, 16);
             }
             return p;
@@ -166,6 +169,12 @@ namespace Hansa
             {
                 // a tapestry (or wall carving): its picture by its type, as its block entity draws it placed
                 try { md = tapestry.genMesh(false, stack.Attributes.GetString("type", ""), 0)?.Clone(); }
+                catch (Exception) { md = null; }
+            }
+            else if (block is BlockMaterialFromAttributes bma)
+            {
+                // ((0.1.0-dev.9, note 78) a vanilla figurehead: carved in the wood its stack names, as vanilla draws it)
+                try { md = bma.GetOrCreateMesh(stack?.Attributes.GetString("material", "oak") ?? "oak")?.Clone(); }
                 catch (Exception) { md = null; }
             }
             else if (block is BlockCrate crate)
@@ -493,12 +502,8 @@ namespace Hansa
         {
             local = null;
             on = null;
-            if (pc.Role == PieceRole.Panel || pc.Stack?.Block == null || pc.Parts.Count == 0) return false;
-            var block = world.GetBlock(new AssetLocation(pc.Parts[0].Block)) ?? pc.Stack.Block;
-            byte[] hsv;
-            try { hsv = block.GetLightHsv(world.BlockAccessor, null, pc.Stack) ?? pc.Stack.Block.GetLightHsv(world.BlockAccessor, null, pc.Stack); }
-            catch (Exception) { hsv = block.LightHsv; }
-            if (hsv == null || hsv.Length < 3 || hsv[2] == 0) return false;
+            var hsv = PieceHsv(world, pc);
+            if (hsv == null) return false;
             int rgb = ColorUtil.HsvToRgb(hsv[0] * 4, hsv[1] * 32, 255);
             float r = ((rgb >> 16) & 255) / 255f, g = ((rgb >> 8) & 255) / 255f, b = (rgb & 255) / 255f;
             float strength = Math.Max(4, hsv[2] * 0.55f);
@@ -507,6 +512,17 @@ namespace Hansa
             local = new[] { c[0], y, c[2] };
             on = new Vec3f(b * strength, g * strength, r * strength);
             return true;
+        }
+
+        /// <summary>The light a piece's block gives (vanilla's hue, saturation, level; a lantern's by its glass and lining), or null: none.</summary>
+        static byte[] PieceHsv(IWorldAccessor world, ShipPiece pc)
+        {
+            if (pc.Role == PieceRole.Panel || pc.Stack?.Block == null || pc.Parts.Count == 0) return null;
+            var block = world.GetBlock(new AssetLocation(pc.Parts[0].Block)) ?? pc.Stack.Block;
+            byte[] hsv;
+            try { hsv = block.GetLightHsv(world.BlockAccessor, null, pc.Stack) ?? pc.Stack.Block.GetLightHsv(world.BlockAccessor, null, pc.Stack); }
+            catch (Exception) { hsv = block.LightHsv; }
+            return hsv == null || hsv.Length < 3 || hsv[2] == 0 ? null : hsv;
         }
     }
 }

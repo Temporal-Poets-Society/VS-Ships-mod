@@ -1,4 +1,5 @@
 using Vintagestory.API.Client;
+using Vintagestory.API.MathTools;
 
 namespace Hansa
 {
@@ -36,6 +37,19 @@ namespace Hansa
             short bits = md.RenderPassesAndExtraBits[face];
             if (bits < 0) return false;
             return Pass(bits & 0x3FF);
+        }
+
+        /// <summary>
+        /// (0.1.0-dev.9, caravel note 66) The block light a light-giving block stands in, as a vanilla lantern's own block
+        /// is lit: its colour (vanilla's hue and saturation, as the ships' point lights take it) at its level's brightness,
+        /// full from level 16 (a lantern gives 18 to 22), r g b 0..1; null for none (no light, or level 0).
+        /// </summary>
+        public static Vec3f OwnLight(byte[] hsv)
+        {
+            if (hsv == null || hsv.Length < 3 || hsv[2] == 0) return null;
+            int rgb = ColorUtil.HsvToRgb(hsv[0] * 4, hsv[1] * 32, 255);
+            float k = GameMath.Clamp(hsv[2] / 16f, 0, 1);
+            return new Vec3f(((rgb >> 16) & 255) / 255f * k, ((rgb >> 8) & 255) / 255f * k, (rgb & 255) / 255f * k);
         }
 
         /// <summary>A render pass (a shape element's "renderPass") that's see-through.</summary>

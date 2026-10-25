@@ -132,6 +132,15 @@ namespace Hansa
             public readonly float[] Fit = new float[16];
             public bool Interior, Glass;
             /// <summary>
+            /// (0.1.0-dev.9, caravel note 66: "lanters does not show light, even there is light around") A piece that gives
+            /// light (a lantern) is drawn in its own light, as a vanilla lantern block stands in its own block's light: its
+            /// candle and metal lit at night (block light rgb, 0..1; null: none). Its see-through faces (the lantern's
+            /// glowing glass) are drawn at their own alpha (OwnAlpha), not cleared as a window's are (GlassTint took the
+            /// quartz glass's 0.35 to 0.12: no glow to see).
+            /// </summary>
+            public Vec3f Own;
+            public bool OwnAlpha;
+            /// <summary>
             /// The firehearth: the look it was built for (<see cref="HearthKey"/>), and what's on its fire as vanilla draws it on
             /// a firepit: a pot and its lid, a meal in the pot, a joint on the spit (Content not ours to dispose when Shared: the
             /// game's meal mesh cache keeps it).
@@ -757,6 +766,7 @@ namespace Hansa
         /// wasn't recognisable. A little bright, so the panes still catch the light.
         /// </summary>
         static readonly Vec4f GlassTint = new Vec4f(1.1f, 1.1f, 1.1f, 0.35f);
+        readonly Vec4f ownLight = new Vec4f();
 
         /// <summary>
         /// The water in her hold (<see cref="EntityShip.FloodLevel"/>): a surface level in the world while she rolls and
@@ -2290,8 +2300,17 @@ namespace Hansa
             float[] place = PiecePlace(ship, d, p, out var mesh);
             Mat4f.Mul(tmp, model.Values, place);
             prog.ModelMatrix = tmp;
-            prog.RgbaLightIn = p.Interior && !outside ? interiorLight : ext;
+            var light = p.Interior && !outside ? interiorLight : ext;
+            if (p.Own != null)
+            {
+                // ((0.1.0-dev.9, note 66) in its own light, or the light round it where that's brighter)
+                ownLight.Set(Math.Max(light.R, p.Own.X), Math.Max(light.G, p.Own.Y), Math.Max(light.B, p.Own.Z), light.A);
+                light = ownLight;
+            }
+            prog.RgbaLightIn = light;
+            if (p.OwnAlpha) prog.RgbaTint = ColorUtil.WhiteArgbVec;
             rapi.RenderMultiTextureMesh(mesh, "tex");
+            if (p.OwnAlpha && outside) prog.RgbaTint = GlassTint;
             // in the oven: its fuel, what's baking
             if (p.Extra != null) foreach (var e in p.Extra) rapi.RenderMultiTextureMesh(e, "tex");
             // on the hearth's fire: a pot and its lid, a meal, a joint on the spit

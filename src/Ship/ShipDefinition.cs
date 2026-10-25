@@ -169,6 +169,8 @@ namespace Hansa
             DryMask = VoxelGrid.InsideMask(FullGrid, DeckY - 0.25);
             DrySweepMask = DryMask.Dilated((int)Math.Ceiling(DrySweep.Margin / Grid.V - 1e-9));
             for (int i = 0; i < Fixtures.Length; i++) Fixtures[i].Index = i;
+            // ((0.1.0-dev.9, note 61) a gate, door or hatch is picked where its leaf stands open while it's open)
+            foreach (var f in Fixtures) f.OpenSel = f.Opens ? PartMotion.OpenBox(this, f) : null;
             // (0.3.21, step C) her gun places, and which moving parts are each gun's
             IndexGunPlaces();
             GunOfPart = GunPartMap(this);
@@ -841,6 +843,12 @@ namespace Hansa
         public double[] Feet;
 
         [JsonIgnore] public int Index;
+        /// <summary>
+        /// (0.1.0-dev.9, caravel note 61: "gates dont close when trying to close them when aim on open state gate") Where its
+        /// selection box is while it stands open: Sel turned with its leaf (the one moving part "open:" + Code) all the way
+        /// open (ship-local), or null (no such part: picked where it stands shut, open or not).
+        /// </summary>
+        [JsonIgnore] public Cuboidd OpenSel;
 
         public Cuboidd SelBox => Sel == null ? null : new Cuboidd(Sel[0], Sel[1], Sel[2], Sel[3], Sel[4], Sel[5]);
         public Vec3d PosVec => new Vec3d(Pos[0], Pos[1], Pos[2]);

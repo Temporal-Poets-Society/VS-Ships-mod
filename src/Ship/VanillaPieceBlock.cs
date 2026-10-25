@@ -87,6 +87,7 @@ namespace Hansa
             Hearth = IsHearthBlock(Block);
             Oven = IsOvenBlock(Block);
             Flue = IsFlueBlock(Block);
+            Figurehead = IsFigurehead(Block);
             if (Hearth || Oven) { Container = false; Slots = 0; }
             AshoreOnly = !Container && !Door && !Pane && !Fence && !Stairs && !Slab && !Ladder && !Hearth && !Oven && !Flue && Orient != PieceOrient.Bed && IsWorkstation(Block);
             var hsv = Block.GetLightHsv(world.BlockAccessor, null, stack);
@@ -115,6 +116,12 @@ namespace Hansa
             e.WatchedAttributes.SetBool(BuildAttribute, on);
             e.WatchedAttributes.MarkPathDirty(BuildAttribute);
         }
+
+        /// <summary>
+        /// (0.1.0-dev.9, caravel note 78) A figurehead for her stem head: vanilla's carved ones (game:figurehead-*, their wood
+        /// in the stack's "material"), or a chiseled block, as vanilla's sailboat takes them on its figurehead place.
+        /// </summary>
+        public static bool IsFigurehead(Block b) => b is BlockFigurehead || b is BlockMicroBlock;
 
         /// <summary>(0.3.18) A block that is ship structure only in building mode: planks, a fence, a glass pane, plank stairs, a plank slab; (0.3.19) a ladder.</summary>
         public static bool IsBuildingBlock(Block b) => b != null && (IsPlanks(b) || IsPane(b) || IsFence(b) || IsShipStair(b) || IsPlankSlab(b) || IsLadder(b) || IsTrapdoor(b));

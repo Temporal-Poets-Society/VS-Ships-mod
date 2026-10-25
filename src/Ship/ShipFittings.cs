@@ -210,7 +210,8 @@ namespace Hansa
             // (0.3.18) and a hearth's or an oven's put aboard (their stand-in fixtures)
             foreach (var f in extra == null ? def.Fixtures : System.Linq.Enumerable.Concat(def.Fixtures, extra))
             {
-                var box = f.SelBox;
+                // ((0.1.0-dev.9, note 61) an open gate where its leaf stands open, not the gap it shuts)
+                var box = PickBox(f, isOpen);
                 if (box == null || !visible(f) || absent != null && absent(f)) continue;
                 double t = RayBox(o, d, box);
                 // (0.3.7: the hearth's firebed is sunk inside its bricks, which are solid, so the ray always met them first
@@ -231,6 +232,14 @@ namespace Hansa
             }
             return best;
         }
+
+        /// <summary>
+        /// (0.1.0-dev.9, caravel note 61: "gates dont close when trying to close them when aim on open state gate. aim only at
+        /// gate closed position opens them") Where a fixture is picked now: an open gate, door or hatch where its leaf stands
+        /// open (<see cref="FixtureDef.OpenSel"/>), anything else at its selection box.
+        /// </summary>
+        public static Cuboidd PickBox(FixtureDef f, System.Func<FixtureDef, bool> isOpen) =>
+            f.OpenSel != null && isOpen != null && isOpen(f) ? f.OpenSel : f.SelBox;
 
         /// <summary>
         /// A fixture's own body, built into the design's collision (ship-local x0 y0 z0 x1 y1 z1), or null: the hearth's

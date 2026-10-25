@@ -158,7 +158,7 @@ namespace Hansa
                 return StepClimb(g, dt, climb, ladders);
             }
             if (rearm != null && (wishX == 0 && wishZ == 0 || FarFrom(rearm.ExitBottom) && FarFrom(rearm.ExitTop))) rearm = null;
-            if (ladders != null && (wishX != 0 || wishZ != 0) && TryStartClimb(ladders, wishX, wishZ))
+            if (ladders != null && (wishX != 0 || wishZ != 0) && TryStartClimb(ladders, wishX, wishZ, g))
             {
                 Glide(dt, 0);
                 return Result.Ok;
@@ -230,7 +230,8 @@ namespace Hansa
         static void At(double[] p, out double x, out double y, out double z) { x = p[0]; y = p[1]; z = p[2]; }
 
         /// <summary>The ladder we'd start climbing if we kept walking this way, or null.</summary>
-        public LadderDef LadderAhead(LadderDef[] ladders, double wishX, double wishZ, out double startT)
+        /// <param name="g">her collision, to know a walker stopped at a ladder's top by her (<see cref="StoppedAtTop"/>); null: not known</param>
+        public LadderDef LadderAhead(LadderDef[] ladders, double wishX, double wishZ, out double startT, VoxelGrid g = null)
         {
             startT = 0;
             double wl = Math.Sqrt(wishX * wishX + wishZ * wishZ);
@@ -253,8 +254,7 @@ namespace Hansa
                 }
                 // from the top: walk to the edge of the platform above the shrouds
                 Flat(l.Top, l.Bottom, out double ox, out double oz);
-                double ex = l.ExitTop[0] - X, ez = l.ExitTop[2] - Z;
-                if (Math.Abs(Y - l.ExitTop[1]) < 0.4 && ex * ex + ez * ez < 1.0 && wishX * ox + wishZ * oz > 0.7 &&
+                if (Math.Abs(Y - l.ExitTop[1]) < 0.4 && (AtTop(l, X, Z) || StoppedAtTop(g, l)) && wishX * ox + wishZ * oz > 0.7 &&
                     TopClosed?.Invoke(l) != true)
                 {
                     startT = 1;
@@ -262,6 +262,43 @@ namespace Hansa
                 }
             }
             return null;
+        }
+
+        /// <summary>How near a ladder's top (level, toward its foot) a walker gets onto it from its top: as near as its top exit, or this.</summary>
+        public const double TopReach = 0.75;
+
+        /// <summary>
+        /// (0.1.0-dev.9, the user on the caravel: "opening gate and getting close to opening and very quickly snaps to rope
+        /// ladder. way to far that happens") Is a walker at (x, z) where a ladder is got onto from its top: at its edge, as near
+        /// its top (level, the way down it) as where it brings a climber off (its top exit), or <see cref="TopReach"/> if that's
+        /// nearer, not more than 0.6 to the side of its top exit, and still within 1 of it. (Till dev.8 anywhere within 1 of it: on the
+        /// caravel, whose top exit is 0.8 in from her rope ladders' top, 1.8 inboard of her entry port, well short of it.)
+        /// </summary>
+        public static bool AtTop(LadderDef l, double x, double z)
+        {
+            if (l?.Top == null || l.Bottom == null || l.ExitTop == null) return false;
+            Flat(l.Top, l.Bottom, out double ox, out double oz);
+            double along = (l.Top[0] - x) * ox + (l.Top[2] - z) * oz;
+            double exitAlong = (l.Top[0] - l.ExitTop[0]) * ox + (l.Top[2] - l.ExitTop[2]) * oz;
+            double ex = l.ExitTop[0] - x, ez = l.ExitTop[2] - z;
+            double side = Math.Abs(ex * oz - ez * ox);
+            return ex * ex + ez * ez < 1.0 && along > -0.3 && along < Math.Max(TopReach, exitAlong) + 0.05 && side < 0.6;
+        }
+
+        /// <summary>
+        /// (0.1.0-dev.9) Or stopped short of that by her, at the ladder's top: within 1 of its top exit and 0.6 to its side, and
+        /// a little further toward its top (0.06, a tick's walk) she's in the way above a step's height. The caravel's entry ports: the
+        /// timbers either side of her port stand 0.45 in from her bulwark in her collision, leaving a gap a man doesn't fit,
+        /// so he's stopped 0.33 short of her rope ladder's top exit, there at the port.
+        /// </summary>
+        bool StoppedAtTop(VoxelGrid g, LadderDef l)
+        {
+            if (g == null || l?.Top == null || l.Bottom == null || l.ExitTop == null) return false;
+            Flat(l.Top, l.Bottom, out double ox, out double oz);
+            double ex = l.ExitTop[0] - X, ez = l.ExitTop[2] - Z;
+            if (ex * ex + ez * ez >= 1.0 || Math.Abs(ex * oz - ez * ox) >= 0.6) return false;
+            double dx = ox * 0.06, dz = oz * 0.06;
+            return g.Collides(X - HalfWidth + dx, Y + StepHeight + 0.02, Z - HalfWidth + dz, X + HalfWidth + dx, Y + Height, Z + HalfWidth + dz);
         }
 
         /// <summary>
@@ -289,9 +326,9 @@ namespace Hansa
             x /= l; z /= l;
         }
 
-        bool TryStartClimb(LadderDef[] ladders, double wishX, double wishZ)
+        bool TryStartClimb(LadderDef[] ladders, double wishX, double wishZ, VoxelGrid g)
         {
-            var l = LadderAhead(ladders, wishX, wishZ, out double t);
+            var l = LadderAhead(ladders, wishX, wishZ, out double t, g);
             if (l == null) return false;
             Climbing = l;
             ClimbT = t;
