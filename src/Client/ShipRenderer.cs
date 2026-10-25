@@ -54,7 +54,11 @@ namespace Hansa
             /// <summary>(0.3.14, notes 150-152) Each sail mesh's vertices (whole, torn, shredded), to press a ship's against her rigging.</summary>
             public readonly Dictionary<MultiTextureMeshRef, MeshData> SailData = new();
             public SailPress Press;
-            /// <summary>(note 64) The same mirrored across a dipping lateen's mast (by the mast's z), for its sail on its other side.</summary>
+            /// <summary>
+            /// (note 104) Her masts alone, a dipping lateen's press (<see cref="SailPress.Masts"/>), and (note 64) that mirrored across
+            /// its mast (by the mast's z), for its sail on its other side.
+            /// </summary>
+            public SailPress PressLateen;
             public readonly Dictionary<double, SailPress> PressMirrored = new();
         }
 
@@ -209,6 +213,7 @@ namespace Hansa
         {
             this.capi = capi;
             this.sys = sys;
+            EntityShip.SailMeshRay = SailMeshRay;
         }
 
         // ------------------------------------------------------------------ meshes shared by a design
@@ -2147,6 +2152,12 @@ namespace Hansa
             public (MultiTextureMeshRef Mesh, int Trim, int Frac, int Belly, int Dip) Key;
             public MultiTextureMeshRef Mesh;
             public long Built;
+            /// <summary>(note 104) Its vertices and triangles as built, and where it was last drawn (ship-local), to find what a ray meets.</summary>
+            public float[] Xyz;
+            public int[] Indices;
+            public int IndexCount;
+            public readonly float[] Place = new float[16];
+            public bool Placed;
         }
 
         readonly Dictionary<(long Ship, int Sail), Pressed> pressed = new();
@@ -2188,11 +2199,12 @@ namespace Hansa
                     belly = lt.Pose.Belly;
                     yard = lt.Frame;
                     dip = (1 + (int)Math.Round(lt.Pose.Depth * 40)) * (lt.Pose.Mirror ? -1 : 1);
+                    press = m.PressLateen ??= m.Press.Masts();
                     if (!LateenRig.Presses(lt.Pose)) press = null;
                     else if (lt.Pose.Mirror)
                     {
                         double mz = lt.Rig.Mast.Z;
-                        if (!m.PressMirrored.TryGetValue(mz, out press)) m.PressMirrored[mz] = press = m.Press.Mirrored(mz);
+                        if (!m.PressMirrored.TryGetValue(mz, out press)) m.PressMirrored[mz] = press = m.PressLateen.Mirrored(mz);
                     }
                 }
                 var key = (mesh, (int)Math.Round(trim * 360 / Math.PI), (int)Math.Round(frac * 50), (int)Math.Round(belly * 20), dip);
@@ -2216,9 +2228,14 @@ namespace Hansa
                     ps.Mesh = capi.Render.UploadMultiTextureMesh(copy);
                     ps.Key = key;
                     ps.Built = now;
+                    ps.Xyz = copy.xyz;
+                    ps.Indices = copy.Indices;
+                    ps.IndexCount = copy.IndicesCount;
                 }
                 if (ps.Mesh == null) return mesh;
                 place = drawnYard ?? identity;
+                Array.Copy(place, ps.Place, 16);
+                ps.Placed = true;
                 return ps.Mesh;
             }
             catch (Exception e)
@@ -2227,6 +2244,32 @@ namespace Hansa
                 capi.Logger.Error("[hansa] Pressing the sails against the rigging failed; they're drawn as made until the game is restarted: {0}", e);
                 return mesh;
             }
+        }
+
+        readonly float[] rayInv = new float[16];
+
+        /// <summary>
+        /// (note 104: "i point to main mast, but tooltip says mizzen sail") Where a ray (ship-local) meets a sail as it was last
+        /// drawn (its pressed mesh where it was placed): t along the ray, -1 if it misses, NaN if it hasn't been drawn. For
+        /// <see cref="EntityShip.SailMeshRay"/>: a dipping lateen is looked at where it is, not by a box round it.
+        /// </summary>
+        double SailMeshRay(EntityShip ship, int si, Vec3d o, Vec3d d, double range)
+        {
+            if (!pressed.TryGetValue((ship.EntityId, si), out var ps) || !ps.Placed || ps.Xyz == null || ps.Indices == null) return double.NaN;
+            if (Mat4f.Invert(rayInv, ps.Place) == null) return double.NaN;
+            var m = rayInv;
+            // (the place turns and mirrors, no scale: t is the same in the mesh's own coordinates)
+            double ox = m[0] * o.X + m[4] * o.Y + m[8] * o.Z + m[12], oy = m[1] * o.X + m[5] * o.Y + m[9] * o.Z + m[13], oz = m[2] * o.X + m[6] * o.Y + m[10] * o.Z + m[14];
+            double dx = m[0] * d.X + m[4] * d.Y + m[8] * d.Z, dy = m[1] * d.X + m[5] * d.Y + m[9] * d.Z, dz = m[2] * d.X + m[6] * d.Y + m[10] * d.Z;
+            double best = -1;
+            var v = ps.Xyz;
+            for (int i = 0; i + 2 < ps.IndexCount; i += 3)
+            {
+                int a = ps.Indices[i] * 3, b = ps.Indices[i + 1] * 3, c = ps.Indices[i + 2] * 3;
+                double t = SailPress.RayTriangle(ox, oy, oz, dx, dy, dz, v[a], v[a + 1], v[a + 2], v[b], v[b + 1], v[b + 2], v[c], v[c + 1], v[c + 2]);
+                if (t >= 0 && t <= range && (best < 0 || t < best)) best = t;
+            }
+            return best;
         }
 
         /// <summary>Where a sail is drawn (ship-local): scaled toward its yard as it's furled, under its yard and braced round with it.</summary>
@@ -2477,7 +2520,7 @@ namespace Hansa
             foreach (var rig in LateenRig.Of(ship.Def))
             {
                 if (rig == null || !partMats.TryGetValue(rig.Yard.Code, out var mat)) continue;
-                var pose = rig.Pose(ship.LeeShown, ship.Sheet, frac);
+                var pose = rig.Pose(ship.LeeShown, ship.LateenSheet, frac);
                 if (!lateenFrames.TryGetValue(rig.Yard.Code, out var frame)) lateenFrames[rig.Yard.Code] = frame = new float[16];
                 rig.YardFrame(pose, frame);
                 rig.Drawn(pose, frame, mat);
@@ -2828,6 +2871,7 @@ namespace Hansa
             meshes.Clear();
             foreach (var dl in damageLooks.Values) dl.Dispose();
             foreach (var ps in pressed.Values) ps.Mesh?.Dispose();
+            if (EntityShip.SailMeshRay == SailMeshRay) EntityShip.SailMeshRay = null;
             pressed.Clear();
             damageLooks.Clear();
             foreach (var fl in floods.Values) fl.Dispose();

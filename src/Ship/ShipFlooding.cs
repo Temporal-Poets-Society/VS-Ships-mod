@@ -525,7 +525,7 @@ namespace Hansa
             ShipFrame.ToLocal(Pos.Yaw, Pitch, Roll, dir.X / len, dir.Y / len, dir.Z / len, out double dx, out double dy, out double dz);
             var o = new Vec3d(ox, oy, oz);
             var d = new Vec3d(dx, dy, dz);
-            int i = l.SailAt(o, d, range, Brace, Sheet, PartMotion.DrawnSail(SailFraction), out double t, LeeShown);
+            int i = l.SailAt(o, d, range, Brace, Sheet, PartMotion.DrawnSail(SailFraction), out double t, LeeShown, LateenSheet, SailMeshRay == null ? null : (si, so, sd, sr) => SailMeshRay(this, si, so, sd, sr));
             if (i < 0 || got && t > hit.Distance - 0.02) return got;
             var sd = Def.Sails[l.Parts[i].Sail];
             if (sd.Mast != null && OpenFittings.Contains(sd.Mast)) return got;

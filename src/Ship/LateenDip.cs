@@ -64,8 +64,12 @@ namespace Hansa
         double[] tiltAxis;
         double tilt, front;
 
-        /// <summary>Where the wind must be (degrees off the bow or stern, at least) before the crew dips to the other side.</summary>
-        public const double Margin = 10;
+        /// <summary>
+        /// Where the wind must be before the crew dips to the other side: at least this many degrees off her bow, off her stern
+        /// (running, a lateen may stand a little by the lee), and there this many seconds on end (note 104: "some wobble around
+        /// the main mast axis": a wind wavering across her stern dipped the yards back and forth).
+        /// </summary>
+        public const double BowMargin = 10, SternMargin = 20, HoldSeconds = 3;
         /// <summary>
         /// The share of a dip spent brailing up (and easing the sheet to fore-and-aft), bowsing the yard off the mast and
         /// forward (clear of the shrouds before it's peaked), peaking it upright and hoisting it, and going round.
@@ -139,9 +143,37 @@ namespace Hansa
             return r;
         }
 
-        /// <summary>Where the wind puts the lee (+1 starboard, -1 port), or 0 within <see cref="Margin"/> of her bow or stern.</summary>
+        /// <summary>Where the wind puts the lee (+1 starboard, -1 port), or 0 within <see cref="BowMargin"/> of her bow or <see cref="SternMargin"/> of her stern.</summary>
         public static int LeeOf(double apparentAngle, int side) =>
-            apparentAngle < Margin || apparentAngle > 180 - Margin ? 0 : -side;
+            apparentAngle < BowMargin || apparentAngle > 180 - SternMargin ? 0 : -side;
+
+        /// <summary>
+        /// Server: the lee after this tick, from the lee now and the lee the wind wants (<see cref="LeeOf"/>): changed only once
+        /// it has wanted the other side for <see cref="HoldSeconds"/> on end and the crew can dip (wantFor: how long so far).
+        /// </summary>
+        public static int Decide(int lee, int want, bool canDip, ref float wantFor, float dt)
+        {
+            if (want == 0 || want == lee || !canDip) { wantFor = 0; return lee; }
+            wantFor += dt;
+            if (wantFor < HoldSeconds) return lee;
+            wantFor = 0;
+            return want;
+        }
+
+        /// <summary>
+        /// (note 104) The lateens' sheet (radians, as <see cref="Sailing.Trim"/>'s: + the after end to starboard) for the
+        /// apparent wind's angle and the server's lee: as far out as the crew trims for that wind, always toward the lee. Not
+        /// from the side the wind is on this moment, which wavers across her stern or bow and swung the yards back and forth.
+        /// </summary>
+        public static double Sheet(double apparentAngle, int lee, SailingDef d) =>
+            lee * Math.Clamp(apparentAngle / 2, Math.Min(5, d.MaxSheet), d.MaxSheet) * Math.PI / 180;
+
+        /// <summary>How far (radians) the trim the wind calls for must move before the crew sheets the lateens to it: they trim in steps, not to every waver.</summary>
+        public const double SheetStep = 3 * Math.PI / 180;
+
+        /// <summary>The sheet the crew holds (goal) after the wind calls for target: the goal kept unless target is a step from it, or on the other side.</summary>
+        public static double SheetGoal(double goal, double target) =>
+            double.IsNaN(goal) || Math.Abs(target - goal) > SheetStep || goal * target < 0 ? target : goal;
 
         /// <summary>The lee shown eased toward the lee over a dip of this many seconds (NaN, or no lee yet: set at once).</summary>
         public static float Ease(float shown, int lee, double seconds, float dt)
@@ -231,6 +263,32 @@ namespace Hansa
             double px = ox - m[12], py = oy - m[13], pz = oz - m[14];
             fo = new Vec3d(m[0] * px + m[1] * py + m[2] * pz, m[4] * px + m[5] * py + m[6] * pz, m[8] * px + m[9] * py + m[10] * pz);
             fd = new Vec3d(m[0] * d.X + m[1] * d.Y + m[2] * dz, m[4] * d.X + m[5] * d.Y + m[6] * dz, m[8] * d.X + m[9] * d.Y + m[10] * dz);
+        }
+
+        /// <summary>How near a ray must pass the line of its sail's head (along its yard) to meet the yard, in blocks.</summary>
+        public const double YardReach = 0.25;
+
+        /// <summary>
+        /// Where a ray in its sail's own frame (<see cref="RayToFrame"/>) meets its yard: within <see cref="YardReach"/> of the
+        /// sail's head from its tack (U 0) to its peak (the yard's length). t along the ray, or -1.
+        /// </summary>
+        public double RayYard(SailFrame f, Vec3d o, Vec3d d, double range)
+        {
+            double[] a = f.A, u = f.U;
+            double dl = Math.Sqrt(d.X * d.X + d.Y * d.Y + d.Z * d.Z);
+            if (dl < 1e-12) return -1;
+            double[] dd = { d.X / dl, d.Y / dl, d.Z / dl }, w = { o.X - a[0], o.Y - a[1], o.Z - a[2] };
+            double b = dd[0] * u[0] + dd[1] * u[1] + dd[2] * u[2], dw = dd[0] * w[0] + dd[1] * w[1] + dd[2] * w[2], uw = u[0] * w[0] + u[1] * w[1] + u[2] * w[2];
+            double den = 1 - b * b;
+            double tr = den < 1e-9 ? 0 : (b * uw - dw) / den;
+            double s = Math.Clamp(uw + b * tr, 0, f.YardLength);
+            // (the nearest point of the head to the ray for that s, then that ray point)
+            tr = Math.Max(0, (a[0] + u[0] * s - o.X) * dd[0] + (a[1] + u[1] * s - o.Y) * dd[1] + (a[2] + u[2] * s - o.Z) * dd[2]);
+            double ex = o.X + dd[0] * tr - a[0] - u[0] * s, ey = o.Y + dd[1] * tr - a[1] - u[1] * s, ez = o.Z + dd[2] * tr - a[2] - u[2] * s;
+            double dist2 = ex * ex + ey * ey + ez * ez;
+            if (dist2 > YardReach * YardReach) return -1;
+            double t = Math.Max(0, tr - Math.Sqrt(YardReach * YardReach - dist2)) / dl;
+            return t <= range ? t : -1;
         }
 
         /// <summary>The share of her sail area drawing while her lateens are brailed up for a dip (1 with none dipping).</summary>

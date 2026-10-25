@@ -31,7 +31,7 @@ namespace HansaTests
             var rigs = LateenRig.Of(def);
             var codes = def.Sails.Where((s, i) => i < rigs.Length && rigs[i] != null).Select(s => s.Code).ToList();
             Check(codes.Contains("main") && codes.Contains("mizzen"), $"both her lateens dip ({string.Join(", ", codes)}): sails[].dip in caravel.json");
-            var press = SailPress.Of(def);
+            var press = SailPress.Of(def).Masts();
             var ym = new float[16];
             var dm = new float[16];
             var mir = new float[16];
@@ -230,9 +230,97 @@ namespace HansaTests
                 Check(its && t < 6.5, $"{sail.Code}: on its other side the crosshair finds the sail where it's drawn ({(its ? $"{t:0.00} along" : "missed")}; as made: {(asMade >= 0 ? $"{t0:0.00}" : "missed")})");
             }
 
+            // ---- (note 104: "i point to main mast, but tooltip says mizzen sail") the player on the quarterdeck looking up past the
+            // mizzen yard's fore end at the main: the main sail is where the ray meets a sail first, and that's what's looked at
+            {
+                var skin104 = JsonConvert.DeserializeObject<ShipSkinFile>(File.ReadAllText(Path.Combine(assets, "config", "shipmeshes", "caravel.json")));
+                // (anchored, the wind from 135° and her head 259.7°: on her port quarter, the lateens to starboard)
+                double awa = Math.Abs(((135 - 259.7) % 360 + 540) % 360 - 180);
+                double sheet = LateenRig.Sheet(awa, 1, def.Sailing);
+                var drawn104 = LateensDrawn(def, skin104, 1, sheet);
+                var o = new Vec3d(-7.557, 5.821, -1.626);
+                var dir = new Vec3d(0.3021, 0.8957, 0.3262);
+                double MeshT(string g)
+                {
+                    double best = -1;
+                    foreach (var q in drawn104[g])
+                        foreach (var (a, b, c) in new[] { (0, 1, 2), (0, 2, 3) })
+                        {
+                            double tt = SailPress.RayTriangle(o.X, o.Y, o.Z, dir.X, dir.Y, dir.Z, q[a * 3], q[a * 3 + 1], q[a * 3 + 2], q[b * 3], q[b * 3 + 1], q[b * 3 + 2], q[c * 3], q[c * 3 + 1], q[c * 3 + 2]);
+                            if (tt >= 0 && (best < 0 || tt < best)) best = tt;
+                        }
+                    return best;
+                }
+                double tMain = MeshT("sail:main"), tMizzen = MeshT("sail:mizzen");
+                int iBox = def.DamageParts.SailAt(o, dir, 30, 0, sheet, 1, out double tBox, 1, sheet);
+                int iMesh = def.DamageParts.SailAt(o, dir, 30, 0, sheet, 1, out double tPick, 1, sheet, (si, ro, rd, rr) => MeshT(def.Sails[si].Mesh));
+                string Code(int part) => part < 0 ? "nothing" : def.Sails[def.DamageParts.Parts[part].Sail].Code;
+                Check(tMain > 0 && (tMizzen < 0 || tMain < tMizzen) && Code(iMesh) == "main" && Math.Abs(tPick - tMain) < 1e-6,
+                    $"note 104: looking up from the quarterdeck past the mizzen yard's end, the main sail is met first ({tMain:0.0} along; mizzen sail " +
+                    $"{(tMizzen < 0 ? "not at all" : tMizzen.ToString("0.0"))}) and it's what's looked at ({Code(iMesh)}; by the boxes round the sails it was the {Code(iBox)})");
+            }
+
+            // ---- (note 104: "when sailing i had for part some wobble around main mast axis") the wind wavering across her stern or
+            // bow: the main yard as drawn, with the lee and sheet as before (the side the wind is on this moment, 10° margins, no
+            // waiting) and as now (the server's lee held, the sheet toward it)
+            {
+                var rig = rigs.First(r => r != null && r.Def.Code == "main");
+                var mm = new float[16];
+                var dm2 = new float[16];
+                foreach (double mean in new[] { 175.0, 165.0, 120.0, 55.0, 20.0 })
+                {
+                    var res = new List<string>();
+                    foreach (bool now in new[] { false, true })
+                    {
+                        var rnd = new Random(104);
+                        int lee = -1, dips = 0, wobble = 0;
+                        float leeNow = -1, wantFor = 0;
+                        double sheetEased = 0, swing = 0, lastAz = double.NaN, dir0 = 0, off = 0, turnAt = 0, goal = double.NaN;
+                        for (int k = 0; k < 20 * 600; k++)
+                        {
+                            const float dt = 0.05f;
+                            // (the wind's angle off her bow wanders by up to about 25° either way over tens of seconds, and flickers)
+                            off += (rnd.NextDouble() - 0.5) * 2.0 - off * 0.004;
+                            double ang = mean + off + (rnd.NextDouble() - 0.5) * 3;
+                            int side = Math.Sin(ang * Math.PI / 180) >= 0 ? 1 : -1;
+                            double awa = Math.Abs(((ang % 360) + 540) % 360 - 180);
+                            int want = now ? LateenRig.LeeOf(awa, side) : (awa < 10 || awa > 170 ? 0 : -side);
+                            bool settled = Math.Abs(leeNow - lee) < 1e-3;
+                            int nl = now ? LateenRig.Decide(lee, want, settled, ref wantFor, dt) : (want != 0 && want != lee && settled ? want : lee);
+                            if (nl != lee) { lee = nl; dips++; }
+                            leeNow = LateenRig.Ease(leeNow, lee, rig.Seconds, dt);
+                            Sailing.Trim(awa, side, def.Sailing, out _, out double trim);
+                            double target = now ? (goal = LateenRig.SheetGoal(goal, LateenRig.Sheet(awa, lee, def.Sailing))) : trim;
+                            sheetEased += (target - sheetEased) * (1 - Math.Exp(-dt * 0.6));
+                            var pose = rig.Pose(leeNow, sheetEased, 1);
+                            if (pose.Depth > 0) { lastAz = double.NaN; continue; }
+                            rig.YardFrame(pose, mm);
+                            rig.Drawn(pose, mm, dm2);
+                            // (the yard's peak: how far round the mast it's turned)
+                            double px = dm2[0] * -7.5 + dm2[4] * 24.7 + dm2[8] * -0.35 + dm2[12], pz = dm2[2] * -7.5 + dm2[6] * 24.7 + dm2[10] * -0.35 + dm2[14];
+                            double az = Math.Atan2(pz - rig.Mast.Z, rig.Mast.X - px) * 180 / Math.PI;
+                            if (!double.IsNaN(lastAz))
+                            {
+                                swing += Math.Abs(az - lastAz);
+                                // (a turn back: the yard reverses after going at least half a degree one way)
+                                if (dir0 == 0) { if (Math.Abs(az - turnAt) > 0.5) dir0 = Math.Sign(az - turnAt); }
+                                else if ((az - turnAt) * dir0 > 0) turnAt = az;
+                                else if ((turnAt - az) * dir0 > 0.5) { wobble++; dir0 = -dir0; turnAt = az; }
+                            }
+                            else turnAt = az;
+                            lastAz = az;
+                        }
+                        res.Add($"{(now ? "now" : "before")}: {dips} dips, the main yard swung {swing:0}° in all, turning back {wobble} times by over half a degree");
+                        if (now)
+                            Check(dips <= 2 && (mean < def.Sailing.NoGo ? wobble < 100 : swing < 90 && wobble < 30),
+                                $"note 104: the wind wavering about {mean}° off her bow for ten minutes: {string.Join("; ", res)}");
+                    }
+                }
+            }
+
             // ---- which side, the ease, the drive
             Check(LateenRig.LeeOf(90, 1) == -1 && LateenRig.LeeOf(90, -1) == 1 && LateenRig.LeeOf(5, 1) == 0 && LateenRig.LeeOf(176, -1) == 0 && LateenRig.LeeOf(60, -1) == 1,
-                $"the lee is the side away from the wind, and not decided within {LateenRig.Margin}° of her bow or stern");
+                $"the lee is the side away from the wind, and not decided within {LateenRig.BowMargin}° of her bow or {LateenRig.SternMargin}° of her stern");
             double secs = LateenRig.DipSeconds(def);
             float shown = 1;
             int steps = 0;
@@ -245,6 +333,77 @@ namespace HansaTests
             double drive = Sailing.TargetSpeed(-0.3, 0, Math.PI / 2 * 0, 1, def.MaxSpeed, def.Sailing);
             double driveOther = Sailing.TargetSpeed(0.3, 0, Math.PI / 2 * 0, 1, def.MaxSpeed, def.Sailing);
             Check(Math.Abs(drive - driveOther) < 1e-9 && drive > 0, $"she makes the same way on either tack, the wind on her beam ({drive:0.00} b/s)");
+        }
+            /// <summary>
+        /// (note 104) Her dipping lateens as drawn for a lee shown and the crew's sheet (degrees), for looking at them from a
+        /// player's view: each yard, sail (pressed) and rope on a yard as quads (ship-local), into a JSON file:
+        ///   dotnet run -c Release -- lateen-dump &lt;lee shown&gt; &lt;sheet degrees&gt; &lt;out.json&gt;
+        /// </summary>
+        static void LateenDump(string root, float lee, double sheetDeg, string outPath)
+        {
+            string assets = Path.Combine(root, "assets", "hansa");
+            var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(assets, "config", "ships", "caravel.json")));
+            def.Init();
+            var skin = JsonConvert.DeserializeObject<ShipSkinFile>(File.ReadAllText(Path.Combine(assets, "config", "shipmeshes", "caravel.json")));
+            var groups = LateensDrawn(def, skin, lee, sheetDeg * Math.PI / 180);
+            File.WriteAllText(outPath, JsonConvert.SerializeObject(groups));
+            Console.WriteLine($"  {groups.Count} groups to {outPath}");
+        }
+
+        /// <summary>Her dipping lateens' yards, sails (pressed) and ropes on the yards as drawn (ship-local quads, 12 floats each), by group.</summary>
+        static Dictionary<string, List<float[]>> LateensDrawn(ShipDefinition def, ShipSkinFile skin, float lee, double sheet)
+        {
+            var press = SailPress.Of(def).Masts();
+            var groups = new Dictionary<string, List<float[]>>();
+            foreach (var rig in LateenRig.Of(def))
+            {
+                if (rig == null) continue;
+                var f = def.DamageParts.SailFrames[rig.Sail];
+                var pose = rig.Pose(lee, sheet, 1);
+                var frame = new float[16];
+                var drawn = new float[16];
+                rig.YardFrame(pose, frame);
+                rig.Drawn(pose, frame, drawn);
+                void Put(string g, float[] m, float[] pre = null, bool pressIt = false)
+                {
+                    if (!skin.Groups.TryGetValue(g, out var quads)) return;
+                    var list = groups[g] = new List<float[]>();
+                    foreach (var q in quads)
+                    {
+                        var pts = new float[12];
+                        for (int v = 0; v < 4; v++) { pts[v * 3] = q[1 + 8 * v]; pts[v * 3 + 1] = q[2 + 8 * v]; pts[v * 3 + 2] = q[3 + 8 * v]; }
+                        if (pre != null) Apply(pre, pts);
+                        if (pressIt && LateenRig.Presses(pose) && Environment.GetEnvironmentVariable("NOPRESS") == null) (pose.Mirror ? press.Mirrored(rig.Mast.Z) : press).Press(f, frame, pts, 4);
+                        Apply(m, pts);
+                        list.Add(pts);
+                    }
+                }
+                Put(rig.Yard.PartGroup, drawn);
+                var furl = new float[16];
+                var belly = new float[16];
+                var set = new float[16];
+                PartMotion.FurlMatrix(rig.Def, pose.Frac, furl);
+                PartMotion.BellyMatrix(f, pose.Belly, belly);
+                Mat4f.Mul(set, furl, belly);
+                Put(rig.Def.Mesh, drawn, set, true);
+                foreach (var part in def.MovingParts)
+                {
+                    if (part.Kind != "follow" || part.Follow != rig.Yard.Code) continue;
+                    var tip = frame;
+                    if (part.Sail != null)
+                    {
+                        PartMotion.FurlMatrix(rig.Def, pose.Frac, furl);
+                        tip = new float[16];
+                        Mat4f.Mul(tip, frame, furl);
+                    }
+                    var fm = new float[16];
+                    PartMotion.FollowMatrix(part, tip, fm);
+                    var rm = new float[16];
+                    rig.Drawn(pose, fm, rm);
+                    Put(part.PartGroup, rm);
+                }
+            }
+            return groups;
         }
     }
 }
