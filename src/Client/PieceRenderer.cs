@@ -365,13 +365,17 @@ namespace Hansa
             float rows = (float)(pc.Box[4] - pc.Box[1]);
             md.Scale(new Vec3f(0, 0, 0), alongX ? 1 / len : 1, rows / ey, alongX ? 1 : 1 / len);
             md = PaintedMesh(md, block, pc.Paint, PieceOverlay(ship, pc));
+            // ((25 October 2026, note 89) hung at the border's upper end: the leaf turned half round about its hinge, to run back
+            // along the line from it)
+            bool high = pc.HingeHighEnd;
+            if (high) md.Rotate(new Vec3f(0, 0, 0), 0, GameMath.PI, 0);
             md.Translate((float)pc.Pivot[0], (float)pc.Pivot[1], (float)pc.Pivot[2]);
             // open: into the cell it opens into (Dir), the leaf (1, 0, 0) or (0, 0, 1) turned a quarter to point that way;
             // (0.3.12, note 123) drawn shut and swung about the hinge as it opens and shuts, as the design's doors are
             double ix = MountLayout.DX[pc.Dir], iz = MountLayout.DZ[pc.Dir];
             // (0.3.18, note 164: "an open door against another wall flickers") it stops a few degrees short of square, so its
             // open leaf never lies in the plane of a wall beside it on the line it opens along
-            float a = (alongX ? (float)(-iz * GameMath.PIHALF) : (float)(ix * GameMath.PIHALF)) * ModularGeometry.DoorOpenFraction;
+            float a = (alongX ? (float)(-iz * GameMath.PIHALF) : (float)(ix * GameMath.PIHALF)) * ModularGeometry.DoorOpenFraction * (high ? -1 : 1);
             var p = new Piece { Fixture = ship.PieceFixture(pc), Interior = true, DoorId = pc.Id, HingeX = (float)pc.Pivot[0], HingeZ = (float)pc.Pivot[2], Swing = a };
             Mat4f.Identity(p.Fit);
             p.Mesh = capi.Render.UploadMultiTextureMesh(md);

@@ -335,6 +335,25 @@ namespace Hansa
         public double[] Rows => OnShipGrid ? GridRowHeights : RowHeights;
 
         public MountPoint Get(string id) => id != null && ById.TryGetValue(id, out var m) ? m : null;
+
+        /// <summary>
+        /// (25 October 2026, caravel note 99) Her design's collision with every deck cell (and beam length) laid: where a
+        /// stair's foot and top find her deck when the planner asks (her openings as they are are the ship's to say). Null
+        /// for a design without deck slots.
+        /// </summary>
+        public VoxelGrid LaidGrid
+        {
+            get
+            {
+                if (laidGrid != null || Def?.Grid == null || Def.Slots == null) return laidGrid;
+                var st = new SlotStates(Def.Slots);
+                for (int n = 0; n < Def.Slots.Count; n++) if (Def.Slots.Slots[n].IsCell || Def.Slots.Slots[n].IsBeam) st.Set(n, SlotState.Filled);
+                var g = Def.Grid.Clone();
+                st.Apply(g);
+                return laidGrid = g;
+            }
+        }
+        VoxelGrid laidGrid;
         public MountPoint FloorAt(string deck, int i, int k, int level = 0) => floor.TryGetValue((deck, i, k, level), out var m) ? m : null;
         /// <summary>The stacked place right over a floor place (or over a stacked one), or null.</summary>
         public MountPoint Above(MountPoint m) => m?.Kind == MountKind.Floor ? FloorAt(m.Deck, m.I, m.K, m.Level + 1) : null;

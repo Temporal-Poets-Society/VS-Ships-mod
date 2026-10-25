@@ -323,6 +323,12 @@ namespace Hansa
             if (Pieces.Count == 0) return got;
             RayToLocal(origin, dir, out var o, out var d);
             var p = Pieces.Pick(o, d, range, out double t);
+            // ((25 October 2026, notes 95, 96) her collision met is a piece's own body: that piece, there)
+            if (got && hit.Fixture == null && (p == null || t > hit.Distance + 0.02) && Pieces.SolidHit(o, d, hit.Distance) is ShipPiece body)
+            {
+                p = body;
+                t = hit.Distance;
+            }
             if (p == null) return got;
             // (0.3.24, note 177) its own solid layer (a door's, seen slanting from that side) doesn't hide it
             if (got && t > hit.Distance + 0.02 && !(hit.Fixture == null && ShipPieceSet.OwnHit(p, o, d, hit.Distance))) return got;
@@ -479,6 +485,9 @@ namespace Hansa
         /// <summary>Why her collision refuses a piece's plan (its boxes, its room), or null: what PlaceProblem asks of her structure.</summary>
         string StructureProblem(PiecePlan plan)
         {
+            // ((25 October 2026, caravel note 99) a stair's foot and top on her deck as it is: the planner asked it of her decks
+            // laid (a hatchway shut by its hatch is deck to step off onto, a cell taken up isn't)
+            if (PiecePlanner.LandingMissing(plan, PlaceGrid ?? Grid)) return "hansa:stair-no-landing";
             if (PiecePlanner.GridClash(Mounts, plan, PlaceGrid ?? Grid) is not double[] clash) return null;
             // ((0.3.27, the user's stairs and beams) a beam in its way that can come out with it (the deck either side
             // open): fine, it comes out when the stair is put (TryPlacePiece); one that can't: say what to do

@@ -26,6 +26,48 @@ namespace HansaTests
             var l = def.Mounts;
             var g = def.Grid;
             if (Environment.GetEnvironmentVariable("HANSA_BP_MAP") != null) FloorMap(def);
+            if (Environment.GetEnvironmentVariable("HANSA_BP_STAIR") is string stp)
+            {
+                // a ship's stair from the hold cell holding (x, z), each length and way, with the cells over it taken up (note 99)
+                var a = stp.Split(',').Select(v => double.Parse(v, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+                var f = l.Floors.FirstOrDefault(m => m.Deck == "hold" && m.X <= a[0] && m.X + 1 > a[0] && m.Z <= a[1] && m.Z + 1 > a[1]);
+                Console.WriteLine($"  foot {f?.Id}; design stairs: {string.Join(", ", (def.ModularPieces ?? Array.Empty<ModularPieceDef>()).Where(e => e.Kind == "stair").Select(e => $"{string.Join(",", e.At)} up {e.Up} {e.Block}"))}");
+                if (f != null)
+                    foreach (int cells in new[] { 1, 2, 3 })
+                        foreach (int toward in new[] { 0, 1, 2, 3 })
+                        {
+                            var (plan, st, sg) = HoldStairPlan(def, f, cells, toward);
+                            string says = plan.Error ?? (PiecePlanner.GridClash(l, plan, sg) is double[] c ? (BeamRules.ClashSays(l, def.Slots, st, plan, sg, b => BeamAtOffline(def, st, b)) ?? (StairLanding.At(plan, sg) ? "flight-no-landing" : "no well")) + " at " + string.Join(",", c.Select(v => v.ToString("0.##"))) : "fits");
+                            var need = plan.Error == null ? BeamRules.InTheWay(l, def.Slots, st, plan, sg, null) : null;
+                            Console.WriteLine($"    {cells} long, toward {toward} (climbs {(plan.Dir + 2) % 4}): {says}{(need?.Count > 0 ? "; beams out: " + string.Join(" ", need.Select(n => def.Slots.Slots[n].Id)) : "")}");
+                        }
+            }
+            if (Environment.GetEnvironmentVariable("HANSA_BP_DRAWN") is string ids)
+            {
+                var surf = SurfacesOf(def, Path.Combine(root, "assets", "hansa"));
+                foreach (var id in ids.Split(','))
+                    if (l.Get(id) is MountPoint b)
+                        Console.WriteLine($"  {b.Id} twin {l.TwinOf(b)?.Id ?? "-"} clip {(b.Clip == null ? "whole" : string.Join(" ", b.Clip.Select(c => "[" + string.Join(",", c.Select(v => v.ToString("0.###"))) + "]")))} drawn {string.Join(" ", (l.DrawnClip(b, surf) ?? new List<double[]>()).Select(c => "[" + string.Join(",", c.Select(v => v.ToString("0.###"))) + "]"))}");
+            }
+            if (Environment.GetEnvironmentVariable("HANSA_SLICE") is string sl)
+            {
+                var a = sl.Split(',').Select(v => double.Parse(v, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+                // y, x0, x1, z0, z1: a plan view of her collision at height y ('|' a whole x)
+                for (double z = a[3]; z < a[4] - 1e-9; z += g.V)
+                {
+                    var sb = new System.Text.StringBuilder($"  z {z,7:0.000} ");
+                    for (double x = a[1]; x < a[2] - 1e-9; x += g.V)
+                        sb.Append(Math.Abs(x - Math.Round(x)) < 1e-6 ? (g.SolidAt(x + g.V / 2, a[0], z + g.V / 2) ? '|' : ':') : g.SolidAt(x + g.V / 2, a[0], z + g.V / 2) ? '#' : '.');
+                    Console.WriteLine(sb);
+                }
+            }
+            if (Environment.GetEnvironmentVariable("HANSA_BP_NEAR") is string near)
+            {
+                // the places round a point (x,y,z,r): their ids, kinds, boxes, clips (a diagnostic)
+                var a = near.Split(',').Select(v => double.Parse(v, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+                foreach (var m in l.All.Where(m => m.Box != null && a[0] > m.Box[0] - a[3] && a[0] < m.Box[3] + a[3] && a[1] > m.Box[1] - a[3] && a[1] < m.Box[4] + a[3] && a[2] > m.Box[2] - a[3] && a[2] < m.Box[5] + a[3]))
+                    Console.WriteLine($"  {m.Id} {m.Kind} box {string.Join(" ", m.Box.Select(v => v.ToString("0.###")))}{(m.Clip == null ? "" : " clip " + string.Join(" ", m.Clip.Select(c => "[" + string.Join(",", c.Select(v => v.ToString("0.###"))) + "]")))}");
+            }
             if (Environment.GetEnvironmentVariable("HANSA_BP_SIDES") != null)
             {
                 // how deep her side's cells are free past a room's outermost floor cells, at heights over the deck (note 83)
@@ -221,21 +263,32 @@ namespace HansaTests
                         got = AimPlace.Candidates(l, new ShipPieceSet(), eye.AddCopy(aim.X * th, aim.Y * th, aim.Z * th), nh, null, SlabOnly).FirstOrDefault() == want;
                     }
                     if (seen && !got) notFromFloor.Add(f.Id);
-                    // (an outermost cell: her side beyond it at the shelf's height, from over the cell)
+                    // (an outermost cell: her side beyond it, aimed at from over the cell or its inboard edge at points along it
+                    // and from half a block to a block and a half up: her curved side shows the ray tops and undersides of her
+                    // planking's voxels as well as faces across)
                     foreach (int dir in new[] { 1, 3 })
                     {
                         if (l.FloorAt(f.Deck, f.I, f.K + MountLayout.DZ[dir]) != null) continue;
-                        var eye = new Vec3d(f.X + 0.5, f.Y + 1.62, f.Z + 0.5);
-                        var aim = new Vec3d(0, -0.45, MountLayout.DZ[dir]);
-                        aim.Mul(1 / aim.Length());
-                        if (!AimPlace.GridHit(g, eye, aim, 3, out double th, out var nh) || Math.Abs(nh[1]) > 0.5) continue;
-                        sides++;
-                        var c = AimPlace.Candidates(l, new ShipPieceSet(), eye.AddCopy(aim.X * th, aim.Y * th, aim.Z * th), nh, null, SlabOnly).FirstOrDefault();
-                        if (c != want) notFromSide.Add($"{f.Id} {(dir == 1 ? "starboard" : "port")}: {c?.Id ?? "nothing"}");
+                        double line = dir == 1 ? f.Z + 1 : f.Z;
+                        foreach (double back in new[] { 0.5, 1.0 })
+                            foreach (double along in new[] { 0.2, 0.5, 0.8 })
+                                foreach (double up in new[] { 0.5, 0.75, 1.0, 1.25, 1.5 })
+                                {
+                                    var eye = new Vec3d(f.X + 0.5, f.Y + 1.62, line - MountLayout.DZ[dir] * back);
+                                    var aim = new Vec3d(f.X + along - eye.X, f.Y + up - eye.Y, line + MountLayout.DZ[dir] * 0.6 - eye.Z);
+                                    aim.Mul(1 / aim.Length());
+                                    if (!AimPlace.GridHit(g, eye, aim, 4, out double th, out var nh)) continue;
+                                    var at = eye.AddCopy(aim.X * th, aim.Y * th, aim.Z * th);
+                                    // (her side itself, past the floor's edge, at the shelf's height (within 0.6 of its plane)
+                                    if ((at.Z - line) * MountLayout.DZ[dir] < 0.01 || Math.Abs(at.Y - want.Y) > 0.6) continue;
+                                    sides++;
+                                    var c = AimPlace.Candidates(l, new ShipPieceSet(), at, nh, null, SlabOnly).FirstOrDefault();
+                                    if (c == null || c.Kind != MountKind.Horizontal) notFromSide.Add($"{f.Id} {(dir == 1 ? "starboard" : "port")} at {at.X:0.##} {at.Y:0.##} {at.Z:0.##} n {string.Join(",", nh)}: {c?.Id ?? "nothing"}");
+                                }
                     }
                 }
                 Check(notFromFloor.Count == 0, $"note 83: a slab in hand aimed at a floor cell from a step away offers the shelf over it ({(notFromFloor.Count == 0 ? "every cell" : "not: " + string.Join(", ", notFromFloor.Take(6)))})");
-                Check(sides > 20 && notFromSide.Count == 0, $"note 83: aimed at her side at the shelf's height from over the cell beside it, the shelf over that cell ({sides} looks{(notFromSide.Count == 0 ? "" : "; not: " + string.Join(", ", notFromSide.Take(6)))})");
+                Check(sides > 20 && notFromSide.Count == 0, $"note 83: aimed at her side at the shelf's height from over the cell beside it, the shelf over that cell ({sides} looks{(notFromSide.Count == 0 ? "" : $"; not {notFromSide.Count}: " + string.Join(", ", notFromSide.Distinct().Where((x, i) => i % Math.Max(1, notFromSide.Distinct().Count() / 8) == 0).Take(8)))})");
                 var cell = l.FloorAt("hold", -3, -2);
                 var set = new ShipPieceSet();
                 set.Add(ShipPiece.From(Put(cell, chest, 1), set.NextId, null));
@@ -249,6 +302,52 @@ namespace HansaTests
                 var under = set.StandingOn(l, shelf);
                 Check(overChest && holds && under?.Role == PieceRole.Storage,
                     $"note 83: a shelf over a chest in her hold ({shelfPlan.Error ?? (overChest ? "fits" : "blocked")}), a vessel on it ({holds}), the shelf not taken up from under the vessel ({under?.Role.ToString() ?? "nothing on it"})");
+            }
+
+            // ---- (25 October 2026, dev.9) notes 89, 90, 95/96, 99
+            {
+                // 89: a door hung at either end of its doorway, as the crosshair was nearer
+                var doorB = new FakePiece { Code = "game:door-solid-oak", Family = "game:door-solid-oak", Door = true };
+                var dm = l.Borders.FirstOrDefault(b => b.Deck == "main" && b.Row == 0 && b.Clip == null && !b.TwinSide && l.BorderAbove(b) is MountPoint up && up.Clip == null);
+                var lowD = dm == null ? null : PiecePlanner.Plan(l, dm, doorB, dm.In);
+                var highD = dm == null ? null : PiecePlanner.Plan(l, dm, doorB, dm.In | PiecePlanner.HingeHigh);
+                bool hinges = lowD?.Error == null && highD?.Error == null;
+                ShipPiece lowP = hinges ? ShipPiece.From(lowD, 1, null) : null, highP = hinges ? ShipPiece.From(highD, 2, null) : null;
+                Check(hinges && !lowP.HingeHighEnd && highP.HingeHighEnd && (highD.Toward & PiecePlanner.HingeHigh) != 0 &&
+                      lowP.OpenLeafBox != null && highP.OpenLeafBox != null && Math.Abs((lowP.OpenLeafBox[0] + lowP.OpenLeafBox[3]) / 2 - (highP.OpenLeafBox[0] + highP.OpenLeafBox[3]) / 2) + Math.Abs((lowP.OpenLeafBox[2] + lowP.OpenLeafBox[5]) / 2 - (highP.OpenLeafBox[2] + highP.OpenLeafBox[5]) / 2) > 0.5,
+                    $"note 89: a door hung at either end of its doorway ({dm?.Id}: {lowD?.Error ?? "low end"}, {highD?.Error ?? "high end"}), its open leaf at that end");
+                // 90: a window on a place her side cuts (as partitions are), cut to it
+                var paneB = new FakePiece { Code = "game:glasspane-leaded-oak-ew", Family = "game:glasspane", Pane = true };
+                var cutPlaces = l.Borders.Where(b => b.Clip != null && !b.TwinSide && PiecePlanner.ClipArea(b) >= 0.25).ToList();
+                var refused = cutPlaces.Select(b => (b, PiecePlanner.Plan(l, b, paneB, b.In))).Where(t => t.Item2.Error != null).Select(t => $"{t.b.Id}: {t.Item2.Error}").ToList();
+                var wm = cutPlaces.FirstOrDefault();
+                var wparts = wm == null ? null : ModularGeometry.ClipToPlace(ModularGeometry.Window(wm), wm, wm.Clip);
+                var (wl, wx) = wm == null ? (0.0, false) : MountLayout.BorderLine(wm);
+                bool inside = wparts != null && wparts.Count > 0 && wparts.All(pt => pt.Box == null || wm.Clip.Any(c => (wx ? pt.Box[0] : pt.Box[2]) >= c[0] - 1e-6 && (wx ? pt.Box[3] : pt.Box[5]) <= c[2] + 1e-6 && pt.Box[1] >= c[1] - 1e-6 && pt.Box[4] <= c[3] + 1e-6));
+                Check(cutPlaces.Count > 20 && refused.Count == 0 && inside,
+                    $"note 90: a window on any place her side cuts with a quarter of the block free ({cutPlaces.Count}{(refused.Count == 0 ? "" : "; refused: " + string.Join(", ", refused.Take(4)))}), drawn cut to it ({wm?.Id}: {wparts?.Count} parts)");
+                // 95, 96: aimed at a partition's own collision (its quarter-block layer) where its thin pick sheet isn't: that partition
+                var pm = l.Get("b:hold:-4:0:s:0");
+                var set = new ShipPieceSet();
+                if (pm != null) set.Add(ShipPiece.From(PiecePlanner.Plan(l, pm, block, 1), set.NextId, null));
+                var body = set.All.FirstOrDefault()?.Solids.FirstOrDefault();
+                ShipPiece got = null;
+                if (body != null)
+                {
+                    // (a ray down onto the top of its layer, past the sheet's edge)
+                    var o = new Vec3d((body[0] + body[3]) / 2, body[4] + 1, (body[2] + body[5]) / 2 - 0.05);
+                    var d = new Vec3d(0, -1, 0);
+                    got = set.SolidHit(o, d, 1.0);
+                }
+                Check(pm != null && got != null && set.Pick(new Vec3d((body[0] + body[3]) / 2, body[4] + 1, (body[2] + body[5]) / 2 - 0.05), new Vec3d(0, -1, 0), 3, out _) == null,
+                    $"notes 95, 96: a partition's own body met where its pick sheet isn't is that partition ({(got == null ? "not found" : "found")})");
+                // 99: the short stair up aft from her hold's cell under the hatchway's after end: not refused for its landing (the
+                // hatchway shut by its hatch, or laid, is deck past its top)
+                var foot = l.Floors.FirstOrDefault(m => m.Deck == "hold" && m.X <= -2.285 && m.X + 1 > -2.285 && m.Z <= -0.178 && m.Z + 1 > -0.178);
+                var stairB = new FakePiece { Code = ModularPieceDef.StairBlock(1), Family = "x", Stairs = true, StairCells = 1, StairRails = true };
+                var aft = foot == null ? null : PiecePlanner.Plan(l, foot, stairB, 0);
+                Check(aft != null && aft.Error == null && !PiecePlanner.LandingMissing(aft, l.LaidGrid) && PiecePlanner.LandingMissing(aft, g),
+                    $"note 99: the short stair up aft from {foot?.Id} is planned ({aft?.Error ?? "ok"}); its landing on her decks laid, none with the hatchway open (the ship asks it of her as she is)");
             }
 
             // ---- note 57: the partition under the main deck's beam in her hold, aimed at with an axe: her own planking is behind it

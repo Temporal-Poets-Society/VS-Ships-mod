@@ -93,6 +93,33 @@ namespace Hansa
         }
 
         /// <summary>
+        /// (25 October 2026, caravel note 90: "cannot place window in this place as says that need whole block") A window on a
+        /// place only partly free of her: its parts cut to the free parts (rects as a place's Clip: along0, y0, along1, y1 in
+        /// its line's plane), as a partition there is drawn cut.
+        /// </summary>
+        public static List<ModularPart> ClipToPlace(List<ModularPart> parts, MountPoint m, List<double[]> rects)
+        {
+            if (rects == null || rects.Count == 0) return parts;
+            var (_, alongX) = MountLayout.BorderLine(m);
+            int a = alongX ? 0 : 2;
+            var cut = new List<ModularPart>();
+            foreach (var part in parts)
+            {
+                var b = part.AsBox();
+                if (b == null) { cut.Add(part); continue; }
+                foreach (var r in rects)
+                {
+                    double a0 = Math.Max(b[a], r[0]), a1 = Math.Min(b[a + 3], r[2]), y0 = Math.Max(b[1], r[1]), y1 = Math.Min(b[4], r[3]);
+                    if (a1 - a0 < 1e-4 || y1 - y0 < 1e-4) continue;
+                    var nb = (double[])b.Clone();
+                    nb[a] = a0; nb[a + 3] = a1; nb[1] = y0; nb[4] = y1;
+                    cut.Add(ModularPart.B(part.Mat, nb));
+                }
+            }
+            return cut;
+        }
+
+        /// <summary>
         /// (0.3.18, notes 164, 166: corners flicker) Where two wall pieces (partitions, windows, doors) meet at a corner, both
         /// filled the corner's square and their tops lay in one plane: a wall along x stops short of the corner by half its
         /// thickness and one along z reaches over it by that much (unless another along z goes on past the corner), so the
