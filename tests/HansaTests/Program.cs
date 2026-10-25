@@ -77,6 +77,7 @@ namespace HansaTests
                 return failures == 0 ? 0 : 1;
             }
             if (Array.IndexOf(args, "inspect") >= 0) { Inspect(root, args.Length > Array.IndexOf(args, "inspect") + 1 ? args[Array.IndexOf(args, "inspect") + 1] : "caravel"); return 0; }
+            if (Array.IndexOf(args, "partition-views") >= 0) { int pv = Array.IndexOf(args, "partition-views"); PartitionViews(root, args[pv + 1], args[pv + 2]); return 0; }
             if (Array.IndexOf(args, "buildplace") >= 0) { CaravelBuildPlace(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "holdstair") >= 0) { CaravelHoldStair(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "steerage") >= 0) { CaravelSteerage(root); CaravelNote49(root); CaravelNote48(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }

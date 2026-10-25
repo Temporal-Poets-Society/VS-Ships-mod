@@ -350,6 +350,28 @@ namespace HansaTests
                     $"note 99: the short stair up aft from {foot?.Id} is planned ({aft?.Error ?? "ok"}); its landing on her decks laid, none with the hatchway open (the ship asks it of her as she is)");
             }
 
+            // ---- notes 88, 90: where the cabin front meets her side, the top row isn't drawn on along its line over her side's
+            // outer cell (the outer cell's own places close it: open, it hung there as a fin); the outer cell's partition is drawn
+            // up to the quarterdeck's planking itself (no slit between the two when both are up)
+            {
+                var surf = SurfacesOf(def, Path.Combine(root, "assets", "hansa"));
+                var unlike = new List<string>();
+                foreach (int side in new[] { 1, -1 })
+                {
+                    var top = l.Get(side > 0 ? "b:main:-8:1:e:2" : "b:main:-8:-3:e:2");
+                    var outer = l.Get(side > 0 ? "b:main:-8:2:e:1" : "b:main:-8:-4:e:1");
+                    if (top == null || outer == null) { unlike.Add("no places"); continue; }
+                    var tr = l.DrawnClip(top, surf) ?? new List<double[]> { Whole(top) };
+                    double reach = side > 0 ? tr.Max(c => c[2]) : -tr.Min(c => c[0]);
+                    if (reach > 2.5 + 1e-6) unlike.Add($"{top.Id} drawn along to {side * reach:0.###}");
+                    var or = l.DrawnClip(outer, surf) ?? outer.Clip;
+                    double edge = side > 0 ? 2.5 : -2.5;
+                    double up = or.Where(c => side > 0 ? c[0] <= edge + 1e-6 && c[2] > edge : c[2] >= edge - 1e-6 && c[0] < edge).Select(c => c[3]).DefaultIfEmpty(0).Max();
+                    if (up < 3.875 - 1e-6) unlike.Add($"{outer.Id} by the line's next segment drawn up to {up:0.###}");
+                }
+                Check(unlike.Count == 0, $"notes 88, 90: the cabin front's top row stops at her side's outer cell, whose partition reaches the quarterdeck's planking itself ({(unlike.Count == 0 ? "both sides" : string.Join("; ", unlike))})");
+            }
+
             // ---- note 57: the partition under the main deck's beam in her hold, aimed at with an axe: her own planking is behind it
             {
                 var bm = l.Get("b:hold:-9:-2:w:2");   // (2 aft since note 73, the eye with it)
