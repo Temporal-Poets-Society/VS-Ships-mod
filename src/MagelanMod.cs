@@ -24,8 +24,8 @@ namespace Hansa
         public bool ShipWatch = true;
         /// <summary>How far ahead the watch looks for land: this many seconds of her way (16 to 96 blocks).</summary>
         public float WatchAheadSeconds = 45;
-        /// <summary>Multiplies every ship's top speed.</summary>
-        public float SpeedMultiplier = 1;
+        /// <summary>Multiplies every ship's top speed (and her oars). 1.5 by default, as the user plays Magelan: 1 is real speed.</summary>
+        public float SpeedMultiplier = 1.5f;
         /// <summary>
         /// (0.3.25) Under the sweeps (at the wheel, sails furled, Ctrl): how fast she creeps ahead and astern holding W or S
         /// (blocks a second; a walk is about 1.5), how fast A/D turn her (degrees a second, even standing still), and how long
