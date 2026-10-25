@@ -81,6 +81,7 @@ namespace HansaTests
             if (Array.IndexOf(args, "holdstair") >= 0) { CaravelHoldStair(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "steerage") >= 0) { CaravelSteerage(root); CaravelNote49(root); CaravelNote48(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "gates") >= 0) { CaravelGates(root); CaravelLadderCatch(root); CaravelFigurehead(root); LanternOwnLight(); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
+            if (Array.IndexOf(args, "lateen") >= 0) { CaravelLateenDip(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "gunclick") >= 0) { GunClicks(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "paint") >= 0) { CaravelPaint(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "grid-pieces") >= 0) { GridPieces(root); return 0; }
@@ -359,6 +360,8 @@ namespace HansaTests
             PartitionsToHer(def);
             PartitionsMeetHer(def, Path.Combine(root, "assets", "hansa"));
             SailsPressed(def, Path.Combine(root, "assets", "hansa"));
+            // (note 64) the caravel's lateens dip round their masts
+            CaravelLateenDip(root);
             WorkingBlocks(def);
             Modular(def, root);
             BuildModeStructureOnly(root);

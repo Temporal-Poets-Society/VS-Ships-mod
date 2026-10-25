@@ -54,6 +54,8 @@ namespace Hansa
             /// <summary>(0.3.14, notes 150-152) Each sail mesh's vertices (whole, torn, shredded), to press a ship's against her rigging.</summary>
             public readonly Dictionary<MultiTextureMeshRef, MeshData> SailData = new();
             public SailPress Press;
+            /// <summary>(note 64) The same mirrored across a dipping lateen's mast (by the mast's z), for its sail on its other side.</summary>
+            public readonly Dictionary<double, SailPress> PressMirrored = new();
         }
 
         /// <summary>
@@ -2142,7 +2144,7 @@ namespace Hansa
         /// <summary>(0.3.14, notes 150-152) A ship's sail as drawn last, pressed against her rigging: for the trim (and its mesh) it was built for.</summary>
         class Pressed
         {
-            public (MultiTextureMeshRef Mesh, int Trim, int Frac, int Belly) Key;
+            public (MultiTextureMeshRef Mesh, int Trim, int Frac, int Belly, int Dip) Key;
             public MultiTextureMeshRef Mesh;
             public long Built;
         }
@@ -2174,7 +2176,26 @@ namespace Hansa
                 double trim = f.ForeAndAft ? ship.Sheet : ship.Brace;
                 bool lateen = sail.Mesh != null && f.ForeAndAft;
                 float belly = lateen ? PartMotion.LateenBelly(ship.Sheet) : 1;
-                var key = (mesh, (int)Math.Round(trim * 360 / Math.PI), (int)Math.Round(frac * 50), (int)Math.Round(belly * 20));
+                var press = m.Press;
+                int dip = 0;
+                float[] drawnYard = yard;
+                if (lateens.TryGetValue(yardCode, out var lt))
+                {
+                    // (note 64) a dipping lateen: pressed in its own frame (its yard's turn and dip there, the rigging mirrored
+                    // to it on its other side), then drawn where its yard is
+                    trim = lt.Pose.Sheet;
+                    frac = lt.Pose.Frac;
+                    belly = lt.Pose.Belly;
+                    yard = lt.Frame;
+                    dip = (1 + (int)Math.Round(lt.Pose.Depth * 40)) * (lt.Pose.Mirror ? -1 : 1);
+                    if (!LateenRig.Presses(lt.Pose)) press = null;
+                    else if (lt.Pose.Mirror)
+                    {
+                        double mz = lt.Rig.Mast.Z;
+                        if (!m.PressMirrored.TryGetValue(mz, out press)) m.PressMirrored[mz] = press = m.Press.Mirrored(mz);
+                    }
+                }
+                var key = (mesh, (int)Math.Round(trim * 360 / Math.PI), (int)Math.Round(frac * 50), (int)Math.Round(belly * 20), dip);
                 pressed.TryGetValue((ship.EntityId, si), out var ps);
                 long now = capi.World.ElapsedMilliseconds;
                 if (ps == null || ps.Key != key && now - ps.Built >= PressEveryMs)
@@ -2189,7 +2210,7 @@ namespace Hansa
                         Array.Copy(pressTmp, pressSet, 16);
                     }
                     copy.MatrixTransform(pressSet);
-                    m.Press.Press(f, yard, copy.xyz, copy.VerticesCount);
+                    if (press != null) press.Press(f, yard, copy.xyz, copy.VerticesCount);
                     if (ps == null) pressed[(ship.EntityId, si)] = ps = new Pressed();
                     ps.Mesh?.Dispose();
                     ps.Mesh = capi.Render.UploadMultiTextureMesh(copy);
@@ -2197,7 +2218,7 @@ namespace Hansa
                     ps.Built = now;
                 }
                 if (ps.Mesh == null) return mesh;
-                place = yard ?? identity;
+                place = drawnYard ?? identity;
                 return ps.Mesh;
             }
             catch (Exception e)
@@ -2211,6 +2232,20 @@ namespace Hansa
         /// <summary>Where a sail is drawn (ship-local): scaled toward its yard as it's furled, under its yard and braced round with it.</summary>
         float[] SailPlace(EntityShip ship, SailDef sail, float frac)
         {
+            if (lateens.TryGetValue("yard-" + sail.Code, out var lt) && partMats.TryGetValue("yard-" + sail.Code, out var drawn))
+            {
+                // (note 64) a dipping lateen: brailed and bellied in its own frame, drawn where its yard is (mirrored or not)
+                PartMotion.FurlMatrix(sail, lt.Pose.Frac, furl);
+                var lf = ship.Def.DamageParts?.SailFrames;
+                if (lf != null && lt.Rig.Sail < lf.Length && lf[lt.Rig.Sail] is SailFrame lsf)
+                {
+                    PartMotion.BellyMatrix(lsf, lt.Pose.Belly, bellyMat);
+                    Mat4f.Mul(bellyTmp, furl, bellyMat);
+                    Array.Copy(bellyTmp, furl, 16);
+                }
+                Mat4f.Mul(sailPlace, drawn, furl);
+                return sailPlace;
+            }
             PartMotion.FurlMatrix(sail, frac, furl);
             // a fore-and-aft sail (the lateen) bellies out to leeward on either tack: its mesh is made bellied to starboard,
             // and is mirrored through its own plane with the wind on the other side (0.3.10: "the mizzen sail looks to be
@@ -2401,19 +2436,52 @@ namespace Hansa
                 PartMotion.Place(part, PartValue(ship, d, part), mat, partMats);
             }
             float frac = PartMotion.DrawnSail(ship.SailFraction);
+            ComputeLateens(ship, frac);
             foreach (var part in ship.Def.MovingParts)
             {
                 if (part.Kind != "follow") continue;
                 float[] tipMove = part.Follow != null && partMats.TryGetValue(part.Follow, out var fm) ? fm : null;
+                // (note 64) a rope on a dipping lateen's yard (its sheet, tack, halyard): worked out in the lateen's own frame,
+                // then mirrored with it to the mast's other side
+                var lt = default((LateenRig Rig, LateenPose Pose, float[] Frame));
+                bool onLateen = part.Follow != null && lateens.TryGetValue(part.Follow, out lt);
+                if (onLateen) tipMove = lt.Frame;
                 // a sheet: its tip is on the clew, which goes up toward the yard as the sail is furled
                 if (tipMove != null && part.Sail != null && SailOf(ship.Def, part.Sail) is SailDef sd)
                 {
-                    PartMotion.FurlMatrix(sd, frac, furlTmp);
+                    PartMotion.FurlMatrix(sd, onLateen ? lt.Pose.Frac : frac, furlTmp);
                     Mat4f.Mul(followTmp, tipMove, furlTmp);
                     tipMove = followTmp;
                 }
                 float[] anchorMove = part.AnchorFollow != null && partMats.TryGetValue(part.AnchorFollow, out var am) ? am : null;
                 PartMotion.FollowMatrix(part, tipMove, partMats[part.Code], anchorMove);
+                if (onLateen && lt.Pose.Mirror)
+                {
+                    Array.Copy(partMats[part.Code], followTmp, 16);
+                    lt.Rig.Drawn(lt.Pose, followTmp, partMats[part.Code]);
+                }
+            }
+        }
+
+        /// <summary>(note 64) Her dipping lateens this frame, by their yards' codes: each one's pose and its yard in its own frame (before any mirror).</summary>
+        readonly Dictionary<string, (LateenRig Rig, LateenPose Pose, float[] Frame)> lateens = new();
+        readonly Dictionary<string, float[]> lateenFrames = new();
+
+        /// <summary>
+        /// (note 64) Her dipping lateens (<see cref="LateenRig"/>) as the lee shown has them: each yard's matrix (into partMats,
+        /// mirrored to its mast's other side or not), with the pose its sail and ropes are drawn in.
+        /// </summary>
+        void ComputeLateens(EntityShip ship, float frac)
+        {
+            lateens.Clear();
+            foreach (var rig in LateenRig.Of(ship.Def))
+            {
+                if (rig == null || !partMats.TryGetValue(rig.Yard.Code, out var mat)) continue;
+                var pose = rig.Pose(ship.LeeShown, ship.Sheet, frac);
+                if (!lateenFrames.TryGetValue(rig.Yard.Code, out var frame)) lateenFrames[rig.Yard.Code] = frame = new float[16];
+                rig.YardFrame(pose, frame);
+                rig.Drawn(pose, frame, mat);
+                lateens[rig.Yard.Code] = (rig, pose, frame);
             }
         }
 

@@ -886,6 +886,8 @@ namespace Hansa
         [JsonIgnore] public double[] Offset;
         /// <summary>The fixture of the mast it's set on, if that folds down: lowered, the sail isn't drawn and doesn't drive her.</summary>
         public string Mast;
+        /// <summary>(note 64) A lateen that's dipped round its mast to the lee side (<see cref="LateenDipDef"/>), or null.</summary>
+        public LateenDipDef Dip;
     }
 
     /// <summary>Solid voxels of a ship in ship-local space.</summary>

@@ -31611,7 +31611,6 @@
   "space": 2.0,
   "count": 11
  },
- "panelPlaces": false,
  "grid": {
   "origin": [
    0.0,
@@ -31718,24 +31717,6 @@
    "pos": [
     10.2831,
     2.9068,
-    0.0
-   ],
-   "hang": "up",
-   "normal": [
-    1.0,
-    0.0,
-    0.0
-   ],
-   "kinds": [
-    "figurehead"
-   ],
-   "shown": true
-  },
-  {
-   "code": "figurehead",
-   "pos": [
-    10.28,
-    2.9,
     0.0
    ],
    "hang": "up",

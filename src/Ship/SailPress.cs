@@ -62,6 +62,20 @@ namespace Hansa
             return p;
         }
 
+        /// <summary>(note 64) The same obstacles mirrored across the plane z = mz (a dipping lateen's mast's): where they are in its frame on its other side.</summary>
+        public SailPress Mirrored(double mz)
+        {
+            var p = new SailPress();
+            for (int i = 0; i < Lines.Count; i++)
+            {
+                var l = (double[])Lines[i].Clone();
+                l[2] = 2 * mz - l[2];
+                l[5] = 2 * mz - l[5];
+                p.Add(l, Kinds[i]);
+            }
+            return p;
+        }
+
         void Add(double[] line, string kind)
         {
             Lines.Add(line);

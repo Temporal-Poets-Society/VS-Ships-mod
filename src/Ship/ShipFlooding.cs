@@ -286,7 +286,7 @@ namespace Hansa
         int sailDriveVersion = int.MinValue;
 
         /// <summary>The sails' set as it draws: how far they're set times what of them is whole (<see cref="SailDrive"/>).</summary>
-        public double SailsDrawing => SailFraction * SailDrive;
+        public double SailsDrawing => SailFraction * SailDrive * LateenRig.Drive(Def, LeeShown);
 
         /// <summary>How well her rudder answers (0.2..1).</summary>
         public double RudderAnswers
@@ -525,7 +525,7 @@ namespace Hansa
             ShipFrame.ToLocal(Pos.Yaw, Pitch, Roll, dir.X / len, dir.Y / len, dir.Z / len, out double dx, out double dy, out double dz);
             var o = new Vec3d(ox, oy, oz);
             var d = new Vec3d(dx, dy, dz);
-            int i = l.SailAt(o, d, range, Brace, Sheet, PartMotion.DrawnSail(SailFraction), out double t);
+            int i = l.SailAt(o, d, range, Brace, Sheet, PartMotion.DrawnSail(SailFraction), out double t, LeeShown);
             if (i < 0 || got && t > hit.Distance - 0.02) return got;
             var sd = Def.Sails[l.Parts[i].Sail];
             if (sd.Mast != null && OpenFittings.Contains(sd.Mast)) return got;
