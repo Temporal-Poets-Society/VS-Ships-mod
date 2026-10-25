@@ -79,6 +79,12 @@ namespace Hansa
         /// </summary>
         public int LayoutRev;
         public LayoutStepDef[] LayoutBefore;
+        /// <summary>
+        /// (24 October 2026, caravel note 82: the user, "refuse the wedge panels on the caravel ... nothing gets placed into a
+        /// cell her hull or ribs occupy") Planks panels filling the wedge between a room's outermost floor cell and her side
+        /// (a carrack's): false, no panel places (a panel already put aboard stays, and is taken up as any piece).
+        /// </summary>
+        public bool PanelPlaces = true;
         /// <summary>(0.3.20, step B; docs/slots.md) The deck cells that may be taken up and laid again (null: none, as before).</summary>
         public DeckSlotDef[] DeckSlots;
         /// <summary>(0.3.20) <see cref="DeckSlots"/> worked out (null without them).</summary>

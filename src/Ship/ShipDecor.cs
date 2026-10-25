@@ -389,14 +389,17 @@ namespace Hansa
             if (stack?.Block == null || stack.Block.Id == 0) return "hansa:piece-needs-block";
             // (0.3.21, step C) a gun goes on a gun place, not on a floor place
             if (IsGunBlock(stack.Collectible)) return "hansa:gunplace-gun-not-piece";
-            // (after 0.1.0-dev.6) building mode puts ship structure only; decoration goes aboard with it off
-            if (VanillaPieceBlock.BuildingRefusal(stack.Block, VanillaPieceBlock.BuildingMode(player.Entity)) is string berr) return berr;
             var m = Mounts.Get(mountId);
             if (m == null) return "hansa:piece-nowhere";
+            // (after 0.1.0-dev.6) building mode puts ship structure only; decoration goes aboard with it off
+            // ((24 October 2026, caravel note 66) but a lantern on a hook: it's taken down in building mode too)
+            if (VanillaPieceBlock.BuildingRefusal(stack.Block, VanillaPieceBlock.BuildingMode(player.Entity)) is string berr &&
+                !(m.Kind == MountKind.Hook && new VanillaPieceBlock(World, stack).Light)) return berr;
             if (!InReach(player, m.CX, m.CY, m.CZ)) return "hansa:piece-too-far";
             if (m.Kind != MountKind.Hook && !SeenBy(player, m.Box)) return "hansa:piece-too-far";
             // (0.3.18) building mode (0.3.19: the player's toggle, not a saw in the off hand)
-            var plan = PiecePlanner.Plan(Mounts, m, new VanillaPieceBlock(World, stack, VanillaPieceBlock.BuildingMode(player.Entity)), dir);
+            // ((24 October 2026, notes 70, 79) as the client planned it: another way over the place where vanilla's doesn't fit)
+            var plan = PiecePlanner.Plan(Mounts, m, new VanillaPieceBlock(World, stack, VanillaPieceBlock.BuildingMode(player.Entity)), dir, pl => PlaceProblem(pl, false) == null);
             if (plan.Error != null) return plan.Error;
             string err = PlaceTakingBeams(plan, stack, player, out var placed);
             if (err != null) return err;

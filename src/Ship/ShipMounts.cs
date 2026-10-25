@@ -551,7 +551,9 @@ namespace Hansa
                         Box("hearth", b ?? s, 0.5);
                         break;
                     case "attach" when f.Kind == "plate":
-                        if (f.Spawn is double[] sp) Box("spawn", sp[0] - 0.6, sp[1], sp[2] - 0.6, sp[0] + 0.6, sp[1] + 2, sp[2] + 0.6);
+                        // ((24 October 2026, caravel note 70: "every deck symmetric, any unoccupied spot allows placement") her
+                        // respawn spot isn't kept clear: whoever comes back aboard there is lifted out of anything put on it
+                        // (EntityShip.Board unsticks them), as at any spot of hers)
                         Box("plate", s, 0.3);
                         break;
                     case "window":
@@ -596,6 +598,8 @@ namespace Hansa
             }
             foreach (var k in def.KeepClear ?? Array.Empty<KeepClearDef>())
             {
+                // ((24 October 2026, note 70) nor the design's own box round her respawn spot)
+                if (k.What == "spawn") continue;
                 if (cellsLaid && k.What == "hatch" && OverOpening(k.Box)) continue;
                 // (0.3.24, note 181) the design's own "gun"/"gun port" boxes of an empty gun place: not kept either
                 if (k.What != null && k.What.StartsWith("gun") && FreeGunRooms(def).Any(r => r.Any(b => PiecePlanner.Overlap(b, k.Box, 0.05)))) continue;
@@ -1025,7 +1029,8 @@ namespace Hansa
         /// </summary>
         void PanelPlaces()
         {
-            if (!OnShipGrid) return;
+            // ((24 October 2026, caravel note 82) not on a design that has none: their wedge is in her side's cell)
+            if (!OnShipGrid || !Def.PanelPlaces) return;
             var g = Def.Grid;
             int n = Math.Max(1, (int)Math.Round(1 / g.V));
             foreach (var m in Floors.ToList())
@@ -1428,11 +1433,35 @@ namespace Hansa
         /// her cells) and the run ends there. Rectangles as the Clip's (along0, y0, along1, y1), possibly reaching past the
         /// block; null: draw the place as before (nothing to carry on). Kept on the place.
         /// </summary>
+        /// <remarks>
+        /// (24 October 2026, caravel note 72: "this spot left hole when building partition wall") A place with a twin across its
+        /// line is drawn as the two together: one partition there, whichever side it was anchored on. Anchored on the waist's
+        /// side of the quarterdeck's front its own layer has open air over it and stopped under the deck; the steerage's side's
+        /// runs up her planking to the deck's top, so the deck's edge between was left showing behind the partition's face.
+        /// </remarks>
         public List<double[]> DrawnClip(MountPoint m, ShipSurfaces s)
         {
             if (m == null || m.Kind != MountKind.Border || s == null || s.Count == 0 || Def.Grid == null) return null;
             if (m.DrawnDone) return m.Drawn;
             m.DrawnDone = true;
+            var fill = DrawnFill(m, s, out int w, out double along0, out double y0, out double c, out bool more);
+            if (TwinOf(m) is MountPoint t && t.Kind == MountKind.Border &&
+                DrawnFill(t, s, out int tw, out double ta, out double ty, out _, out bool tmore) is bool[,] tf &&
+                tw == w && Math.Abs(ta - along0) < 1e-9 && Math.Abs(ty - y0) < 1e-9)
+            {
+                bool grew = false;
+                for (int a = 0; a < w; a++)
+                    for (int b = 0; b < w; b++)
+                        if (tf[a, b] && !fill[a, b]) fill[a, b] = grew = true;
+                more |= grew;
+            }
+            if (!more && m.Clip == null) return null;
+            return m.Drawn = ClipRuns(fill, w, along0, y0, c);
+        }
+
+        /// <summary>A border place's drawn cells on the fine grid round its block (<see cref="DrawnClip"/>): its own, alone.</summary>
+        bool[,] DrawnFill(MountPoint m, ShipSurfaces s, out int w, out double along0, out double y0, out double c, out bool more)
+        {
             var g = Def.Grid;
             var room = Def.Rooms.FirstOrDefault(r => r.Code == m.Room);
             double top = room?.Max[1] ?? double.MaxValue;
@@ -1440,10 +1469,13 @@ namespace Hansa
             double inSign = m.In < 2 ? 1 : -1;
             double layer = line + inSign * g.V / 2;
             const int n = DrawCells;
-            int pad = (int)Math.Ceiling(DrawReach * n), w = n + 2 * pad;
-            double c = 1.0 / n, h = PartitionThickness / 2 * 0.9;
+            int pad = (int)Math.Ceiling(DrawReach * n);
+            w = n + 2 * pad;
+            c = 1.0 / n;
+            double h = PartitionThickness / 2 * 0.9;
             // the fine grid: the place's block and pad cells round it
-            double along0 = (alongX ? m.X : m.Z) - 0.5 - pad * c, y0 = m.Y - pad * c;
+            along0 = (alongX ? m.X : m.Z) - 0.5 - pad * c;
+            y0 = m.Y - pad * c;
             bool Solid(double al, double y) => alongX ? g.SolidAt(al, y, layer) : g.SolidAt(layer, y, al);
             // ((22 October 2026, note 48) a partial place cut by a deck timber hanging into the other layer, over the room's top:
             // up to it, her cells there count as hers)
@@ -1460,7 +1492,7 @@ namespace Hansa
             // (cells drawn wholly short of her nearest surface met: open air, the second pass's)
             var open = new bool[w, w];
             double near = 0;
-            bool more = false;
+            more = false;
             // a ray in the line's plane from (along, y) the way (da, dy): how far to her farthest surface, at either face, within
             // her cells from there (a surface past them is something else's: under a deck drawn on her cells, a beam below it)
             double Far(double al, double y, double da, double dy)
@@ -1529,8 +1561,7 @@ namespace Hansa
                         }
                     }
             }
-            if (!more && m.Clip == null) return null;
-            return m.Drawn = ClipRuns(fill, w, along0, y0, c);
+            return fill;
         }
 
         Dictionary<(bool, long, long, long), MountPoint> borderAt;
@@ -1697,7 +1728,9 @@ namespace Hansa
                     double y = m.Y + h;
                     if (g.Collides(m.X + e, y - 1 + e, m.Z + e, m.X + 1 - e, y - e, m.Z + 1 - e)) break;
                     if (h == 3) { if (!WellTop(m, y)) break; }
-                    else if (!closed) continue;
+                    // ((24 October 2026, caravel note 83: "some thin shelf ... to place vessels, chest etc on second block") on an
+                    // open deck too where a deck is over it (under a castle's overhang), not under the sky
+                    else if (!closed && Ceiling(m.X + 0.5, m.Y, m.Z + 0.5) == null) continue;
                     var box = new[] { m.X, y - ShelfThickness, m.Z, m.X + 1, y, m.Z + 1 };
                     if (h < 3 && ClearHit(box[0], box[1], box[2], box[3], box[4], box[5]) != null) continue;
                     All.Add(new MountPoint

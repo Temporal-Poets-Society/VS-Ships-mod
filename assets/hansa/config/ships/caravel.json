@@ -31611,6 +31611,7 @@
   "space": 2.0,
   "count": 11
  },
+ "panelPlaces": false,
  "grid": {
   "origin": [
    0.0,

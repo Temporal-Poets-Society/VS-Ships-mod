@@ -135,6 +135,8 @@ namespace Hansa
             // (0.3.18, note 165) a brick chimney goes on a flue place and only there; the hearth and the oven on a floor place
             bool flue = block && VanillaPieceBlock.IsFlueBlock(held.Block);
             bool fire = block && (VanillaPieceBlock.IsHearthBlock(held.Block) || VanillaPieceBlock.IsOvenBlock(held.Block));
+            // ((24 October 2026, caravel note 74) the oven on top of a block put aboard too)
+            bool oven = block && VanillaPieceBlock.IsOvenBlock(held.Block);
             bool onBorder = planks || door || pane || fence;
             var tool = EntityShip.PaintTool(held, out _, out _);
             bool sneak = Sneaking(ep);
@@ -148,9 +150,15 @@ namespace Hansa
             // (after 0.1.0-dev.6, the user: "while in build mode ... we can skip regular block placement snap findings as those
             // are placeable with it off") building mode puts ship structure only: any other block gets no place, the hint says why
             bool decorOff = block && !painting && !gunItem && VanillaPieceBlock.BuildingRefusal(held.Block, building) != null;
-            bool placing = chalk || block && !painting && !gunItem && !decorOff;
             // (0.3.24, note 193) a lantern (a block giving light) in hand: its hooks are aimed at directly
             bool lightInHand = block && !chalk && held.Block.GetLightHsv(capi.World.BlockAccessor, null, held) is byte[] lhsv && lhsv.Length > 2 && lhsv[2] > 0;
+            // ((24 October 2026, caravel note 66: "after lantern removal cannot place it back") in building mode a lantern
+            // goes back on a hook, as it's taken down there: her hooks only, no other place for decoration
+            bool hooksOnly = decorOff && lightInHand;
+            // ((24 October 2026, caravel note 77: "when using chalk for some reason show building snapboxes") the chalk is the
+            // notes' tool: no places for pieces in its crosshair (their outlines were the places' own boxes, thicker than a
+            // partition's)
+            bool placing = !chalk && block && !painting && !gunItem && (!decorOff || hooksOnly);
             var best = new Target { Dist = double.MaxValue };
             foreach (var ship in sys.Ships)
             {
@@ -214,7 +222,7 @@ namespace Hansa
                         (x.Kind != MountKind.Border || chalk || planks || pane || fence || door && x.Row == 0) && (!(door || pane || fence) || chalk || x.Kind == MountKind.Border) &&
                         (x.Kind != MountKind.Horizontal || chalk || slab) && (!slab || chalk || x.Kind == MountKind.Horizontal) &&
                         (!stairs || chalk || x.Kind == MountKind.Floor && x.Level == 0) &&
-                        (!fire || chalk || x.Kind == MountKind.Floor && x.Level == 0) &&
+                        (!fire || chalk || x.Kind == MountKind.Floor && (x.Level == 0 || oven)) &&
                         (x.Kind != MountKind.Flue || chalk || flue) && (!flue || chalk || x.Kind == MountKind.Flue) &&
                         // (0.3.20) not over a deck cell taken up; over a design opening laid, yes
                         ship.MountOpen(x) &&
@@ -244,7 +252,8 @@ namespace Hansa
                     if (hit != null && normal != null)
                     {
                         // (the first place next to the hit the block in hand fits; else the first, to say why not)
-                        foreach (var c in AimPlace.Candidates(ship.Mounts, ship.Pieces, hit, normal, hitPiece, free, onBorder && !chalk))
+                        // ((24 October 2026, note 66) a lantern in building mode: the hooks there only, a deck's underside's too)
+                        foreach (var c in AimPlace.Candidates(ship.Mounts, ship.Pieces, hit, normal, hitPiece, hooksOnly ? x => x.Kind == MountKind.Hook && free(x) : free, onBorder && !chalk))
                         {
                             if (chalk) { m = c; break; }
                             int tw = c.Kind is MountKind.Wall or MountKind.Panel ? c.In : TowardPlayer(ship, c, eye, hit);
@@ -324,7 +333,7 @@ namespace Hansa
             // (with the chalk its own line says what's in the crosshair: ChalkLine adds a mount point's id to it)
             // (0.3.18: a hearth or an oven put aboard says what its fixture says: ShipHud, as the design's)
             Hint = chalk || best.Kind == TargetKind.Piece && best.Piece.Role is PieceRole.Hearth or PieceRole.Oven ? null : HintFor(best, held, tool);
-            if (needSaw != null && best.Kind is not (TargetKind.Hull or TargetKind.Cell)) Hint = Hint == null ? needSaw : Hint + " · " + needSaw;
+            if (needSaw != null && best.Kind is not (TargetKind.Hull or TargetKind.Cell) && !(hooksOnly && best.Kind == TargetKind.Mount)) Hint = Hint == null ? needSaw : Hint + " · " + needSaw;
         }
 
         /// <summary>A piece the crosshair is on has a free place on top of it for the block in hand (Shift puts it there).</summary>
@@ -371,7 +380,8 @@ namespace Hansa
             if (plans.TryGetValue(key, out var cached)) return cached;
             if (plans.Count > 64) plans.Clear();
             PiecePlan planCache;
-            try { planCache = PiecePlanner.Plan(ship.Mounts, m, new VanillaPieceBlock(capi.World, held, building), toward); }
+            // ((24 October 2026, notes 70, 79) a piece of more cells laid another way over the place where vanilla's way doesn't fit)
+            try { planCache = PiecePlanner.Plan(ship.Mounts, m, new VanillaPieceBlock(capi.World, held, building), toward, pl => ship.PlaceProblem(pl, false) == null); }
             catch (Exception e)
             {
                 capi.Logger.Warning("[hansa] Can't work out where {0} goes: {1}", code, e.Message);
@@ -458,9 +468,12 @@ namespace Hansa
             if (held?.Collectible?.Tool == EnumTool.Axe)
             {
                 if (!building) return default;
-                double t = ship.Grid.RaycastCell(o, d, range, out int ci, out int cj, out int ck, out _);
+                // ((24 October 2026, caravel note 57: "accidentally placed partition here and cannot remove") her own planking
+                // only: a piece's voxels (a partition's layer under a beam) aren't a fixed beam in front of the piece
+                var dg = ship.DesignGrid ?? ship.Grid;
+                double t = dg.RaycastCell(o, d, range, out int ci, out int cj, out int ck, out _);
                 if (t > range) return default;
-                int n = l.AtVoxel(ship.Grid, ci, cj, ck);
+                int n = l.AtVoxel(dg, ci, cj, ck);
                 var at = o.AddCopy(d.X * t, d.Y * t, d.Z * t);
                 // ((0.3.29) a castle port that's in (its board out, its hole open): the axe on its place takes it out
                 foreach (int gpn in l.Ports)
@@ -534,6 +547,13 @@ namespace Hansa
                         best = n;
                         bt = tb;
                     }
+            // ((24 October 2026, note 55) the repair crosshair on a deck cell that's out (stove in): laid at once, as its opening
+            if (best < 0 && planks && OutPartPick(ship, held, o, d, range, out double tr) is int part && ship.DamageParts.Parts[part].Cell is int cn &&
+                cn >= 0 && cn < l.Count && !ship.Slots.Filled(cn) && ship.HatchOver(cn) == null)
+            {
+                best = cn;
+                bt = tr;
+            }
             if (best < 0) return default;
             // ((0.3.29) a port put in with a trapdoor: laid as the port's slot is)
             bool portLay = trap && l.Slots[best].IsGunPort;
@@ -551,9 +571,11 @@ namespace Hansa
             if (held?.Collectible?.Tool == EnumTool.Axe)
             {
                 if (!building) return default;
-                double t = ship.Grid.RaycastCell(o, d, range, out int ci, out int cj, out int ck, out _);
+                // ((24 October 2026, notes 57, 82) her own planking only, not a piece's voxels in front of it)
+                var dg = ship.DesignGrid ?? ship.Grid;
+                double t = dg.RaycastCell(o, d, range, out int ci, out int cj, out int ck, out _);
                 if (t > range) return default;
-                int n = l.AtVoxel(ship.Grid, ci, cj, ck);
+                int n = l.AtVoxel(dg, ci, cj, ck);
                 var at = o.AddCopy(d.X * t, d.Y * t, d.Z * t);
                 if (n >= 0) return new Target { Kind = TargetKind.Hull, Ship = ship, Cell = n, CellMode = CellTake, Dist = t, At = at };
                 // (her fixed planking: a frame's strip, a wale, her ends, a panel with something on it)
@@ -570,8 +592,27 @@ namespace Hansa
                 if (nc >= 0 && ship.HullPanels.Filled(nc) && ship.HullBehind(nc) >= 0 && (best < 0 || tc < bt))
                     return new Target { Kind = TargetKind.Hull, Ship = ship, Cell = nc, CellMode = CellLay, Dist = tc, At = o.AddCopy(d.X * tc, d.Y * tc, d.Z * tc) };
             }
+            // ((24 October 2026, caravel note 55: "on the black snap box it goes back instantly but on the blue one it takes
+            // time with %") the repair crosshair (the blue box) on a panel that's out, through her ceiling or a deck's edge:
+            // that's laying it, as on its opening, at once
+            if (best < 0 && OutPartPick(ship, held, o, d, range, out double tr) is int part && ship.DamageParts.Parts[part].Slot is int sl && ship.HullOpen(sl))
+                return new Target { Kind = TargetKind.Hull, Ship = ship, Cell = sl, CellMode = CellLay, Dist = tr, At = o.AddCopy(d.X * tr, d.Y * tr, d.Z * tr) };
             if (best < 0) return default;
             return new Target { Kind = TargetKind.Hull, Ship = ship, Cell = best, CellMode = CellLay, Dist = bt, At = o.AddCopy(d.X * bt, d.Y * bt, d.Z * bt) };
+        }
+
+        /// <summary>
+        /// (24 October 2026, note 55) The damage part the repair crosshair picks for planks or boards in hand (as
+        /// <see cref="EntityShip.RepairPick"/>, from aboard or not), or null.
+        /// </summary>
+        int? OutPartPick(EntityShip ship, ItemStack held, Vec3d o, Vec3d d, double range, out double t)
+        {
+            t = double.MaxValue;
+            string code = held?.Collectible?.Code?.ToString();
+            if (code == null || ship.DamageParts == null) return null;
+            bool aboard = capi.World.Player?.Entity?.MountedOn is ShipSeat seat && seat.Ship == ship;
+            int part = ship.RepairPick(o, d, range, code, aboard, out t);
+            return part >= 0 && part < ship.DamageParts.Count ? part : null;
         }
 
         /// <summary>(0.3.26) Why the hull panel in the crosshair can't be done (a lang code), or null.</summary>
