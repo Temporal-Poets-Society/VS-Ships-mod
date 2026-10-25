@@ -809,12 +809,13 @@ namespace Hansa
             if (def.StartPieces?.Length > 0)
             {
                 ship.PlaceStartPieces();
-                var lights = def.StartPieces.Select(sp => ship.Pieces.At(sp.Mount)).ToList();
+                // ((25 October 2026, caravel note 105) her start pieces on hooks: the galley's tables and vessel stand on her floor)
+                var lights = def.StartPieces.Where(sp => sp.Mount?.StartsWith("h:") == true).Select(sp => ship.Pieces.At(sp.Mount)).ToList();
                 bool allLit = lights.All(p => p != null && p.Role == PieceRole.Light && p.Solids.Count == 0 &&
                     sapi.World.GetBlock(new AssetLocation(p.Parts[0].Block)) is Block lb &&
                     lb.GetLightHsv(sapi.World.BlockAccessor, null, p.Stack)?[2] > 0 &&
                     p.Parts[0].Block.EndsWith(l.Get(p.Mount).Hang == "up" ? "-up" : "-down"));
-                Check(allLit, $"her {def.StartPieces.Length} lanterns on their hooks as a new ship has them: each a light ({lights.FirstOrDefault()?.Parts[0].Block}), hanging or standing as its hook is, not solid");
+                Check(allLit, $"her {lights.Count} lanterns on their hooks as a new ship has them: each a light ({lights.FirstOrDefault()?.Parts[0].Block}), hanging or standing as its hook is, not solid");
                 // (0.1.0-dev.7, note 43: "lanterns does not have light") each gives her a light (the point light her client
                 // adds) at it (its glass drawn with her glass: offline, SeeThroughFaces)
                 int shining = 0;
@@ -2230,7 +2231,8 @@ namespace Hansa
             var target = Launch(sz + 17);
             // (a new ship's guns: a design with gun places starting empty, carrack-m's castles', has only its laid ones)
             bool Laid(FixtureDef f) => !def.GunPlaceOf.TryGetValue(f.Code, out var gp) || gp.StartsLaid;
-            var guns = def.Fixtures.Where(f => f.Type == "gun" && Laid(f)).ToArray();
+            // ((25 October 2026) her great guns: the caravel's swivels on her quarterdeck's cap aren't broadside guns)
+            var guns = def.Fixtures.Where(f => f.Type == "gun" && f.Kind != "swivel" && Laid(f)).ToArray();
             // (20 October 2026) the lowest deck's first, then aft to fore: the caravel's quarterdeck guns stand 3 higher than
             // her waist's, and one laid down at the chicken would put its ball into the water short of the pool's wall (the
             // carracks' laid guns are all on their main deck: aft to fore, as before)
@@ -2245,8 +2247,8 @@ namespace Hansa
                 MadeUpWreck(mod, def, spawn, wy, () => CrewWorks(mod, def, spawn, wy, () => SailStrainWorks(mod, def, spawn, wy, () => HearthWorks(mod, def, spawn, wy, () => WorkingBlocksWorks(mod, def, spawn, wy, () => HullPanelsWorks(mod, spawn, wy, Finish))))));
                 return;
             }
-            // (the carracks have 5 guns a side laid, the caravel 4: two on her quarterdeck, two in her waist)
-            Check(guns.Length >= 6 && port.Length * 2 == guns.Length && mod.Shots != null && mod.Config.Cannons && !mod.Config.CannonsBreakBlocks,
+            // (the carracks have 5 guns a side laid, the caravel 2 in her waist since her quarterdeck's went, note 103)
+            Check(guns.Length >= 4 && port.Length * 2 == guns.Length && mod.Shots != null && mod.Config.Cannons && !mod.Config.CannonsBreakBlocks,
                 $"two {def.Code}s side by side, 17 apart, {port.Length} guns a side ({string.Join(", ", guns.Select(f => f.Code))}); cannons on, blocks don't break");
             // (the eighth client test) lidded ports: a new ship's guns are housed, their ports shut, and don't fire; opened
             // (someone laying it), one is run out first and fires after; Shift + right-click houses it again. Then all of
@@ -2350,7 +2352,7 @@ namespace Hansa
                                 $"with CannonsBreakBlocks on, a plank in its way breaks and the ball goes on to the wall ({string.Join(", ", r2.Select(r => r.What))})");
 
                             // into the water: a splash, and it's spent
-                            var g3 = port[2];
+                            var g3 = port.Length > 2 ? port[2] : starboard[0];     // (the caravel's 2 a side, note 103: one not reloading)
                             string e3 = shooter.FireGun(g3, null, null, -25);
                             var b3 = Last();
                             WaitFor(() => b3 == null || !shots.Flying.Contains(b3), 4, w4 =>
@@ -2381,7 +2383,7 @@ namespace Hansa
         {
             var shots = mod.Shots;
             // (the guns she carries: a design's gun places that start empty, carrack-m's castles', have none to lay)
-            var guns = def.Fixtures.Where(f => f.Type == "gun" && f.Out[2] > 0 && ship.GunMounted(f)).OrderBy(f => f.Pos[0]).ToArray();
+            var guns = def.Fixtures.Where(f => f.Type == "gun" && f.Kind != "swivel" && f.Out[2] > 0 && ship.GunMounted(f)).OrderBy(f => f.Pos[0]).ToArray();
             double v = def.Cannon.MuzzleVelocity;
             // how far a ball's first velocity (less her own way) is from the way the gun is laid, degrees; and its start from the muzzle
             void Along(CannonShots.Ball b, FixtureDef gun, GunLay lay, out double angle, out double fromMuzzle)
@@ -2455,11 +2457,11 @@ namespace Hansa
                     copy.Die(EnumDespawnReason.Removed);
 
                     // /hansa fire with an elevation and a train (as far as it goes; "-" leaves one as it is)
-                    var g3 = guns[2];
+                    var g3 = guns[guns.Length > 2 ? 2 : 0];             // (the caravel's 2 a side: the one not fired yet)
                     var res = mod.FireCommand(ship, null, null, g3.Code, "1.5", "-8");
                     var l3 = ship.GunLayNow(g3);
                     Along(Last(), g3, l3, out double ang3, out double from3);
-                    var g1 = guns[0];
+                    var g1 = guns[guns.Length > 2 ? 0 : 1];
                     float e1Before = ship.GunLayNow(g1).Elevation;
                     var res1 = mod.FireCommand(ship, null, null, g1.Code, "-", "-30");
                     var l1 = ship.GunLayNow(g1);
@@ -3130,8 +3132,10 @@ namespace Hansa
                     bool sheltered = cook != null && ShipShelter.IsSheltered(cook);
                     float warm = cook == null ? 0 : ShipShelter.HearthHeat(cook, sheltered);
                     float waist = deckhand == null ? -1 : ShipShelter.HearthHeat(deckhand, ShipShelter.IsSheltered(deckhand));
-                    Check(sheltered && ShipShelter.Room(cook)?.Code == "forecastle" && warm > 5 && waist == 0,
-                        $"while it burns the forecastle is warm: {warm:0.0} of its 10 for someone by it there (a closed room); none on the waist ({waist:0.0})");
+                    // ((25 October 2026) the caravel's galley stands in her steerage, under her quarterdeck)
+                    string hearthRoom = def.Code.StartsWith("carrack") ? "forecastle" : "steerage";
+                    Check(sheltered && ShipShelter.Room(cook)?.Code == hearthRoom && warm > 5 && waist == 0,
+                        $"while it burns the {hearthRoom} is warm: {warm:0.0} of its 10 for someone by it there (a closed room); none on the waist ({waist:0.0})");
                     WaitFor(() => !ship.Fire.IsBurning, 30, wentOut =>
                     {
                         double burnt = (sapi.World.ElapsedMilliseconds - lit) / 1000.0;

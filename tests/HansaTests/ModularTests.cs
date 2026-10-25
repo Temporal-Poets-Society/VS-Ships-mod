@@ -776,6 +776,15 @@ namespace HansaTests
                 if (e.Kind == "hatch") continue;
                 n++;
                 var m = l.ForModular(e);
+                // ((25 October 2026, caravel note 105) an entry standing on a start piece's top, the galley's oven on its
+                // table: its place is the stacked one the game makes once it lays the start pieces, which it does first)
+                if (m == null && e.At?.Length >= 3 && md.StartPieces != null && md.StartPieces.Any(sp =>
+                        sp.Mount != null && sp.Mount.StartsWith("f:") && l.Get(sp.Mount) is MountPoint f &&
+                        e.At[0] > f.X && e.At[0] < f.X + 1 && e.At[2] > f.Z && e.At[2] < f.Z + 1 && Math.Abs(e.At[1] - (f.Y + 1)) < 0.05))
+                {
+                    Console.WriteLine($"         {e.Key}: on a start piece's top (laid after it)");
+                    continue;
+                }
                 if (m == null)
                 {
                     // (a floor kind: why her cell there isn't a floor place)

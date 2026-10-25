@@ -99,13 +99,15 @@ namespace HansaTests
                         // (what has to work: the short stair up aft from the note's cell (the beam at x -2's length out), both
                         // ways from the cell to starboard of it (x -2's or x -4's); the others meet her mainmast at x -1..0 or
                         // the old hold hatchway's carling at z -0.5..-0.25 under main:-4:-1, fixed. (24 October 2026, note 73)
-                        // the place now under the cabin's front: the beams at x -6 and -8)
-                        bool want = cells == 1 && (toward == 0 || f == starboard);
+                        // the place now under the steerage, cell -9: the beams at x -8 and -10; both ways from the note's
+                        // cell, up aft from the one to starboard (up forward its landing is the hold's narrow after part,
+                        // where her side fills the cell))
+                        bool want = cells == 1 && (toward == 0 || f == sfoot);
                         rows.Add(($"{f?.Id} {cells} long up {(toward == 0 ? "aft" : "forward")}", got, want));
                     }
             foreach (var r in rows) Console.WriteLine($"         {r.What}: {r.Got}");
             var missing = rows.Where(r => r.Want && !r.Got.StartsWith("walked")).Select(r => $"{r.What}: {r.Got}").ToList();
-            Check(missing.Count == 0, $"with them, the short stair along her takes the beam's length over the cell before its foot out and is walked (up aft from {sfoot?.Id}, both ways from {starboard?.Id}){(missing.Count > 0 ? ": " + string.Join("; ", missing) : "")}");
+            Check(missing.Count == 0, $"with them, the short stair along her takes the beam's length over the cell before its foot out and is walked (both ways from {sfoot?.Id}, up aft from {starboard?.Id}){(missing.Count > 0 ? ": " + string.Join("; ", missing) : "")}");
             // its rule: the cell over it open first
             int seg = Enumerable.Range(0, sdef.Slots.Count).FirstOrDefault(n => sdef.Slots.Slots[n].IsBeam, -1);
             if (seg >= 0)
@@ -120,8 +122,9 @@ namespace HansaTests
 
         // (24 October 2026, caravel note 73: 2 blocks longer, her hold's hatch and stair on the centreline over the note's
         // cell (x -2.241, z -0.172); the same place between her frames, a rib cell either side, where her hold is as wide:
-        // x -6.241, under the cabin's front (further aft, at -8.241, the hold's after part is too narrow for a landing)
-        const double FootX = -6.241, FootZ = -0.172;
+        // x -6.241, under the cabin's front. (25 October 2026, draft D: the hatch -7..-4 over that cell, the main mast at -3)
+        // cell -9, the one left between two ribs clear of a hatch, a mast, the gates, the guns and the capstan
+        const double FootX = -8.241, FootZ = -0.172;
         static MountPoint HoldFoot(ShipDefinition def) =>
             def.Mounts.Floors.FirstOrDefault(m => m.Deck == "hold" && m.Level == 0 && m.X <= FootX && m.X + 1 > FootX && m.Z <= FootZ && m.Z + 1 > FootZ);
 

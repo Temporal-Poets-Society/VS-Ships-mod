@@ -24,6 +24,9 @@ VIEWS = {
     "quarterdeck-plan": f"plan&hide={HIDE_PLAN}&cutz=8600",
     "waist-three-quarter": f"deck&hide={HIDE_PLAN},Grid",
     "stern": f"stern&hide={HIDE_RIG},Grid",
+    # (25 October 2026, draft D) the quarterdeck from the head of the stair to starboard, the galley from the waist
+    "quarterdeck-from-stair-head": f"custom&eye=-6800,-2000,8700&at=-12500,300,7600&fov=75&hide={HIDE_PLAN},Grid",
+    "galley-from-waist": f"custom&eye=-4300,1600,5900&at=-8600,900,4700&fov=70&hide={HIDE_PLAN},Grid",
 }
 W, H = 1600, 900
 
