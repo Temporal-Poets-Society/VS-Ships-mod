@@ -1168,6 +1168,38 @@ namespace Hansa
         }
 
         /// <summary>
+        /// (0.1.0-dev.8, note 77) Where a ray (dir normalised) that meets solid voxels at t0 (<see cref="Raycast"/>) comes out
+        /// of them again: t where it enters the first voxel that isn't solid, or maxDist if they go on that far.
+        /// </summary>
+        public double SolidExit(Vec3d from, Vec3d dir, double t0, double maxDist)
+        {
+            double t = t0 + 1e-7;
+            Span<double> p = stackalloc double[] { from.X + dir.X * t, from.Y + dir.Y * t, from.Z + dir.Z * t };
+            Span<double> d = stackalloc double[] { dir.X, dir.Y, dir.Z };
+            Span<double> lo = stackalloc double[] { OX, OY, OZ };
+            Span<int> cell = stackalloc int[3];
+            Span<int> step = stackalloc int[3];
+            Span<double> tMax = stackalloc double[3];
+            Span<double> tDelta = stackalloc double[3];
+            for (int a = 0; a < 3; a++)
+            {
+                cell[a] = (int)Math.Floor((p[a] - lo[a]) / V);
+                if (d[a] > 0) { step[a] = 1; tMax[a] = t + (lo[a] + (cell[a] + 1) * V - p[a]) / d[a]; tDelta[a] = V / d[a]; }
+                else if (d[a] < 0) { step[a] = -1; tMax[a] = t + (lo[a] + cell[a] * V - p[a]) / d[a]; tDelta[a] = -V / d[a]; }
+                else { step[a] = 0; tMax[a] = double.MaxValue; tDelta[a] = double.MaxValue; }
+            }
+            while (t < maxDist)
+            {
+                if (!Solid(cell[0], cell[1], cell[2])) return t;
+                int ax = tMax[0] < tMax[1] ? (tMax[0] < tMax[2] ? 0 : 2) : (tMax[1] < tMax[2] ? 1 : 2);
+                t = tMax[ax];
+                cell[ax] += step[ax];
+                tMax[ax] += tDelta[ax];
+            }
+            return maxDist;
+        }
+
+        /// <summary>
         /// Like <see cref="Raycast"/>, and which cell the ray meets and through which of its faces it came in: axis 0 (x),
         /// 1 (y) or 2 (z), the face looking back along the ray; -1 if the ray starts in that cell. skipStart: a ray that
         /// starts inside solid cells (an eye against a wall) goes on until it has left them, instead of meeting them at once.

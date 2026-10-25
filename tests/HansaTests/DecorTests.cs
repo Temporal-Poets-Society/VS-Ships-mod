@@ -740,7 +740,7 @@ namespace HansaTests
                     d.Normalize();
                     var ov = new Vec3d(o[0], o[1], o[2]);
                     double wall = def.Grid.Raycast(ov, d, 30);
-                    int z = plan.Pick(ov, d, Math.Min(30, wall + 0.4), out _);
+                    int z = plan.Pick(ov, d, PaintPlan.Reach(def.Grid, ov, d, 30, wall), out _);
                     return z < 0 ? "-" : plan.Zones[z].Code;
                 }
                 var gc = def.Rooms.First(r => r.Code == "greatcabin");

@@ -81,6 +81,7 @@ namespace HansaTests
             if (Array.IndexOf(args, "holdstair") >= 0) { CaravelHoldStair(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "steerage") >= 0) { CaravelSteerage(root); CaravelNote49(root); CaravelNote48(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "gunclick") >= 0) { GunClicks(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
+            if (Array.IndexOf(args, "paint") >= 0) { CaravelPaint(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "grid-pieces") >= 0) { GridPieces(root); return 0; }
             if (Array.IndexOf(args, "holes") >= 0) return GridHoles(root, true) == 0 ? 0 : 1;
             if (Array.IndexOf(args, "startpieces") >= 0)
@@ -363,6 +364,7 @@ namespace HansaTests
             ShipStairs(def);
             DeckItems(root);
             GunClicks(root);
+            CaravelPaint(root);
             LanternGlass();
             CastleGunPorts(root);
             Notes0324(root);
