@@ -748,8 +748,11 @@ namespace Hansa
             int zi = plan.ZoneIndex(zoneCode);
             if (zi < 0) return "hansa:paint-where";
             var zone = plan.Zones[zi];
-            string err = ApplyPaintTool(slot, byEntity, creative, Paint.Of(zone.Code), plan.Area[zi], ShipPaint.Gildable(zone), at, out errArgs, out kind, out colour, out string now);
+            // ((0.1.0-dev.9) a row's zone: as the whole zone was painted, if it wasn't itself)
+            string err = ApplyPaintTool(slot, byEntity, creative, plan.PaintOf(Paint, zi), plan.Area[zi], ShipPaint.Gildable(zone), at, out errArgs, out kind, out colour, out string now);
             if (err != null) return err;
+            // ((0.1.0-dev.9) a zone painted whole before it was painted by rows: its rows that colour, this one as it's painted now)
+            plan.SplitRows(Paint);
             if (now == null) Paint.Zones.Remove(zone.Code);
             else Paint.Zones[zone.Code] = now;
             SavePaint();
@@ -862,6 +865,7 @@ namespace Hansa
         /// <summary>Set a zone's paint (or null: as built) without anyone's dye (the commands).</summary>
         public void SetPaint(string zone, string paint)
         {
+            Mod.PaintPlanFor(Def)?.SplitRows(Paint);
             if (paint == null) Paint.Zones.Remove(zone);
             else Paint.Zones[zone] = paint;
             SavePaint();

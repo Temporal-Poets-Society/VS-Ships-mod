@@ -208,7 +208,7 @@ namespace Hansa
                     var quad = quads[q];
                     string name = null;
                     if (zones != null && q < zones.Length && zones[q] >= 0 && zones[q] < plan.Zones.Length &&
-                        ship.Paint.Zones.TryGetValue(plan.Zones[zones[q]].Code, out var paint) && paint != null)
+                        plan.PaintOf(ship.Paint, zones[q]) is string paint)
                         name = ShipPaint.Painted(sd.TexNames[(int)quads[q][0]], paint);
                     // ((0.3.26) a hull panel's own planking with its damage's look on it; (0.3.28) a deck cell's)
                     if (sc.Looks != null && owners[q] >= 0 && facings[q] < 0 && owners[q] < sc.Looks.Length && sc.Looks[owners[q]] != 0)

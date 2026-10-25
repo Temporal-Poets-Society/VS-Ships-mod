@@ -108,6 +108,12 @@ namespace Hansa
         /// <summary>(0.3.28, D2.4) A lid's moving part code → its gun (FixtureDef.Lid).</summary>
         [JsonIgnore] public Dictionary<string, string> GunOfLid = new();
         public PaintZoneDef[] PaintZones;
+        /// <summary>
+        /// (0.1.0-dev.9, note 101: "hull below water line + some extra should not be paintable") The block rows over the
+        /// waterline's row that a zone painted by rows (<see cref="PaintZoneDef.Rows"/>) leaves as built with her bottom
+        /// (tar, copper): the boot-top.
+        /// </summary>
+        public int PaintMarginRows = 1;
         /// <summary>(0.3.14, notes 150–152) The generator's rig check: her standing rigging, which her sails are pressed against (<see cref="SailPress"/>).</summary>
         public RigCheckDef RigCheck;
         /// <summary>

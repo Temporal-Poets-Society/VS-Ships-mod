@@ -14,6 +14,15 @@ namespace Hansa
     public class PaintZoneDef
     {
         public string Code, Name, Kind, Default;
+        /// <summary>
+        /// (0.1.0-dev.9, note 101: "Above water line we should be able to paint hull in block level stripes") Painted a block
+        /// row at a time: each row of her grid (band, as her hull slots number them) its own zone, "&lt;code&gt;-band&lt;n&gt;";
+        /// the rows up to <see cref="ShipDefinition.PaintMarginRows"/> over the waterline's row (her tar or copper) none.
+        /// </summary>
+        public bool Rows;
+        /// <summary>A row's zone (<see cref="Rows"/>): the whole zone's code, and the band; else null, -1.</summary>
+        [Newtonsoft.Json.JsonIgnore] public string Parent;
+        [Newtonsoft.Json.JsonIgnore] public int Band = -1;
     }
 
     /// <summary>
@@ -148,13 +157,15 @@ namespace Hansa
         public static readonly string[] FaceNames = { "north", "east", "south", "west", "up", "down" };
 
         public readonly ShipDefinition Def;
-        public readonly PaintZoneDef[] Zones;
+        /// <summary>The design's zones, then (0.1.0-dev.9) each block row of a zone painted by rows (<see cref="PaintZoneDef.Rows"/>).</summary>
+        public PaintZoneDef[] Zones { get; private set; }
         /// <summary>Per smooth-mesh group, each quad's zone (-1: none).</summary>
         public readonly Dictionary<string, int[]> QuadZones = new();
         /// <summary>Per shape ("exterior", "interior"), element name → each face's zone (north, east, south, west, up, down; -1: none).</summary>
         public readonly Dictionary<string, Dictionary<string, int[]>> FaceZones = new();
-        public readonly double[] Area;
-        public readonly int[] QuadCount, FaceCount;
+        public double[] Area { get; private set; }
+        public int[] QuadCount { get; private set; }
+        public int[] FaceCount { get; private set; }
         readonly Dictionary<string, int> index = new();
         readonly List<Patch> patches = new();
         readonly Dictionary<long, List<int>> cells = new();
@@ -185,6 +196,71 @@ namespace Hansa
             Area = new double[Zones.Length];
             QuadCount = new int[Zones.Length];
             FaceCount = new int[Zones.Length];
+            if (Zones.Any(z => z?.Rows == true))
+            {
+                // (her rows numbered as her hull slots' bands: a slot's sill is the foot of its band's row)
+                var s = def.HullSlots?.Where(h => h != null && h.Head > h.Sill).GroupBy(h => Math.Round(h.Sill - h.Band, 3)).OrderByDescending(g => g.Count()).FirstOrDefault();
+                rowBase = s != null ? s.Key : def.DeckY;
+                rowFloor = RowOf(def.Waterline) + Math.Max(0, def.PaintMarginRows);
+            }
+        }
+
+        // (0.1.0-dev.9) the foot of her row 0, and the highest row a zone painted by rows doesn't have (her bottom's)
+        readonly double rowBase;
+        readonly int rowFloor = int.MaxValue;
+        readonly Dictionary<(int Zone, int Band), int> rowZones = new();
+
+        /// <summary>(0.1.0-dev.9) The block row (band) a height of hers is in: her hull slots' band numbers.</summary>
+        public int RowOf(double y) => (int)Math.Floor(y - rowBase + 1e-6);
+
+        /// <summary>The bands at and under it aren't painted, in a zone painted by rows: the waterline's and the margin over it.</summary>
+        public int RowFloor => rowFloor;
+
+        /// <summary>
+        /// A design zone's own zone for a surface at this height: the zone itself, or (a zone painted by rows) its row's zone
+        /// (made the first time), or -1 at or under the floor row.
+        /// </summary>
+        int Zoned(int zone, double y)
+        {
+            if (zone < 0 || zone >= Zones.Length || Zones[zone]?.Rows != true) return zone;
+            int band = RowOf(y);
+            if (band <= rowFloor) return -1;
+            if (rowZones.TryGetValue((zone, band), out int i)) return i;
+            var z = Zones[zone];
+            i = Zones.Length;
+            Zones = Zones.Append(new PaintZoneDef { Code = z.Code + "-band" + band, Name = $"{z.Name} (band {band})", Kind = z.Kind, Default = z.Default, Parent = z.Code, Band = band }).ToArray();
+            Area = Area.Append(0).ToArray();
+            QuadCount = QuadCount.Append(0).ToArray();
+            FaceCount = FaceCount.Append(0).ToArray();
+            index[Zones[i].Code] = i;
+            rowZones[(zone, band)] = i;
+            return i;
+        }
+
+        /// <summary>
+        /// The paint a zone of hers has: its own; a row's zone with none of its own, the whole zone's (painted before it was
+        /// painted by rows).
+        /// </summary>
+        public string PaintOf(ShipPaintState st, int zone)
+        {
+            if (st == null || zone < 0 || zone >= Zones.Length) return null;
+            var z = Zones[zone];
+            return st.Of(z.Code) ?? (z.Parent != null ? st.Of(z.Parent) : null);
+        }
+
+        /// <summary>A zone painted by rows painted whole before (its code in her paint): each of its rows that colour instead. True if any was.</summary>
+        public bool SplitRows(ShipPaintState st)
+        {
+            if (st == null) return false;
+            bool any = false;
+            foreach (var z in Zones)
+            {
+                if (z?.Rows != true || st.Of(z.Code) is not string p) continue;
+                foreach (var r in Zones) if (r.Parent == z.Code && !st.Zones.ContainsKey(r.Code)) st.Zones[r.Code] = p;
+                st.Zones.Remove(z.Code);
+                any = true;
+            }
+            return any;
         }
 
         /// <summary>
@@ -214,9 +290,12 @@ namespace Hansa
                         if (zone < 0 || zone >= nz) continue;
                         for (int q = Math.Max(0, r[i]); q < Math.Min(quads.Length, r[i + 1]); q++)
                         {
-                            z[q] = zone;
+                            // ((0.1.0-dev.9) a zone painted by rows: the row the quad is in, a hair inside it from its face)
+                            int zq = plan.Zoned(zone, QuadInY(quads[q]));
+                            if (zq < 0) continue;
+                            z[q] = zq;
                             plan.slotQuad = q;
-                            plan.AddQuad(zone, quads[q]);
+                            plan.AddQuad(zq, quads[q]);
                         }
                     }
                     plan.QuadZones[kv.Key] = z;
@@ -252,8 +331,10 @@ namespace Hansa
                         {
                             int fi = Array.IndexOf(FaceNames, fz.Key);
                             if (fi < 0 || fz.Value < 0 || fz.Value >= nz) continue;
-                            f[fi] = fz.Value;
-                            plan.AddFace(fz.Value, b, fi);
+                            int zf = plan.Zoned(fz.Value, fi == 4 ? b[4] - 0.01 : fi == 5 ? b[1] + 0.01 : (b[1] + b[4]) / 2);
+                            if (zf < 0) continue;
+                            f[fi] = zf;
+                            plan.AddFace(zf, b, fi);
                         }
                         map[el.Key] = f;
                     }
@@ -275,7 +356,7 @@ namespace Hansa
                             if ((mask >> fi & 1) != 0 && (zf == null || zf[fi] < 0)) plan.AddFace(-1, b, fi);
                     }
                 }
-            for (int i = 0; i < nz; i++) plan.Area[i] = Math.Round(plan.Area[i], 2);
+            for (int i = 0; i < plan.Zones.Length; i++) plan.Area[i] = Math.Round(plan.Area[i], 2);
             return plan;
         }
 
@@ -285,6 +366,14 @@ namespace Hansa
         bool hullRefs;
         // (0.1.0-dev.8) while a moving part's group's quads are added: the group
         string part;
+
+        /// <summary>A quad's height for its row: its middle, a hair in from its face (a top on a row's boundary is the row under it).</summary>
+        static double QuadInY(float[] q)
+        {
+            if (q == null || q.Length < 33) return 0;
+            double y = (q[2] + q[10] + q[18] + q[26]) / 4, ny = (q[7] + q[15] + q[23] + q[31]) / 4;
+            return y - 0.01 * Math.Sign(ny) * Math.Min(1, Math.Abs(ny) * 4);
+        }
 
         static string PartOf(string group) => group != null && group.StartsWith("part:") ? group : null;
 
