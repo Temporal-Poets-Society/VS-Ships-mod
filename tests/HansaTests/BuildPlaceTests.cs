@@ -113,7 +113,7 @@ namespace HansaTests
 
             // ---- note 74: the oven on a block put on her deck, as on the deck itself
             {
-                var floor = l.FloorAt("main", -11, -1);
+                var floor = l.FloorAt("main", -13, -1);   // (her steerage, 2 aft since note 73)
                 var up = l.Above(floor);
                 var set = new ShipPieceSet();
                 if (floor != null) set.Add(ShipPiece.From(Put(floor, block, 1), set.NextId, null));
@@ -127,9 +127,9 @@ namespace HansaTests
             // ---- note 72: a partition on the quarterdeck's front is drawn up to the deck's top from either side of the line
             {
                 var surf = SurfacesOf(def, Path.Combine(root, "assets", "hansa"));
-                var waist = l.Get("b:main:-5:-3:w:2");
+                var waist = l.Get("b:main:-7:-2:w:2");   // (the quarterdeck's front, 2 aft since note 73; the outer cell's top row is her wider cap rail's, note 69)
                 var steerage = l.TwinOf(waist);
-                double Top(MountPoint m) => (l.DrawnClip(m, surf) ?? m.Clip ?? new List<double[]> { new[] { 0, m.Y, 0, m.Y + 1 } }).Where(c => c[0] < -1.6 && c[2] > -2.2).Select(c => c[3]).DefaultIfEmpty(double.NaN).Max();
+                double Top(MountPoint m) => (l.DrawnClip(m, surf) ?? m.Clip ?? new List<double[]> { new[] { 0, m.Y, 0, m.Y + 1 } }).Select(c => c[3]).DefaultIfEmpty(double.NaN).Max();
                 Check(surf != null && waist != null && steerage != null && Math.Abs(Top(waist) - 4.125) < 1e-6 && Math.Abs(Top(steerage) - 4.125) < 1e-6,
                     $"note 72: the top partition under the quarterdeck's front drawn to its top from either side ({(waist == null || steerage == null ? "no places" : $"{waist.Id} to {Top(waist):0.###}, {steerage.Id} to {Top(steerage):0.###}")})");
                 var unlike = new List<string>();
@@ -253,10 +253,10 @@ namespace HansaTests
 
             // ---- note 57: the partition under the main deck's beam in her hold, aimed at with an axe: her own planking is behind it
             {
-                var bm = l.Get("b:hold:-7:-2:w:2");
+                var bm = l.Get("b:hold:-9:-2:w:2");   // (2 aft since note 73, the eye with it)
                 var set = new ShipPieceSet();
                 if (bm != null) set.Add(ShipPiece.From(PiecePlanner.Plan(l, bm, block, 1), set.NextId, null));
-                var eye = new Vec3d(-5.751, -0.174, -0.309);
+                var eye = new Vec3d(-7.751, -0.174, -0.309);
                 var d = new Vec3d(-0.8352, 0.3157, -0.4504);
                 var got = set.Pick(eye, d, 5, out double t);
                 double behind = g.RaycastCell(eye, d, 6, out _, out _, out _, out _);
