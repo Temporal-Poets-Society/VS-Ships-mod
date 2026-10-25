@@ -83,6 +83,7 @@
     <Compile Include="..\..\src\Ship\ShipMotion.cs" Link="Ship\ShipMotion.cs" />
     <Compile Include="..\..\src\Ship\Sailing.cs" Link="Ship\Sailing.cs" />
     <Compile Include="..\..\src\Ship\PartMotion.cs" Link="Ship\PartMotion.cs" />
+    <Compile Include="..\..\src\Ship\SwivelGun.cs" Link="Ship\SwivelGun.cs" />
     <Compile Include="..\..\src\Ship\Cannons.cs" Link="Ship\Cannons.cs" />
     <Compile Include="..\..\src\Ship\GunLaying.cs" Link="Ship\GunLaying.cs" />
     <Compile Include="..\..\src\Ship\HeldUse.cs" Link="Ship\HeldUse.cs" />
@@ -102,6 +103,7 @@
     <Compile Include="..\..\src\Client\SeeThroughFaces.cs" Link="Client\SeeThroughFaces.cs" />
     <!-- (0.1.0-dev.9, notes 61, 66) her gates picked where their leaves stand, their swing; a lantern in its own light -->
     <Compile Include="GateLanternTests.cs" />
+    <Compile Include="SwivelTests.cs" />
     <!-- decorating: mount points, pieces, paint -->
     <Compile Include="DecorTests.cs" />
     <Compile Include="DriveTests.cs" />

@@ -26,6 +26,8 @@ namespace Hansa
         {
             public CannonDef D;
             public ShotState Now;
+            /// <summary>(25 October 2026) How big it's drawn: its gun's bore to a great gun's (a swivel gun's small ball), 1 for those.</summary>
+            public float Scale = 1;
             /// <summary>World.ElapsedMilliseconds when Now.Time was 0 (the packet came).</summary>
             public long StartMs;
 
@@ -65,9 +67,11 @@ namespace Hansa
                         var ship = capi.World.GetEntityById(p.ShipId) as EntityShip;
                         var gun = ship?.Def != null && p.Gun >= 0 && p.Gun < ship.Def.Fixtures.Length ? ship.Def.Fixtures[p.Gun] : null;
                         if (gun?.Type == "gun") ship.GunFired(gun);
-                        Balls[p.Id] = new Flying { D = ship?.Def?.Cannon ?? new CannonDef(), Now = state, StartMs = now };
+                        // ((25 October 2026) a swivel gun's: a small ball, a smaller report)
+                        float scale = gun?.Swivel == true ? Math.Clamp(gun.Bore / 0.14f, 0.2f, 1) : 1;
+                        Balls[p.Id] = new Flying { D = ship?.Def?.Cannon ?? new CannonDef(), Now = state, StartMs = now, Scale = scale };
                         AddFlash(p.X, p.Y, p.Z, now);
-                        Report(p.X, p.Y, p.Z, ship?.Def?.Cannon ?? new CannonDef());
+                        Report(p.X, p.Y, p.Z, ship?.Def?.Cannon ?? new CannonDef(), gun?.Swivel == true ? 0.45f : 1);
                         break;
                     }
                     case ShotPacket.Going:
@@ -97,7 +101,7 @@ namespace Hansa
         /// three seconds of rumble): one of our short shots (CannonDef.Report + 1..ReportVariants), at the muzzle, its pitch a
         /// little different each time, no reverb; further off quieter (the engine's distance), duller and a little lower.
         /// </summary>
-        void Report(double x, double y, double z, CannonDef d)
+        void Report(double x, double y, double z, CannonDef d, float loud = 1)
         {
             var me = capi.World.Player?.Entity;
             double dist = me == null ? 0 : me.Pos.DistanceTo(new Vec3d(x, y, z));
@@ -113,7 +117,7 @@ namespace Hansa
                 DisposeOnFinish = true,
                 Range = d.ReportRange,
                 ReferenceDistance = 12,
-                Volume = d.ReportVolume,
+                Volume = d.ReportVolume * loud,
                 Pitch = (float)(0.92 + rand.NextDouble() * 0.16 - 0.1 * far),
                 // ((0.3.27, the user: "muffled") mild: clear near by, a little dull only far off)
                 LowPassFilter = (float)(1 - 0.6 * far * far),
@@ -166,12 +170,12 @@ namespace Hansa
             capi.Render.AddPointLight(fl);
         }
 
-        /// <summary>Where each ball is drawn now (none once something failed).</summary>
-        public IEnumerable<Vec3d> Drawn()
+        /// <summary>Where each ball is drawn now, and how big (none once something failed).</summary>
+        public IEnumerable<(Vec3d At, float Scale)> Drawn()
         {
             if (failed || Balls.Count == 0) yield break;
             long now = capi.World.ElapsedMilliseconds;
-            foreach (var f in Balls.Values) yield return f.Drawn(now);
+            foreach (var f in Balls.Values) yield return (f.Drawn(now), f.Scale);
         }
 
         void Fail(Exception e)

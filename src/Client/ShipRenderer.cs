@@ -2001,6 +2001,8 @@ namespace Hansa
                     prog.AlphaTest = 0f;
                 }
                 DrawStowedBoats(rapi, prog, ship);
+                // ((25 October 2026) her swivel guns on her rail, from their own shape)
+                DrawSwivels(rapi, prog, ship);
 
                 // the figurehead she carries, and her name on the transom
                 prog.ModelMatrix = model.Values;
@@ -2084,12 +2086,14 @@ namespace Hansa
                 var cam = ep.CameraPos;
                 rapi.GlToggleBlend(false);
                 rapi.GlEnableCullFace();
-                foreach (var p in cannons.Drawn())
+                foreach (var (p, scale) in cannons.Drawn())
                 {
                     prog = rapi.PreparedStandardShader((int)Math.Floor(p.X), (int)Math.Floor(p.Y), (int)Math.Floor(p.Z));
                     prog.ViewMatrix = rapi.CameraMatrixOriginf;
                     prog.ProjectionMatrix = rapi.CurrentProjectionMatrix;
                     model.Identity().Translate(p.X - cam.X, p.Y - cam.Y, p.Z - cam.Z);
+                    // ((25 October 2026) a swivel gun's ball smaller: the shot mesh is a great gun's, about the origin)
+                    if (scale != 1) model.Scale(scale, scale, scale);
                     prog.ModelMatrix = model.Values;
                     rapi.RenderMultiTextureMesh(mesh, "tex");
                     prog.Stop();
@@ -2842,6 +2846,7 @@ namespace Hansa
             DisposeAllSlots();
             DisposeAllScars();
             DisposeAllBrows();
+            DisposeSwivels();
             foreach (var pl in registeredLights) capi.Render.RemovePointLight(pl);
             registeredLights.Clear();
             lights.Clear();

@@ -8602,6 +8602,98 @@
     1.125,
     -1.0
    ]
+  },
+  {
+   "type": "gun",
+   "kind": "swivel",
+   "code": "swivel-port-1",
+   "pos": [
+    -13.0,
+    5.145,
+    -2.285
+   ],
+   "out": [
+    0.0,
+    0.0,
+    -1.0
+   ],
+   "trainLimits": [
+    -80.0,
+    80.0
+   ],
+   "elevationLimits": [
+    -25.0,
+    30.0
+   ]
+  },
+  {
+   "type": "gun",
+   "kind": "swivel",
+   "code": "swivel-starboard-1",
+   "pos": [
+    -13.0,
+    5.145,
+    2.285
+   ],
+   "out": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "trainLimits": [
+    -80.0,
+    80.0
+   ],
+   "elevationLimits": [
+    -25.0,
+    30.0
+   ]
+  },
+  {
+   "type": "gun",
+   "kind": "swivel",
+   "code": "swivel-port-2",
+   "pos": [
+    -9.5,
+    5.125,
+    -2.465
+   ],
+   "out": [
+    0.0,
+    0.0,
+    -1.0
+   ],
+   "trainLimits": [
+    -80.0,
+    80.0
+   ],
+   "elevationLimits": [
+    -25.0,
+    30.0
+   ]
+  },
+  {
+   "type": "gun",
+   "kind": "swivel",
+   "code": "swivel-starboard-2",
+   "pos": [
+    -9.5,
+    5.125,
+    2.465
+   ],
+   "out": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "trainLimits": [
+    -80.0,
+    80.0
+   ],
+   "elevationLimits": [
+    -25.0,
+    30.0
+   ]
   }
  ],
  "ladders": [

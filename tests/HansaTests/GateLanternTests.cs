@@ -57,6 +57,22 @@ namespace HansaTests
                 Check(shutHit == port && openHit == port, $"note 61's eye: the port gate shut at its place ({shutHit?.Code ?? "nothing"}), open at its leaf ({openHit?.Code ?? "nothing"})");
             }
 
+            // (25 October 2026, note 91: "here opening click on gate does not register") note 91's ray, the starboard gate shut:
+            // it meets her collision at the gate's jamb foot, a cell the shut gate fills (her grid rounds its box out to x -1.0,
+            // its selection box starts at -0.91); the crosshair named the gate there, and now the click takes it too (as she
+            // rolled 1.61° then, either way)
+            var stbd = gates.FirstOrDefault(f => f.Code == "gate-starboard");
+            if (stbd != null)
+                foreach (double roll in new[] { 0.0, 1.61, -1.61 })
+                {
+                    double r = roll * Math.PI / 180, ly = -0.6357, lz = 0.7718;
+                    var look = new Vec3d(-0.0143, ly * Math.Cos(r) - lz * Math.Sin(r), ly * Math.Sin(r) + lz * Math.Cos(r));
+                    var grid = def.Grid.Clone();
+                    ShipFittings.ApplySolids(def, grid, f => false, f => null);
+                    var hit = ShipFittings.Pick(def, grid, new Vec3d(-0.929, 2.824, 1.098), look, 4.5, f => true, f => false, f => null, out double t);
+                    Check(hit == stbd, $"note 91's ray (rolled {roll}°), the gate shut: takes {hit?.Code ?? "nothing"} at {t:0.00}");
+                }
+
             // the leaves swung open as drawn, against her own faces round the port
             if (file?.Groups == null) { Console.WriteLine("  (her mesh file not there: the swing not checked)"); return; }
             foreach (var g in gates)
@@ -193,11 +209,13 @@ namespace HansaTests
                     res = m.Step(open, 1 / 60f, 0, s, 3.5, false, false, 1, def.Ladders, 1);
                     if (m.Climbing == l && double.IsNaN(caught)) caught = before;
                 }
-                Check(!double.IsNaN(caught) && Math.Abs(caught) >= Math.Min(Math.Abs(stop), Math.Abs(l.ExitTop[2])) - 0.1,
-                    $"{l.Code}: taken at z {caught:0.00}, where she stops you at the port ({stop:0.00}; its top exit {l.ExitTop[2]:0.00}); till dev.8 from {s * (Math.Abs(l.ExitTop[2]) - 1):0.00}");
+                // (her collision may stop a man short of the top exit (dev.8's 0.5 gap); a wider gap lets him walk on out)
+                bool stopped = Math.Abs(stop) < Math.Abs(l.Top[2]);
+                Check(!double.IsNaN(caught) && Math.Abs(caught) >= Math.Min(stopped ? Math.Abs(stop) : double.MaxValue, Math.Abs(l.ExitTop[2])) - 0.1,
+                    $"{l.Code}: taken at z {caught:0.00}, {(stopped ? $"where she stops you at the port ({stop:0.00})" : "she doesn't stop you short of it")}, its top exit {l.ExitTop[2]:0.00}; till dev.8 from {s * (Math.Abs(l.ExitTop[2]) - 1):0.00}");
                 Check(res == DeckMover.Result.LeftShip && Math.Abs(m.Y - l.ExitBottom[1]) < 0.01, $"{l.Code}: and down it into the water ({res})");
                 // a step short of where she stops you, walking out: not yet; at its top exit (as a climber comes off it): yes
-                var near = new DeckMover(l.ExitTop[0], l.ExitTop[1], stop - s * 0.3);
+                var near = new DeckMover(l.ExitTop[0], l.ExitTop[1], (stopped ? stop : l.ExitTop[2]) - s * 0.3);
                 Check(near.LadderAhead(def.Ladders, 0, s, out _, open) == null && DeckMover.AtTop(l, l.ExitTop[0], l.ExitTop[2]),
                     $"{l.Code}: 0.3 short of the port it doesn't take you; at its top exit it does");
                 // along her deck past the port (pressed to her side, walking aft and forward), and out with the gate shut: never
@@ -237,6 +255,70 @@ namespace HansaTests
             bool free = !def.Grid.Collides(b[0] + 0.03, b[1] + 0.03, b[2] + 0.03, b[3] - 0.03, b[4] - 0.03, b[5] - 0.03);
             Check(behind && b[0] >= m.X - 0.01 && b[3] - b[0] > 0.99 && b[5] - b[2] > 0.99,
                 $"{m.Id}: against her stem's fore face at x {m.X:0.00}, its block in front ({Box(new Cuboidd(b[0], b[1], b[2], b[3], b[4], b[5]))}){(free ? "" : ", partly in her collision's cells there")}");
+            // (25 October 2026, note 100: "cannot place figure head") note 100's crosshair, from her main deck at the stem head:
+            // what it meets of her is within reach of the place (a figurehead in hand goes there; till dev.9 only places
+            // next to what was met, and this one is on the far side of the stem)
+            var eye = new Vec3d(6.624, 2.819, 1.111);
+            var look = new Vec3d(0.9128, 0.2436, -0.3277);
+            bool met = AimPlace.GridHit(def.Grid, eye, look, 5.5, out double t, out _);
+            double away = met ? AimPlace.BoxDistance(b, eye.X + look.X * t, eye.Y + look.Y * t, eye.Z + look.Z * t) : double.NaN;
+            Check(met && away < AimPlace.FigureheadReach, $"note 100's crosshair meets her stem {away:0.00} from the place (within {AimPlace.FigureheadReach})");
+            // and the crosshair on her mainmast or her deck amidships doesn't take it
+            bool mast = AimPlace.GridHit(def.Grid, new Vec3d(2, 2.8, 0), new Vec3d(-1, 0, 0), 5, out double tm, out _);
+            Check(!mast || AimPlace.BoxDistance(b, 2 - tm, 2.8, 0) > AimPlace.FigureheadReach, "the crosshair on her mainmast is nowhere near it");
+        }
+
+        /// <summary>
+        /// (25 October 2026, caravel note 102: "does rudder and handle work geometrically. handle applies torque in different
+        /// axis than rudder swivels") Her rudder and tiller turn as one about the rudder's own axis (the same axis in her
+        /// moving parts, so one rotation), and that axis is the rudder's hinge line: her rudder's fore edge lies on it from
+        /// heel to head. Reported: the tiller's angle to it (90° sweeps a plane at right angles to the axis; less, a cone) and
+        /// how far its tip rises or drops at full helm.
+        /// </summary>
+        static void CaravelRudder(string root)
+        {
+            Console.WriteLine("the caravel's rudder and tiller (note 102)");
+            var (def, file) = LoadHullDesign(root, "caravel");
+            var rudder = def.MovingParts.FirstOrDefault(p => p.Code == "rudder");
+            var tiller = def.MovingParts.FirstOrDefault(p => p.Code == "tiller");
+            Check(rudder != null && tiller != null && rudder.Source == tiller.Source && rudder.Angle == tiller.Angle &&
+                  Enumerable.Range(0, 3).All(i => Math.Abs(rudder.AxisPoint[i] - tiller.AxisPoint[i]) < 1e-6 && Math.Abs(rudder.AxisDir[i] - tiller.AxisDir[i]) < 1e-6),
+                "her rudder and tiller turn about one axis, by the same helm");
+            if (rudder == null || tiller == null || file?.Groups == null) return;
+            double[] a = rudder.AxisPoint, u = rudder.AxisDir;
+            double ul = Math.Sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2]);
+            u = new[] { u[0] / ul, u[1] / ul, u[2] / ul };
+            // the rudder: its nearest points to the axis, all along it (sampled inside its faces)
+            double worst = 0;
+            var near = new SortedDictionary<int, double>();
+            foreach (var q in file.Groups.TryGetValue(rudder.PartGroup, out var rq) ? rq : Array.Empty<float[]>())
+                for (double s = 0; s <= 1; s += 0.2)
+                    for (double t = 0; t <= 1; t += 0.2)
+                    {
+                        double[] p = new double[3];
+                        for (int k = 0; k < 3; k++)
+                            p[k] = (1 - s) * ((1 - t) * q[1 + k] + t * q[9 + k]) + s * ((1 - t) * q[25 + k] + t * q[17 + k]);
+                        double[] r = { p[0] - a[0], p[1] - a[1], p[2] - a[2] };
+                        double along = r[0] * u[0] + r[1] * u[1] + r[2] * u[2];
+                        double off = Math.Sqrt(Math.Max(0, r[0] * r[0] + r[1] * r[1] + r[2] * r[2] - along * along));
+                        int bin = (int)Math.Floor(along / 0.5);
+                        near[bin] = near.TryGetValue(bin, out double v) ? Math.Min(v, off) : off;
+                    }
+            foreach (var v in near.Values) worst = Math.Max(worst, v);
+            Check(near.Count > 4 && worst < 0.1, $"her rudder hangs on that axis: its fore edge within {worst:0.000} of it all along its {near.Count * 0.5:0.0} blocks");
+            // the tiller's long way and its tip at full helm
+            var tq = file.Groups.TryGetValue(tiller.PartGroup, out var tqs) ? tqs : Array.Empty<float[]>();
+            var tips = tq.SelectMany(q => Enumerable.Range(0, 4).Select(k => new[] { (double)q[1 + 8 * k], q[2 + 8 * k], q[3 + 8 * k] })).ToList();
+            if (tips.Count == 0) return;
+            var fore = tips.OrderByDescending(p => p[0]).First();
+            var aft = tips.OrderBy(p => p[0]).First();
+            double[] dv = { fore[0] - aft[0], fore[1] - aft[1], fore[2] - aft[2] };
+            double dl = Math.Sqrt(dv[0] * dv[0] + dv[1] * dv[1] + dv[2] * dv[2]);
+            double angle = Math.Acos(Math.Abs((dv[0] * u[0] + dv[1] * u[1] + dv[2] * u[2]) / dl)) * 180 / Math.PI;
+            var m = new float[16];
+            PartMotion.Place(tiller, 1, m, null);
+            double y1 = m[1] * fore[0] + m[5] * fore[1] + m[9] * fore[2] + m[13];
+            Console.WriteLine($"  --   her tiller lies at {angle:0}° to that axis (90°: it sweeps a plane square to it); at full helm its tip {(y1 - fore[1] >= 0 ? "rises" : "drops")} {Math.Abs(y1 - fore[1]):0.00}");
         }
 
         static string Box(Cuboidd b) => b == null ? "none" : $"{b.X1:0.##} {b.Y1:0.##} {b.Z1:0.##} .. {b.X2:0.##} {b.Y2:0.##} {b.Z2:0.##}";

@@ -262,7 +262,7 @@ namespace Hansa
                 if (w.Decay) Specks();
                 foreach (long k in cells.Keys.ToList()) if (CellsIn(k) == 0) cells.Remove(k);
                 for (int i = 0; i < w.Containers.Length; i++) plan.Containers.Add(Container(w.Containers[i]));
-                if (w.Guns) foreach (var f in def.Fixtures) if (f.Type == "gun" && (w.GunsGone == null || Array.IndexOf(w.GunsGone, f.Code) < 0)) { var s = Gun(f); if (s != null) plan.Guns.Add(s); }
+                if (w.Guns) foreach (var f in def.Fixtures) if (f.Type == "gun" && !f.Swivel && (w.GunsGone == null || Array.IndexOf(w.GunsGone, f.Code) < 0)) { var s = Gun(f); if (s != null) plan.Guns.Add(s); }
                 for (int i = 0; i < w.ExtraChests; i++) { var s = ExtraChest(i); if (s != null) plan.Extra.Add(s); }
                 Sediment();
                 Finish();

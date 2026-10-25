@@ -408,9 +408,10 @@ namespace Hansa
             var m = Mounts.Get(mountId);
             if (m == null) return "hansa:piece-nowhere";
             // (after 0.1.0-dev.6) building mode puts ship structure only; decoration goes aboard with it off
-            // ((24 October 2026, caravel note 66) but a lantern on a hook: it's taken down in building mode too)
+            // ((24 October 2026, caravel note 66) but a lantern on a hook: it's taken down in building mode too; (25 October,
+            // note 100) and a figurehead on its place)
             if (VanillaPieceBlock.BuildingRefusal(stack.Block, VanillaPieceBlock.BuildingMode(player.Entity)) is string berr &&
-                !(m.Kind == MountKind.Hook && new VanillaPieceBlock(World, stack).Light)) return berr;
+                !(m.Kind == MountKind.Hook && (new VanillaPieceBlock(World, stack).Light || VanillaPieceBlock.IsFigurehead(stack.Block)))) return berr;
             if (!InReach(player, m.CX, m.CY, m.CZ)) return "hansa:piece-too-far";
             if (m.Kind != MountKind.Hook && !SeenBy(player, m.Box)) return "hansa:piece-too-far";
             // (0.3.18) building mode (0.3.19: the player's toggle, not a saw in the off hand)

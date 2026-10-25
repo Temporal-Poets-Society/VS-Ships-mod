@@ -2230,7 +2230,8 @@ namespace Hansa
             var target = Launch(sz + 17);
             // (a new ship's guns: a design with gun places starting empty, carrack-m's castles', has only its laid ones)
             bool Laid(FixtureDef f) => !def.GunPlaceOf.TryGetValue(f.Code, out var gp) || gp.StartsLaid;
-            var guns = def.Fixtures.Where(f => f.Type == "gun" && Laid(f)).ToArray();
+            // ((25 October 2026) her great guns: her swivel guns are checked on their own, SwivelWorks)
+            var guns = def.Fixtures.Where(f => f.Type == "gun" && !f.Swivel && Laid(f)).ToArray();
             // (20 October 2026) the lowest deck's first, then aft to fore: the caravel's quarterdeck guns stand 3 higher than
             // her waist's, and one laid down at the chicken would put its ball into the water short of the pool's wall (the
             // carracks' laid guns are all on their main deck: aft to fore, as before)
@@ -2290,6 +2291,30 @@ namespace Hansa
 
             WaitFor(() => false, 2, w0 =>
             {
+                // ---- (25 October 2026, the user's decision) her swivel guns: one on her side toward the other ship is laid within
+                // its arc as asked, past it only to its limit; laid at the other ship's rail abreast of it, it fires a small ball
+                // that strikes her (checked with the chicken's shot, below), and fires again only after its own short reload
+                var swivel = def.Fixtures.Where(f => f.Swivel).FirstOrDefault(f => Math.Sign(f.Out[2]) == Math.Sign(shooter.WorldToLocal(target.Pos.X, target.Pos.Y, target.Pos.Z).Z));
+                CannonShots.Ball sb = null;
+                string swErr = null, swAgain = null;
+                bool swArc = false;
+                GunLay swLay = default, swPast = default;
+                if (swivel != null)
+                {
+                    shooter.SetGunLay(swivel, new GunLay(40, 12));
+                    var within = shooter.GunLayNow(swivel);
+                    shooter.SetGunLay(swivel, new GunLay(120, 50));
+                    swPast = shooter.GunLayNow(swivel);
+                    swArc = Math.Abs(within.Train - 40) < 0.01 && Math.Abs(within.Elevation - 12) < 0.01 && Math.Abs(swPast.Train - 80) < 0.01 && swPast.Elevation <= 30;
+                    target.LocalToWorld(swivel.Pos[0], swivel.Pos[1] + 0.2, -swivel.Pos[2], out double ax, out double ay, out double az);
+                    var tl = shooter.WorldToLocal(ax, ay, az);
+                    GunLaying.MuzzleLocal(swivel, new GunLay(0, 0), out var sm, out _);
+                    swLay = GunLaying.FromLocalDir(swivel, tl.X - sm.X, tl.Y - sm.Y, tl.Z - sm.Z);
+                    shooter.SetGunLay(swivel, swLay);
+                    swErr = shooter.FireGun(swivel, null, null);
+                    sb = Last();
+                    swAgain = shooter.FireGun(swivel, null, null);
+                }
                 // a chicken on a platform off her port side, abreast of her first port gun, 8 blocks out
                 var g1 = port[0];
                 shooter.GunMuzzle(g1, 0, out var m1, out _);
@@ -2329,6 +2354,18 @@ namespace Hansa
                         Check(stop != null && stop.At.Z < z0 + 1.5 && ba.GetBlock(new BlockPos((int)Math.Floor(stop.At.X), (int)Math.Floor(stop.At.Y), z0, 0)).Id == stone.Id,
                             $"and goes on into the pool's wall, where it stops: the wall still stands ({stop?.At.Z - z0:0.00} from it)");
                         Check(again == "hansa:gun-reloading" && shooter.GunReloading(g1) > def.Cannon.Cooldown - 2, $"it can't fire again at once: {again} ({shooter.GunReloading(g1):0.0} s)");
+                        if (swivel != null)
+                        {
+                            var rs = Of(sb);
+                            var struck = rs.FirstOrDefault(r => r.What == "ship" && r.Entity == target.EntityId);
+                            double greatKj = Ballistics.Energy(def.Cannon, def.Cannon.ShotMass, v);
+                            Check(swArc && swErr == null && sb != null && Math.Abs(sb.Mass - swivel.Shot) < 1e-6 && struck != null && struck.Energy < greatKj / 4 &&
+                                  swAgain == "hansa:gun-reloading" && swivel.Reload < def.Cannon.Cooldown,
+                                $"her swivel gun {swivel.Code}: laid 40° by 12° as asked, past its arc (120°, 50°) only to {swPast}; laid at the other ship's rail ({swLay}) it fires ({swErr ?? "ok"}) " +
+                                $"a {sb?.Mass} kg ball that strikes her ({string.Join(", ", rs.Select(r => r.What))}; {struck?.Energy:0.0} kJ there, a great gun's {greatKj:0} at its muzzle); " +
+                                $"again at once: {swAgain}, ready again in {swivel.Reload} s (a great gun {def.Cannon.Cooldown} s)");
+                        }
+                        else Log($"{def.Code} has no swivel gun toward the other ship: the swivel checks are for ships with them");
                         mod.Config.Cannons = false;
                         string off = shooter.FireGun(port[1], null, null);
                         mod.Config.Cannons = true;
@@ -2381,7 +2418,7 @@ namespace Hansa
         {
             var shots = mod.Shots;
             // (the guns she carries: a design's gun places that start empty, carrack-m's castles', have none to lay)
-            var guns = def.Fixtures.Where(f => f.Type == "gun" && f.Out[2] > 0 && ship.GunMounted(f)).OrderBy(f => f.Pos[0]).ToArray();
+            var guns = def.Fixtures.Where(f => f.Type == "gun" && !f.Swivel && f.Out[2] > 0 && ship.GunMounted(f)).OrderBy(f => f.Pos[0]).ToArray();
             double v = def.Cannon.MuzzleVelocity;
             // how far a ball's first velocity (less her own way) is from the way the gun is laid, degrees; and its start from the muzzle
             void Along(CannonShots.Ball b, FixtureDef gun, GunLay lay, out double angle, out double fromMuzzle)
@@ -2789,7 +2826,7 @@ namespace Hansa
                     $"{string.Join(", ", after.Select(kv => kv.Value + " " + kv.Key.Replace("game:", "")))}; {rep.Dropped} dropped");
                 // her guns
                 int guns = plan.Guns.Count(s => ba.GetBlock(new BlockPos(s.X, s.Y, s.Z, 0))?.Code?.ToString() == "hansa:gun-bronze-" + s.Side);
-                int gunsWant = def.Fixtures.Count(f => f.Type == "gun" && (!def.GunPlaceOf.TryGetValue(f.Code, out var gp) || gp.StartsLaid));
+                int gunsWant = def.Fixtures.Count(f => f.Type == "gun" && !f.Swivel && (!def.GunPlaceOf.TryGetValue(f.Code, out var gp) || gp.StartsLaid));
                 Check(guns == gunsWant && rep.Guns == gunsWant, $"her {gunsWant} bronze guns are there as blocks ({plan.Guns.Count(s => s.InWreck)} in her, {plan.Guns.Count(s => !s.InWreck)} tumbled onto the seabed; {guns} found)");
                 // the water (under the pool's surface): still in her blocks (they don't push it out), and round her where
                 // nothing was put
@@ -2897,7 +2934,7 @@ namespace Hansa
                 var inv = chest?.Pos == null ? null : (ba.GetBlockEntity(chest.Value.Pos) as Vintagestory.GameContent.BlockEntityContainer)?.Inventory;
                 int nFlint = inv?.Sum(s => s.Itemstack?.Collectible?.Code?.Path == "flint" ? s.StackSize : 0) ?? 0;
                 int nRope = inv?.Sum(s => s.Itemstack?.Collectible?.Code?.Path == "rope" ? s.StackSize : 0) ?? 0;
-                Check(done && id < 0 && blocks > 500 && blocks == rep.Plan.Blocks.Count && rep.Guns == def.Fixtures.Count(f => f.Type == "gun") && nFlint == 8 && nRope == 2 && mod.Wrecks.Registry.Done.ContainsKey(id),
+                Check(done && id < 0 && blocks > 500 && blocks == rep.Plan.Blocks.Count && rep.Guns == def.Fixtures.Count(f => f.Type == "gun" && !f.Swivel) && nFlint == 8 && nRope == 2 && mod.Wrecks.Registry.Done.ContainsKey(id),
                     $"a wreck that was never a ship (#{id}: a design, a place, a yaw, a damage state, a loot list) laid on the deep pool's floor: {blocks} blocks, {rep?.Guns} guns, its loot in a chest beside it ({nFlint} flint, {nRope} rope)");
                 then();
             });
