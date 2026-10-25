@@ -343,4 +343,162 @@ namespace Hansa
         /// <summary>m = a · m (a applied after m).</summary>
         static void Pre(float[] m, float[] a) => Mat4f.Mul(m, a, (float[])m.Clone());
     }
+
+    /// <summary>
+    /// (note 104, the user's decision: "windward only, as on real lateen ships") A shroud of a dipping lateen's mast, from
+    /// the design's rig check (rigCheck.standing: x0 y0 z0 x1 y1 z1 radius): its masthead end, its foot at the channel, the
+    /// side it's on (+1 starboard, -1 port) and its rank there (0 the foremost). Only the windward set is set up; the lee
+    /// set is cast off and hangs from the masthead down the after side of the mast, and they change over in the middle of
+    /// a dip, when the yard is upright before the mast.
+    /// </summary>
+    public sealed class LateenShroud
+    {
+        public MastDef Mast;
+        public int Side, Rank;
+        /// <summary>Its line in rigCheck.standing.</summary>
+        public int Line;
+        public double[] Head, Foot;
+        public double Radius;
+        /// <summary>The skin group it's drawn from (made by <see cref="LateenShrouds.Split"/>).</summary>
+        public string Group => "rig:shroud:" + Line;
+    }
+
+    public static class LateenShrouds
+    {
+        /// <summary>
+        /// Exported groups (the model's, optional): the shrouds of one mast on one side, "rig:shrouds-&lt;mast&gt;-port" and
+        /// "-starboard", not in "exterior". Without them they're found in "exterior" (rope quads along a shroud's line).
+        /// </summary>
+        public const string ExportPrefix = "rig:shrouds-";
+        /// <summary>How far past its radius a quad's corners may lie from a shroud's line and still be that shroud.</summary>
+        const double Reach = 0.06;
+
+        static readonly ConditionalWeakTable<ShipDefinition, LateenShroud[]> cache = new();
+
+        /// <summary>The shrouds of her dipping lateens' masts (none without a dipping lateen or a rig check).</summary>
+        public static LateenShroud[] Of(ShipDefinition def) => def == null ? Array.Empty<LateenShroud>() : cache.GetValue(def, Make);
+
+        static LateenShroud[] Make(ShipDefinition def)
+        {
+            var list = new System.Collections.Generic.List<LateenShroud>();
+            var masts = new System.Collections.Generic.List<MastDef>();
+            foreach (var r in LateenRig.Of(def)) if (r != null && !masts.Contains(r.Mast)) masts.Add(r.Mast);
+            var lines = def.RigCheck?.Standing;
+            if (masts.Count == 0 || lines == null) return Array.Empty<LateenShroud>();
+            for (int k = 0; k < lines.Length; k++)
+            {
+                var l = lines[k];
+                if (l == null || l.Length < 7) continue;
+                double[] a = { l[0], l[1], l[2] }, b = { l[3], l[4], l[5] };
+                var (head, foot) = a[1] >= b[1] ? (a, b) : (b, a);
+                foreach (var m in masts)
+                {
+                    if (Math.Sqrt((head[0] - m.X) * (head[0] - m.X) + (head[2] - m.Z) * (head[2] - m.Z)) > m.Radius + 0.5 || Math.Abs(foot[2] - m.Z) < 0.2) continue;
+                    list.Add(new LateenShroud { Mast = m, Side = foot[2] > m.Z ? 1 : -1, Line = k, Head = head, Foot = foot, Radius = l[6] });
+                    break;
+                }
+            }
+            foreach (var s in list)
+            {
+                foreach (var o in list)
+                    if (o != s && o.Mast == s.Mast && o.Side == s.Side && (o.Foot[0] > s.Foot[0] || o.Foot[0] == s.Foot[0] && o.Line < s.Line)) s.Rank++;
+            }
+            return list.ToArray();
+        }
+
+        /// <summary>The lee as drawn for the lee shown (its sign; before it's known, the side the mast's lateen is made on).</summary>
+        public static int DrawnLee(ShipDefinition def, MastDef mast, float leeShown)
+        {
+            if (!float.IsNaN(leeShown)) return leeShown >= 0 ? 1 : -1;
+            foreach (var r in LateenRig.Of(def)) if (r != null && r.Mast == mast) return r.Side;
+            return 1;
+        }
+
+        /// <summary>Is it set up (the windward set) for the lee shown? The lee set is cast off.</summary>
+        public static bool SetUp(ShipDefinition def, LateenShroud s, float leeShown) => s.Side != DrawnLee(def, s.Mast, leeShown);
+
+        /// <summary>Where a cast-off shroud's foot hangs: down the after side of its mast (clear of the yard slung on its side), above its channel.</summary>
+        public static double[] HungFoot(LateenShroud s) => new[]
+        {
+            s.Mast.X - (s.Mast.Radius + 0.12 + 0.07 * s.Rank), s.Foot[1] + 0.3, s.Mast.Z + s.Side * 0.03
+        };
+
+        /// <summary>Where a cast-off shroud's eye hangs: off the after side of its masthead, clear of the mast all the way down.</summary>
+        public static double[] HungHead(LateenShroud s) => new[]
+        {
+            s.Mast.X - (s.Mast.Radius + 0.05), s.Head[1] - 0.1, s.Mast.Z + s.Side * 0.03
+        };
+
+        /// <summary>A cast-off shroud's matrix (ship-local): turned and stretched from its eye (<see cref="HungHead"/>) down to its foot (<see cref="HungFoot"/>).</summary>
+        public static void HangMatrix(LateenShroud s, float[] m)
+        {
+            float[] Move(double[] from, double[] to)
+            {
+                var mv = Mat4f.Create();
+                for (int i = 0; i < 3; i++) mv[12 + i] = (float)(to[i] - from[i]);
+                return mv;
+            }
+            PartMotion.FollowMatrix(new MovingPartDef { Anchor = s.Head, Tip = s.Foot }, Move(s.Foot, HungFoot(s)), m, Move(s.Head, HungHead(s)));
+        }
+
+        /// <summary>
+        /// Its shrouds into a skin group each (<see cref="LateenShroud.Group"/>): from the exported groups
+        /// (<see cref="ExportPrefix"/>) if there are any, else from "exterior", whose quads they were are collapsed to a point
+        /// (its quads keep their places: its paint and planking ranges stay right). Each quad goes to the shroud whose line all
+        /// its corners lie along. How many quads it moved.
+        /// </summary>
+        public static int Split(ShipDefinition def, ShipSkinFile file)
+        {
+            var shrouds = Of(def);
+            if (shrouds.Length == 0 || file?.Groups == null) return 0;
+            var groups = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<float[]>>();
+            foreach (var s in shrouds) groups[s.Group] = new System.Collections.Generic.List<float[]>();
+            bool exported = false;
+            foreach (var key in file.Groups.Keys) if (key.StartsWith(ExportPrefix)) exported = true;
+            int moved = 0;
+            foreach (var kv in file.Groups)
+            {
+                bool fromExport = kv.Key.StartsWith(ExportPrefix);
+                if (exported ? !fromExport : kv.Key != "exterior") continue;
+                foreach (var q in kv.Value)
+                {
+                    if (q == null || q.Length < 33) continue;
+                    if (!fromExport)
+                    {
+                        int ti = (int)q[0];
+                        if (file.Textures == null || ti < 0 || ti >= file.Textures.Length || !file.Textures[ti].Contains("rope")) continue;
+                    }
+                    var s = Along(shrouds, q);
+                    if (s == null) continue;
+                    groups[s.Group].Add((float[])q.Clone());
+                    if (!fromExport)
+                        for (int v = 1; v < 4; v++)
+                            for (int c = 0; c < 3; c++) q[1 + 8 * v + c] = q[1 + c];
+                    moved++;
+                }
+            }
+            foreach (var kv in groups) file.Groups[kv.Key] = kv.Value.ToArray();
+            return moved;
+        }
+
+        /// <summary>The shroud all of a quad's corners lie along (within its radius and <see cref="Reach"/>), or null.</summary>
+        static LateenShroud Along(LateenShroud[] shrouds, float[] q)
+        {
+            foreach (var s in shrouds)
+            {
+                double ax = s.Foot[0], ay = s.Foot[1], az = s.Foot[2], dx = s.Head[0] - ax, dy = s.Head[1] - ay, dz = s.Head[2] - az;
+                double len = dx * dx + dy * dy + dz * dz, lim = (s.Radius + Reach) * (s.Radius + Reach);
+                bool all = len > 1e-9;
+                for (int v = 0; v < 4 && all; v++)
+                {
+                    double px = q[1 + 8 * v] - ax, py = q[2 + 8 * v] - ay, pz = q[3 + 8 * v] - az;
+                    double t = Math.Clamp((px * dx + py * dy + pz * dz) / len, 0, 1);
+                    double ex = px - dx * t, ey = py - dy * t, ez = pz - dz * t;
+                    all = ex * ex + ey * ey + ez * ez <= lim;
+                }
+                if (all) return s;
+            }
+            return null;
+        }
+    }
 }

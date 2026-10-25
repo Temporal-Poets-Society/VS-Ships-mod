@@ -63,15 +63,19 @@ namespace Hansa
         }
 
         /// <summary>
-        /// (note 104: "There is weird triangle sticking out") Its masts alone: a dipping lateen is pressed against those only. Its
-        /// lee shrouds cross it on either tack (the model leads them so), and pressed against them its leech was folded out
-        /// in a jog.
+        /// (note 104: "There is weird triangle sticking out"; the user: shrouds "windward only, as on real lateen ships") Its masts,
+        /// and the rigging on one side of the plane z = mz only (side +1 starboard, -1 port; 0 none): a dipping lateen is pressed
+        /// against the masts and the windward shrouds, which are all that's set up. Pressed against the lee shrouds that crossed
+        /// it, its leech was folded out in a jog.
         /// </summary>
-        public SailPress Masts()
+        public SailPress Masts(int side = 0, double mz = 0)
         {
             var p = new SailPress();
             for (int i = 0; i < Lines.Count; i++)
-                if (Kinds[i] == "mast") p.Add(Lines[i], Kinds[i]);
+            {
+                var l = Lines[i];
+                if (Kinds[i] == "mast" || side != 0 && (l[2] - mz) * side > 0.01 && (l[5] - mz) * side > 0.01) p.Add(l, Kinds[i]);
+            }
             return p;
         }
 

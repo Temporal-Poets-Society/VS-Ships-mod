@@ -57,10 +57,19 @@ There is weird triangle sticking out. ropes still cross the sails."
   two after ones at every sheet from 5°, all three from 15°. The mizzen sail by the lee mizzen shrouds from
   (-11.75, 5.105, ±2.3472) and (-12.25, 5.105, ±2.3188) to (-10.5, 18.025, ±0.18), from about 15° of sheet. The sheets
   touch their own sails only at the clews they belay. No rope crosses the other sail.
+- **Shrouds windward only** (the user's decision, 25 October): as on real lateen ships only the windward shrouds of a
+  lateen's mast are set up. The lee set is cast off and hangs from just aft of the masthead down the after side of the
+  mast (`LateenShrouds.HangMatrix`: its eye at the mast's radius + 0.05 aft, its foot 0.12 + 0.07 a rank further aft and
+  0.3 above its channel, 0.03 to its side). They change over in the middle of a dip (the sign of `LeeShown`, which the
+  server's synced lee drives). A dipping lateen is pressed against the masts and the windward set only
+  (`SailPress.Masts(side, mz)`, in the sail's frame). No shroud, set up or hanging, crosses a sail on either tack or
+  through a dip; the yard's surface stays 0.15 (main) and 0.18 (mizzen) from the nearest shroud, also while it dips
+  (it went 0.04 into the lee shrouds before).
 
 Code: `src/Ship/LateenDip.cs` (`LateenDipDef`, `LateenRig`, `LateenPose`), `EntityShip` (`Lee`, `LeeShown`,
 `ServerLateens`, `LateenSheet`), `ShipRenderer` (`ComputeLateens`, `SailMeshRay`, the yard, ropes and sail),
-`SailPress.Mirrored`, `SailPress.Masts`.
+`SailPress.Mirrored`, `SailPress.Masts`; `LateenShrouds` (split, which are set up, the hanging ones), drawn by
+`ShipRenderer.ShroudPlace`.
 
 ## Data: `sails[].dip`
 
@@ -86,6 +95,24 @@ standOff >= 0.3 + 0.165 + 0.05 - 0.35 = 0.17 (mast radius, the yard's radius at 
 distance from the axis) and the mizzen >= 0.05; the checks pass with 0.2 as with 0.4, and the shrouds are met the same
 (0.04) either way. (An earlier note named "crosstree bars" at y 18.87 and 16.17 reaching 0.5 from the axis: those were
 the shrouds' upper ends, reed-rope quads in the `exterior` group, not a part on the mast. There are no crosstrees.)
+
+## Data: the lateens' shrouds
+
+Each shroud of a dipping lateen's mast is one line in `rigCheck.standing` (x y z of either end, then its radius): its
+head within the mast's radius + 0.5 of the mast's axis, its foot more than 0.2 off the mast's centre plane. The line
+runs along the shroud's tube, through its middle.
+
+The model should export each lateen mast's shrouds as two mesh groups in `shipmeshes/<ship>.json`, one a side:
+`rig:shrouds-<mast>-port` and `rig:shrouds-<mast>-starboard` (`<mast>` its `masts[]` code: `rig:shrouds-main-port`,
+`rig:shrouds-mizzen-starboard`, ...), and leave those quads out of `exterior`. Only the tubes go there; deadeyes,
+lanyards, chainplates and channels stay in `exterior`. Every quad in these groups must lie along one shroud's line
+(all four corners within its radius + 0.06): the runtime gives each quad to that shroud and turns each shroud on its
+own when it's cast off. Quads along no line are dropped. Ratlines would need their own handling; the caravel has none.
+
+Until the model exports them, the runtime finds the shrouds in `exterior` itself: rope-textured quads along a shroud's
+line (`LateenShrouds.Split`). It collapses them to a point there, so `exterior` keeps its quad count and its paint and
+planking ranges. For the caravel today that is 440 quads: 3 shrouds a side on the main (50 quads each) and 2 a side on
+the mizzen (35 each).
 
 ## Checks
 

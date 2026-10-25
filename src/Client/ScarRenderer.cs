@@ -35,7 +35,7 @@ namespace Hansa
             foreach (var kv in m.File.Groups)
             {
                 // (not her moving parts, sails, ropes or glass: her planking and timbers)
-                if (kv.Key.StartsWith("part:") || kv.Key.StartsWith("sail") || kv.Key.StartsWith("glass") || kv.Value == null) continue;
+                if (kv.Key.StartsWith("part:") || kv.Key.StartsWith("sail") || kv.Key.StartsWith("glass") || kv.Key.StartsWith("rig:") || kv.Value == null) continue;
                 foreach (var q in kv.Value)
                 {
                     if (q == null || q.Length < 33) continue;

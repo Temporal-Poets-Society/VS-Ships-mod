@@ -55,11 +55,11 @@ namespace Hansa
             public readonly Dictionary<MultiTextureMeshRef, MeshData> SailData = new();
             public SailPress Press;
             /// <summary>
-            /// (note 104) Her masts alone, a dipping lateen's press (<see cref="SailPress.Masts"/>), and (note 64) that mirrored across
-            /// its mast (by the mast's z), for its sail on its other side.
+            /// (note 104) A dipping lateen's press in its own frame (<see cref="SailPress.Masts"/>): her masts and the shrouds set up
+            /// when it lies on the side it's made on (the other side's), by that side, the mast's z and (note 64) whether it's
+            /// mirrored across the mast, for its sail on its other side.
             /// </summary>
-            public SailPress PressLateen;
-            public readonly Dictionary<double, SailPress> PressMirrored = new();
+            public readonly Dictionary<(int Side, double Mz, bool Mirror), SailPress> PressLateen = new();
         }
 
         /// <summary>
@@ -228,7 +228,7 @@ namespace Hansa
         {
             if (meshes.TryGetValue(def.Code, out var m)) return m;
             m = new Meshes { Exterior = Tesselate(def.Shapes?.Exterior), Interior = Tesselate(def.Shapes?.Interior), Def = def };
-            m.SkinLoad = def.SkinFile != null ? System.Threading.Tasks.Task.FromResult((def.SkinFile, (HullDamageSkin)null)) : LoadSkin(def.Shapes?.Skin, def.DamageParts);
+            m.SkinLoad = def.SkinFile != null ? System.Threading.Tasks.Task.FromResult((def.SkinFile, (HullDamageSkin)null)) : LoadSkin(def.Shapes?.Skin, def.DamageParts, def);
             foreach (var s in def.Sails)
             {
                 MeshData smd = null;
@@ -285,7 +285,7 @@ namespace Hansa
         /// texels of that texture (<see cref="ShipSkinFile"/>). A few MB of JSON, so it's parsed off the main thread and
         /// uploaded once it's ready. The hull's planking is sorted into panels there too, for drawing damage.
         /// </summary>
-        System.Threading.Tasks.Task<(ShipSkinFile, HullDamageSkin)> LoadSkin(string path, DamageLayout layout)
+        System.Threading.Tasks.Task<(ShipSkinFile, HullDamageSkin)> LoadSkin(string path, DamageLayout layout, ShipDefinition def)
         {
             if (path == null) return null;
             var asset = capi.Assets.TryGet(AssetLocation.Create(path, "hansa"));
@@ -310,6 +310,15 @@ namespace Hansa
                             if (s) squashed++;
                         }
                 if (moved > 0) logger.Warning("[hansa] Ship mesh {0}: {1} quads had uvs outside their texture (moved inside it; {2} squashed)", path, moved, squashed);
+                // ((note 104) her dipping lateens' shrouds, a group each: the windward set up, the lee set cast off)
+                try
+                {
+                    if (def != null) LateenShrouds.Split(def, file);
+                }
+                catch (Exception e)
+                {
+                    logger.Error("[hansa] Couldn't take {0}'s lateen shrouds apart; they're drawn as made: {1}", path, e);
+                }
                 HullDamageSkin hull = null;
                 try
                 {
@@ -1994,6 +2003,15 @@ namespace Hansa
                     if (!DrawPainted(rapi, ship, m, part.PartGroup)) rapi.RenderMultiTextureMesh(mesh, "tex");
                 }
                 prog.RgbaLightIn = ext;
+                // (note 104) her lateens' shrouds: the windward set set up, the lee set cast off, hanging down the mast
+                foreach (var sh in LateenShrouds.Of(ship.Def))
+                {
+                    var mesh = SkinGroup(m, sh.Group);
+                    if (mesh == null) continue;
+                    Mat4f.Mul(tmp, model.Values, ShroudPlace(ship, sh));
+                    prog.ModelMatrix = tmp;
+                    rapi.RenderMultiTextureMesh(mesh, "tex");
+                }
 
                 // vanilla blocks aboard
                 if (d != null)
@@ -2199,13 +2217,14 @@ namespace Hansa
                     belly = lt.Pose.Belly;
                     yard = lt.Frame;
                     dip = (1 + (int)Math.Round(lt.Pose.Depth * 40)) * (lt.Pose.Mirror ? -1 : 1);
-                    press = m.PressLateen ??= m.Press.Masts();
-                    if (!LateenRig.Presses(lt.Pose)) press = null;
-                    else if (lt.Pose.Mirror)
+                    var pk = (lt.Rig.Side, lt.Rig.Mast.Z, lt.Pose.Mirror);
+                    if (!m.PressLateen.TryGetValue(pk, out press))
                     {
-                        double mz = lt.Rig.Mast.Z;
-                        if (!m.PressMirrored.TryGetValue(mz, out press)) m.PressMirrored[mz] = press = m.PressLateen.Mirrored(mz);
+                        // (the windward shrouds where they are in its frame: on its other side as made, mirrored to it as drawn there)
+                        press = lt.Pose.Mirror ? m.Press.Masts(lt.Rig.Side, lt.Rig.Mast.Z).Mirrored(lt.Rig.Mast.Z) : m.Press.Masts(-lt.Rig.Side, lt.Rig.Mast.Z);
+                        m.PressLateen[pk] = press;
                     }
+                    if (!LateenRig.Presses(lt.Pose)) press = null;
                 }
                 var key = (mesh, (int)Math.Round(trim * 360 / Math.PI), (int)Math.Round(frac * 50), (int)Math.Round(belly * 20), dip);
                 pressed.TryGetValue((ship.EntityId, si), out var ps);
@@ -2246,7 +2265,15 @@ namespace Hansa
             }
         }
 
-        readonly float[] rayInv = new float[16];
+        readonly float[] rayInv = new float[16], shroudHang = new float[16];
+
+        /// <summary>(note 104) Where a lateen's shroud is drawn (ship-local): as made while it's set up (the windward set), hanging down its mast when cast off.</summary>
+        float[] ShroudPlace(EntityShip ship, LateenShroud sh)
+        {
+            if (LateenShrouds.SetUp(ship.Def, sh, ship.LeeShown)) return identity;
+            LateenShrouds.HangMatrix(sh, shroudHang);
+            return shroudHang;
+        }
 
         /// <summary>
         /// (note 104: "i point to main mast, but tooltip says mizzen sail") Where a ray (ship-local) meets a sail as it was last
@@ -2775,6 +2802,11 @@ namespace Hansa
                 if (!ShipShadows.CastsPart(part, far) || !PartShown(ship, part)) continue;
                 var mesh = SkinGroup(m, part.PartGroup);
                 if (mesh != null && partMats.TryGetValue(part.Code, out var pm)) CastShadow(rapi, mesh, pm);
+            }
+            foreach (var sh in LateenShrouds.Of(def))
+            {
+                var mesh = SkinGroup(m, sh.Group);
+                if (mesh != null) CastShadow(rapi, mesh, ShroudPlace(ship, sh));
             }
             float frac = PartMotion.DrawnSail(ship.SailFraction);
             for (int si = 0; si < m.Sails.Count; si++)

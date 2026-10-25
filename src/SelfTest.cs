@@ -406,6 +406,10 @@ namespace Hansa
             Check(ship.Lee == 1 && Math.Abs(ship.LeeShown - 1) < 1e-3 && ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetInt("lee") == 1,
                 $"note 64: with the wind on her port beam her lateens lie to starboard, the lee (lee {ship.Lee}, shown {ship.LeeShown:0.00}, synced " +
                 $"{ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetInt("lee")})");
+            // (note 104) only the windward shrouds set up: to port, the lee set to starboard cast off
+            var shrouds = LateenShrouds.Of(def);
+            Check(shrouds.Length > 0 && shrouds.All(s => LateenShrouds.SetUp(def, s, ship.LeeShown) == (s.Side < 0)),
+                $"note 104: her lateens' masts' windward (port) shrouds are set up and the lee (starboard) ones cast off ({shrouds.Count(s => s.Side < 0)} and {shrouds.Count(s => s.Side > 0)})");
             var frames = def.DamageParts?.SailFrames;
             var ym = new float[16];
             var dm = new float[16];
