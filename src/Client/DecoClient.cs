@@ -227,7 +227,7 @@ namespace Hansa
                     // (0.3.18, the user's point 1) only next to what the crosshair hits: a piece in front of her, or her own woodwork
                     m = PlaceAim.Choose(ship, hfp, o, d, range, piece, tp, aimFree,
                         (c, at) => PlanFor(ship, c, held, (c.Kind is MountKind.Wall or MountKind.Panel ? c.In : TowardPlayer(ship, c, eye, at)) | (door ? HingeEnd(c, at) : 0), building),
-                        out aimPlan, out double th, out _);
+                        out aimPlan, out double th, out Vec3d hit);
                     if (m != null) tm = th;
                     // (0.3.24, note 193: "cannot place the lantern back" on the mast's hook or at the stern) a lantern in hand:
                     // a free hook whose box the crosshair is on (a hook hangs in the air by a mast or on a post: nothing of
@@ -237,7 +237,7 @@ namespace Hansa
                         System.Func<MountPoint, bool> fig = x => x.Kind == MountKind.Hook && x.Kinds != null && Array.IndexOf(x.Kinds, PiecePlanner.FigureheadKind) >= 0 && free(x);
                         var fk = ship.Mounts.Pick(o, d, range, Math.Min(wall, tp), fig, out double tf);
                         // (or the crosshair on her within a block of a figurehead's place: the stem head behind it, 0.8 thick)
-                        if (fk == null && hit != null && hitPiece == null)
+                        if (fk == null && hit != null && (piece == null || Math.Abs(th - tp) > 1e-6))   // ((26 October 2026, the merge) her woodwork hit, not a piece
                             foreach (var x in ship.Mounts.Hooks)
                                 if (fig(x) && x.Box != null && AimPlace.BoxDistance(x.Box, hit.X, hit.Y, hit.Z) < AimPlace.FigureheadReach) { fk = x; tf = th; break; }
                         if (fk != null && (m == null || tf <= tm + 0.05 || aimPlan?.Error != null))
