@@ -179,18 +179,25 @@ namespace Hansa
                         if (wp != null) ship.RemovePiece(wp, null);
                     }
                     Check(win == "ok", $"note 90: a window on a place her side cuts ({wm?.Id}: {win})");
-                    var foot = l.Floors.FirstOrDefault(m => m.Deck == "hold" && m.X <= -2.285 && m.X + 1 > -2.285 && m.Z <= -0.178 && m.Z + 1 > -0.178);
+                    // ((26 October 2026, dev.11) a hold cell whose short stair's top lands on her main deck's hatchway, found in her
+                    // layout as it is: the note's cell is her mainmast's now)
                     var shortB = sapi.World.GetBlock(new AssetLocation(ModularPieceDef.StairBlock(1)));
-                    var stairPlan = foot == null || shortB == null ? null : PiecePlanner.Plan(l, foot, new VanillaPieceBlock(sapi.World, new ItemStack(shortB), true), 0);
+                    double mainY = ship.Def.Decks.First(dk => dk.Code == "main").Y;
+                    var sl = ship.SlotLayout;
+                    var stairPlan = shortB == null || sl == null ? null : l.Floors.Where(m => m.Deck == "hold" && !ship.Pieces.Taken(m.Id))
+                        .SelectMany(m => new[] { 0, 2 }.Select(t => PiecePlanner.Plan(l, m, new VanillaPieceBlock(sapi.World, new ItemStack(shortB), true), t)))
+                        .FirstOrDefault(pl => pl.Error == null && PiecePlanner.FlightTop(pl.Mount, pl.Dir, pl.Rise, pl.Cells) is var off &&
+                                              sl.OnDeck(mainY, off[0], off[2]) is int cn && cn >= 0 && sl.Slots[cn].StartsEmpty && ship.Pieces.Blocking(pl) == null);
+                    var foot = stairPlan?.Mount;
                     // (open, its top would step into the hatchway: refused for that; laid (or shut by its hatch), not)
-                    int hw = ship.SlotLayout?.IndexOf("main:-4:-1") ?? -1;
+                    int hw = stairPlan == null ? -1 : sl.OnDeck(mainY, PiecePlanner.FlightTop(foot, stairPlan.Dir, stairPlan.Rise, stairPlan.Cells)[0], PiecePlanner.FlightTop(foot, stairPlan.Dir, stairPlan.Rise, stairPlan.Cells)[2]);
                     bool wasOpen = hw >= 0 && !ship.Slots.Filled(hw);
                     string open = stairPlan == null ? "no foot or stair" : ship.PlaceProblem(stairPlan, false) ?? "fits";
                     string laid = hw < 0 ? "no cell" : wasOpen ? ship.LayCell(hw, false) : null;
                     string then = stairPlan == null ? "no foot or stair" : ship.PlaceProblem(stairPlan, false) ?? "fits";
                     if (wasOpen && laid == null) ship.TakeCell(hw, null);
                     Check(stairPlan?.Error == null && (!wasOpen || open == "hansa:stair-no-landing") && laid == null && then != "hansa:stair-no-landing",
-                        $"note 99: the short stair up aft from {foot?.Id} (planned: {stairPlan?.Error ?? "ok"}): with the hatchway past its top open {open}; laid ({laid ?? "ok"}), not refused for its landing ({then})");
+                        $"note 99: the short stair from {foot?.Id} up {(stairPlan == null ? "-" : MountLayout.DirCode[stairPlan.Dir])}, its top on the hatchway {(hw >= 0 ? sl.Slots[hw].Id : "-")} (planned: {stairPlan?.Error ?? "ok"}): with the hatchway past its top open {open}; laid ({laid ?? "ok"}), not refused for its landing ({then})");
                 }
                 // ---- note 82: no panel places on her (nothing put into a cell her hull or ribs are in)
                 Check(!ship.Def.PanelPlaces && !l.Panels.Any(), $"note 82: no panel places on the caravel ({l.Panels.Count()})");

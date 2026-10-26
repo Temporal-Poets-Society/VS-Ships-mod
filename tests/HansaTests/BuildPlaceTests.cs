@@ -344,13 +344,16 @@ namespace HansaTests
                 }
                 Check(pm != null && got != null && set.Pick(new Vec3d((body[0] + body[3]) / 2, body[4] + 1, (body[2] + body[5]) / 2 - 0.05), new Vec3d(0, -1, 0), 3, out _) == null,
                     $"notes 95, 96: a partition's own body met where its pick sheet isn't is that partition ({(got == null ? "not found" : "found")})");
-                // 99: the short stair up aft from her hold's cell under the hatchway's after end: not refused for its landing (the
-                // hatchway shut by its hatch, or laid, is deck past its top)
-                var foot = l.Floors.FirstOrDefault(m => m.Deck == "hold" && m.X <= -2.285 && m.X + 1 > -2.285 && m.Z <= -0.178 && m.Z + 1 > -0.178);
+                // 99: a short stair from her hold whose top lands on her main deck's hatchway (a cell that starts open): planned,
+                // not refused for its landing (the hatchway shut by its hatch, or laid, is deck past its top). (26 October 2026,
+                // dev.11) found in her layout as it is, not at the note's cell (now her mainmast's)
                 var stairB = new FakePiece { Code = ModularPieceDef.StairBlock(1), Family = "x", Stairs = true, StairCells = 1, StairRails = true };
-                var aft = foot == null ? null : PiecePlanner.Plan(l, foot, stairB, 0);
-                Check(aft != null && aft.Error == null && !PiecePlanner.LandingMissing(aft, l.LaidGrid) && PiecePlanner.LandingMissing(aft, g),
-                    $"note 99: the short stair up aft from {foot?.Id} is planned ({aft?.Error ?? "ok"}); its landing on her decks laid, none with the hatchway open (the ship asks it of her as she is)");
+                double mainY = def.Decks.First(dk => dk.Code == "main").Y;
+                var hatchway = l.Floors.Where(m => m.Deck == "hold").SelectMany(m => new[] { 0, 2 }.Select(t => PiecePlanner.Plan(l, m, stairB, t)))
+                    .FirstOrDefault(pl => pl.Error == null && PiecePlanner.FlightTop(pl.Mount, pl.Dir, pl.Rise, pl.Cells) is var off &&
+                                          def.Slots.OnDeck(mainY, off[0], off[2]) is int cn && cn >= 0 && def.Slots.Slots[cn].StartsEmpty);
+                Check(hatchway != null && !PiecePlanner.LandingMissing(hatchway, l.LaidGrid) && PiecePlanner.LandingMissing(hatchway, g),
+                    $"note 99: the short stair from {hatchway?.Mount.Id} up {(hatchway == null ? "-" : MountLayout.DirCode[hatchway.Dir])}, its top on her hatchway, is planned; its landing on her decks laid, none with the hatchway open (the ship asks it of her as she is)");
             }
 
             // ---- notes 88, 90: where the cabin front meets her side, the top row isn't drawn on along its line over her side's
