@@ -2443,8 +2443,14 @@ namespace Hansa
                 double kt = 1 - Math.Exp(-dt * 0.6);
                 Brace += (brace - Brace) * kt;
                 Sheet += (sheet - Sheet) * kt;
-                // (note 64) her lateens dip round their masts to the lee the server says
-                if (LateenRig.Any(Def)) LeeShown = LateenRig.Ease(LeeShown, Lee, LateenRig.DipSeconds(Def), dt);
+                // (note 64) her lateens dip round their masts to the lee the server says, (note 104) sheeted toward it
+                if (LateenRig.Any(Def))
+                {
+                    LeeShown = LateenRig.Ease(LeeShown, Lee, LateenRig.DipSeconds(Def), dt);
+                    double ls = Lee != 0 ? LateenRig.Sheet(Sailing.WindAngle(ax, az, RenderYaw, out _), Lee, SailingNow) : sheet;
+                    lateenSheetGoal = LateenRig.SheetGoal(lateenSheetGoal, ls);
+                    LateenSheet += (lateenSheetGoal - LateenSheet) * kt;
+                }
             }
             // her lean follows the wind in her sails slowly (a heavy hull, sails steadying her, the crew easing the sheets
             // in a gust: MotionDef.HeelResponse), as on the server (ServerHeel)
@@ -2473,10 +2479,20 @@ namespace Hansa
 
         /// <summary>
         /// (note 64) The lee her dipping lateens lie to (<see cref="LateenRig"/>; +1 starboard, -1 port, 0 not known yet): the
-        /// server's, synced. It changes when the wind is well over on her other side (past <see cref="LateenRig.Margin"/> of
-        /// her bow or stern) with sail set, and not while a dip is still under way.
+        /// server's, synced. It changes when the wind is well over on her other side (past <see cref="LateenRig.BowMargin"/>
+        /// of her bow, <see cref="LateenRig.SternMargin"/> of her stern) for <see cref="LateenRig.HoldSeconds"/>, with sail set,
+        /// and not while a dip is still under way.
         /// </summary>
         public int Lee;
+        /// <summary>Client: her dipping lateens' sheet (radians, as <see cref="Sheet"/>), always toward the lee (<see cref="LateenRig.Sheet"/>), eased.</summary>
+        public double LateenSheet;
+        double lateenSheetGoal = double.NaN;
+        /// <summary>
+        /// Client (note 104): where a ray (ship-local) meets a dipping lateen's sail as it's drawn now (the renderer's): the
+        /// ship, the sail's index, the ray and its range give t along it, -1 if it misses, NaN if it isn't drawn yet.
+        /// </summary>
+        public static Func<EntityShip, int, Vec3d, Vec3d, double, double> SailMeshRay;
+        float leeWantFor;
         /// <summary>The lee as her lateens are now, easing from one side to the other over a dip (server and client each); NaN at first.</summary>
         public float LeeShown = float.NaN;
 
@@ -2495,10 +2511,14 @@ namespace Hansa
                 LeeShown = Lee;
                 SaveState(true);
             }
-            else if (want != 0 && want != Lee && settled && SailFraction > 0.05f)
+            else
             {
-                Lee = want;
-                SaveState(true);
+                int lee = LateenRig.Decide(Lee, want, settled && SailFraction > 0.05f, ref leeWantFor, dt);
+                if (lee != Lee)
+                {
+                    Lee = lee;
+                    SaveState(true);
+                }
             }
             LeeShown = LateenRig.Ease(LeeShown, Lee, LateenRig.DipSeconds(Def), dt);
         }

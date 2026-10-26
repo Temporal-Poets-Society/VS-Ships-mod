@@ -62,6 +62,23 @@ namespace Hansa
             return p;
         }
 
+        /// <summary>
+        /// (note 104: "There is weird triangle sticking out"; the user: shrouds "windward only, as on real lateen ships") Its masts,
+        /// and the rigging on one side of the plane z = mz only (side +1 starboard, -1 port; 0 none): a dipping lateen is pressed
+        /// against the masts and the windward shrouds, which are all that's set up. Pressed against the lee shrouds that crossed
+        /// it, its leech was folded out in a jog.
+        /// </summary>
+        public SailPress Masts(int side = 0, double mz = 0)
+        {
+            var p = new SailPress();
+            for (int i = 0; i < Lines.Count; i++)
+            {
+                var l = Lines[i];
+                if (Kinds[i] == "mast" || side != 0 && (l[2] - mz) * side > 0.01 && (l[5] - mz) * side > 0.01) p.Add(l, Kinds[i]);
+            }
+            return p;
+        }
+
         /// <summary>(note 64) The same obstacles mirrored across the plane z = mz (a dipping lateen's mast's): where they are in its frame on its other side.</summary>
         public SailPress Mirrored(double mz)
         {
@@ -74,6 +91,24 @@ namespace Hansa
                 p.Add(l, Kinds[i]);
             }
             return p;
+        }
+
+        /// <summary>(note 104) Where a ray o + t d meets a triangle (either side): t, or -1.</summary>
+        public static double RayTriangle(double ox, double oy, double oz, double dx, double dy, double dz,
+                                         double ax, double ay, double az, double bx, double by, double bz, double cx, double cy, double cz)
+        {
+            double e1x = bx - ax, e1y = by - ay, e1z = bz - az, e2x = cx - ax, e2y = cy - ay, e2z = cz - az;
+            double hx = dy * e2z - dz * e2y, hy = dz * e2x - dx * e2z, hz = dx * e2y - dy * e2x;
+            double det = e1x * hx + e1y * hy + e1z * hz;
+            if (Math.Abs(det) < 1e-12) return -1;
+            double f = 1 / det, sx = ox - ax, sy = oy - ay, sz = oz - az;
+            double u = f * (sx * hx + sy * hy + sz * hz);
+            if (u < 0 || u > 1) return -1;
+            double qx = sy * e1z - sz * e1y, qy = sz * e1x - sx * e1z, qz = sx * e1y - sy * e1x;
+            double v = f * (dx * qx + dy * qy + dz * qz);
+            if (v < 0 || u + v > 1) return -1;
+            double t = f * (e2x * qx + e2y * qy + e2z * qz);
+            return t >= 0 ? t : -1;
         }
 
         void Add(double[] line, string kind)

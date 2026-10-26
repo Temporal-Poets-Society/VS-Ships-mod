@@ -83,6 +83,13 @@ namespace HansaTests
             if (Array.IndexOf(args, "steerage") >= 0) { CaravelSteerage(root); CaravelNote49(root); CaravelNote48(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "swivels") >= 0) { Swivels(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "gates") >= 0) { CaravelGates(root); CaravelLadderCatch(root); CaravelFigurehead(root); CaravelRudder(root); LanternOwnLight(); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
+            if (Array.IndexOf(args, "lateen-dump") >= 0)
+            {
+                int k = Array.IndexOf(args, "lateen-dump");
+                var ci = System.Globalization.CultureInfo.InvariantCulture;
+                LateenDump(root, float.Parse(args[k + 1], ci), double.Parse(args[k + 2], ci), args[k + 3]);
+                return 0;
+            }
             if (Array.IndexOf(args, "lateen") >= 0) { CaravelLateenDip(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "gunclick") >= 0) { GunClicks(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "paint") >= 0) { CaravelPaint(root); CaravelNote101(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
