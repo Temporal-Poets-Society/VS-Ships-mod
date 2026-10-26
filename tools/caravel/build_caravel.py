@@ -109,7 +109,7 @@ rake = math.atan2(tx0 - tx1, tz1 - tz0)
 RUD_GAP, RUD_STOCK_R = 30.0, 100.0
 (rlx0, rlz0), (rlx1, rlz1) = L["rudderLine"]["low"], L["rudderLine"]["high"]
 STOCK_X = rlx0 - RUD_GAP - RUD_STOCK_R
-stock_hole = (Part.makeCylinder(RUD_STOCK_R + 25.0, LV["mainDeck"] + 200.0 - COUNTER["post_top"] + 300.0,
+stock_hole = (Part.makeCylinder(RUD_STOCK_R + 10.0, LV["mainDeck"] + 200.0 - COUNTER["post_top"] + 300.0,
                                 V(STOCK_X, 0, COUNTER["post_top"] - 300.0)) if COUNTER else None)
 # backbone: keel, stem and sternpost in one piece, its side outline from caravel_lines, BB half width each side
 BB = L["backbone"]
@@ -246,6 +246,26 @@ beams = Part.makeCompound(beam_solids)
 # the ribs' notches the beams' ends sit in (an L seat each: the beam's underside and its end on the rib)
 rib_solids = [r_.cut(beams) if r_.BoundBox.intersect(beams.BoundBox) else r_ for r_ in rib_solids]
 rib_solids = [so for r_ in rib_solids for so in r_.Solids if so.Volume > 1e6]
+# (25 October 2026, the slot check: her collision refused the quarterdeck's stair; 26 October 2026, the user's choice B:
+# keep it against her side) over the quarterdeck's level, from the stair's foot to the end of its landing a block aft of
+# its head, where her tumblehome brings her side (and rib -8's head) into the stair's cell: her planking and the ribs stop
+# 15 outboard of the cell; the cap rail, 5 outboard of it, overhangs the cut by 10
+STAIR_CLEAR = []
+for st_ in LAY["stairs"]:
+    if st_["name"] == "quarterdeck" and abs(st_["y"]) > 1:
+        xa_, xb_ = sorted((st_["foot"][0], st_["head"][0]))
+        yb_ = abs(st_["y"]) + 515.0
+        STAIR_CLEAR.append(Part.makeBox(xb_ - xa_ + 1000.0, yb_, 2000.0,
+                                        V(xa_ - 1000.0, 0.0 if st_["y"] > 0 else -yb_, LV["quarterdeck"] + 5.0)))
+# (26 October 2026, the game views: shaved to the cell, rib -8's head left a 50 sliver on her planking, as if broken off)
+# the ribs' heads over the landing go whole from the quarterdeck up on that side: the planking and the cap close it
+STAIR_CLEAR_RIBS = [Part.makeBox(c.BoundBox.XLength, BIG, c.BoundBox.ZLength + 5.0,
+                                 V(c.BoundBox.XMin, 0.0 if c.BoundBox.YMax > 1.0 else -BIG, LV["quarterdeck"])) for c in STAIR_CLEAR]
+for _clear in STAIR_CLEAR_RIBS:
+    _cut = sum(r_.common(_clear).Volume for r_ in rib_solids if r_.BoundBox.intersect(_clear.BoundBox))
+    rib_solids = [max(r_.cut(_clear).Solids, key=lambda so: so.Volume)
+                  if r_.BoundBox.intersect(_clear.BoundBox) and r_.common(_clear).Volume > 1.0 else r_ for r_ in rib_solids]
+    log("the quarterdeck stair's landing kept clear of the ribs:", round(_cut / 1e6, 4), "litres off")
 ribs = Part.makeCompound(rib_solids)
 log("beams", len(beam_solids))
 log("decks", [round(s.Volume / 1e9, 2) for s in (hold, main, qd)])
@@ -529,21 +549,18 @@ fittings = Part.makeCompound([rudder, tiller])
 # the transom, close by the rudder's axis, and as high as the tiller (it was 900 x 400: the sky round it)
 tiller_port = Part.makeBox(800, 420, 240, V(transom_x(RUD_TOP) - 500, -210, RUD_TOP - 180))
 bk0, bk1 = BK_IN, BK_OUT                                 # the bumpkin's ends
-bumpkin_socket = Part.makeCylinder(130, (bk1 - bk0).Length, bk0, (bk1 - bk0).normalize())
+# (26 October 2026: the sky showed round the spar) the socket the spar's own taper, 5 larger round it
+bumpkin_socket = spar(bk0 - (bk1 - bk0).normalize() * 50, bk1 + (bk1 - bk0).normalize() * 50, 115, 85)
 # (over a counter the tiller is inside her, under the quarterdeck: no port; the stock's hole through the counter instead)
 shell = shell.cut(stock_hole if COUNTER else tiller_port).cut(bumpkin_socket).removeSplitter()
 # (25 October 2026, the slot check: her collision refused the quarterdeck's stair) over the quarterdeck's level, where the
 # castle break's tumblehome brings her side into the stair's cell beside it, her planking stops 5 outboard of the cell
 # (at most 65 off its inside, at the quarterdeck's front corner); the cap rail covers what's left
-for st_ in LAY["stairs"]:
-    if st_["name"] == "quarterdeck" and abs(st_["y"]) > 1:
-        xa_, xb_ = sorted((st_["foot"][0], st_["head"][0]))
-        yb_ = abs(st_["y"]) + 505.0
-        _clear = Part.makeBox(xb_ - xa_, yb_, 2000.0, V(xa_, 0.0 if st_["y"] > 0 else -yb_, LV["quarterdeck"]))
-        _cut = shell.common(_clear).Volume
-        if _cut > 1.0:
-            shell = shell.cut(_clear).removeSplitter()
-        log("the quarterdeck stair's cell kept clear of her side:", round(_cut / 1e6, 4), "litres of planking off")
+for _clear in STAIR_CLEAR:          # (the stair's flight and its landing: above, by the ribs)
+    _cut = shell.common(_clear).Volume
+    if _cut > 1.0:
+        shell = shell.cut(_clear).removeSplitter()
+    log("the quarterdeck stair's cell and landing kept clear of her side:", round(_cut / 1e6, 4), "litres of planking off")
 RAIL = L["railings"]
 
 
@@ -678,8 +695,8 @@ def cap_section(x, sgn):
                 y_in = max(y_in, yo - (330.0 + (cap_in_at(x) - 330.0) * d_ / 1000.0))
             # (the game-mesh check, with the upright stern's lines) where the break's tumblehome brings her side in over
             # the stair's cell, the cap's inner edge 15 outboard of the cell: else her collision there refuses the stair
-            if xa_ - 10.0 <= x <= xb_ + 100.0:
-                y_in = max(y_in, min(abs(st_["y"]) + 515.0, yo - 100.0))
+            if xa_ - 1010.0 <= x <= xb_ + 100.0:          # (the flight and its landing a block aft of its head)
+                y_in = max(y_in, min(abs(st_["y"]) + 505.0, yo - 60.0))
     pts = [V(x, sgn * y_in, z), V(x, sgn * y_out, z), V(x, sgn * y_out, z + CAP_H), V(x, sgn * y_in, z + CAP_H)]
     return Part.makePolygon(pts + [pts[0]])
 

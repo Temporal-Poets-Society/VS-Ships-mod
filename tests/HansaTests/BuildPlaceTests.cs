@@ -74,7 +74,14 @@ namespace HansaTests
             {
                 int Mirror(int k) => -k - 2;
                 int MirrorDir(int dir) => dir % 2 == 1 ? (dir + 2) % 4 : dir;
-                var lone = l.Floors.Where(m => l.FloorAt(m.Deck, m.I, Mirror(m.K)) == null).Select(m => m.Id).ToList();
+                // ((26 October 2026, the user's choice B) a stair's landing on one side only: her quarterdeck stair against her
+                // starboard side, its landing's bulwark shaved to give it room, which her port side hasn't)
+                bool Landing(MountPoint m) => (def.ModularPieces ?? Array.Empty<ModularPieceDef>()).Any(e =>
+                    e.Kind == "stair" && e.At?.Length >= 3 && e.Up?.Length == 2 && e.Up[1] is 'x' or 'z' &&
+                    (e.Up[1] == 'x' ? e.At[0] + (e.Up[0] == '-' ? -1 : 1) * Math.Max(1, e.Length) : e.At[0]) is double lx &&
+                    (e.Up[1] == 'z' ? e.At[2] + (e.Up[0] == '-' ? -1 : 1) * Math.Max(1, e.Length) : e.At[2]) is double lz &&
+                    lx > m.X && lx < m.X + 1 && lz > m.Z && lz < m.Z + 1 && Math.Abs(e.At[1] + e.Rise - m.Y) < 0.1);
+                var lone = l.Floors.Where(m => l.FloorAt(m.Deck, m.I, Mirror(m.K)) == null && !Landing(m)).Select(m => m.Id).ToList();
                 Check(lone.Count == 0, $"note 70: every deck's floor places alike port and starboard ({(lone.Count == 0 ? $"{l.Floors.Count()} places" : "alone: " + string.Join(", ", lone.Take(8)))})");
                 var differ = new List<string>();
                 var kinds = new (string Name, PieceBlock B)[] { ("block", block), ("chest", chest), ("vessel", vessel), ("trunk", trunk), ("bed", bed), ("oven", oven) };
