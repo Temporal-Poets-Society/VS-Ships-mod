@@ -72,19 +72,45 @@ def sheer_prism_solid():
 
 sheer_prism = sheer_prism_solid()
 (tx0, tz0), (tx1, tz1) = L["transomPlane"]["low"], L["transomPlane"]["high"]
+# (25 October 2026, the user's sketch) the stern's after outline [x, z] from the bottom: the post, a counter over it, the
+# transom; and its inner face SKIN in, square to it (a plane before: the post and the transom in one)
+STERN = [tuple(q) for q in L["sternProfile"]]
+STERN_IN = [tuple(q) for q in L["sternProfileInner"]]
+COUNTER = L.get("counter")
 
 
 def transom_x(z, shift=0.0):
-    return tx0 + (tx1 - tx0) * (z - tz0) / (tz1 - tz0) + shift
+    """The stern's after outline at height z (the transom over a counter, the post under it)."""
+    if z <= STERN[0][1]:
+        return STERN[0][0] + shift
+    for (xa_, za_), (xb_, zb_) in zip(STERN, STERN[1:]):
+        if z <= zb_:
+            return xa_ + (xb_ - xa_) * (z - za_) / ((zb_ - za_) or 1.0) + shift
+    return STERN[-1][0] + shift
+
+
+def _forward_of(outline, shift=0.0):
+    pts = [(x + shift, z) for x, z in outline]
+    return prism_xz([(pts[0][0], -2000.0)] + pts + [(pts[-1][0], 14000.0), (20000.0, 14000.0), (20000.0, -2000.0)])
 
 
 def forward_of_transom(shift=0.0):
-    # shift is along X; the plane's normal offset for a skin of SKIN is SKIN / cos(rake)
-    return prism_xz([(transom_x(-2000, shift), -2000.0), (transom_x(14000, shift), 14000.0),
-                     (20000.0, 14000.0), (20000.0, -2000.0)])
+    """Everything forward of the stern's after outline (moved `shift` along X)."""
+    return _forward_of(STERN, shift)
+
+
+def inside_stern():
+    """Everything forward of the stern's inner face: the shell SKIN thick at the post, the counter and the transom."""
+    return _forward_of(STERN_IN)
 
 
 rake = math.atan2(tx0 - tx1, tz1 - tz0)
+# the rudder's line: the sternpost's after face; over a counter its stock goes up through the counter to the tiller
+RUD_GAP, RUD_STOCK_R = 30.0, 100.0
+(rlx0, rlz0), (rlx1, rlz1) = L["rudderLine"]["low"], L["rudderLine"]["high"]
+STOCK_X = rlx0 - RUD_GAP - RUD_STOCK_R
+stock_hole = (Part.makeCylinder(RUD_STOCK_R + 25.0, LV["mainDeck"] + 200.0 - COUNTER["post_top"] + 300.0,
+                                V(STOCK_X, 0, COUNTER["post_top"] - 300.0)) if COUNTER else None)
 # backbone: keel, stem and sternpost in one piece, its side outline from caravel_lines, BB half width each side
 BB = L["backbone"]
 _bb_pts = [V(x, -BB["halfWidth"], z) for x, z in BB["outline"]]
@@ -92,7 +118,7 @@ backbone = Part.Face(Part.makePolygon(_bb_pts + [_bb_pts[0]])).extrude(V(0, 2 * 
 backbone = backbone.removeSplitter()
 
 # the hull solids depend only on the lines; a rebuild with unchanged lines reuses them (the shell boolean is slow)
-LINES_HASH = hashlib.md5(json.dumps({k: L[k] for k in ("hull", "inner", "sheer", "transomPlane", "skin")},
+LINES_HASH = hashlib.md5(json.dumps({k: L[k] for k in ("hull", "inner", "sheer", "transomPlane", "skin", "sternProfile")},
                                     sort_keys=True).encode()).hexdigest()[:12]
 CACHE = os.path.join(os.environ.get("TEMP", OUT), "caravel-cache", LINES_HASH)
 if os.environ.get("CARAVEL_NOCACHE") != "1" and all(
@@ -118,7 +144,7 @@ else:
     inner = Part.makeLoft([waterline_wire(l) for l in L["inner"]], True, RULED, False, 3)
     inner_ok = inner.isValid() and inner.Volume > 0
     log("inner valid", inner.isValid(), "volume m3", round(inner.Volume / 1e9, 2))
-    inner = inner.common(forward_of_transom(SKIN / math.cos(rake)))
+    inner = inner.common(inside_stern())
     inner = inner.removeSplitter()
     shell = envelope.cut(inner).removeSplitter()
     os.makedirs(CACHE, exist_ok=True)
@@ -153,7 +179,7 @@ def slab(z_top, thick, x0=-BIG, x1=BIG):
 # ribs (proposal cells): each the section from caravel_lines.rib_profiles, RIB_SIDED along X at its cell's middle
 RIB_SIDED = 200.0
 rib_solids = []
-inside_transom = forward_of_transom(SKIN / math.cos(rake))
+inside_transom = inside_stern()
 for r, prof in L["ribProfiles"].items():
     x0 = int(r) * 1000 + 500 - RIB_SIDED / 2
     pts = [V(x0, y, z) for y, z in prof]
@@ -182,6 +208,8 @@ hold = slab(LV["hold"], DECK_T).common(inner).cut(ribs).cut(backbone)
 hx, hy = LAY["hatch"]["x"], LAY["hatch"]["y"]
 hatch_cut = Part.makeBox(hx[1] - hx[0], hy[1] - hy[0], 1200, V(hx[0], hy[0], LV["mainDeck"] - 1000))
 main = slab(LV["mainDeck"], DECK_T).common(inner).cut(ribs).cut(backbone).cut(hatch_cut)
+if stock_hole is not None:                          # (the rudder's stock up through the main deck to the tiller)
+    main = main.cut(stock_hole)
 qd = slab(LV["quarterdeck"], DECK_T, x1=L["quarterdeckFront"]).common(inner).cut(ribs).cut(backbone)
 decks = Part.makeCompound([hold, main, qd])
 beam_solids = []
@@ -367,7 +395,7 @@ def mast_dims(key):
 # the mizzen's clew goes to a bumpkin, a spar out through the transom at the quarterdeck's floor (item 1)
 # (24 October 2026, chalk note 59: "would make sense that this part goes till the deck beam") its heel in to the after face
 # of the first quarterdeck beam forward of the transom, on the same line (it stopped 0.6 inside the transom, in the air)
-BK_OUT = V(transom_x(Q) - 2400, 0, Q + 150)
+BK_OUT = V(transom_x(Q) - (1600 if COUNTER else 2400), 0, Q + 150)   # (over a counter: the sketch's clew, 1.6 out)
 _bk_in = V(transom_x(Q) + 600, 0, Q - 330)
 _bk_beam = min((b_[0] for b_ in L["beams"] if abs(b_[3] - (Q - DECK_T)) < 1 and b_[0] > _bk_in.x), default=_bk_in.x)
 BK_IN = _bk_in + (_bk_in - BK_OUT) * ((_bk_beam - _bk_in.x) / (_bk_in.x - BK_OUT.x))
@@ -410,7 +438,7 @@ def lateen_points(key, r, name):
             hx, hz = tx + (px - tx) * f, tz + (pz - tz) * f
             return 0.5 * abs((hx - t1[0]) * (cl[1] - t1[1]) - (hz - t1[1]) * (cl[0] - t1[0])) / 1e6
         a0, a1 = area_to(0.0), area_to(1.0)
-        f = min(1.0, (sd["area"] - a0) / (a1 - a0))
+        f = min(1.0, (sd["area"] - a0) / (a1 - a0)) if sd.get("area") else 1.0   # (no area: the sail to the yard's end)
         angle = math.degrees(math.atan2(pz - tz, tx - px))
         fore, aft = math.hypot(tx - x, cross - tz), math.hypot(x - px, pz - cross)
         yard, sl, _, _ = lateen(M[key]["cell"], cross, fore, aft, angle, cl, r, name=name, sail_to=tx + (px - tx) * f)
@@ -468,22 +496,32 @@ rig_redonda = Part.makeCompound(red)
 post = L["post"]
 # (22 October 2026, chalk note 29: "lift rudders handle (and connected things) to ceiling and shorten the handle a bit")
 # the rudder's head up to just under the quarterdeck's beams (planking 200, beams 400, 150 clear), the tiller there
-RUD_GAP, RUD_FOOT, RUD_HEAD_W, RUD_TOP = 30.0, 1500.0, 350.0, Q - DECK_T - 400.0 - 150.0
+RUD_FOOT, RUD_HEAD_W, RUD_TOP = 1500.0, 350.0, Q - DECK_T - 400.0 - 150.0
 z_b = post[0][1] + 25.0
 
 
 def rudder_lead(z):
-    return transom_x(z) - RUD_GAP
+    """The rudder's leading edge: RUD_GAP aft of the sternpost's after face."""
+    return rlx0 + (rlx1 - rlx0) * (z - rlz0) / (rlz1 - rlz0) - RUD_GAP
 
 
-rudder_face_pts = [V(rudder_lead(z_b), 0, z_b), V(rudder_lead(RUD_TOP), 0, RUD_TOP),
-                   V(rudder_lead(RUD_TOP) - RUD_HEAD_W, 0, RUD_TOP), V(rudder_lead(z_b) - RUD_FOOT, 0, z_b)]
+# (25 October 2026, the user's sketch) under a counter the blade ends 100 under it and a round stock, its fore side on the
+# blade's leading edge, goes on up through the counter and the main deck to the tiller under the quarterdeck's beams
+RUD_BLADE_TOP = COUNTER["post_top"] - 100.0 if COUNTER else RUD_TOP
+rudder_face_pts = [V(rudder_lead(z_b), 0, z_b), V(rudder_lead(RUD_BLADE_TOP), 0, RUD_BLADE_TOP),
+                   V(rudder_lead(RUD_BLADE_TOP) - RUD_HEAD_W, 0, RUD_BLADE_TOP), V(rudder_lead(z_b) - RUD_FOOT, 0, z_b)]
 rudder = Part.Face(Part.makePolygon(rudder_face_pts + [rudder_face_pts[0]])).extrude(V(0, 200, 0))
 rudder.translate(V(0, -100, 0))
-TILLER_END = rudder_lead(RUD_TOP - 60) - 200 + 2360.0   # 2.4 long (it reached -9.3 before), from the rudder's head
+if COUNTER:
+    _stock = Part.makeCylinder(RUD_STOCK_R, RUD_TOP + 60.0 - (RUD_BLADE_TOP - 400.0), V(STOCK_X, 0, RUD_BLADE_TOP - 400.0))
+    rudder = rudder.fuse(_stock).removeSplitter()
+    TILLER_HEAD = V(STOCK_X - 60.0, 0, RUD_TOP)
+else:
+    _t_rise = 0.0 if abs(tx1 - tx0) < 1 else 60.0
+    TILLER_HEAD = V(rudder_lead(RUD_TOP - _t_rise) - 200, 0, RUD_TOP - _t_rise)
+TILLER_END = TILLER_HEAD.x + 60.0 + 2360.0 if COUNTER else rudder_lead(RUD_TOP - 60) - 200 + 2360.0   # 2.4 long from the head
 # (25 October 2026, note 102) square to the rudder's stock: level, the stock upright (the sternpost upright since)
-_t_rise = 0.0 if abs(tx1 - tx0) < 1 else 60.0
-tiller = spar(V(rudder_lead(RUD_TOP - _t_rise) - 200, 0, RUD_TOP - _t_rise), V(TILLER_END, 0, RUD_TOP), 90, 70)
+tiller = spar(TILLER_HEAD, V(TILLER_END, 0, RUD_TOP), 90, 70)
 # (24 October 2026, chalk note 58) no mizzen step: its heel is flush with the main deck's planking underneath
 fittings = Part.makeCompound([rudder, tiller])
 # openings through the transom for the tiller (with room to swing) and the bumpkin (a fitted socket)
@@ -492,7 +530,8 @@ fittings = Part.makeCompound([rudder, tiller])
 tiller_port = Part.makeBox(800, 420, 240, V(transom_x(RUD_TOP) - 500, -210, RUD_TOP - 180))
 bk0, bk1 = BK_IN, BK_OUT                                 # the bumpkin's ends
 bumpkin_socket = Part.makeCylinder(130, (bk1 - bk0).Length, bk0, (bk1 - bk0).normalize())
-shell = shell.cut(tiller_port).cut(bumpkin_socket).removeSplitter()
+# (over a counter the tiller is inside her, under the quarterdeck: no port; the stock's hole through the counter instead)
+shell = shell.cut(stock_hole if COUNTER else tiller_port).cut(bumpkin_socket).removeSplitter()
 # (25 October 2026, the slot check: her collision refused the quarterdeck's stair) over the quarterdeck's level, where the
 # castle break's tumblehome brings her side into the stair's cell beside it, her planking stops 5 outboard of the cell
 # (at most 65 off its inside, at the quarterdeck's front corner); the cap rail covers what's left
@@ -1019,7 +1058,8 @@ report = {
     "sailFeet": sail_clear,
     "guns": gun_fit,
     "gateLeaves": GATE_LEAF,
-    "tiller": {"end": [TILLER_END, 0.0, RUD_TOP], "head": [round(rudder_lead(RUD_TOP - _t_rise) - 200), 0.0, RUD_TOP - _t_rise]},
+    "tiller": {"end": [TILLER_END, 0.0, RUD_TOP], "head": [round(TILLER_HEAD.x), 0.0, round(TILLER_HEAD.z)]},
+    "rudderAxis": [round(STOCK_X if COUNTER else rudder_lead(z_b) + RUD_GAP, 1), 0.0, z_b],
     "capRail": CAP_RECORD,
     "railSections": RAIL_SECTIONS,
     "gunGeometry": GUN_RECORD,

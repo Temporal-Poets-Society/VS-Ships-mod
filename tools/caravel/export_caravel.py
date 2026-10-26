@@ -1308,12 +1308,15 @@ ym, yz = yard("latina main"), yard("latina mizzen")
 am, dm = axis(ym)
 az, dz = axis(yz)
 masts = {m["name"]: m for m in rig_rec["masts"]}
-post_lo = L["transomPlane"]["low"]
-post_hi = L["transomPlane"]["high"]
+# (25 October 2026) the rudder turns about its stock (over a counter, aft of the post: the build's rudderAxis), along the
+# sternpost's line
+post_lo = L.get("rudderLine", L["transomPlane"])["low"]
+post_hi = L.get("rudderLine", L["transomPlane"])["high"]
 dxr, dzr = post_hi[0] - post_lo[0], post_hi[1] - post_lo[1]      # the sternpost's line, up (model X, Z)
 rl = math.hypot(dxr, dzr)
 rud_dir = [r4(dxr / rl), r4(dzr / rl), 0.0]                       # game (x, y, z): x along X, y along Z
-rud_pt = [r4(c) for c in g((post_lo[0], 0, post_lo[1]))]
+_rax = REP.get("rudderAxis", [post_lo[0], 0.0, post_lo[1]])
+rud_pt = [r4(c) for c in g((_rax[0], 0, _rax[2]))]
 deck_y = LV["mainDeck"] / 1000.0 - WL
 qd_y = LV["quarterdeck"] / 1000.0 - WL
 hold_y = LV["hold"] / 1000.0 - WL

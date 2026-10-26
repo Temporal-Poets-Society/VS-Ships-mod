@@ -46,12 +46,20 @@ LAYOUTS = {
           # (25 October 2026, note 102, the user: the rudder about an upright axis, a level tiller under the quarterdeck;
           # the stern as Boa Esperança's: a flat square transom over an upright sternpost, X -14.5)
           "stern_post_x": -14.5,
+          # (25 October 2026, the user's sketch: "something like this, get 1 block overhang in cabin") over the post a
+          # counter from Z 3.2 at the post out to the transom's foot 1 block aft and 0.4 up, the transom flat and upright
+          # from there to the rail: the cabin, both decks and the quarterdeck 1 block longer, the waterline as it was
+          "counter": {"post_top": 3.2, "transom_x": -15.5, "foot_z": 3.6},
           # (the user's choice B of the study for Boa Esperança's sails: main 155 m2, mizzen 80 m2) yards balanced on
           # their masts, 2.2 of head room over the decks, the main's clew 0.9 forward of the mizzen's tack (metres)
           # (the user: "bottoms of sails should be about parallel to deck") each foot level, its clew as high as its tack's
           # corner (0.1 under the yard's end): the main's over the waist 3.8 up, the mizzen's over the bumpkin's end
-          "sails": {"main": {"tack": [6.98, 7.86], "peak": [-10.26, 29.93], "clew": [-6.5, "level"], "area": 155.0},
-                    "mizzen": {"tack": [-7.42, 10.79], "peak": [-13.58, 27.71], "clew": ["bumpkin", "level"], "area": 80.0}},
+          # (25 October 2026, the user's sketch: red triangles "with 2 block clearance below") the feet about 2 blocks over
+          # the deck under them: the main tacked down low at the bow head, its foot rising aft to a clew just forward of the
+          # quarterdeck's front; the mizzen's level 2.25 over the quarterdeck to the bumpkin's end. No cut to an area: the
+          # sail to its yard's end. The mizzen's tack 0.5 aft of the sketch's, 1.2 aft of the main's clew (they met)
+          "sails": {"main": {"tack": [8.1, 6.5], "peak": [-10.2, 29.8], "clew": [-6.4, 9.1]},
+                    "mizzen": {"tack": [-7.6, 9.35], "peak": [-13.6, 27.5], "clew": ["bumpkin", 9.25]}},
           "stairs": {"quarterdeck": -7, "hold": -5}, "stairs_y": {"quarterdeck": -2.0, "hold": 0.0},
           "hold_up": "fore"},
     "C": {"longer": 2.0, "qd_front": -7.0, "mizzen": -11, "wheel": [-9, 0], "qd_guns": [-14, -12],
@@ -192,11 +200,57 @@ if "stern_post_x" in LAY_V:          # (note 102) upright, the transom in its pl
     STERN_KEEL_X, STERN_RAKE = LAY_V["stern_post_x"], 0.0
 STERN_TOP_X = STERN_KEEL_X - STERN_RAKE * (Z_QD_RAIL - LIFT)   # -13.94 at the quarterdeck rail
 TRANSOM_FOOT_Z = 2.4                 # (shape height) where the wide transom starts; below it the hull narrows to the post
+COUNTER = LAY_V.get("counter")
+
+
+def post_line(zr):
+    """X of the sternpost's after face at real height zr (the rudder's line)."""
+    return STERN_KEEL_X + (STERN_TOP_X - STERN_KEEL_X) * (zr - LIFT) / (Z_QD_RAIL - LIFT)
+
+
+def stern_profile():
+    """The stern's after outline as (real z, x) from the underside up: the post, and over it (with a counter) the counter
+    rounding out from the post to the transom's foot, then the transom upright to the top."""
+    if not COUNTER:
+        return [(LIFT, post_line(LIFT)), (Z_TOP + 1.0, post_line(Z_TOP + 1.0))]
+    z0, z1, xt = COUNTER["post_top"], COUNTER["foot_z"], COUNTER["transom_x"]
+    x0 = post_line(z0)
+    # (a quarter of a sine: leaving the post nearly level, so the rudder's head is under it; meeting the transom upright)
+    us = np.linspace(0.0, 1.0, 9)
+    return [(LIFT, post_line(LIFT))] + [(z0 + (z1 - z0) * u, x0 + (xt - x0) * math.sin(math.pi / 2 * u)) for u in us] +         [(Z_TOP + 1.0, xt)]
+
+
+STERN_PROFILE = stern_profile()
 
 
 def stern_line(zr):
-    """X of the sternpost/transom plane at real height zr."""
-    return STERN_KEEL_X + (STERN_TOP_X - STERN_KEEL_X) * (zr - LIFT) / (Z_QD_RAIL - LIFT)
+    """X of the stern's after outline at real height zr: the post, the counter, the transom."""
+    zs, xs = zip(*STERN_PROFILE)
+    return float(np.interp(zr, zs, xs))
+
+
+def offset_profile(prof, d):
+    """The stern outline moved d forward, square to itself (the shell's inner face behind it): each segment moved d along
+    its normal, the corners where neighbouring moved segments meet (the normals' bisector, d / cos of half the turn)."""
+    p = np.array([(x, z) for z, x in prof], float)
+    seg = p[1:] - p[:-1]
+    seg /= np.linalg.norm(seg, axis=1)[:, None]
+    ns = np.stack([seg[:, 1], -seg[:, 0]], axis=1)      # (dz, -dx): forward (+x) for an outline running up
+    q = []
+    for k in range(len(p)):
+        if k == 0 or k == len(p) - 1:
+            n = ns[0] if k == 0 else ns[-1]
+            q.append(p[k] + n * d)
+            continue
+        b_ = ns[k - 1] + ns[k]
+        b_ /= np.linalg.norm(b_)
+        q.append(p[k] + b_ * d / float(b_ @ ns[k]))
+    # (where the outline turns tighter than d, at the transom's foot, the moved corners loop back down: dropped)
+    out = [q[0]]
+    for v in q[1:]:
+        if v[1] > out[-1][1] + 1e-6:
+            out.append(v)
+    return [(float(z), float(x)) for x, z in out]
 
 
 TRANSOM_LOW = (TRANSOM_FOOT_Z, None)  # [0] only: the transom's foot (shape height)
@@ -330,6 +384,8 @@ def levels():
     for z in np.arange(3.5, Z_TOP + 1e-6, 0.25):
         zs.add(round(float(z), 4))
     zs.update([round(real_z(TRANSOM_LOW[0]), 4), round(real_z(2.6), 4), Z_WL, Z_TOP])
+    if COUNTER:          # (the counter: a waterline every 0.05 from the post's head to the transom's foot)
+        zs.update(round(float(z), 4) for z in np.linspace(COUNTER["post_top"], COUNTER["foot_z"], 9))
     return sorted(zs)
 
 
@@ -489,9 +545,11 @@ def backbone_outline(step=0.1):
     # (22 October 2026, chalk note 46: "rudder handle perforates keel rib") the post's head under the tiller, which runs
     # in over it from the rudder's head to the wheel's ropes (the tiller's axis 150 under the quarterdeck's beams)
     z_post_top = Z_QD - DECK_T - 0.4 - 0.15 - 0.25
+    if COUNTER:          # (25 October 2026) under a counter: the post's head in the counter's planking, the rudder's stock aft of it
+        z_post_top = COUNTER["post_top"] + 0.15
     for z in np.arange(z_post_top, LIFT, -step):
-        pts.append((x_post(shape_z(z)), z))
-    for x in np.arange(x_post(0.0), x_stem(0.0), step * 2):
+        pts.append((post_line(z), z))
+    for x in np.arange(post_line(LIFT), x_stem(0.0), step * 2):
         pts.append((x, LIFT))
     z = LIFT                                                # the stem up to where it meets the bow rail
     while z < Z_TOP and z < float(sheer(np.array([x_stem(shape_z(z))]))[0]) + STEM_HEAD:
@@ -508,7 +566,7 @@ def backbone_outline(step=0.1):
     n = np.stack([d[:, 1], -d[:, 0]], axis=1)                 # outward: aft on the post, down on the keel, fore on the stem
     n /= np.linalg.norm(n, axis=1)[:, None]
     stem_part = (p[:, 0] > x_stem(0.0) - 1e-6) & (np.arange(len(p)) > len(p) // 3)
-    post_part = (p[:, 0] < x_post(0.0) + 1e-6) & (p[:, 1] > LIFT + 1e-6)
+    post_part = (p[:, 0] < post_line(LIFT) + 1e-6) & (p[:, 1] > LIFT + 1e-6)
     foot = real_z(TRANSOM_FOOT_Z)
     # above the transom's foot: behind its planking, unseen. (25 October 2026, the stern upright) 12 into the planking, not
     # on its inner face: the post's face and the planking's in one plane crashed the shell's boolean
@@ -518,7 +576,7 @@ def backbone_outline(step=0.1):
     outer = p + n * out[:, None]
     inner = p + n * (out - BB_MOULDED)[:, None]
     ring = np.concatenate([outer, inner[::-1]])
-    aft = ring[:, 0] < x_post(0.0) - 0.01                       # the post's head: cut level at z_post_top
+    aft = ring[:, 0] < post_line(LIFT) - 0.01                   # the post's head: cut level at z_post_top
     ring[:, 1] = np.where(aft & (ring[:, 1] > z_post_top), z_post_top, ring[:, 1])
     ring = untangle(ring)
     return [[round(x * MM, 1), round(z * MM, 1)] for x, z in ring]
@@ -755,10 +813,18 @@ def build():
         "ropeLadders": rope_ladders(),
         "hullSamples": hull_samples(),
         "deckThickness": DECK_T * MM,
-        "transomPlane": {"low": [round(stern_line(LIFT) * MM, 3), LIFT * MM],
+        # the transom's plane (over a counter, the upright transom from its foot up), the rudder's line (the post's after
+        # face), and the stern's whole after outline and its inner face (SKIN in, square to it), [x, z] from the bottom
+        "transomPlane": {"low": [round(stern_line(COUNTER["foot_z"] if COUNTER else LIFT) * MM, 3),
+                                 (COUNTER["foot_z"] if COUNTER else LIFT) * MM],
                          "high": [round(stern_line(Z_QD_RAIL) * MM, 3), Z_QD_RAIL * MM]},
+        "rudderLine": {"low": [round(post_line(LIFT) * MM, 3), LIFT * MM],
+                       "high": [round(post_line(Z_QD_RAIL) * MM, 3), Z_QD_RAIL * MM]},
+        "sternProfile": [[round(x * MM, 1), round(z * MM, 1)] for z, x in STERN_PROFILE],
+        "sternProfileInner": [[round(x * MM, 1), round(z * MM, 1)] for z, x in offset_profile(STERN_PROFILE, SKIN)],
+        "counter": {k: v * MM for k, v in COUNTER.items()} if COUNTER else None,
         "stem": [[x * MM, round(real_z(z) * MM, 3)] for z, x in STEM],
-        "post": [[round(stern_line(z) * MM, 3), round(z * MM, 3)] for z in (LIFT, real_z(TRANSOM_FOOT_Z))],
+        "post": [[round(post_line(z) * MM, 3), round(z * MM, 3)] for z in (LIFT, real_z(TRANSOM_FOOT_Z))],
         "sheer": [[round(x * MM, 3), round(z * MM, 3)] for x, z in zip(sx, sz)],
         "layout": {"masts": {k: {"cell": v["cell"], "heel": v["heel"] * MM, "rigs": v["rigs"]} for k, v in MASTS.items()},
                    "ribs": RIBS, "guns": GUN_CELLS, "quarterdeckGuns": QD_GUN_CELLS,

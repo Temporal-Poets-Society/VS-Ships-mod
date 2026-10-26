@@ -711,7 +711,7 @@ def main():
     def transom_x(z):
         return tx0 + (tx1 - tx0) * (z - tz0) / (tz1 - tz0)
 
-    bumpkin_end = F.g(transom_x(Q) - 2400, 0, Q + 150)
+    bumpkin_end = F.g(transom_x(Q) - (1600 if L.get("counter") else 2400), 0, Q + 150)   # (as the build's BK_OUT)
     # (chalk note 64: "The same rope attaches to railings just like that") a rope made fast on a rail ends on a cleat on its
     # top: a foot and two horns along the rail, the rope's last turns across them
     rail_y = (L["railings"]["top"][0][2] - 50 + 70) / 1000.0 - F.WL          # the top rail's top (140 high, 50 under the posts')
@@ -1018,7 +1018,7 @@ def main():
     # the hull's exact half-breadth from her lines (the box clip before held the water down round her curved bow:
     # gaps between the water and her side); the carrack generator's way (water_clip)
     keel_y, deck_y = D["keelY"], D["deckY"]
-    X0, DX, DY = -15.5, 0.125, 0.25                 # (note 73: her stern 1 further aft)
+    X0, DX, DY = -16.5, 0.125, 0.25                 # (note 73: her stern 1 further aft; the counter's transom 1 more)
     Y0 = keel_y - 0.5
     xs = np.arange(X0, 11.0 + 1e-9, DX)
     ys = np.arange(Y0, deck_y + 1.0 + 1e-9, DY)
