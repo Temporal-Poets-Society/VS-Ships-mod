@@ -109,6 +109,89 @@ namespace Hansa
                     Check(outs == "ok, ok, ok", $"note 83: the vessel, the shelf and the chest taken up ({outs})");
                     put.Clear();
                 }
+                // ---- (25 October 2026, dev.9: "no it does not work and cannot be placed") the shelf as the client's crosshair finds
+                // it (PlaceAim, DecoClient's own code), with the game's plank slabs: up, down, on edge, other woods; aimed at the
+                // floor cell from the cell beside it and at her side from over an outermost cell, standing as a player does
+                {
+                    var slabs = new[] { "plankslab-oak-down-free", "plankslab-oak-up-free", "plankslab-oak-north-free", "plankslab-pine-down-free", "plankslab-aged-east-free" }
+                        .Select(c => B(c)).Where(b => b != null).ToList();
+                    int looks = 0;
+                    var missed = new List<string>();
+                    foreach (var slabB in slabs)
+                    {
+                        var h = HeldForPlacing.Of(slabB, true);
+                        var stack = new ItemStack(slabB);
+                        var free = PlaceAim.Free(ship, h);
+                        foreach (var f in l.Floors.Where(f => l.HorizontalAt(f.Deck, f.I, f.K, 1) != null && l.FloorAt(f.Deck, f.I, f.K, 1) != null && !ship.Pieces.Taken(f.Id)))
+                        {
+                            var want = l.HorizontalAt(f.Deck, f.I, f.K, 1);
+                            var aims = new List<(Vintagestory.API.MathTools.Vec3d Eye, Vintagestory.API.MathTools.Vec3d At, string What)>();
+                            for (int dir = 0; dir < 4; dir++)
+                                if (l.FloorAt(f.Deck, f.I + MountLayout.DX[dir], f.K + MountLayout.DZ[dir]) is MountPoint by && !ship.Pieces.Taken(by.Id))
+                                    aims.Add((new Vintagestory.API.MathTools.Vec3d(by.X + 0.5, by.Y + 1.62, by.Z + 0.5), new Vintagestory.API.MathTools.Vec3d(f.X + 0.5, f.Y, f.Z + 0.5), "floor from " + by.Id));
+                            foreach (int dir in new[] { 1, 3 })
+                                if (l.FloorAt(f.Deck, f.I, f.K + MountLayout.DZ[dir]) == null)
+                                    aims.Add((new Vintagestory.API.MathTools.Vec3d(f.X + 0.5, f.Y + 1.62, f.Z + 0.5), new Vintagestory.API.MathTools.Vec3d(f.X + 0.5, f.Y + 1.0, (dir == 1 ? f.Z + 1 : f.Z) + MountLayout.DZ[dir] * 0.7), "her side"));
+                            foreach (var (eye, at, what) in aims)
+                            {
+                                var d = new Vintagestory.API.MathTools.Vec3d(at.X - eye.X, at.Y - eye.Y, at.Z - eye.Z);
+                                d.Mul(1 / d.Length());
+                                var piece = ship.Pieces.Pick(eye, d, 5, out double tp);
+                                var got = PlaceAim.Choose(ship, h, eye, d, 5, piece, tp, free,
+                                    (c, hit) => PiecePlanner.Plan(l, c, new VanillaPieceBlock(sapi.World, stack, true), c.Kind is MountKind.Wall or MountKind.Panel ? c.In : AimPlace.Toward(c, eye, hit), p => ship.PlaceProblem(p, false) == null),
+                                    out var plan, out double t, out _);
+                                if (got == null && what == "her side") continue;     // (her side out of reach of that look: the floor's are checked)
+                                looks++;
+                                // (at a corner of her side the next cell's shelf is as good)
+                                string why = got == null ? "nothing" : got != want && (what != "her side" || got.Kind != MountKind.Horizontal) ? got.Id : plan?.Error ?? ship.PlaceProblem(plan, true);
+                                if (why != null) missed.Add($"{slabB.Code.Path} on {f.Id} ({what}): {why}");
+                            }
+                        }
+                    }
+                    Check(slabs.Count >= 4 && looks > 100 && missed.Count == 0,
+                        $"dev.9: the shelf as the client's crosshair finds it, with the game's plank slabs ({string.Join(", ", slabs.Select(b => b.Code.Path))}): {looks} looks{(missed.Count == 0 ? ", every one" : "; not: " + string.Join("; ", missed.Take(6)))}");
+                }
+                // ---- (25 October 2026, dev.9) note 89: a door hung at either end; note 90: a window on a place her side cuts; note
+                // 99: the short stair up aft from her hold's cell under the hatchway: its top on the hatch, not "no landing"
+                {
+                    var doorB = B("door-sleek-windowed-oak") ?? sapi.World.Blocks.FirstOrDefault(bl => bl?.Code != null && VanillaPieceBlock.IsDoor(bl));
+                    var dm = l.Borders.FirstOrDefault(b => b.Deck == "hold" && b.Row == 0 && b.Clip == null && !b.TwinSide && l.BorderAbove(b) is MountPoint up && up.Clip == null &&
+                                                            !ship.Pieces.Taken(b.Id) && !ship.Pieces.Taken(up.Id) && ship.MountOpen(b));
+                    var ends = new List<string>();
+                    foreach (int hinge in new[] { 0, PiecePlanner.HingeHigh })
+                    {
+                        if (dm == null || doorB == null) { ends.Add("no doorway or door"); break; }
+                        var stack = new ItemStack(doorB);
+                        var plan = PiecePlanner.Plan(l, dm, new VanillaPieceBlock(sapi.World, stack, true), dm.In | hinge);
+                        string err = ship.PlacePiece(plan, stack, false, out var dp);
+                        ends.Add(err ?? (dp.HingeHighEnd == (hinge != 0) ? "ok" : "wrong end"));
+                        if (dp != null) ship.RemovePiece(dp, null);
+                    }
+                    Check(ends.All(e => e == "ok"), $"note 89: a door in her hold hung at its doorway's lower end, then its upper ({dm?.Id}: {string.Join(", ", ends)})");
+                    var paneB = B("glasspane-leaded-oak-ew") ?? sapi.World.Blocks.FirstOrDefault(bl => bl?.Code != null && VanillaPieceBlock.IsPane(bl));
+                    var wm = l.Borders.FirstOrDefault(b => b.Clip != null && !b.TwinSide && PiecePlanner.ClipArea(b) >= 0.5 && !ship.Pieces.Taken(b.Id) && ship.MountOpen(b) && b.Deck == "hold");
+                    string win = "no place or pane";
+                    if (wm != null && paneB != null)
+                    {
+                        var stack = new ItemStack(paneB);
+                        var plan = PiecePlanner.Plan(l, wm, new VanillaPieceBlock(sapi.World, stack, true), wm.In);
+                        win = ship.PlacePiece(plan, stack, true, out var wp) ?? (wp.Role == PieceRole.Window ? "ok" : wp.Role.ToString());
+                        if (wp != null) ship.RemovePiece(wp, null);
+                    }
+                    Check(win == "ok", $"note 90: a window on a place her side cuts ({wm?.Id}: {win})");
+                    var foot = l.Floors.FirstOrDefault(m => m.Deck == "hold" && m.X <= -2.285 && m.X + 1 > -2.285 && m.Z <= -0.178 && m.Z + 1 > -0.178);
+                    var shortB = sapi.World.GetBlock(new AssetLocation(ModularPieceDef.StairBlock(1)));
+                    var stairPlan = foot == null || shortB == null ? null : PiecePlanner.Plan(l, foot, new VanillaPieceBlock(sapi.World, new ItemStack(shortB), true), 0);
+                    // (open, its top would step into the hatchway: refused for that; laid (or shut by its hatch), not)
+                    int hw = ship.SlotLayout?.IndexOf("main:-4:-1") ?? -1;
+                    bool wasOpen = hw >= 0 && !ship.Slots.Filled(hw);
+                    string open = stairPlan == null ? "no foot or stair" : ship.PlaceProblem(stairPlan, false) ?? "fits";
+                    string laid = hw < 0 ? "no cell" : wasOpen ? ship.LayCell(hw, false) : null;
+                    string then = stairPlan == null ? "no foot or stair" : ship.PlaceProblem(stairPlan, false) ?? "fits";
+                    if (wasOpen && laid == null) ship.TakeCell(hw, null);
+                    Check(stairPlan?.Error == null && (!wasOpen || open == "hansa:stair-no-landing") && laid == null && then != "hansa:stair-no-landing",
+                        $"note 99: the short stair up aft from {foot?.Id} (planned: {stairPlan?.Error ?? "ok"}): with the hatchway past its top open {open}; laid ({laid ?? "ok"}), not refused for its landing ({then})");
+                }
                 // ---- note 82: no panel places on her (nothing put into a cell her hull or ribs are in)
                 Check(!ship.Def.PanelPlaces && !l.Panels.Any(), $"note 82: no panel places on the caravel ({l.Panels.Count()})");
             }

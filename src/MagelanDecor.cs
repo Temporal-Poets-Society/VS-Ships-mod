@@ -98,7 +98,8 @@ namespace Hansa
             switch (p.Action)
             {
                 case DecorPacket.Place:
-                    err = ship.TryPlacePiece(player, p.Mount, ((p.Dir % 4) + 4) % 4);
+                    // ((25 October 2026, note 89) the way toward the player, and a door's hinge end: PiecePlanner.HingeHigh)
+                    err = ship.TryPlacePiece(player, p.Mount, ((p.Dir % 8) + 8) % 8);
                     break;
                 case DecorPacket.Remove:
                     err = ship.TryRemovePiece(player, p.Piece);

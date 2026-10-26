@@ -45,6 +45,7 @@
     <Compile Include="PartitionTests.cs" />
     <Compile Include="PartitionGapTests.cs" />
     <Compile Include="BuildPlaceTests.cs" />
+    <Compile Include="PartitionViews.cs" />
     <Compile Include="SailPressTests.cs" />
     <Compile Include="GridShipTests.cs" />
     <Compile Include="..\..\src\Ship\GridShips.cs" Link="Ship\GridShips.cs" />

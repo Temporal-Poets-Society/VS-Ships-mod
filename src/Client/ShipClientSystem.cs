@@ -378,7 +378,8 @@ namespace Hansa
             ShipShelter.LocalOpening = inRoom && !covered ? ShipShelter.OpeningOver(ep) : null;
             lookedAt = FindLookedAtFixture(ep);
             // a piece, a free mount point or a paint zone in front of any fixture (DecoClient)
-            Deco?.Update(ep, lookedAt.Ship != null ? lookedAt.Dist : double.MaxValue);
+            // ((25 October 2026, notes 97, 98) and in front of a block of the world: aimed at a pier beside her, it's the pier's)
+            Deco?.Update(ep, Math.Min(lookedAt.Ship != null ? lookedAt.Dist : double.MaxValue, WorldBlockDistance(ep)));
             Deco?.UpdateTaking(ep);
             // (a press ends when the button is let go)
             if (!capi.Input.InWorldMouseButton.Right) rightSwallowed = false;
@@ -538,7 +539,8 @@ namespace Hansa
         string HullHint(EntityPlayer ep)
         {
             double range = capi.World.Player.WorldData.PickingRange;
-            if (ShipWallDistance(ep, range) >= range) return null;
+            // ((25 October 2026, notes 97, 98) not past a block of the world in front of her)
+            if (ShipWallDistance(ep, range) >= Math.Min(range, WorldBlockDistance(ep))) return null;
             var ship = ShipLookedAt(ep, range, out _) ?? NearestShip(ep.Pos.XYZ);
             if (ship?.Def == null || ship.GoneDown) return null;
             if (ship.Def.BoardFromWater)
@@ -560,7 +562,9 @@ namespace Hansa
         (EntityShip, LadderDef)? LadderInSight(EntityPlayer ep, double range)
         {
             double wall = ShipWallDistance(ep, range);
-            if (wall >= range) return null;
+            // ((25 October 2026, note 97: "cannot place block here as snaps aggressively to ship rope ladder") a block of the
+            // world in front of her (a pier being built beside her) is what's aimed at: no ladder behind it
+            if (wall >= range || wall >= WorldBlockDistance(ep)) return null;
             var eye = EyePos(ep);
             var vd = EntityPos.GetViewVector(ep.Pos.Pitch, ep.Pos.Yaw);
             var ship = ShipLookedAt(ep, range, out _) ?? NearestShip(ep.Pos.XYZ);
@@ -594,6 +598,9 @@ namespace Hansa
         {
             if (capi.World.ElapsedMilliseconds < boardCooldownUntil || !ep.Alive) return;
             if (!c.Forward && !c.Jump) return;
+            // ((25 October 2026, note 98: "cannot normally walk on ship as snap to ship is aggressive") in the water or in a boat
+            // only: walking on a pier or a dock by the ladder's foot isn't climbing it (from there right-click it, or step aboard)
+            if (skip == null && !ep.Swimming && !ep.FeetInLiquid) return;
             foreach (var ship in Ships)
             {
                 if (ship == skip || ship.Def == null || ship.GoneDown || ship.Pos.SquareDistanceTo(ep.Pos.X, ep.Pos.Y, ep.Pos.Z) > 45 * 45) continue;
@@ -924,7 +931,21 @@ namespace Hansa
                     f => ship.OpenFittings.Contains(f.Code), f => ship.Attached.TryGetValue(f.Code, out var st) ? st : null, out double t, ship.PlacedFixtures, ship.GunAbsent);
                 if (hit != null && t < best.Dist) best = new FixtureHit { Ship = ship, Fixture = hit, Dist = t };
             }
+            // ((25 October 2026, notes 97, 98) not one behind a block of the world in front of her)
+            if (best.Ship != null && best.Dist > WorldBlockDistance(ep)) return default;
             return best.Ship == null ? default : best;
+        }
+
+        /// <summary>
+        /// (25 October 2026, notes 97, 98: building a pier beside her, "snaps aggressively to ship rope ladder") How far the
+        /// block of the world the game's crosshair is on is (in the player's own dimension; MaxValue: none). The game picks
+        /// her (an entity) or a block, the nearer: a block picked is in front of her, and her own aim yields to it.
+        /// </summary>
+        double WorldBlockDistance(EntityPlayer ep)
+        {
+            var bs = capi.World.Player?.CurrentBlockSelection;
+            if (bs?.Position == null || bs.Position.dimension != ep.Pos.Dimension) return double.MaxValue;
+            return EyePos(ep).DistanceTo(bs.Position.ToVec3d().Add(bs.HitPosition));
         }
 
         /// <summary>Distance to the closest solid ship voxel along the view ray, or MaxValue.</summary>
@@ -1078,7 +1099,8 @@ namespace Hansa
                 if (ep.MountedOn == null)
                 {
                     double wall = ShipWallDistance(ep, range);
-                    if (wall < range)
+                    // ((25 October 2026, note 97) not behind a block of the world in front of her)
+                    if (wall < range && wall < WorldBlockDistance(ep))
                     {
                         var ship = ShipLookedAt(ep, range, out _) ?? NearestShip(ep.Pos.XYZ);
                         if (ship?.Def != null && ship.Def.BoardFromWater)

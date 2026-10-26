@@ -43,6 +43,8 @@ namespace Hansa
                 {
                     var (lo, hi) = ModularGeometry.WallEnds(ship.Mounts, ship.Pieces.All, pc);
                     parts = ModularGeometry.Window(m, lo, hi);
+                    // ((25 October 2026, note 90) on a place only partly free of her: cut to its free parts, as a partition)
+                    if (m.Clip != null) parts = ModularGeometry.ClipToPlace(parts, m, m.Clip);
                     break;
                 }
                 case PieceRole.Railing:

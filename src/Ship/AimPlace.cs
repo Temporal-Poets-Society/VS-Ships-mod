@@ -125,14 +125,19 @@ namespace Hansa
                 foreach (var m in Borders(l, qx, qy, qz, pm)) Add(m);
                 foreach (var m in Shelves(l, qx, qy, qz, p.Y, true)) Add(m);
                 Add(FlueAt(l, qx, qy, qz));
-                // ((24 October 2026, caravel note 83) a floor cell aimed at: the shelves over it, the lowest first)
-                foreach (var m in ShelvesOver(l, FloorAt(l, qx, qy, qz))) Add(m);
+                // ((24 October 2026, caravel note 83) a floor cell aimed at: the shelves over it, the lowest first; (25 October,
+                // dev.9: "it cannot be placed") the top of her curved side's planking past the floor's edge: the shelf at that
+                // height over the floor cell nearest it
+                var under = FloorAt(l, qx, qy, qz);
+                foreach (var m in under != null ? ShelvesOver(l, under) : ShelvesNear(l, qx, qy, qz)) Add(m);
             }
             else if (down)
             {
                 foreach (var m in HooksAt(l, qx, qy, qz)) Add(m);
                 foreach (var m in Borders(l, qx, qy, qz, pm)) Add(m);
                 foreach (var m in Shelves(l, qx, qy, qz, p.Y, false)) Add(m);
+                // ((25 October 2026) the underside of her side's planking over the floor's edge: the shelf beside it)
+                foreach (var m in ShelvesNear(l, qx, qy, qz)) Add(m);
                 Add(FlueAt(l, qx, qy, qz));
                 Add(FloorAt(l, qx, qy, qz));
             }
@@ -145,7 +150,7 @@ namespace Hansa
                 foreach (var m in Shelves(l, qx, qy, qz, p.Y, false)) Add(m);
                 // ((24 October 2026, caravel note 83) her curved side, a block's width or so from the floor's edge: the shelf
                 // at that height over the floor cell in front of it)
-                foreach (var m in ShelvesInFront(l, qx, qy, qz, n)) Add(m);
+                foreach (var m in ShelvesNear(l, qx, qy, qz)) Add(m);
                 Add(FlueAt(l, qx, qy, qz));
                 // ((0.3.28, note 230) on a wall's upper half: a hood's roof on its top, the side more walled in first)
                 foreach (var m in Hoods(l, pieces, qx, qy, qz, piece != null && piece.OnBorder ? pm : null)) Add(m);
@@ -225,22 +230,25 @@ namespace Hansa
         }
 
         /// <summary>
-        /// (24 October 2026, caravel note 83) A wall's face at q (normal n, level): the shelf whose plane is within 0.6 of q
-        /// over the first floor cell in front of it, out to a block and a half (her side's cell lies between her planking and
-        /// the floor's edge), those with a place on top of them.
+        /// (24 October 2026, caravel note 83; 25 October, dev.9) A point on her side or a wall (its face, its planking's top
+        /// or underside): the shelf whose plane is within 0.6 of it over the nearest floor cell that has one (with a place on
+        /// top of it), within a block and a half across (her side's cell lies between her planking and the floor's edge).
         /// </summary>
-        static IEnumerable<MountPoint> ShelvesInFront(MountLayout l, double x, double y, double z, double[] n)
+        static IEnumerable<MountPoint> ShelvesNear(MountLayout l, double x, double y, double z)
         {
-            for (double step = 0.25; step <= 1.5 + 1e-6; step += 0.25)
+            List<MountPoint> best = null;
+            double bd = 1.5;
+            foreach (var f in l.Floors)
             {
-                double fx = x + n[0] * step, fz = z + n[2] * step;
-                foreach (var f in l.Floors)
-                {
-                    if (fx < f.X || fx > f.X + 1 || fz < f.Z || fz > f.Z + 1 || y < f.Y || y > f.Y + 2.6) continue;
-                    foreach (var s in ShelvesOver(l, f).Where(s => Math.Abs(s.Y - y) <= 0.6)) yield return s;
-                    yield break;
-                }
+                if (y < f.Y || y > f.Y + 2.6) continue;
+                double dx = Math.Max(0, Math.Max(f.X - x, x - f.X - 1)), dz = Math.Max(0, Math.Max(f.Z - z, z - f.Z - 1)), dd = Math.Sqrt(dx * dx + dz * dz);
+                if (dd >= bd) continue;
+                var here = ShelvesOver(l, f).Where(s => Math.Abs(s.Y - y) <= 0.6).ToList();
+                if (here.Count == 0) continue;
+                bd = dd;
+                best = here;
             }
+            return best ?? Enumerable.Empty<MountPoint>();
         }
 
         /// <summary>

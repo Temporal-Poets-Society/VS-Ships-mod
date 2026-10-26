@@ -335,6 +335,25 @@ namespace Hansa
         public double[] Rows => OnShipGrid ? GridRowHeights : RowHeights;
 
         public MountPoint Get(string id) => id != null && ById.TryGetValue(id, out var m) ? m : null;
+
+        /// <summary>
+        /// (25 October 2026, caravel note 99) Her design's collision with every deck cell (and beam length) laid: where a
+        /// stair's foot and top find her deck when the planner asks (her openings as they are are the ship's to say). Null
+        /// for a design without deck slots.
+        /// </summary>
+        public VoxelGrid LaidGrid
+        {
+            get
+            {
+                if (laidGrid != null || Def?.Grid == null || Def.Slots == null) return laidGrid;
+                var st = new SlotStates(Def.Slots);
+                for (int n = 0; n < Def.Slots.Count; n++) if (Def.Slots.Slots[n].IsCell || Def.Slots.Slots[n].IsBeam) st.Set(n, SlotState.Filled);
+                var g = Def.Grid.Clone();
+                st.Apply(g);
+                return laidGrid = g;
+            }
+        }
+        VoxelGrid laidGrid;
         public MountPoint FloorAt(string deck, int i, int k, int level = 0) => floor.TryGetValue((deck, i, k, level), out var m) ? m : null;
         /// <summary>The stacked place right over a floor place (or over a stacked one), or null.</summary>
         public MountPoint Above(MountPoint m) => m?.Kind == MountKind.Floor ? FloorAt(m.Deck, m.I, m.K, m.Level + 1) : null;
@@ -1421,6 +1440,14 @@ namespace Hansa
         /// each: a beam's, more where her curved side's cells step down under the line, the planking slanting through them).
         /// </summary>
         public const double DrawReach = 1.0;
+        /// <summary>
+        /// (25 October 2026, caravel notes 88, 90) How far a partition is drawn on through her cells when no surface of hers is
+        /// met within <see cref="DrawReach"/> at either face: a partition by her side under the quarterdeck's front meets the
+        /// deck's planking 1.06 to 1.17 over its top. At 1.0 it stopped short and the next segment's partition was drawn along
+        /// into it, hanging over that cell while it was open. Only then: further everywhere, a top row ran on past the deck's
+        /// top into her front rail's balusters.
+        /// </summary>
+        public const double DrawReachOnward = 1.25;
 
         /// <summary>
         /// (0.3.14, notes 148, 149: "almost works: partition placement between beams, leaving a small gap around beams"; "still
@@ -1470,13 +1497,18 @@ namespace Hansa
             double inSign = m.In < 2 ? 1 : -1;
             double layer = line + inSign * g.V / 2;
             const int n = DrawCells;
-            int pad = (int)Math.Ceiling(DrawReach * n);
+            int pad = (int)Math.Ceiling(DrawReachOnward * n);
             w = n + 2 * pad;
             c = 1.0 / n;
             double h = PartitionThickness / 2 * 0.9;
             // the fine grid: the place's block and pad cells round it
             along0 = (alongX ? m.X : m.Z) - 0.5 - pad * c;
             y0 = m.Y - pad * c;
+            // ((25 October 2026, notes 88, 90) the line's next segments either way: have they places of their own (any row)?)
+            double mid0 = alongX ? m.X : m.Z;
+            bool HasPlaces(double along) => Borders.Any(o => o.Deck == m.Deck && Math.Abs((alongX ? o.X : o.Z) - along) < 1e-6 &&
+                                                            BorderLine(o) is var (ol, ox) && ox == alongX && Math.Abs(ol - line) < 1e-6);
+            bool placeBelow = HasPlaces(mid0 - 1), placeAbove = HasPlaces(mid0 + 1);
             bool Solid(double al, double y) => alongX ? g.SolidAt(al, y, layer) : g.SolidAt(layer, y, al);
             // ((22 October 2026, note 48) a partial place cut by a deck timber hanging into the other layer, over the room's top:
             // up to it, her cells there count as hers)
@@ -1504,15 +1536,20 @@ namespace Hansa
                 // nearest surface met, not on through it)
                 bool otherOnly = dy > 0 && !Solid(al + da * 0.02, y + dy * 0.02);
                 // (from 0.01 inside the free cell: her cells begin 0.01 on)
-                while (run < DrawReach && hers(al + da * (run + 0.02), y + dy * (run + 0.02))) run += 0.01;
-                if (run <= 0) return -1;
                 double best = -1;
-                foreach (double off in new[] { -h, h })
+                foreach (double reach in new[] { DrawReach, DrawReachOnward })
                 {
-                    double o = line + off;
-                    double t = alongX ? s.Ray(al, y, o, da, dy, 0, run + 0.03) : s.Ray(o, y, al, 0, dy, da, run + 0.03);
-                    if (t < double.MaxValue) { best = otherOnly && best >= 0 ? Math.Min(best, t) : Math.Max(best, t); near = Math.Min(near, t); }
-                    else near = 0;
+                    while (run < reach && hers(al + da * (run + 0.02), y + dy * (run + 0.02))) run += 0.01;
+                    if (run <= 0) return -1;
+                    foreach (double off in new[] { -h, h })
+                    {
+                        double o = line + off;
+                        double t = alongX ? s.Ray(al, y, o, da, dy, 0, run + 0.03) : s.Ray(o, y, al, 0, dy, da, run + 0.03);
+                        if (t < double.MaxValue) { best = otherOnly && best >= 0 ? Math.Min(best, t) : Math.Max(best, t); near = Math.Min(near, t); }
+                        else near = 0;
+                    }
+                    // ((25 October 2026) on further only where nothing was met and her cells go on to the first reach's end)
+                    if (best >= 0 || run < reach - 1e-9) break;
                 }
                 return best;
             }
@@ -1545,16 +1582,21 @@ namespace Hansa
                             }
                         }
                         // along: likewise
+                        // ((25 October 2026, caravel notes 88, 90: "small visual protrusions" where partitions meet her side) not past
+                        // its own block into a segment of the line that has places of its own: those close it, and with them empty
+                        // what was drawn there hung over the opening (the cabin front's top row over her side's outer cell)
                         for (int dir = -1; dir <= 1; dir += 2)
                         {
                             int na = a + dir;
+                            bool stopAtEnd = dir < 0 ? placeBelow : placeAbove;
                             if (na < 0 || na >= w || src[na, b] || !Solid(mid + dir * c, ym)) continue;
                             double al = dir > 0 ? al0 + c - 0.01 : al0 + 0.01;
                             near = double.MaxValue;
                             double t = Math.Max(Far(al, ya0 + 0.002, dir, 0), Far(al, ya0 + c - 0.002, dir, 0));
                             if (t <= 0.011) continue;
                             double end = al + dir * t, nearEnd = al + dir * near;
-                            for (int k = na, i = 0; i < most && k >= 0 && k < w && (dir > 0 ? along0 + k * c < end : along0 + (k + 1) * c > end) && Solid(along0 + (k + 0.5) * c, ym); k += dir, i++)
+                            for (int k = na, i = 0; i < most && k >= 0 && k < w && (dir > 0 ? along0 + k * c < end : along0 + (k + 1) * c > end) && Solid(along0 + (k + 0.5) * c, ym) &&
+                                                    !(stopAtEnd && (k < pad || k >= pad + n)); k += dir, i++)
                             {
                                 fill[k, b] = more = true;
                                 if (pass == 0 && (dir > 0 ? along0 + (k + 1) * c <= nearEnd : along0 + k * c >= nearEnd)) open[k, b] = true;

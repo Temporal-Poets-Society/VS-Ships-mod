@@ -280,6 +280,9 @@ namespace HansaTests
             st.Apply(g);
             var need = BeamRules.InTheWay(ml, l, st, sp, g, null);
             if (need != null) { foreach (int n in need) st.Set(n, SlotState.Empty); g = md.Grid.Clone(); st.Apply(g); }
+            // ((25 October 2026, caravel note 99) as the ship asks it: its foot and top on her deck as it is (the planner asks it of
+            // her decks laid)
+            if (PiecePlanner.LandingMissing(sp, g)) return ("hansa:stair-no-landing", false, null);
             var clash = PiecePlanner.GridClash(ml, sp, g);
             if (clash != null) return (StairLanding.At(sp, g) ? "hansa:flight-no-landing" : "hansa:flight-no-well", false, null);
             var gs = g.Clone();

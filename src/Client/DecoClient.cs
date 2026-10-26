@@ -178,6 +178,8 @@ namespace Hansa
                 // (0.3.24, note 177: "from this angle cannot open doors") unless what the ray met first is the piece's own
                 // collision (a door's quarter-block layer, seen slanting from its side)
                 if (piece != null && tp > wall + slack && !ShipPieceSet.OwnHit(piece, o, d, wall)) { piece = null; tp = double.MaxValue; }
+                // ((25 October 2026, notes 95, 96) her collision met first is a piece's own body (its pick sheet elsewhere): that piece
+                if ((piece == null || tp > wall + 0.02) && wall < range && ship.Pieces.SolidHit(o, d, wall) is ShipPiece body) { piece = body; tp = wall; }
                 // from outside her (the water, a dock, another ship): nothing inside through her side or deck, even where a
                 // piece's box reaches into her planking (0.3.10: "trying to open chests placed inside" while mending her)
                 bool outside = !(ep.MountedOn is ShipSeat on && on.Ship == ship);
@@ -193,13 +195,13 @@ namespace Hansa
                 if ((building || layMat) && ship.Slots != null)
                 {
                     var ct = CellTarget(ship, held, o, d, range, wall, building);
-                    if (ct.Kind == TargetKind.Cell && ct.Dist < best.Dist) best = ct;
+                    if (ct.Kind == TargetKind.Cell && ct.Dist < best.Dist - PieceSlack(best)) best = ct;
                 }
                 // (0.3.26, step D1; docs/slots.md §9) her hull panels in building mode: an axe takes one out, planks lay one
                 if ((building || layMat) && ship.HullPanels != null)
                 {
                     var ht = HullTarget(ship, held, o, d, range, wall, building);
-                    if (ht.Kind is TargetKind.Hull or TargetKind.Cell && ht.Dist < best.Dist - 1e-6) best = ht;
+                    if (ht.Kind is TargetKind.Hull or TargetKind.Cell && ht.Dist < best.Dist - Math.Max(1e-6, PieceSlack(best))) best = ht;
                 }
                 // (0.3.21, step C) an empty gun place's carriage box, the gun item in hand in building mode
                 if (building && gunItem && ship.Def.GunPlaces != null)
@@ -217,56 +219,16 @@ namespace Hansa
                 PiecePlan aimPlan = null;
                 if (placing)
                 {
-                    // a free place: only holding a block
-                    // (a place on top of a piece only while a piece with a top stands under it)
-                    // (a panel place only with a planks block in hand; a wall spot on a panel only while the panel is up)
-                    System.Func<MountPoint, bool> free = x => !ship.Pieces.Taken(x.Id) &&
-                        (x.Kind != MountKind.Panel || chalk || planks) &&
-                        // (a cell's border: a partition from planks, a door; a door goes nowhere else)
-                        (x.Kind != MountKind.Border || chalk || planks || pane || fence || door && x.Row == 0) && (!(door || pane || fence) || chalk || x.Kind == MountKind.Border) &&
-                        (x.Kind != MountKind.Horizontal || chalk || slab) && (!slab || chalk || x.Kind == MountKind.Horizontal) &&
-                        (!stairs || chalk || x.Kind == MountKind.Floor && x.Level == 0) &&
-                        (!fire || chalk || x.Kind == MountKind.Floor && (x.Level == 0 || oven)) &&
-                        (x.Kind != MountKind.Flue || chalk || flue) && (!flue || chalk || x.Kind == MountKind.Flue) &&
-                        // (0.3.20) not over a deck cell taken up; over a design opening laid, yes
-                        ship.MountOpen(x) &&
-                        // (0.3.16: with a wall piece in hand, a partition's own wall spots aren't places: the border past it is)
-                        (!onBorder || chalk || x.Kind != MountKind.Wall || x.Under == null) &&
-                        ship.Pieces.Supports(ship.Mounts, x);
+                    // a free place: only holding a block (PlaceAim: the server's self-test drives the same)
+                    var hfp = HeldForPlacing.Of(held.Block, building, chalk);
+                    var free = PlaceAim.Free(ship, hfp);
+                    // ((24 October 2026, note 66) a lantern in building mode: the hooks there only, a deck's underside's too)
+                    System.Func<MountPoint, bool> aimFree = hooksOnly ? x => x.Kind == MountKind.Hook && free(x) : free;
                     // (0.3.18, the user's point 1) only next to what the crosshair hits: a piece in front of her, or her own woodwork
-                    Vec3d hit = null;
-                    double[] normal = null;
-                    ShipPiece hitPiece = null;
-                    double th = double.MaxValue;
-                    // (0.3.24, note 177: a piece still here is in front of her, or behind only its own solid layer)
-                    if (piece != null)
-                    {
-                        th = tp;
-                        hitPiece = piece;
-                        hit = o.AddCopy(d.X * tp, d.Y * tp, d.Z * tp);
-                        foreach (var sb in piece.Sel)
-                            if (Math.Abs(ShipFittings.RayBox(o, d, new Cuboidd(sb[0], sb[1], sb[2], sb[3], sb[4], sb[5])) - tp) < 1e-6) { normal = AimPlace.BoxNormal(o, d, sb); break; }
-                    }
-                    else if (AimPlace.GridHit(ship.Grid, o, d, range, out double tg, out var ng))
-                    {
-                        th = tg;
-                        normal = ng;
-                        hit = o.AddCopy(d.X * tg, d.Y * tg, d.Z * tg);
-                    }
-                    if (hit != null && normal != null)
-                    {
-                        // (the first place next to the hit the block in hand fits; else the first, to say why not)
-                        // ((24 October 2026, note 66) a lantern in building mode: the hooks there only, a deck's underside's too)
-                        foreach (var c in AimPlace.Candidates(ship.Mounts, ship.Pieces, hit, normal, hitPiece, hooksOnly ? x => x.Kind == MountKind.Hook && free(x) : free, onBorder && !chalk))
-                        {
-                            if (chalk) { m = c; break; }
-                            int tw = c.Kind is MountKind.Wall or MountKind.Panel ? c.In : TowardPlayer(ship, c, eye, hit);
-                            var pl = PlanFor(ship, c, held, tw, building);
-                            if (m == null) { m = c; aimPlan = pl; }
-                            if (pl.Error == null) { m = c; aimPlan = pl; break; }
-                        }
-                        if (m != null) tm = th;
-                    }
+                    m = PlaceAim.Choose(ship, hfp, o, d, range, piece, tp, aimFree,
+                        (c, at) => PlanFor(ship, c, held, (c.Kind is MountKind.Wall or MountKind.Panel ? c.In : TowardPlayer(ship, c, eye, at)) | (door ? HingeEnd(c, at) : 0), building),
+                        out aimPlan, out double th, out _);
+                    if (m != null) tm = th;
                     // (0.3.24, note 193: "cannot place the lantern back" on the mast's hook or at the stern) a lantern in hand:
                     // a free hook whose box the crosshair is on (a hook hangs in the air by a mast or on a post: nothing of
                     // her is hit there), if it's nearer than what was hit or that took nothing
@@ -349,12 +311,43 @@ namespace Hansa
                     best.Plan = PlanFor(best.Ship, best.Mount, held, toward, building);
                 }
                 best.Problem = best.Ship.PlaceProblem(best.Plan, true);
+                // ((25 October 2026, dev.9: the shelf "cannot be placed") the one in the way is the player: say so (aimed at the
+                // floor close by, they often stand in the cell a shelf or a piece would take)
+                if (best.Problem == "hansa:piece-someone" && ep.MountedOn is ShipSeat me && me.Ship == best.Ship && SelfInWay(me, best.Plan)) best.Problem = "hansa:piece-you";
             }
             Look = best;
             // (with the chalk its own line says what's in the crosshair: ChalkLine adds a mount point's id to it)
             // (0.3.18: a hearth or an oven put aboard says what its fixture says: ShipHud, as the design's)
             Hint = chalk || best.Kind == TargetKind.Piece && best.Piece.Role is PieceRole.Hearth or PieceRole.Oven ? null : HintFor(best, held, tool);
             if (needSaw != null && best.Kind is not (TargetKind.Hull or TargetKind.Cell) && !(hooksOnly && best.Kind == TargetKind.Mount)) Hint = Hint == null ? needSaw : Hint + " · " + needSaw;
+        }
+
+        /// <summary>
+        /// (25 October 2026, caravel note 95: "snapbox jumps to the hull") How much nearer a deck cell or a hull panel must be to
+        /// take the crosshair from a piece in front of it: a partition (a sheet on its line, drawn up against her planking) a
+        /// quarter block and more, another piece a little; nothing else.
+        /// </summary>
+        static double PieceSlack(Target t) => t.Kind is not (TargetKind.Piece or TargetKind.PaintPiece) || t.Piece == null ? 0 : t.Piece.OnBorder ? 0.3 : 0.15;
+
+        /// <summary>
+        /// (25 October 2026, caravel note 89: "door can be placed only with hinges on one side") A door's hinge at the end of
+        /// its border nearer where the crosshair met it: <see cref="PiecePlanner.HingeHigh"/> for the +x/+z end, else 0.
+        /// </summary>
+        static int HingeEnd(MountPoint m, Vec3d at)
+        {
+            if (m?.Kind != MountKind.Border || at == null) return 0;
+            var (_, alongX) = MountLayout.BorderLine(m);
+            return (alongX ? at.X - m.X : at.Z - m.Z) > 0 ? PiecePlanner.HingeHigh : 0;
+        }
+
+        /// <summary>(25 October 2026) Does the player's own body (their deck seat) stand in a planned piece's boxes?</summary>
+        static bool SelfInWay(ShipSeat me, PiecePlan plan)
+        {
+            var l = me.LocalPos;
+            foreach (var b in plan.Solids.Concat(plan.Room))
+                if (l.X + DeckMover.HalfWidth > b[0] && l.X - DeckMover.HalfWidth < b[3] && l.Y + DeckMover.Height > b[1] && l.Y < b[4] &&
+                    l.Z + DeckMover.HalfWidth > b[2] && l.Z - DeckMover.HalfWidth < b[5]) return true;
+            return false;
         }
 
         /// <summary>A piece the crosshair is on has a free place on top of it for the block in hand (Shift puts it there).</summary>

@@ -229,10 +229,15 @@ namespace Hansa
             }
         }
 
+        /// <summary>(25 October 2026, note 89) A bit on a plan's toward: a door hung at its border's +x/+z end, not its -x/-z end.</summary>
+        public const int HingeHigh = 4;
+
         public static PiecePlan Plan(MountLayout layout, MountPoint m, PieceBlock b, int toward)
         {
             var p = new PiecePlan { Mount = m, Kind = m?.Kind ?? MountKind.Floor, Dir = ((toward % 4) + 4) % 4 };
-            p.Toward = p.Dir;
+            // ((25 October 2026, caravel note 89: "door can be placed only with hinges on one side") HingeHigh in toward: a
+            // door's hinge at its border's +x/+z end, where the crosshair was nearer it)
+            p.Toward = p.Dir | (toward >= 0 && (toward & HingeHigh) != 0 ? HingeHigh : 0);
             if (m == null || b == null) { p.Error = "hansa:piece-nowhere"; return p; }
             // (0.3.23) a ship's stair is put aboard in building mode only
             if (b.NeedsBuilding) { p.Error = "hansa:shipstair-build-mode"; return p; }
@@ -288,7 +293,8 @@ namespace Hansa
         static PiecePlan BorderPiece(MountPoint m, PieceBlock b, PiecePlan p, PieceRole role)
         {
             // (0.3.17) a railing goes on a place only partly free of her too (a castle front's corner by her side), cut to it
-            if (m.Clip != null && role == PieceRole.Window) { p.Error = "hansa:window-no-room"; return p; }
+            // ((25 October 2026, caravel note 90) and a window, cut to it as a partition is: not on a sliver)
+            if (m.Clip != null && role == PieceRole.Window && ClipArea(m) < 0.25) { p.Error = "hansa:window-no-room"; return p; }
             p.Role = role;
             p.Dir = m.In;
             p.Mounts.Add(m.Id);
@@ -296,6 +302,9 @@ namespace Hansa
             p.Parts.Add(new PiecePart { Block = b.Code, Origin = new[] { p.Box[0], p.Box[1], p.Box[2] } });
             return p;
         }
+
+        /// <summary>(25 October 2026) How much of a border place's block is free of her (its Clip's area; 1 whole).</summary>
+        public static double ClipArea(MountPoint m) => m?.Clip == null ? 1 : m.Clip.Sum(c => Math.Max(0, c[2] - c[0]) * Math.Max(0, c[3] - c[1]));
 
         /// <summary>(0.3.16) How high a raked railing's handrail is over the treads (0.3.19: over the nosings' line, the usual 0.9).</summary>
         public const double RailHeight = 0.9;
@@ -531,6 +540,31 @@ namespace Hansa
         }
 
         /// <summary>(0.3.19) Where one steps onto a walked stair (half a block before its foot cell) and off it (half a block past its head, on the deck above): feet, ship-local.</summary>
+        /// <summary>
+        /// (25 October 2026, caravel note 99) Is there no floor of hers (grid: her collision as it is) where one steps onto a
+        /// planned stair or ladder-stair at its foot, or off it at its top? The planner asks it of her decks laid; the ship
+        /// asks it of her as she is (a hatchway shut by its hatch is a floor, a cell taken up isn't).
+        /// </summary>
+        public static bool LandingMissing(PiecePlan plan, VoxelGrid grid)
+        {
+            if (plan?.Mount == null || grid == null || plan.Error != null) return false;
+            if (plan.Role == PieceRole.Stair)
+            {
+                double run = plan.Cells > 0 ? plan.Cells : FlightCells;
+                var on = FlightFoot(plan.Mount, plan.Dir);
+                var off = FlightTop(plan.Mount, plan.Dir, plan.Rise, run);
+                return !DeckMover.HasFloor(grid, on[0], on[1] + 0.01, on[2]) || !DeckMover.HasFloor(grid, off[0], off[1] + 0.01, off[2]) ||
+                       !grid.Collides(off[0] - 0.3, off[1] - 0.12, off[2] - 0.3, off[0] + 0.3, off[1] + 0.01, off[2] + 0.3);
+            }
+            if (plan.Role == PieceRole.Ladder)
+            {
+                var lad = StairLadder(plan.Mount, plan.Dir, plan.Rise, null);
+                return !DeckMover.HasFloor(grid, lad.ExitBottom[0], lad.ExitBottom[1] + 0.01, lad.ExitBottom[2]) ||
+                       !DeckMover.HasFloor(grid, lad.ExitTop[0], lad.ExitTop[1] + 0.01, lad.ExitTop[2]);
+            }
+            return false;
+        }
+
         public static double[] FlightFoot(MountPoint foot, int up) => StairPoint(foot, up, -0.5, 0);
         public static double[] FlightTop(MountPoint foot, int up, double rise, double run = FlightRun) => StairPoint(foot, up, run + 0.5, rise);
 
@@ -582,7 +616,9 @@ namespace Hansa
             double rise = b.Rise > 0 ? b.Rise : FlightRise(layout, m, look, run);
             if (rise < 1 || rise > 4.5) { p.Error = "hansa:stair-no-deck"; return p; }
             // (where one steps on and off it: her floor there)
-            var grid = layout.Def?.Grid;
+            // ((25 October 2026, caravel note 99: "cannot place stairs in this direction up") her decks laid: her openings as
+            // they are (a hatchway with its hatch shut, cells laid since) are the ship's to say, PlaceProblem)
+            var grid = layout.LaidGrid ?? layout.Def?.Grid;
             var on = FlightFoot(m, look);
             var off = FlightTop(m, look, rise, run);
             if (grid != null && (!DeckMover.HasFloor(grid, on[0], on[1] + 0.01, on[2]) || !DeckMover.HasFloor(grid, off[0], off[1] + 0.01, off[2]) ||
@@ -793,8 +829,8 @@ namespace Hansa
             if (head == null) { p.Error = "hansa:stair-no-room"; return p; }
             double rise = b.Rise > 0 ? b.Rise : StairRise(layout, m, look);
             if (rise < 1 || rise > 4.5) { p.Error = "hansa:stair-no-deck"; return p; }
-            // (where one steps on and off it: her floor there)
-            var grid = layout.Def?.Grid;
+            // (where one steps on and off it: her floor there; ((25 October 2026, note 99) her decks laid, as a flight's)
+            var grid = layout.LaidGrid ?? layout.Def?.Grid;
             var lad = StairLadder(m, look, rise, null);
             if (grid != null && (!DeckMover.HasFloor(grid, lad.ExitBottom[0], lad.ExitBottom[1] + 0.01, lad.ExitBottom[2]) ||
                                  !DeckMover.HasFloor(grid, lad.ExitTop[0], lad.ExitTop[1] + 0.01, lad.ExitTop[2])))
@@ -1040,8 +1076,9 @@ namespace Hansa
             p.Mounts.Add(up.Id);
             BorderBoxes(m, 2, p);
             var (line, alongX) = MountLayout.BorderLine(m);
-            // the hinge: the border's lower end, on the line
-            p.Pivot = alongX ? new[] { m.X - 0.5, m.Y, line } : new[] { line, m.Y, m.Z - 0.5 };
+            // the hinge: the border's lower end, on the line; ((25 October 2026, note 89) or its upper end, as the player chose)
+            double hingeAt = (p.Toward & HingeHigh) != 0 ? 0.5 : -0.5;
+            p.Pivot = alongX ? new[] { m.X + hingeAt, m.Y, line } : new[] { line, m.Y, m.Z + hingeAt };
             p.Parts.Add(new PiecePart { Block = b.Code, Origin = (double[])p.Pivot.Clone() });
             return p;
         }
@@ -1457,13 +1494,19 @@ namespace Hansa
                 bool alongX = Box[3] - Box[0] > Box[5] - Box[2];
                 double len = alongX ? Box[3] - Box[0] : Box[5] - Box[2];
                 double a = ModularGeometry.DoorOpenFraction * Math.PI / 2;
-                // (shut it runs from the hinge along the line (+x or +z); open, mostly into the cell, a little back along the line)
-                double ax = alongX ? 1 : 0, az = alongX ? 0 : 1, ix = MountLayout.DX[Dir], iz = MountLayout.DZ[Dir];
+                // (shut it runs from the hinge along the line (+x or +z; (25 October 2026, note 89) -x or -z hung at its upper
+                // end); open, mostly into the cell, a little back along the line)
+                double sg = HingeHighEnd ? -1 : 1;
+                double ax = alongX ? sg : 0, az = alongX ? 0 : sg, ix = MountLayout.DX[Dir], iz = MountLayout.DZ[Dir];
                 double ex = Pivot[0] + len * (ax * Math.Cos(a) + ix * Math.Sin(a)), ez = Pivot[2] + len * (az * Math.Cos(a) + iz * Math.Sin(a));
                 const double t = 0.1;
                 return new[] { Math.Min(Pivot[0], ex) - t, Box[1], Math.Min(Pivot[2], ez) - t, Math.Max(Pivot[0], ex) + t, Box[4], Math.Max(Pivot[2], ez) + t };
             }
         }
+        /// <summary>(25 October 2026, note 89) A door hung at its border's +x/+z end (its hinge past the middle of its box).</summary>
+        public bool HingeHighEnd => Role == PieceRole.Door && Pivot != null && Box != null &&
+                                    (Box[3] - Box[0] > Box[5] - Box[2] ? Pivot[0] > (Box[0] + Box[3]) / 2 : Pivot[2] > (Box[2] + Box[5]) / 2);
+
         /// <summary>(0.3.23) The box that must be seen to use or take it (a shut hatch's from below too).</summary>
         public double[] SeenBox => Role == PieceRole.Hatch && !Open ? PiecePlanner.Union(PickBoxes) ?? Box : Box;
 
@@ -1742,6 +1785,21 @@ namespace Hansa
             foreach (var s in p.Solids)
                 if (s?.Length >= 6 && x >= s[0] - e && x <= s[3] + e && y >= s[1] - e && y <= s[4] + e && z >= s[2] - e && z <= s[5] + e) return true;
             return false;
+        }
+
+        /// <summary>
+        /// (25 October 2026, caravel notes 95, 96: "cannot remove partition wall as all the time snapbox jumps to the hull") The
+        /// piece whose collision holds a point a hundredth past where a ray met her collision (o, d normalised, t), or null:
+        /// what the ray met is that piece's body (a partition's quarter-block layer, a block's side), though its thin pick
+        /// sheet is elsewhere.
+        /// </summary>
+        public ShipPiece SolidHit(Vintagestory.API.MathTools.Vec3d o, Vintagestory.API.MathTools.Vec3d d, double t)
+        {
+            if (double.IsNaN(t) || double.IsInfinity(t) || t == double.MaxValue) return null;
+            foreach (var p in ById.Values)
+                if (p.Role is not (PieceRole.Door or PieceRole.Hatch) || !p.Open)
+                    if (OwnHit(p, o, d, t)) return p;
+            return null;
         }
 
         /// <summary>The piece a ray (ship-local, d normalised) meets first within range, and how far.</summary>
