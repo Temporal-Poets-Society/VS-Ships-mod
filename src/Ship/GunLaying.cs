@@ -94,7 +94,11 @@ namespace Hansa
         public static GunLay Clamp(FixtureDef gun, GunLay l, bool gateOpen = false)
         {
             Limits(gun, out float t0, out float t1, out float e0, out float e1, gateOpen);
-            return new GunLay(Math.Clamp(float.IsNaN(l.Train) ? 0 : l.Train, t0, t1), Math.Clamp(float.IsNaN(l.Elevation) ? 0 : l.Elevation, e0, e1));
+            float t = Math.Clamp(float.IsNaN(l.Train) ? 0 : l.Train, t0, t1);
+            float e = float.IsNaN(l.Elevation) ? 0 : l.Elevation;
+            // ((25 October 2026) a swivel gun trained along her rail is depressed (or its tail lowered) only as far as the rail lets it)
+            if (gun?.Swivel == true) return new GunLay(t, SwivelGun.ClampElevation(t, e, e0, e1));
+            return new GunLay(t, Math.Clamp(e, e0, e1));
         }
 
         /// <summary>Is this lay beyond what it can be laid to (more than a hair)?</summary>

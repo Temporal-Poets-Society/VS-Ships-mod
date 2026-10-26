@@ -152,9 +152,13 @@ namespace Hansa
             bool decorOff = block && !painting && !gunItem && VanillaPieceBlock.BuildingRefusal(held.Block, building) != null;
             // (0.3.24, note 193) a lantern (a block giving light) in hand: its hooks are aimed at directly
             bool lightInHand = block && !chalk && held.Block.GetLightHsv(capi.World.BlockAccessor, null, held) is byte[] lhsv && lhsv.Length > 2 && lhsv[2] > 0;
+            // ((25 October 2026, caravel note 100: "cannot place figure head") a figurehead in hand: its place in front of her
+            // stem is aimed at directly, or at the stem head behind it (the place is out past her woodwork, never next to
+            // what the crosshair meets from her deck)
+            bool figureInHand = block && !chalk && VanillaPieceBlock.IsFigurehead(held.Block);
             // ((24 October 2026, caravel note 66: "after lantern removal cannot place it back") in building mode a lantern
             // goes back on a hook, as it's taken down there: her hooks only, no other place for decoration
-            bool hooksOnly = decorOff && lightInHand;
+            bool hooksOnly = decorOff && (lightInHand || figureInHand);
             // ((24 October 2026, caravel note 77: "when using chalk for some reason show building snapboxes") the chalk is the
             // notes' tool: no places for pieces in its crosshair (their outlines were the places' own boxes, thicker than a
             // partition's)
@@ -266,6 +270,21 @@ namespace Hansa
                     // (0.3.24, note 193: "cannot place the lantern back" on the mast's hook or at the stern) a lantern in hand:
                     // a free hook whose box the crosshair is on (a hook hangs in the air by a mast or on a post: nothing of
                     // her is hit there), if it's nearer than what was hit or that took nothing
+                    if (figureInHand)
+                    {
+                        System.Func<MountPoint, bool> fig = x => x.Kind == MountKind.Hook && x.Kinds != null && Array.IndexOf(x.Kinds, PiecePlanner.FigureheadKind) >= 0 && free(x);
+                        var fk = ship.Mounts.Pick(o, d, range, Math.Min(wall, tp), fig, out double tf);
+                        // (or the crosshair on her within a block of a figurehead's place: the stem head behind it, 0.8 thick)
+                        if (fk == null && hit != null && hitPiece == null)
+                            foreach (var x in ship.Mounts.Hooks)
+                                if (fig(x) && x.Box != null && AimPlace.BoxDistance(x.Box, hit.X, hit.Y, hit.Z) < AimPlace.FigureheadReach) { fk = x; tf = th; break; }
+                        if (fk != null && (m == null || tf <= tm + 0.05 || aimPlan?.Error != null))
+                        {
+                            m = fk;
+                            tm = tf;
+                            aimPlan = PlanFor(ship, fk, held, TowardPlayer(ship, fk, eye, o.AddCopy(d.X * tf, d.Y * tf, d.Z * tf)), building);
+                        }
+                    }
                     if (lightInHand)
                     {
                         var hk = ship.Mounts.Pick(o, d, range, Math.Min(wall, tp), x => x.Kind == MountKind.Hook && free(x), out double tk);

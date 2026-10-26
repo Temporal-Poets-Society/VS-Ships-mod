@@ -1,0 +1,472 @@
+{
+ "textureWidth": 16,
+ "textureHeight": 16,
+ "textures": {
+  "bronze": "game:block/metal/plate/tinbronze",
+  "iron": "game:block/metal/tarnished/iron"
+ },
+ "elements": [
+  {
+   "name": "socket",
+   "from": [
+    7.3,
+    -3.0,
+    7.3
+   ],
+   "to": [
+    8.7,
+    0.0,
+    8.7
+   ],
+   "faces": {
+    "north": {
+     "texture": "#iron"
+    },
+    "east": {
+     "texture": "#iron"
+    },
+    "south": {
+     "texture": "#iron"
+    },
+    "west": {
+     "texture": "#iron"
+    },
+    "up": {
+     "texture": "#iron"
+    },
+    "down": {
+     "texture": "#iron"
+    }
+   }
+  },
+  {
+   "name": "socketCollar",
+   "from": [
+    6.9,
+    -0.6,
+    6.9
+   ],
+   "to": [
+    9.1,
+    0.0,
+    9.1
+   ],
+   "faces": {
+    "north": {
+     "texture": "#iron"
+    },
+    "east": {
+     "texture": "#iron"
+    },
+    "south": {
+     "texture": "#iron"
+    },
+    "west": {
+     "texture": "#iron"
+    },
+    "up": {
+     "texture": "#iron"
+    },
+    "down": {
+     "texture": "#iron"
+    }
+   }
+  },
+  {
+   "name": "yokeStem",
+   "from": [
+    7.6,
+    0.0,
+    7.6
+   ],
+   "to": [
+    8.4,
+    1.4,
+    8.4
+   ],
+   "faces": {
+    "north": {
+     "texture": "#iron"
+    },
+    "east": {
+     "texture": "#iron"
+    },
+    "south": {
+     "texture": "#iron"
+    },
+    "west": {
+     "texture": "#iron"
+    },
+    "up": {
+     "texture": "#iron"
+    },
+    "down": {
+     "texture": "#iron"
+    }
+   }
+  },
+  {
+   "name": "yoke",
+   "from": [
+    5.4,
+    1.4,
+    7.4
+   ],
+   "to": [
+    10.6,
+    2.0,
+    8.6
+   ],
+   "faces": {
+    "north": {
+     "texture": "#iron"
+    },
+    "east": {
+     "texture": "#iron"
+    },
+    "south": {
+     "texture": "#iron"
+    },
+    "west": {
+     "texture": "#iron"
+    },
+    "up": {
+     "texture": "#iron"
+    },
+    "down": {
+     "texture": "#iron"
+    }
+   }
+  },
+  {
+   "name": "yokeArmL",
+   "from": [
+    5.4,
+    2.0,
+    7.5
+   ],
+   "to": [
+    6.1,
+    3.8,
+    8.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#iron"
+    },
+    "east": {
+     "texture": "#iron"
+    },
+    "south": {
+     "texture": "#iron"
+    },
+    "west": {
+     "texture": "#iron"
+    },
+    "up": {
+     "texture": "#iron"
+    },
+    "down": {
+     "texture": "#iron"
+    }
+   }
+  },
+  {
+   "name": "yokeArmR",
+   "from": [
+    9.9,
+    2.0,
+    7.5
+   ],
+   "to": [
+    10.6,
+    3.8,
+    8.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#iron"
+    },
+    "east": {
+     "texture": "#iron"
+    },
+    "south": {
+     "texture": "#iron"
+    },
+    "west": {
+     "texture": "#iron"
+    },
+    "up": {
+     "texture": "#iron"
+    },
+    "down": {
+     "texture": "#iron"
+    }
+   }
+  },
+  {
+   "name": "barrel",
+   "from": [
+    7.0,
+    2.2,
+    6.0
+   ],
+   "to": [
+    9.0,
+    4.2,
+    17.92
+   ],
+   "faces": {
+    "north": {
+     "texture": "#bronze"
+    },
+    "east": {
+     "texture": "#bronze"
+    },
+    "south": {
+     "texture": "#bronze"
+    },
+    "west": {
+     "texture": "#bronze"
+    },
+    "up": {
+     "texture": "#bronze"
+    },
+    "down": {
+     "texture": "#bronze"
+    }
+   }
+  },
+  {
+   "name": "barrelMuzzle",
+   "from": [
+    6.75,
+    1.95,
+    16.9
+   ],
+   "to": [
+    9.25,
+    4.45,
+    17.92
+   ],
+   "faces": {
+    "north": {
+     "texture": "#bronze"
+    },
+    "east": {
+     "texture": "#bronze"
+    },
+    "south": {
+     "texture": "#bronze"
+    },
+    "west": {
+     "texture": "#bronze"
+    },
+    "up": {
+     "texture": "#bronze"
+    },
+    "down": {
+     "texture": "#bronze"
+    }
+   }
+  },
+  {
+   "name": "barrelReinforce",
+   "from": [
+    6.8,
+    2.0,
+    6.0
+   ],
+   "to": [
+    9.2,
+    4.4,
+    9.6
+   ],
+   "faces": {
+    "north": {
+     "texture": "#bronze"
+    },
+    "east": {
+     "texture": "#bronze"
+    },
+    "south": {
+     "texture": "#bronze"
+    },
+    "west": {
+     "texture": "#bronze"
+    },
+    "up": {
+     "texture": "#bronze"
+    },
+    "down": {
+     "texture": "#bronze"
+    }
+   }
+  },
+  {
+   "name": "barrelTrunnions",
+   "from": [
+    6.1,
+    2.85,
+    7.65
+   ],
+   "to": [
+    9.9,
+    3.55,
+    8.35
+   ],
+   "faces": {
+    "north": {
+     "texture": "#bronze"
+    },
+    "east": {
+     "texture": "#bronze"
+    },
+    "south": {
+     "texture": "#bronze"
+    },
+    "west": {
+     "texture": "#bronze"
+    },
+    "up": {
+     "texture": "#bronze"
+    },
+    "down": {
+     "texture": "#bronze"
+    }
+   }
+  },
+  {
+   "name": "barrelChamber",
+   "from": [
+    7.1,
+    2.3,
+    3.4
+   ],
+   "to": [
+    8.9,
+    4.1,
+    6.0
+   ],
+   "faces": {
+    "north": {
+     "texture": "#iron"
+    },
+    "east": {
+     "texture": "#iron"
+    },
+    "south": {
+     "texture": "#iron"
+    },
+    "west": {
+     "texture": "#iron"
+    },
+    "up": {
+     "texture": "#iron"
+    },
+    "down": {
+     "texture": "#iron"
+    }
+   }
+  },
+  {
+   "name": "barrelWedge",
+   "from": [
+    7.5,
+    4.1,
+    3.8
+   ],
+   "to": [
+    8.5,
+    4.7,
+    5.2
+   ],
+   "faces": {
+    "north": {
+     "texture": "#iron"
+    },
+    "east": {
+     "texture": "#iron"
+    },
+    "south": {
+     "texture": "#iron"
+    },
+    "west": {
+     "texture": "#iron"
+    },
+    "up": {
+     "texture": "#iron"
+    },
+    "down": {
+     "texture": "#iron"
+    }
+   }
+  },
+  {
+   "name": "barrelTail",
+   "from": [
+    7.65,
+    2.9,
+    1.7
+   ],
+   "to": [
+    8.35,
+    3.5,
+    3.4
+   ],
+   "faces": {
+    "north": {
+     "texture": "#iron"
+    },
+    "east": {
+     "texture": "#iron"
+    },
+    "south": {
+     "texture": "#iron"
+    },
+    "west": {
+     "texture": "#iron"
+    },
+    "up": {
+     "texture": "#iron"
+    },
+    "down": {
+     "texture": "#iron"
+    }
+   }
+  },
+  {
+   "name": "barrelKnob",
+   "from": [
+    7.4,
+    2.65,
+    0.8
+   ],
+   "to": [
+    8.6,
+    3.75,
+    1.7
+   ],
+   "faces": {
+    "north": {
+     "texture": "#iron"
+    },
+    "east": {
+     "texture": "#iron"
+    },
+    "south": {
+     "texture": "#iron"
+    },
+    "west": {
+     "texture": "#iron"
+    },
+    "up": {
+     "texture": "#iron"
+    },
+    "down": {
+     "texture": "#iron"
+    }
+   }
+  }
+ ]
+}

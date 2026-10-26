@@ -36,6 +36,20 @@ namespace Hansa
             return MountLayout.Snap(vx, vz);
         }
 
+        /// <summary>
+        /// (25 October 2026, caravel note 100: "cannot place figure head") How near her woodwork the crosshair meets has to be to
+        /// a figurehead's place for a figurehead in hand to go there: the place is out in front of her stem, which is 0.8
+        /// thick at its head, so from her deck the crosshair is on the stem's back.
+        /// </summary>
+        public const double FigureheadReach = 1.0;
+
+        /// <summary>How far a point is from a box (x0 y0 z0 x1 y1 z1); 0 inside it.</summary>
+        public static double BoxDistance(double[] b, double x, double y, double z)
+        {
+            double dx = Math.Max(0, Math.Max(b[0] - x, x - b[3])), dy = Math.Max(0, Math.Max(b[1] - y, y - b[4])), dz = Math.Max(0, Math.Max(b[2] - z, z - b[5]));
+            return Math.Sqrt(dx * dx + dy * dy + dz * dz);
+        }
+
         /// <summary>The face a ray enters a box by: its outward normal (axis-aligned), or null if it misses.</summary>
         public static double[] BoxNormal(Vec3d o, Vec3d d, double[] b)
         {

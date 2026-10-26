@@ -169,6 +169,8 @@ namespace Hansa
             DryMask = VoxelGrid.InsideMask(FullGrid, DeckY - 0.25);
             DrySweepMask = DryMask.Dilated((int)Math.Ceiling(DrySweep.Margin / Grid.V - 1e-9));
             for (int i = 0; i < Fixtures.Length; i++) Fixtures[i].Index = i;
+            // (25 October 2026) her swivel guns: their yoke, muzzle, selection, shot and the gunner's place from their sockets
+            foreach (var f in Fixtures) if (f.Swivel) SwivelGun.Fill(f, Grid);
             // ((0.1.0-dev.9, note 61) a gate, door or hatch is picked where its leaf stands open while it's open)
             foreach (var f in Fixtures) f.OpenSel = f.Opens ? PartMotion.OpenBox(this, f) : null;
             // (0.3.21, step C) her gun places, and which moving parts are each gun's
@@ -804,6 +806,17 @@ namespace Hansa
         public float Elevation;
         public string Material;
         public float Bore = 0.14f, Shot;
+        /// <summary>
+        /// (25 October 2026, the user's decision) gun: seconds it takes to fire again (0: the ship's cannon's cooldown), and
+        /// the radius its shot strikes with (0: the cannon's). A swivel gun's are its own (<see cref="SwivelGun"/>).
+        /// </summary>
+        public float Reload, HitRadius;
+        /// <summary>
+        /// (25 October 2026) A swivel gun (a berço, kind "swivel"): a small breech-loader in a socket on her rail cap, laid by
+        /// the man at it over a wide arc. Its place in the design is its socket's top (Pos), the way it points laid square
+        /// (Out) and its arc (TrainLimits, ElevationLimits); the rest is filled in (<see cref="SwivelGun.Fill"/>).
+        /// </summary>
+        public bool Swivel => Type == "gun" && Kind == SwivelGun.Kind;
         /// <summary>
         /// gun, laying it (<see cref="GunLaying"/>): the point on the upright it trains about (in its port), the point on
         /// the trunnions' line it elevates about (across the barrel), where the gun captain stands (feet, laid square, run

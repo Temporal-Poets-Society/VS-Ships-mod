@@ -446,7 +446,8 @@ namespace Hansa
         {
             if (gun == null || Def == null) return 0;
             long fired = Api?.Side == EnumAppSide.Server ? Gun(gun.Code).FiredMs : GunFiredAt.TryGetValue(gun.Code, out long at) ? at : long.MinValue / 2;
-            double left = Def.Cannon.Cooldown - (World.ElapsedMilliseconds - fired) / 1000.0;
+            // ((25 October 2026) a swivel gun's own, quicker)
+            double left = (gun.Reload > 0 ? gun.Reload : Def.Cannon.Cooldown) - (World.ElapsedMilliseconds - fired) / 1000.0;
             return Math.Max(0, left);
         }
 
@@ -514,7 +515,8 @@ namespace Hansa
             int n = 0;
             foreach (var f in Def.Fixtures)
             {
-                if (f.Type != "gun" || GunAbsent(f) || side != 0 && (ShipCompartments.AlongX(f) || Math.Sign(f.Out?[2] ?? 0) != side)) continue;
+                // ((25 October 2026) her great guns: a swivel gun is fired by the man at it)
+                if (f.Type != "gun" || f.Swivel || GunAbsent(f) || side != 0 && (ShipCompartments.AlongX(f) || Math.Sign(f.Out?[2] ?? 0) != side)) continue;
                 // (the command: housed guns are run out at once)
                 OpenGunPort(f, true);
                 if (FireGun(f, firer, player, elevation, train) == null) n++;

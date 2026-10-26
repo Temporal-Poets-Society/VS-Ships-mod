@@ -219,6 +219,12 @@ namespace Hansa
                 if (wall <= range && BodyOf(f) is double[] body && grid.CellsOf(body) is double[] bc &&
                     Within(o.X + d.X * wall, o.Y + d.Y * wall, o.Z + d.Z * wall, bc, 0.02))
                     t = t < 0 ? wall : Math.Min(t, wall);
+                // ((25 October 2026, caravel note 91: "here opening click on gate does not register") nor the cells of her
+                // collision it fills itself (a shut gate, a door): her quarter-block grid takes them out past its selection
+                // box (the gate's 0.09 aft of it, to its jamb's foot), and the crosshair names it there, so a click there is its)
+                else if (wall <= range && SolidBox(f, def, isOpen, attached) is double[] own && grid.CellsOf(own) is double[] oc &&
+                    Within(o.X + d.X * wall, o.Y + d.Y * wall, o.Z + d.Z * wall, oc, 0.02) && (f.Opens || f.Type == "attach"))
+                    t = t < 0 ? wall : Math.Min(t, wall);
                 if (t < 0 || t > range || t >= dist) continue;
                 double reach = wall;
                 if (SolidBox(f, def, isOpen, attached) is double[] solid && grid.CellsOf(solid) is double[] cells)

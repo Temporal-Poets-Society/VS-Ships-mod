@@ -80,7 +80,8 @@ namespace HansaTests
             if (Array.IndexOf(args, "buildplace") >= 0) { CaravelBuildPlace(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "holdstair") >= 0) { CaravelHoldStair(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "steerage") >= 0) { CaravelSteerage(root); CaravelNote49(root); CaravelNote48(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
-            if (Array.IndexOf(args, "gates") >= 0) { CaravelGates(root); CaravelLadderCatch(root); CaravelFigurehead(root); LanternOwnLight(); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
+            if (Array.IndexOf(args, "swivels") >= 0) { Swivels(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
+            if (Array.IndexOf(args, "gates") >= 0) { CaravelGates(root); CaravelLadderCatch(root); CaravelFigurehead(root); CaravelRudder(root); LanternOwnLight(); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "lateen") >= 0) { CaravelLateenDip(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "gunclick") >= 0) { GunClicks(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "paint") >= 0) { CaravelPaint(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
@@ -375,6 +376,8 @@ namespace HansaTests
             CaravelGates(root);
             CaravelLadderCatch(root);
             CaravelFigurehead(root);
+            CaravelRudder(root);
+            Swivels(root);
             LanternOwnLight();
             CastleGunPorts(root);
             Notes0324(root);

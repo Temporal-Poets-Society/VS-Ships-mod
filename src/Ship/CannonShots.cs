@@ -43,6 +43,8 @@ namespace Hansa
             public int Id;
             public ShotState S;
             public double Mass;
+            /// <summary>(25 October 2026) The radius it strikes with: its gun's (a swivel's small ball), else the cannon's.</summary>
+            public float HitRadius;
             public CannonDef D;
             public EntityShip From;
             public Entity Firer;
@@ -83,7 +85,7 @@ namespace Hansa
             var d = ship.Def?.Cannon ?? new CannonDef();
             var b = new Ball
             {
-                Id = ++nextId, D = d, Mass = Ballistics.MassOf(gun, d), From = ship, Firer = firer, Player = player,
+                Id = ++nextId, D = d, Mass = Ballistics.MassOf(gun, d), HitRadius = gun.HitRadius > 0 ? gun.HitRadius : d.HitRadius, From = ship, Firer = firer, Player = player,
                 S = new ShotState { X = at.X, Y = at.Y, Z = at.Z, VX = vel.X, VY = vel.Y, VZ = vel.Z },
             };
             flying.Add(b);
@@ -209,7 +211,7 @@ namespace Hansa
         {
             double energy = b.Energy;
             ShipFrame.ToLocal(ship.Pos.Yaw, pitch, roll, u.X, u.Y, u.Z, out double lx, out double ly, out double lz);
-            var res = ship.Damage(hit.Local, new Vec3d(lx, ly, lz), (float)energy, b.D.HitRadius, "cannon");
+            var res = ship.Damage(hit.Local, new Vec3d(lx, ly, lz), (float)energy, b.HitRadius, "cannon");
             Record(b, "ship", at, ship.EntityId, energy, res);
             // ((0.3.27, note 207) a scar where it went in and came out; (0.3.30, note 234: "nothing about holes from cannon")
             // none: what it hit is cracked or out (a hull panel, a deck cell, a piece), her fixed planking's nearest slot for it)

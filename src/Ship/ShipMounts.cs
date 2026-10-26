@@ -626,16 +626,17 @@ namespace Hansa
         /// by checking whether the gun or the stairs can be placed") Is this gun's working room kept clear in her layout (no
         /// places for pieces in it)? A fixed gun's and a place's that starts laid: yes. A place that starts empty: no, its
         /// room is free for pieces and stairs; it's checked when a piece is put (while a gun is mounted there,
-        /// <see cref="FreeGunRoomHit"/>) and when a gun is mounted (nothing may stand in its room).
+        /// <see cref="FreeGunRoomHit"/>) and when a gun is mounted (nothing may stand in its room). ((25 October 2026) A swivel
+        /// gun on her rail has no working room on her deck: its gunner stands where he likes.)
         /// </summary>
         public static bool ReservesRoom(ShipDefinition def, FixtureDef f) =>
-            f?.Type == "gun" && !(f.Code != null && def?.GunPlaceOf != null && def.GunPlaceOf.TryGetValue(f.Code, out var gp) && !gp.StartsLaid);
+            f?.Type == "gun" && !f.Swivel && !(f.Code != null && def?.GunPlaceOf != null && def.GunPlaceOf.TryGetValue(f.Code, out var gp) && !gp.StartsLaid);
 
         /// <summary>(0.3.24) The working rooms of her gun places that start empty (not kept in her layout).</summary>
         public static IEnumerable<List<double[]>> FreeGunRooms(ShipDefinition def)
         {
             foreach (var f in def?.Fixtures ?? Array.Empty<FixtureDef>())
-                if (f.Type == "gun" && !ReservesRoom(def, f)) yield return GunRoom(f);
+                if (f.Type == "gun" && !f.Swivel && !ReservesRoom(def, f)) yield return GunRoom(f);
         }
 
         /// <summary>
@@ -648,7 +649,7 @@ namespace Hansa
             var list = boxes.Where(b => b?.Length >= 6).ToList();
             foreach (var f in def.Fixtures)
             {
-                if (f.Type != "gun" || ReservesRoom(def, f) || !mounted(f)) continue;
+                if (f.Type != "gun" || f.Swivel || ReservesRoom(def, f) || !mounted(f)) continue;
                 var room = GunRoom(f);
                 for (int i = 0; i < room.Count; i++)
                 {

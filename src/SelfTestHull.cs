@@ -182,10 +182,10 @@ namespace Hansa
                     // 7. a carrack's starboard gun into her port side over her waterline (the lower deck's band)
                     // ((0.3.28, D2.1) half a block along: her guns (on the odd x) abreast of a one-block panel's middle, not its edge)
                     // (a grid ship's guns stand at a cell's middle, x.5: no shift for her)
-                    var g0 = mod.GetShip(cfg.Ship)?.Fixtures.FirstOrDefault(f => f.Type == "gun");
+                    var g0 = mod.GetShip(cfg.Ship)?.Fixtures.FirstOrDefault(f => f.Type == "gun" && !f.Swivel);
                     double gdx = g0 != null && Math.Abs(g0.Pos[0] - Math.Floor(g0.Pos[0]) - 0.5) < 0.05 ? 0 : 0.5;
                     shooter = Launch(ctype, sz, dx: gdx);
-                    var guns = shooter.Def.Fixtures.Where(f => f.Type == "gun" && f.Out[2] > 0 && shooter.GunMounted(f)).OrderBy(f => f.Pos[0]).ToArray();
+                    var guns = shooter.Def.Fixtures.Where(f => f.Type == "gun" && !f.Swivel && f.Out[2] > 0 && shooter.GunMounted(f)).OrderBy(f => f.Pos[0]).ToArray();
                     foreach (var f in guns) shooter.OpenGunPort(f, true);
                     WaitFor(() => false, 1, w1 =>
                     {
