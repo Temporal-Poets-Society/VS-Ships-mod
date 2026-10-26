@@ -93,11 +93,9 @@ namespace Hansa
                     if (sp == null) return;
                     pl.Version = ship.PaintVersion;
                     var now = new Dictionary<int, string>();
-                    foreach (var kv in ship.Paint.Zones)
-                    {
-                        int zi = plan.ZoneIndex(kv.Key);
-                        if (zi >= 0) now[zi] = kv.Value;
-                    }
+                    // ((0.1.0-dev.9) a row's zone painted as the whole zone was, if it isn't itself: PaintPlan.PaintOf)
+                    for (int zi = 0; zi < plan.Zones.Length; zi++)
+                        if (plan.PaintOf(ship.Paint, zi) is string p) now[zi] = p;
                     var changed = new HashSet<int>(now.Keys.Concat(pl.Paint.Keys).Where(z => (now.TryGetValue(z, out var a) ? a : null) != (pl.Paint.TryGetValue(z, out var b) ? b : null)));
                     pl.Paint.Clear();
                     foreach (var kv in now) pl.Paint[kv.Key] = kv.Value;

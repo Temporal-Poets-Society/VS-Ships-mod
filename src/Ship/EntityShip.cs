@@ -1318,19 +1318,33 @@ namespace Hansa
             return null;
         }
 
-        /// <summary>Nail copper plates from the player's hand onto the bottom. Returns the plates used.</summary>
+        /// <summary>
+        /// Nail copper plates (or sheets, two a plate) from the player's hand onto the bottom. Returns the plates used. In
+        /// creative a click sheathes her whole bottom and nothing is used up (as paint is: note 101, one plate went on and
+        /// none was left in hand).
+        /// </summary>
         public int AddCladding(IServerPlayer player)
         {
             var slot = player?.InventoryManager.ActiveHotbarSlot;
             if (slot?.Itemstack == null || Clad) return 0;
-            if (slot.Itemstack.Collectible.Code.ToString() != "game:metalplate-copper")
+            int per = ShipFittings.CladdingItemsPerPlate(slot.Itemstack);
+            if (per == 0)
             {
                 Notify(player, "hansa:cladding-needs-copper");
                 return 0;
             }
-            int take = AddCladdingPlates(slot.Itemstack.StackSize);
-            slot.TakeOut(take);
-            slot.MarkDirty();
+            bool creative = player.WorldData?.CurrentGameMode == EnumGameMode.Creative;
+            if (!creative && slot.Itemstack.StackSize < per)
+            {
+                Notify(player, "hansa:cladding-sheets-pair");
+                return 0;
+            }
+            int take = AddCladdingPlates(creative ? Def.CladdingPlates : slot.Itemstack.StackSize / per);
+            if (!creative)
+            {
+                slot.TakeOut(take * per);
+                slot.MarkDirty();
+            }
             player.SendMessage(GlobalConstants.InfoLogChatGroup, Clad
                 ? Lang.GetL(player.LanguageCode, "hansa:cladding-done")
                 : Lang.GetL(player.LanguageCode, "hansa:cladding-progress", CladPlates, Def.CladdingPlates), EnumChatType.Notification);

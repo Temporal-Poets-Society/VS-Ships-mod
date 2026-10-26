@@ -85,7 +85,7 @@ namespace HansaTests
             if (Array.IndexOf(args, "gates") >= 0) { CaravelGates(root); CaravelLadderCatch(root); CaravelFigurehead(root); CaravelRudder(root); LanternOwnLight(); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "lateen") >= 0) { CaravelLateenDip(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "gunclick") >= 0) { GunClicks(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
-            if (Array.IndexOf(args, "paint") >= 0) { CaravelPaint(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
+            if (Array.IndexOf(args, "paint") >= 0) { CaravelPaint(root); CaravelNote101(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "grid-pieces") >= 0) { GridPieces(root); return 0; }
             if (Array.IndexOf(args, "holes") >= 0) return GridHoles(root, true) == 0 ? 0 : 1;
             if (Array.IndexOf(args, "startpieces") >= 0)
@@ -372,6 +372,7 @@ namespace HansaTests
             DeckItems(root);
             GunClicks(root);
             CaravelPaint(root);
+            CaravelNote101(root);
             LanternGlass();
             // (0.1.0-dev.9) caravel notes 61 and 66: her gates where their leaves stand, a lantern in its own light
             CaravelGates(root);

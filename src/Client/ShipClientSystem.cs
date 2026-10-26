@@ -548,7 +548,8 @@ namespace Hansa
                 return Lang.Get("hansa:hint-board-boat") + (ship.Def.PickUpItem != null ? " · " + Lang.Get("hansa:hint-boat-pickup") : "");
             }
             var held = capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack;
-            if (held?.Collectible?.Code?.ToString() == "game:metalplate-copper")
+            // ((0.1.0-dev.9, note 101) copper plates, or copper sheets: two a plate)
+            if (ShipFittings.CladdingItemsPerPlate(held) > 0)
             {
                 return ship.Clad ? Lang.Get("hansa:hint-clad-done") : Lang.Get("hansa:hint-clad", ship.CladPlates, ship.Def.CladdingPlates);
             }
@@ -1116,7 +1117,7 @@ namespace Hansa
                             return;
                         }
                         var held = capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack;
-                        if (ship?.Def != null && held?.Collectible?.Code?.ToString() == "game:metalplate-copper")
+                        if (ship?.Def != null && ShipFittings.CladdingItemsPerPlate(held) > 0)
                         {
                             channel.SendPacket(new FixturePacket { ShipId = ship.EntityId, Fixture = FixturePacket.Cladding });
                             handled = EnumHandling.PreventDefault;

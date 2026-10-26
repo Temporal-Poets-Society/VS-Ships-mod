@@ -745,7 +745,7 @@ namespace Hansa
             var zone = plan.Zones[zi];
             string name = ZoneName(zone);
             double area = plan.Area[zi];
-            string now = ship.Paint.Of(zone.Code);
+            string now = plan.PaintOf(ship.Paint, zi);
             bool creative = EntityShip.Creative(capi.World.Player);
             EntityShip.PaintTool(held, out string colour, out int have);
             switch (tool)

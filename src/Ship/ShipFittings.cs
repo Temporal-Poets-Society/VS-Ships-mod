@@ -108,6 +108,19 @@ namespace Hansa
         }
 
         /// <summary>
+        /// (0.1.0-dev.9, note 101: "cannot add copper plates to the hull bottom") What sheathes her bottom: vanilla's copper
+        /// plate (two ingots of copper), or its copper sheet (one ingot: two of them a plate's worth). How many of the item
+        /// go to a plate; 0 if it isn't copper for her bottom.
+        /// </summary>
+        public static int CladdingItemsPerPlate(ItemStack stack)
+        {
+            var code = stack?.Collectible?.Code;
+            if (code == null || code.Domain != "game") return 0;
+            if (code.Path == "metalplate-copper") return 1;
+            return code.Path.StartsWith("metalsheet-copper-") ? 2 : 0;
+        }
+
+        /// <summary>
         /// The world block a plate's spawn spot is in, for vanilla's spawn position (which is a block): at the ship's
         /// still-water level (baseY; the waves' heave would move it up and down all the time), the feet just above her
         /// deck. The server keeps her level, so no pitch or roll.
