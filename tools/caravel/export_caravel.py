@@ -259,6 +259,10 @@ def deck_lit(n, c):
 # hangs and its hawse; row 5 only under the quarterdeck's. A panel owns its shell's voxels not another body's (a rib
 # crossing it stays when it's out).
 PANEL_ROWS = (1, 2, 4, 5)
+if LV["quarterdeckSide"] > LV["quarterdeck"] + 1:
+    # (25 October 2026, notes 56, 103) her quarterdeck's bulwark, a block of planking over it: its row's panels come out
+    # as the waist's (they replace the railing's spans)
+    PANEL_ROWS = (1, 2, 4, 5, 7)
 _ribs = L["layout"]["ribs"]
 FR = {"x0": min(_ribs), "space": 2, "count": len(_ribs)}         # (note 73: from rib -14 since she's longer)
 cell_pieces_ix = {tuple(c["cell"]): [p["index"] for p in c["pieces"]] for c in cells["cells"]}
@@ -615,26 +619,51 @@ def add_pole(group, tex, shape, defl=10.0):
 # (24 October 2026, chalk note 53: "texture is in wrong direction", the waist's cap rail) the cap rail runs on round the
 # bow, and a face of it shorter than its width took its grain across. Its faces take u from the length along the rail
 # (its middle line on the sheer, in plan and in height), v across it (its top and underside) or up it (its sides)
-_CAP_XS = _np.arange(L["quarterdeckFront"] - 200.0, 12000.0, 25.0)
+# (25 October 2026, chalk note 92: "top board changes direction but textures does not follow curvature") where the rail
+# turns in to the stem, |Y| was no longer across it: each point is put on the middle line in plan (its nearest point), u
+# the length along the line there, v its offset from it. (draft D) from the transom when her quarterdeck has a bulwark
+_QB = LV["quarterdeckSide"] > LV["quarterdeck"] + 1
+_x_aft = (L["transomPlane"]["high"][0] + 60.0) if _QB else L["quarterdeckFront"] - 200.0
+_CAP_XS = _np.arange(_x_aft, 12000.0, 25.0)
 _cap_mid = []
 for _x in _CAP_XS:
     _z = float(_np.interp(_x, [q[0] for q in _SHEER], [q[1] for q in _SHEER]))
-    _cap_mid.append((_x, float(_CL.half_breadth(_np.array([_x / 1000.0]), round(_z / 1000.0 - 0.015, 3))[0]) * 1000.0 - 180.0, _z))
+    _hb = float(_CL.half_breadth(_np.array([_x / 1000.0]), round(_z / 1000.0 - 0.015, 3))[0]) * 1000.0
+    if _hb > 1.0:
+        _cap_mid.append((_x, max(_hb - 180.0, 0.0), _z))
 _cap_mid = _np.array(_cap_mid)
 _CAP_S = _np.concatenate([[0.0], _np.cumsum(_np.linalg.norm(_np.diff(_cap_mid, axis=0), axis=1))])
+_ca, _cb = _cap_mid[:-1, :2], _cap_mid[1:, :2]
+
+
+def cap_place(q):
+    """(s along the rail's middle line, signed offset from it in plan, the line's z there, its tangent) for a point."""
+    pt = _np.array([q[0], abs(q[1])])
+    ab = _cb - _ca
+    t = _np.clip(((pt - _ca) * ab).sum(1) / _np.maximum((ab * ab).sum(1), 1e-9), 0.0, 1.0)
+    near = _ca + ab * t[:, None]
+    k = int(_np.argmin(((near - pt) ** 2).sum(1)))
+    tan = ab[k] / (_np.linalg.norm(ab[k]) or 1.0)
+    off = float((pt - near[k]) @ _np.array([-tan[1], tan[0]]))
+    s_ = _CAP_S[k] + t[k] * (_CAP_S[k + 1] - _CAP_S[k])
+    z_ = _cap_mid[k, 2] + t[k] * (_cap_mid[k + 1, 2] - _cap_mid[k, 2])
+    return s_, off, z_, tan
+
+
+def is_cap(c):
+    """Is a face's middle (model mm) on the cap rail: over the middle line, within the cap's width, at its height?"""
+    s_, off, z_, _ = cap_place(c)
+    return abs(off) < 320.0 and z_ - 10.0 <= c[2] <= z_ + 100.0 and c[0] > _x_aft - 100.0
 
 
 def cap_uv(q, n):
     """A cap rail face's UV at q (model mm), or None for an end face (across the rail)."""
-    s_ = float(_np.interp(q[0], _CAP_XS, _CAP_S))
-    k = min(max(int(_np.searchsorted(_CAP_XS, q[0])), 1), len(_CAP_XS) - 1)
-    t = _cap_mid[k] - _cap_mid[k - 1]
-    t = t / (_np.linalg.norm(t) or 1.0)
+    s_, off, z_, tan = cap_place(q)
     sy = 1.0 if q[1] >= 0 else -1.0                      # (the middle line is the port side's; starboard mirrors it)
-    if abs(t[0] * n[0] + t[1] * sy * n[1] + t[2] * n[2]) > 0.7:
+    if abs(tan[0] * n[0] + tan[1] * sy * n[1]) > 0.7 and abs(n[2]) < 0.5:
         return None
     if abs(n[2]) > 0.5:
-        return (s_ / 1000.0 * 16, abs(q[1]) / 1000.0 * 16)
+        return (s_ / 1000.0 * 16, off / 1000.0 * 16)
     return (s_ / 1000.0 * 16, (1 - q[2] / 1000.0) * 16)
 
 
@@ -663,7 +692,7 @@ def add_faces_grain(group, tex, shape, defl=6.0, cap_from=None, sink=None):
         normals = [f.Normal for f in m.Facets]
         tris = []
         cb = face.BoundBox
-        if cap_from is not None and (cb.XMin + cb.XMax) / 2 > cap_from:
+        if cap_from is not None and is_cap(((cb.XMin + cb.XMax) / 2, (cb.YMin + cb.YMax) / 2, (cb.ZMin + cb.ZMax) / 2)):
             for fi, f in enumerate(facets):
                 tri = [(pts_all[f[q]].x, pts_all[f[q]].y, pts_all[f[q]].z) for q in range(3)]
                 n = (normals[fi].x, normals[fi].y, normals[fi].z)
@@ -712,17 +741,28 @@ add_faces_grain("exterior", T_DECK2, Part.makeCompound(_rs[_k:]), cap_from=L["qu
 add_faces_grain("exterior", BODY_TEX["Gates"], OBJ["Gates"].Shape)
 # (chalk note 41: "gate inside/outside not same as hull") the leaves' outer faces the hull's outside planking, their
 # inner faces its inside, planks along the keel from the hull's own origin; their edges the deck's wood
-for side, leaf in zip(("port", "starboard"), OBJ["GateLeaves"].Shape.SubShapes):
+# (25 October 2026, the game-mesh views) a leaf's own cap (its top CAP_H) the cap rail's wood and grain, as the rail
+# either side of it: split off at the cap's underside, it was drawn in the hull's tarred planking, a dark band in the rail
+for side, leaf, gl in zip(("port", "starboard"), OBJ["GateLeaves"].Shape.SubShapes, REP["gateLeaves"]):
     s_ = 1.0 if side == "port" else -1.0               # (model Y is port)
+    lb = leaf.BoundBox
+    _above = Part.makeBox(lb.XLength + 20, lb.YLength + 20, 1000.0, V(lb.XMin - 10, lb.YMin - 10, gl["z1"] - 80.0))
     for face in leaf.Faces:
-        m = mesh_of(face, 4.0)
-        pts_all, facets = m.Topology
-        normals = [f.Normal for f in m.Facets]
-        for fi, f in enumerate(facets):
-            tri = [(pts_all[f[q]].x, pts_all[f[q]].y, pts_all[f[q]].z) for q in range(3)]
-            n = (normals[fi].x, normals[fi].y, normals[fi].z)
-            tex = T_HULL if n[1] * s_ > 0.7 else T_HULL2 if n[1] * s_ < -0.7 else T_DECK2
-            add_tri("part:gate-" + side, tex, tri, [uv_grain(q, n, (0.0, -500.0, 0.0), 0) for q in tri], n)
+        for part_, on_cap in ((face.common(_above), True), (face.cut(_above), False)):
+            if not part_.Faces:
+                continue
+            m = mesh_of(part_, 4.0)
+            pts_all, facets = m.Topology
+            normals = [f.Normal for f in m.Facets]
+            for fi, f in enumerate(facets):
+                tri = [(pts_all[f[q]].x, pts_all[f[q]].y, pts_all[f[q]].z) for q in range(3)]
+                n = (normals[fi].x, normals[fi].y, normals[fi].z)
+                if on_cap:
+                    uvs = [cap_uv(q, n) for q in tri]
+                    add_tri("part:gate-" + side, T_DECK2, tri, uvs if all(uvs) else [uv_grain(q, n, (0.0, -500.0, 0.0), 0) for q in tri], n)
+                    continue
+                tex = T_HULL if n[1] * s_ > 0.7 else T_HULL2 if n[1] * s_ < -0.7 else T_DECK2
+                add_tri("part:gate-" + side, tex, tri, [uv_grain(q, n, (0.0, -500.0, 0.0), 0) for q in tri], n)
 fit = OBJ["Fittings"].Shape.SubShapes            # rudder, tiller (no mizzen step since note 58)
 add_shape("part:rudder", T_TIMBER, fit[0])
 add_shape("part:tiller", T_TIMBER, fit[1])
@@ -1038,7 +1078,7 @@ for key in sorted(panel_cells, key=lambda t: (t[1], t[0], t[2])):
         "id": f"hull:{'s' if s_ > 0 else 'p'}:{station}:{ck}:{half}", "side": s_, "station": station, "band": ck, "half": half,
         "box": [r4(v) for v in box], "outer": out_c, "inner": corners(e["in"]),
         "normal": [round(v, 3) for v in nm], "area": round(area, 3), "sill": r4(min(ys)), "head": r4(max(ys)),
-        "room": ("hold" if ck < 3 else "steerage" if ci + 1 <= L["quarterdeckFront"] / 1000 + 1e-6 else None),
+        "room": ("hold" if ck < 3 else "steerage" if ci + 1 <= L["quarterdeckFront"] / 1000 + 1e-6 and ck < 7 else None),
         "solids": sol,
         # (a block of her side: one planks block, or 4 boards, lays it again, as carrack-m's)
         "material": {"block": "game:planks-oak-ud", "count": 1}})
@@ -1268,12 +1308,15 @@ ym, yz = yard("latina main"), yard("latina mizzen")
 am, dm = axis(ym)
 az, dz = axis(yz)
 masts = {m["name"]: m for m in rig_rec["masts"]}
-post_lo = L["transomPlane"]["low"]
-post_hi = L["transomPlane"]["high"]
+# (25 October 2026) the rudder turns about its stock (over a counter, aft of the post: the build's rudderAxis), along the
+# sternpost's line
+post_lo = L.get("rudderLine", L["transomPlane"])["low"]
+post_hi = L.get("rudderLine", L["transomPlane"])["high"]
 dxr, dzr = post_hi[0] - post_lo[0], post_hi[1] - post_lo[1]      # the sternpost's line, up (model X, Z)
 rl = math.hypot(dxr, dzr)
 rud_dir = [r4(dxr / rl), r4(dzr / rl), 0.0]                       # game (x, y, z): x along X, y along Z
-rud_pt = [r4(c) for c in g((post_lo[0], 0, post_lo[1]))]
+_rax = REP.get("rudderAxis", [post_lo[0], 0.0, post_lo[1]])
+rud_pt = [r4(c) for c in g((_rax[0], 0, _rax[2]))]
 deck_y = LV["mainDeck"] / 1000.0 - WL
 qd_y = LV["quarterdeck"] / 1000.0 - WL
 hold_y = LV["hold"] / 1000.0 - WL

@@ -423,6 +423,27 @@ def split_tiles(M, start=None):
     return cut, made
 
 
+def collapse_slivers(M, D, width=0.005):
+    """(25 October 2026) Two faces still overlapping in one plane (two slots' faces, which never move) where one is a sliver
+    less than `width` across (its area over its longest edge: the slicer leaves a few where a cell's border meets her
+    side): the sliver is collapsed to a point, its place in its group kept (paint ranges, slot pairs). Returns how many."""
+    import overlap_check as OC
+    def width_of(q):
+        P = np.array([q[1 + 8 * k: 4 + 8 * k] for k in range(4)])
+        area = 0.5 * (np.linalg.norm(np.cross(P[1] - P[0], P[2] - P[0])) + np.linalg.norm(np.cross(P[2] - P[0], P[3] - P[0])))
+        edge = max(np.linalg.norm(P[(k + 1) % 4] - P[k]) for k in range(4))
+        return area / edge if edge > 0 else 0.0
+    n = 0
+    for ga, na, gb, nb, *_ in OC.find_clashes(M, OC.empty_slots(D)):
+        for g, k in sorted(((ga, na), (gb, nb)), key=lambda f: width_of(M["groups"][f[0]][f[1]]))[:1]:
+            q = M["groups"][g][k]
+            if width_of(q) < width:
+                for c in range(1, 4):
+                    q[1 + 8 * c: 4 + 8 * c] = q[1:4]
+                n += 1
+    return n
+
+
 def square_slot_faces(M, D):
     """A whole deck cell's top and underside are flat squares: each drawn as one quad (the mesher's fans of triangles
     round a vertex overlapped in their boxes), its texture where the cell's own faces had it (their UVs, fitted)."""
@@ -440,10 +461,17 @@ def square_slot_faces(M, D):
         for (own, sg, tex), ns in groups_.items():
             b = slots[own]["box"]
             y = b[4] if sg > 0 else b[1]
+            if slots[own].get("kind") == "beam":
+                # ((25 October 2026) a beam's length: its top and underside from its own faces, split where a carling meets
+                # it; their boxes overlapped. One rectangle over their extent, at their height)
+                cs = [quads[n][1 + 8 * k: 4 + 8 * k] for n in ns for k in range(4)]
+                y = cs[0][1]
+                b = [min(c[0] for c in cs), y, min(c[2] for c in cs), max(c[0] for c in cs), y, max(c[2] for c in cs)]
             if not all(abs(quads[n][2 + 8 * k] - y) < 1e-3 for n in ns for k in range(4)):
                 continue
-            # u, v as affine functions of (x, z), from the first face with a non-degenerate triangle
-            q = quads[ns[0]]
+            # u, v as affine functions of (x, z), from the face with the largest first triangle ((25 October 2026) the
+            # first face could be a sliver beside a rib: its fit skewed the grain, and the tile cuts made slivers of it)
+            q = max((quads[n] for n in ns), key=lambda q_: abs(np.linalg.det(np.array([[q_[1 + 8 * k], q_[3 + 8 * k], 1.0] for k in range(3)]))))
             P = np.array([[q[1 + 8 * k], q[3 + 8 * k], 1.0] for k in range(3)])
             if abs(np.linalg.det(P)) < 1e-9:
                 continue
@@ -461,6 +489,52 @@ def square_slot_faces(M, D):
                 row += [r4(x), r4(y), r4(z), round(float(cu @ [x, z, 1]), 3), round(float(cv @ [x, z, 1]), 3), 0.0, float(sg), 0.0]
             drop |= set(ns)
             add.append((row, own))
+        # ((25 October 2026) a cell's side on its box's side, split into a fan where a rib meets it: as one quad too,
+        # when its faces cover the side whole (their boxes overlapped in one plane))
+        sides_ = {}
+        for n, q in enumerate(quads):
+            own, fac = pairs[2 * n], pairs[2 * n + 1]
+            if own < 0 or fac != -1 or n in drop:
+                continue
+            nv = [sum(q[6 + a + 8 * k] for k in range(4)) / 4 for a in range(3)]
+            for a in (0, 2):
+                if abs(nv[a]) > 0.9:
+                    sides_.setdefault((own, a, 1 if nv[a] > 0 else -1, q[0]), []).append(n)
+        for (own, a, sg, tex), ns in sides_.items():
+            b = slots[own]["box"]
+            c_ = b[a + 3] if sg > 0 else b[a]
+            h = 2 if a == 0 else 0
+            if not all(abs(quads[n][1 + a + 8 * k] - c_) < 1e-3 for n in ns for k in range(4)):
+                continue
+            def area(q_):
+                P_ = [np.array([q_[1 + h + 8 * k], q_[2 + 8 * k]]) for k in range(4)]
+                return 0.5 * (abs(np.cross(P_[1] - P_[0], P_[2] - P_[0])) + abs(np.cross(P_[2] - P_[0], P_[3] - P_[0])))
+            whole = (b[h + 3] - b[h]) * (b[4] - b[1])
+            if len(ns) < 2 or abs(sum(area(quads[n]) for n in ns) - whole) > 0.01 * whole:
+                continue
+            q = max((quads[n] for n in ns), key=area)
+            P = np.array([[q[1 + h + 8 * k], q[2 + 8 * k], 1.0] for k in range(3)])
+            if abs(np.linalg.det(P)) < 1e-9:
+                continue
+            cu = np.linalg.solve(P, np.array([q[4 + 8 * k] for k in range(3)]))
+            cv = np.linalg.solve(P, np.array([q[5 + 8 * k] for k in range(3)]))
+            pts = [(b[h], b[1]), (b[h + 3], b[1]), (b[h + 3], b[4]), (b[h], b[4])]
+
+            def p3(hv, yv):
+                p_ = [0.0, yv, 0.0]
+                p_[a], p_[h] = c_, hv
+                return np.array(p_)
+            c0, c1, c2 = (np.array(q[1 + 8 * k: 4 + 8 * k]) for k in range(3))
+            if (np.cross(c1 - c0, c2 - c0)[a] > 0) != (np.cross(p3(*pts[1]) - p3(*pts[0]), p3(*pts[2]) - p3(*pts[0]))[a] > 0):
+                pts = pts[::-1]
+            row = [tex]
+            for hv, yv in pts:
+                p_ = p3(hv, yv)
+                nn = [0.0, 0.0, 0.0]
+                nn[a] = float(sg)
+                row += [r4(p_[0]), r4(p_[1]), r4(p_[2]), round(float(cu @ [hv, yv, 1]), 3), round(float(cv @ [hv, yv, 1]), 3)] + nn
+            drop |= set(ns)
+            add.append((row, own))
         keep_q = [q for n, q in enumerate(quads) if n not in drop]
         keep_p = [v for n in range(len(quads)) if n not in drop for v in (pairs[2 * n], pairs[2 * n + 1])]
         M["groups"][g] = keep_q + [r for r, _ in add]
@@ -469,7 +543,9 @@ def square_slot_faces(M, D):
 
 # ---------------------------------------------------------------------------------------------------------- paint
 PAINT_ZONES = [
-    {"code": "topsides", "name": "Topsides: her sides outside from the waterline up to the rail, the transom, the gates", "kind": "panel", "default": "tarred"},
+    # ((25 October 2026, chalk note 101: "Above water line we sohuld be able to paint hull in block level stripes") a zone
+    # a block row, none under the waterline's row and one over it: the paint session's "rows")
+    {"code": "topsides", "name": "Topsides: her sides outside from the waterline up to the rail, the transom, the gates", "kind": "panel", "default": "tarred", "rows": True},
     {"code": "rail-caps", "name": "Cap rails on the waist's bulwarks", "kind": "moulding", "default": "oak"},
     {"code": "quarterdeck-railing", "name": "Quarterdeck's railing: posts, rails and balusters", "kind": "carving", "default": "oak"},
     {"code": "waist-bulwarks", "name": "Inside of the bulwarks over the main deck", "kind": "panel", "default": "tarred"},
@@ -635,7 +711,7 @@ def main():
     def transom_x(z):
         return tx0 + (tx1 - tx0) * (z - tz0) / (tz1 - tz0)
 
-    bumpkin_end = F.g(transom_x(Q) - 2400, 0, Q + 150)
+    bumpkin_end = F.g(transom_x(Q) - (1600 if L.get("counter") else 2400), 0, Q + 150)   # (as the build's BK_OUT)
     # (chalk note 64: "The same rope attaches to railings just like that") a rope made fast on a rail ends on a cleat on its
     # top: a foot and two horns along the rail, the rope's last turns across them
     rail_y = (L["railings"]["top"][0][2] - 50 + 70) / 1000.0 - F.WL          # the top rail's top (140 high, 50 under the posts')
@@ -653,9 +729,13 @@ def main():
 
     front_x = L["quarterdeckFront"] / 1000.0 - 0.05
     belay = {}
-    for key, z_ in (("main-sheet", 0.95), ("mizzen-tack", 1.9)):
-        for sgn in (-1.0, 1.0):                       # (both sides: on the other tack the mod mirrors the ropes' ends)
+    # ((25 October 2026, draft D) the quarterdeck stair's gap to starboard by her side: the mizzen's tack on one cleat in
+    # the front rail's middle, both tacks)
+    for key, z_ in (("main-sheet", 0.95), ("mizzen-tack", 0.0)):
+        for sgn in ((-1.0, 1.0) if z_ else (1.0,)):   # (both sides: on the other tack the mod mirrors the ropes' ends)
             belay[(key, sgn)] = cleat(np.array([front_x, rail_y, sgn * z_]), (0.0, 0.0, 1.0))
+        if not z_:
+            belay[(key, -1.0)] = belay[(key, 1.0)]
     for name, code in (("latina main", "main"), ("latina mizzen", "mizzen")):
         sp = next(s for s in rig["sails"] if s["name"] == name)["pts"]           # tack, head, clew (mm)
         pts = [F.g(*p) for p in sp]
@@ -700,7 +780,8 @@ def main():
         rope(blk, fall_to, r=0.03)
     # shrouds: the main's three a side to its cap rails aft of the gate, the mizzen's two to the quarterdeck's rail
     mzx = LAY["masts"]["mizzen"]["cell"] + 0.5
-    for code, xs, top_drop in (("main", (-1.25, -2.05, -2.85), 1.2), ("mizzen", (mzx - 1.25, mzx - 1.75), 0.9)):
+    mnx = LAY["masts"]["main"]["cell"] + 0.5         # (draft D: the main mast 2 aft; its shrouds with it)
+    for code, xs, top_drop in (("main", (mnx - 0.75, mnx - 1.55, mnx - 2.35), 1.2), ("mizzen", (mzx - 1.25, mzx - 1.75), 0.9)):
         mast = masts[code]
         mx = mast["x"] / 1000.0
         head = mast["top"] / 1000.0 - top_drop
@@ -714,7 +795,9 @@ def main():
             for sgn in (1, -1):
                 a = np.array([mx, head - F.WL, sgn * 0.18])
                 b = np.array([x, y_low, sgn * half])
-                rope(a, b, r=0.03)
+                # (25 October 2026, note 104, the user: windward shrouds only, as lateen ships set them) each mast's and side's
+                # in a group of their own: the mod shows the windward set and shifts them over with the dip
+                rope(a, b, group=f"rig:shrouds-{code}-{'port' if sgn < 0 else 'starboard'}", r=0.03)
                 standing.append(v4(list(b) + list(a)) + [0.04])
     for p in parts:
         if p["code"].startswith("yard-"):
@@ -804,6 +887,18 @@ def main():
     lantern = {"block": "game:lantern-small-up", "attributes": {"material": "tinbronze", "lining": "plain", "glass": "quartz"}}
     start = [dict(lantern, mount="h:" + h["code"]) for h in hooks if "light" in h.get("kinds", [])]
 
+    # ---------------------------------------------------------------- swivel guns on the quarterdeck's cap (note 103)
+    # (25 October 2026, the user: "gun port gates are trash here") her quarterdeck's 4 carriage guns gone with its railing;
+    # a swivel gun (berço) in a socket on the bulwark's cap rail, 2 a side: the fittings session's gun, its place here
+    # (the cap's top on its middle line, level and outboard; the shrouds' feet 1.25 or more along the rail, outside the
+    # barrel's 1.0 swing)
+    cap_top = (LV["quarterdeckSide"] + REP["capRail"]["h"]) / 1000.0 - F.WL
+    for side, sgn in (("port", -1.0), ("starboard", 1.0)):
+        for n_, sx in enumerate(sorted(LAY.get("swivels", [])), 1):
+            mid = hb(sx, LV["quarterdeckSide"] / 1000.0 - 0.015) - (REP["capRail"]["in"] - REP["capRail"]["out"]) / 2000.0
+            fixtures.append({"type": "gun", "kind": "swivel", "code": f"swivel-{side}-{n_}", "pos": v4((sx, cap_top, sgn * mid)),
+                             "out": [0.0, 0.0, sgn], "trainLimits": [-80.0, 80.0], "elevationLimits": [-25.0, 30.0]})
+
     # ---------------------------------------------------------------- stairs, the hatch (chalk notes 18, 22)
     modular = []
     for st in LAY["stairs"]:
@@ -839,6 +934,29 @@ def main():
                 if row == 2 and any(abs(st["head"][0] - cab["x"]) < 1 and abs(-st.get("y", 0.0) / 1000.0 - j) < 0.5 for st in LAY["stairs"]):
                     continue
                 modular.append({"kind": "partition", "at": at, "along": "z", "code": f"partition@{int(lx) - 1},{y_},{j},z"})
+    # (25 October 2026, note 105, draft D) the user's galley (ship #227) as her start pieces: its walls, hearth and oven
+    # with the design's pieces, the tables and the storage vessel on their floor places (laid first: the oven stands on its
+    # table)
+    kit = LAY.get("kitchen")
+    if kit:
+        for w_ in kit["walls"]:
+            for c_ in w_["cells"]:
+                for row in w_["rows"]:
+                    y_ = r4(deck + row)
+                    if w_["line"] == "x":
+                        modular.append({"kind": "partition", "at": [r4(w_["at"]), y_, float(c_)], "along": "z",
+                                        "code": f"partition@{int(w_['at']) - 1},{y_},{c_},z"})
+                    else:
+                        modular.append({"kind": "partition", "at": [r4(c_ + 0.5), y_, r4(w_["at"])], "along": "x",
+                                        "code": f"partition@{int(c_)},{y_},{w_['at']},x"})
+        hc, oc = kit["hearth"]["cell"], kit["oven"]["cell"]
+        modular.append({"kind": "hearth", "at": [r4(hc[0] + 0.5), r4(deck), float(hc[1])], "facing": kit["hearth"]["facing"],
+                        "block": kit["hearth"]["block"], "code": "hearth"})
+        modular.append({"kind": "oven", "at": [r4(oc[0] + 0.5), r4(deck + kit["oven"].get("level", 0)), float(oc[1])],
+                        "facing": kit["oven"]["facing"], "code": "oven"})
+        for t_ in kit["things"]:
+            i_, zc_ = t_["cell"]
+            start.append({"block": t_["block"], "mount": f"f:main:{int(i_)}:{int(zc_) - 1}", "yaw": 0.0})
     hxs, hys = LAY["hatch"]["x"], LAY["hatch"]["y"]
     hzc = -(hys[0] + hys[1]) / 2000.0                  # (model Y port = game z negative)
     modular.append({"kind": "hatch", "at": [r4((hxs[0] + hxs[1]) / 2000.0), r4(deck), r4(hzc)],
@@ -892,18 +1010,15 @@ def main():
                             n_fill += 1
                         break
     D["solid"] = base64.b64encode(zlib.compress(bytes(raw), 9)).decode()
-    # (the lateen session) each mast's radius the widest where its yard sweeps round it: at the yard's lower end's height
+    # (the lateen session) each mast's radius its widest, its heel's: the lee shrouds hang off it
     for m in D["masts"]:
-        rm, yd_ = masts[m["code"]], yards["latina " + m["code"]]
-        y_lo = max(F.y_of(rm["heel"]), F.y_of(min(yd_["tack"][1], yd_["peak"][1])))
-        f_ = (y_lo - F.y_of(rm["heel"])) / (F.y_of(rm["top"]) - F.y_of(rm["heel"]))
-        m["radius"] = r4(math.ceil((rm["r0"] + (rm["r1"] - rm["r0"]) * f_) / 10.0) / 100.0)
+        m["radius"] = r4(math.ceil(masts[m["code"]]["r0"] / 10.0) / 100.0)
 
     # ---------------------------------------------------------------- the water kept out of her (chalk note 24)
     # the hull's exact half-breadth from her lines (the box clip before held the water down round her curved bow:
     # gaps between the water and her side); the carrack generator's way (water_clip)
     keel_y, deck_y = D["keelY"], D["deckY"]
-    X0, DX, DY = -15.5, 0.125, 0.25                 # (note 73: her stern 1 further aft)
+    X0, DX, DY = -16.5, 0.125, 0.25                 # (note 73: her stern 1 further aft; the counter's transom 1 more)
     Y0 = keel_y - 0.5
     xs = np.arange(X0, 11.0 + 1e-9, DX)
     ys = np.arange(Y0, deck_y + 1.0 + 1e-9, DY)
@@ -929,7 +1044,7 @@ def main():
     # ---------------------------------------------------------------- the guns and their lids (chalk notes 14, 17)
     # the carrack's gun fitted to hers (caravel_gun.py), over the exporter's plain one: its meshes and moving parts go;
     # each gun housed behind a lid, the waist's a side-hinged port lid, the quarterdeck's a swinging railing section
-    guns = [f for f in fixtures if f.get("type") == "gun"]
+    guns = [f for f in fixtures if f.get("type") == "gun" and f.get("kind") != "swivel"]     # (the swivels are the runtime's)
     gun_codes = {f["code"] for f in guns}
 
     def of_gun(code):
@@ -1059,8 +1174,15 @@ def main():
         moved_, n_left = deflicker(M, D)
         n_pushed += moved_
         passes += 1
+    if n_left:
+        n_col = collapse_slivers(M, D)
+        n_left = len(__import__("overlap_check").find_clashes(M, __import__("overlap_check").empty_slots(D)))
+        print(f"[layout] slivers among them collapsed: {n_col}")
     print(f"[layout] overlapping faces in one plane: {n_pushed} pushed 2 mm out in {passes} passes, {n_left} left")
     if n_left:
+        import overlap_check as OC
+        for ga, na, gb, nb, ov, c, *_ in OC.find_clashes(M, OC.empty_slots(D))[:6]:
+            print(f"[layout]   overlapping: {ga}[{na}] and {gb}[{nb}] at {[round(v, 3) for v in c]}, {ov:.4f} m2")
         # (the user's rule: no visible faces overlapping; tools/caravel/overlap_check.py lists them)
         raise SystemExit(f"[layout] {n_left} pairs of faces still overlap in one plane: not written")
     out = os.environ.get("CARAVEL_LAYOUT_OUT")             # (a check: somewhere else than the mod's assets)

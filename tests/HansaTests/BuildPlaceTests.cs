@@ -229,6 +229,9 @@ namespace HansaTests
                         var aim = new Vec3d(0, -0.45, MountLayout.DZ[dir]);
                         aim.Mul(1 / aim.Length());
                         if (!AimPlace.GridHit(g, eye, aim, 3, out double th, out var nh) || Math.Abs(nh[1]) > 0.5) continue;
+                        // ((25 October 2026) her side beyond it: met within 2 of the cell's middle. By the caravel's upright sternpost
+                        // the next cell isn't a floor, yet the look passes the post and crosses it to the far side's cell)
+                        if (Math.Abs(aim.Z * th) > 2.0) continue;
                         sides++;
                         var c = AimPlace.Candidates(l, new ShipPieceSet(), eye.AddCopy(aim.X * th, aim.Y * th, aim.Z * th), nh, null, SlabOnly).FirstOrDefault();
                         if (c != want) notFromSide.Add($"{f.Id} {(dir == 1 ? "starboard" : "port")}: {c?.Id ?? "nothing"}");

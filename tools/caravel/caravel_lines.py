@@ -30,12 +30,38 @@ MM = 1000.0
 # The user chose C: 2 blocks longer, B's waist (a clear cell between the main mast and the stairs' opening, the front
 # over a rib) and the quarterdeck, its cabin, the mizzen, the wheel and the quarterdeck's guns where they were from the
 # transom (the guns 1 aft of that: note 62)
-VARIANT = os.environ.get("CARAVEL_VARIANT", "C")
+VARIANT = os.environ.get("CARAVEL_VARIANT", "D")
 LAYOUTS = {
     "A": {"longer": 1.0, "qd_front": -6.0, "mizzen": -9, "wheel": [-11, 0], "qd_guns": [-12, -10],
           "stairs": {"quarterdeck": -6, "hold": -4}},
     "B": {"longer": 1.0, "qd_front": -7.0, "mizzen": -11, "wheel": [-9, 0], "qd_guns": [-13, -11],
           "stairs": {"quarterdeck": -7, "hold": -5}},
+    # (25 October 2026, dev.9's notes) the main mast 2 aft to the middle of her keel (Castro: a caravel's main mast
+    # stands over the keel's middle; hers runs -12.4..5.6), one clear cell between it and the hold stair's opening, the
+    # quarterdeck's stair to starboard against her side (the user: "At least on Nao Victoria it is done like that"), a
+    # bulwark round the quarterdeck instead of its railing and no carriage guns there (note 103); the pump forward of
+    # the main mast
+    "D": {"longer": 2.0, "qd_front": -7.0, "mizzen": -11, "wheel": [-9, 0], "qd_guns": [], "main": -3,
+          "pump": [-2, 0], "qd_bulwark": True, "swivels": [-9.5, -13.5],
+          # (25 October 2026, note 102, the user: the rudder about an upright axis, a level tiller under the quarterdeck;
+          # the stern as Boa Esperança's: a flat square transom over an upright sternpost, X -14.5)
+          "stern_post_x": -14.5,
+          # (25 October 2026, the user's sketch: "something like this, get 1 block overhang in cabin") over the post a
+          # counter from Z 3.2 at the post out to the transom's foot 1 block aft and 0.4 up, the transom flat and upright
+          # from there to the rail: the cabin, both decks and the quarterdeck 1 block longer, the waterline as it was
+          "counter": {"post_top": 3.2, "transom_x": -15.5, "foot_z": 3.6},
+          # (the user's choice B of the study for Boa Esperança's sails: main 155 m2, mizzen 80 m2) yards balanced on
+          # their masts, 2.2 of head room over the decks, the main's clew 0.9 forward of the mizzen's tack (metres)
+          # (the user: "bottoms of sails should be about parallel to deck") each foot level, its clew as high as its tack's
+          # corner (0.1 under the yard's end): the main's over the waist 3.8 up, the mizzen's over the bumpkin's end
+          # (25 October 2026, the user's sketch: red triangles "with 2 block clearance below") the feet about 2 blocks over
+          # the deck under them: the main tacked down low at the bow head, its foot rising aft to a clew just forward of the
+          # quarterdeck's front; the mizzen's level 2.25 over the quarterdeck to the bumpkin's end. No cut to an area: the
+          # sail to its yard's end. The mizzen's tack 0.5 aft of the sketch's, 1.2 aft of the main's clew (they met)
+          "sails": {"main": {"tack": [8.1, 6.5], "peak": [-10.2, 29.8], "clew": [-6.4, 9.1]},
+                    "mizzen": {"tack": [-7.6, 9.35], "peak": [-13.6, 27.5], "clew": ["bumpkin", 9.25]}},
+          "stairs": {"quarterdeck": -7, "hold": -5}, "stairs_y": {"quarterdeck": -2.0, "hold": 0.0},
+          "hold_up": "fore"},
     "C": {"longer": 2.0, "qd_front": -7.0, "mizzen": -11, "wheel": [-9, 0], "qd_guns": [-14, -12],
           "stairs": {"quarterdeck": -7, "hold": -5}},
 }
@@ -55,6 +81,9 @@ QD_FRONT = LAY_V["qd_front"]   # quarterdeck front on a cell face (-5 before the
                       # face): about a third of the length, as the reference caravels (the user, 17 October: the castle
                       # was too big)
 QD_SIDE = 0.0         # the quarterdeck's solid side ends at its deck (the user, 18 October); the railing stands on it
+QD_BULWARK = LAY_V.get("qd_bulwark", False)
+if QD_BULWARK:        # (25 October 2026, note 103: "should we make hull board on top of castle instead of rails") her side
+    QD_SIDE = 1.0     # planked up a block over the quarterdeck all round it, as the waist's bulwark, a cap rail on it
 SKIN = 0.2            # hull planking 0.2 block (the user, 17 October; decks and floors the same)
 LIFT = 0.125          # the hull's underside sits 125 above the bottom cell border: draft 2.75, so she passes over
                       # a bottom 3 blocks under the surface (the surface is 0.875 up a water block)
@@ -63,7 +92,7 @@ POST_HW = 0.1         # stem and sternpost half width where the sides close on t
 # ---------------------------------------------------------------- plan (cells are named by their aft X in blocks)
 MASTS = {                       # cell, heel Z, used by which rig (the user, 17 October: main about midships, 2 masts)
     "fore": {"cell": 7, "heel": Z_HOLD, "rigs": ["redonda"]},
-    "main": {"cell": -1, "heel": Z_HOLD, "rigs": ["latina", "redonda"]},
+    "main": {"cell": LAY_V.get("main", -1), "heel": Z_HOLD, "rigs": ["latina", "redonda"]},
     # (24 October 2026, chalk note 58: "we can remove this beam and have mast end with bottom of main deck") its heel flush
     # with the main deck's planking underneath, no step under it in the hold (it went down to the beams' underside)
     "mizzen": {"cell": LAY_V["mizzen"], "heel": Z_DECK - 0.2, "rigs": ["latina", "redonda"]},
@@ -93,23 +122,52 @@ QD_GUN_CELLS = LAY_V["qd_guns"]          # quarterdeck; the railing is open over
 # on the centreline, rising aft in a line: the hold's up through its hatch onto the cell before the quarterdeck's foot,
 # the quarterdeck's in front of the cabin's wall, its head at the quarterdeck's front
 _QS, _HS = LAY_V["stairs"]["quarterdeck"], LAY_V["stairs"]["hold"]
-HATCH = {"x": [_HS, _HS + 3], "y": [-0.5, 0.5]}
+_SY = LAY_V.get("stairs_y", {"quarterdeck": 0.0, "hold": 0.0})
+if LAY_V.get("hold_up") == "fore":
+    # (draft D) the hold's stair rising forward out of its hatch onto the clear cell aft of the main mast: the hatch the
+    # stair's cell and the two aft of it, where the walker's head passes
+    HATCH = {"x": [_HS - 2, _HS + 1], "y": [_SY["hold"] - 0.5, _SY["hold"] + 0.5]}
+    _hold = {"name": "hold", "cell": [_HS, 0], "foot": [float(_HS), Z_HOLD], "head": [_HS + 1.0, Z_DECK], "y": _SY["hold"]}
+else:
+    HATCH = {"x": [_HS, _HS + 3], "y": [-0.5, 0.5]}
+    _hold = {"name": "hold", "cell": [_HS, 0], "foot": [_HS + 1.0, Z_HOLD], "head": [float(_HS), Z_DECK], "y": 0.0}
 STAIRS = [
-    {"name": "quarterdeck", "cell": [_QS, 0], "foot": [_QS + 1.0, Z_DECK], "head": [float(_QS), Z_QD], "y": 0.0},
-    {"name": "hold", "cell": [_HS, 0], "foot": [_HS + 1.0, Z_HOLD], "head": [float(_HS), Z_DECK], "y": 0.0},
+    {"name": "quarterdeck", "cell": [_QS, 0], "foot": [_QS + 1.0, Z_DECK], "head": [float(_QS), Z_QD], "y": _SY["quarterdeck"]},
+    _hold,
 ]
 # (24 October 2026, the user: "add default partition wall with doors and window to rear to form cabin, similar to how in
 # current test") the steerage closed at the quarterdeck's front by the pieces a player places: oak plank partitions, a
 # door either side of the quarterdeck stair, a window over the middle between them (the places outboard of the doors, at
 # z +-2, are the side's wedge cells: neither a window nor a door takes one); no top row behind the stair's head
 CABIN = {"x": QD_FRONT, "doors": [-1, 1], "windows": [0]}
+# (25 October 2026, note 105, the user: "see what kitchen i made. this could be default. This would probably match better
+# history with exposed kitchen") draft D: the galley the user built aboard (world "gloomy hermit valley", ship #227), as
+# her start pieces. Game frame: x fore, z to starboard; a wall on the line x (or z) = at, over cells (their middles) along
+# it, rows up from the main deck. Open to the waist on the port side under the quarterdeck's front: its after wall on
+# x -9, its starboard wall on z 0.5; the cabin's front on x -7 to starboard of it, a doorway at z 1 (the user's: no door)
+KITCHEN = {
+    "walls": [
+        {"line": "x", "at": QD_FRONT, "cells": [0, 2], "rows": [0, 1, 2]},          # the cabin's front either side of the doorway
+        {"line": "x", "at": QD_FRONT, "cells": [1], "rows": [2]},                   # over the doorway
+        {"line": "x", "at": QD_FRONT, "cells": [3], "rows": [0, 1]},                # the side's wedge
+        {"line": "x", "at": QD_FRONT - 2.0, "cells": [-2, 0], "rows": [0, 1, 2]},       # the galley's after wall,
+        {"line": "x", "at": QD_FRONT - 2.0, "cells": [-1], "rows": [1, 2]},             # over the hearth (it stands in
+                                                                                         # the bottom row's place)
+        {"line": "z", "at": 0.5, "cells": [QD_FRONT - 2.0, QD_FRONT - 1.0], "rows": [0, 1, 2]},   # its starboard wall
+    ],
+    "hearth": {"cell": [QD_FRONT - 2.0, -1], "facing": "+x", "block": "game:firepit-extinct"},
+    "oven": {"cell": [QD_FRONT - 2.0, -2], "level": 1, "facing": "+x"},
+    "things": [{"block": "game:table-normal", "cell": [QD_FRONT - 2.0, -2]},        # the oven stands on it
+               {"block": "game:table-normal", "cell": [QD_FRONT - 2.0, 0]},
+               {"block": "game:storagevessel-tan-fired", "cell": [QD_FRONT - 1.0, 0]}],
+} if VARIANT == "D" else None
 # 10) gates in the waist's bulwark with a rope ladder down the side (the user, 18 October)
 GATE_CELL = -1
 # (21 October 2026, the user's list after trying her: no pump, no anchor, a wheel on the quarterdeck because the mizzen
 # blocks the helmsman's sight from under it, lanterns) where her fittings stand: cells [x cell, Y cell] on a deck (the Y
 # cell 0 is the centreline cell); the exporter keeps the deck cells under them fixed, the layout step draws them
 FITTINGS = {
-    "pump": {"deck": "main", "cell": [0, 0]},              # forward of the main mast; its brake athwartships
+    "pump": {"deck": "main", "cell": LAY_V.get("pump", [0, 0])},   # forward of the main mast; its brake athwartships
     "capstan": {"deck": "main", "cell": [6, 0]},           # on the foredeck abreast the cathead (the user, 22 October
                                                            # 2026), the cable on the deck straight from the hawse
     "hawse": {"x": 6.75},                                  # the hawse hole's middle, on the anchor's side, just forward
@@ -138,13 +196,61 @@ STEM = [(0.0, 5.6), (0.25, 6.85), (0.6, 7.55), (1.0, 8.0), (1.6, 8.45), (2.5, 8.
 # so rib -12 stands over the post with a main-deck beam.
 STERN_KEEL_X = -10.4 - LONGER       # the keel's after end at the underside (Z = LIFT): 0.3 aft of before, so rib -12's (now -14's) band and its main-deck beam fit; aft with note 73
 STERN_RAKE = 0.45                    # aft per unit up: the post's rake from the bottom, as before
+if "stern_post_x" in LAY_V:          # (note 102) upright, the transom in its plane
+    STERN_KEEL_X, STERN_RAKE = LAY_V["stern_post_x"], 0.0
 STERN_TOP_X = STERN_KEEL_X - STERN_RAKE * (Z_QD_RAIL - LIFT)   # -13.94 at the quarterdeck rail
 TRANSOM_FOOT_Z = 2.4                 # (shape height) where the wide transom starts; below it the hull narrows to the post
+COUNTER = LAY_V.get("counter")
+
+
+def post_line(zr):
+    """X of the sternpost's after face at real height zr (the rudder's line)."""
+    return STERN_KEEL_X + (STERN_TOP_X - STERN_KEEL_X) * (zr - LIFT) / (Z_QD_RAIL - LIFT)
+
+
+def stern_profile():
+    """The stern's after outline as (real z, x) from the underside up: the post, and over it (with a counter) the counter
+    rounding out from the post to the transom's foot, then the transom upright to the top."""
+    if not COUNTER:
+        return [(LIFT, post_line(LIFT)), (Z_TOP + 1.0, post_line(Z_TOP + 1.0))]
+    z0, z1, xt = COUNTER["post_top"], COUNTER["foot_z"], COUNTER["transom_x"]
+    x0 = post_line(z0)
+    # (a quarter of a sine: leaving the post nearly level, so the rudder's head is under it; meeting the transom upright)
+    us = np.linspace(0.0, 1.0, 9)
+    return [(LIFT, post_line(LIFT))] + [(z0 + (z1 - z0) * u, x0 + (xt - x0) * math.sin(math.pi / 2 * u)) for u in us] +         [(Z_TOP + 1.0, xt)]
+
+
+STERN_PROFILE = stern_profile()
 
 
 def stern_line(zr):
-    """X of the sternpost/transom plane at real height zr."""
-    return STERN_KEEL_X + (STERN_TOP_X - STERN_KEEL_X) * (zr - LIFT) / (Z_QD_RAIL - LIFT)
+    """X of the stern's after outline at real height zr: the post, the counter, the transom."""
+    zs, xs = zip(*STERN_PROFILE)
+    return float(np.interp(zr, zs, xs))
+
+
+def offset_profile(prof, d):
+    """The stern outline moved d forward, square to itself (the shell's inner face behind it): each segment moved d along
+    its normal, the corners where neighbouring moved segments meet (the normals' bisector, d / cos of half the turn)."""
+    p = np.array([(x, z) for z, x in prof], float)
+    seg = p[1:] - p[:-1]
+    seg /= np.linalg.norm(seg, axis=1)[:, None]
+    ns = np.stack([seg[:, 1], -seg[:, 0]], axis=1)      # (dz, -dx): forward (+x) for an outline running up
+    q = []
+    for k in range(len(p)):
+        if k == 0 or k == len(p) - 1:
+            n = ns[0] if k == 0 else ns[-1]
+            q.append(p[k] + n * d)
+            continue
+        b_ = ns[k - 1] + ns[k]
+        b_ /= np.linalg.norm(b_)
+        q.append(p[k] + b_ * d / float(b_ @ ns[k]))
+    # (where the outline turns tighter than d, at the transom's foot, the moved corners loop back down: dropped)
+    out = [q[0]]
+    for v in q[1:]:
+        if v[1] > out[-1][1] + 1e-6:
+            out.append(v)
+    return [(float(z), float(x)) for x, z in out]
 
 
 TRANSOM_LOW = (TRANSOM_FOOT_Z, None)  # [0] only: the transom's foot (shape height)
@@ -278,6 +384,8 @@ def levels():
     for z in np.arange(3.5, Z_TOP + 1e-6, 0.25):
         zs.add(round(float(z), 4))
     zs.update([round(real_z(TRANSOM_LOW[0]), 4), round(real_z(2.6), 4), Z_WL, Z_TOP])
+    if COUNTER:          # (the counter: a waterline every 0.05 from the post's head to the transom's foot)
+        zs.update(round(float(z), 4) for z in np.linspace(COUNTER["post_top"], COUNTER["foot_z"], 9))
     return sorted(zs)
 
 
@@ -363,7 +471,7 @@ def rib_profiles(inner):
                 zs.append(l["z"])
                 ys.append(min(float(np.interp(x, px, py)) for x in across) - RIB_GAP)
         top = float(sheer(np.array([r + 0.5]))[0])                    # in the waist and forward: up to the rail
-        if r + 0.5 < QD_FRONT:                                         # under the quarterdeck: end under its planking,
+        if r + 0.5 < QD_FRONT and not QD_BULWARK:                      # under the quarterdeck: end under its planking,
             top = min(top, Z_QD - DECK_T)                              # unseen from above (the user, 18 October)
         top *= MM
         keep = [(y, z) for y, z in zip(ys, zs) if z < top and y > 30.0]
@@ -380,8 +488,10 @@ def rib_profiles(inner):
         # board. Cut could start with deck top level.") in the waist and forward the band narrows from the main deck's
         # top to the rail, to RIB_HEAD at the top, where the cap rail covers it
         mm_ = np.full(len(c), m)
-        if r + 0.5 >= QD_FRONT and top > Z_DECK * MM + 100:
-            f = np.clip((c[:, 1] - Z_DECK * MM) / (top - Z_DECK * MM), 0.0, 1.0)
+        # ((25 October 2026, note 103) under a bulwarked quarterdeck: up through it to the cap, narrowing from its top)
+        d_top = (Z_QD if r + 0.5 < QD_FRONT else Z_DECK) * MM
+        if (r + 0.5 >= QD_FRONT or QD_BULWARK) and top > d_top + 100:
+            f = np.clip((c[:, 1] - d_top) / (top - d_top), 0.0, 1.0)
             mm_ = m - (m - RIB_HEAD * MM) * f
         i_ = untangle(c + n * mm_[:, None])
         # clip the inner edge below the top and to the port half, ending on the centreline
@@ -435,9 +545,11 @@ def backbone_outline(step=0.1):
     # (22 October 2026, chalk note 46: "rudder handle perforates keel rib") the post's head under the tiller, which runs
     # in over it from the rudder's head to the wheel's ropes (the tiller's axis 150 under the quarterdeck's beams)
     z_post_top = Z_QD - DECK_T - 0.4 - 0.15 - 0.25
+    if COUNTER:          # (25 October 2026) under a counter: the post's head in the counter's planking, the rudder's stock aft of it
+        z_post_top = COUNTER["post_top"] + 0.15
     for z in np.arange(z_post_top, LIFT, -step):
-        pts.append((x_post(shape_z(z)), z))
-    for x in np.arange(x_post(0.0), x_stem(0.0), step * 2):
+        pts.append((post_line(z), z))
+    for x in np.arange(post_line(LIFT), x_stem(0.0), step * 2):
         pts.append((x, LIFT))
     z = LIFT                                                # the stem up to where it meets the bow rail
     while z < Z_TOP and z < float(sheer(np.array([x_stem(shape_z(z))]))[0]) + STEM_HEAD:
@@ -454,15 +566,17 @@ def backbone_outline(step=0.1):
     n = np.stack([d[:, 1], -d[:, 0]], axis=1)                 # outward: aft on the post, down on the keel, fore on the stem
     n /= np.linalg.norm(n, axis=1)[:, None]
     stem_part = (p[:, 0] > x_stem(0.0) - 1e-6) & (np.arange(len(p)) > len(p) // 3)
-    post_part = (p[:, 0] < x_post(0.0) + 1e-6) & (p[:, 1] > LIFT + 1e-6)
+    post_part = (p[:, 0] < post_line(LIFT) + 1e-6) & (p[:, 1] > LIFT + 1e-6)
     foot = real_z(TRANSOM_FOOT_Z)
-    behind = -SKIN * np.clip((p[:, 1] - foot) / 0.4, 0, 1)    # above the transom's foot: behind its planking, unseen
+    # above the transom's foot: behind its planking, unseen. (25 October 2026, the stern upright) 12 into the planking, not
+    # on its inner face: the post's face and the planking's in one plane crashed the shell's boolean
+    behind = -(SKIN - 0.012) * np.clip((p[:, 1] - foot) / 0.4, 0, 1)
     out = np.where(stem_part, BB_OUT_KEEL + (BB_OUT_STEM - BB_OUT_KEEL) * np.clip((p[:, 1] - 1.0) / 2.0, 0, 1),
                    np.where(post_part, BB_OUT_KEEL + behind, BB_OUT_KEEL))
     outer = p + n * out[:, None]
     inner = p + n * (out - BB_MOULDED)[:, None]
     ring = np.concatenate([outer, inner[::-1]])
-    aft = ring[:, 0] < x_post(0.0) - 0.01                       # the post's head: cut level at z_post_top
+    aft = ring[:, 0] < post_line(LIFT) - 0.01                   # the post's head: cut level at z_post_top
     ring[:, 1] = np.where(aft & (ring[:, 1] > z_post_top), z_post_top, ring[:, 1])
     ring = untangle(ring)
     return [[round(x * MM, 1), round(z * MM, 1)] for x, z in ring]
@@ -581,7 +695,26 @@ def railings():
     # one path round the deck: the front's port end, aft along port, across the transom, forward along starboard,
     # the front's starboard end; each point is (bottom, top) at a post
     path = []
-    for y in port_front:                              # front, port of the stair gap, from the gap out to the side
+    breaks = []                                       # spans with no rails (between the front's two parts)
+    if QD_BULWARK:
+        # (25 October 2026, note 103) her side planked up round the quarterdeck: only the front's railing, standing on the
+        # deck, from the stair's gap out to a post against the bulwark's inside each side (none crowding the gap's post)
+        yin = side_y(QD_FRONT, Z_QD) - SKIN / 2 - 0.075
+        zb = Z_QD
+        port_y = port_front + ([yin] if yin - port_front[-1] > 0.3 else [])
+        stbd_y = ([-yin] if stbd_front[0] + yin > 0.3 else []) + stbd_front
+        if gap_hi < -yin + 0.3:                       # (the gap against the starboard side: no starboard part)
+            stbd_y = []
+        if gap_lo > yin - 0.3:
+            port_y = []
+        for y in port_y:
+            path.append((pt(QD_FRONT - 0.05, y, zb), pt(QD_FRONT - 0.05, y, zt), "front"))
+        if port_y and stbd_y:
+            breaks.append(len(path) - 1)
+        for y in stbd_y:
+            path.append((pt(QD_FRONT - 0.05, y, zb), pt(QD_FRONT - 0.05, y, zt), "front"))
+        side_xs, tr_ys = [], []
+    for y in (port_front if not QD_BULWARK else []):  # front, port of the stair gap, from the gap out to the side
         path.append((pt(QD_FRONT - 0.05, y, zb), pt(QD_FRONT - 0.05, y, zt), "front"))
     for x in reversed(side_xs):                       # port side, forward to aft
         path.append((pt(x, side_y(x, zb), zb), pt(x, side_y(x, zt), zt), "side"))
@@ -591,7 +724,7 @@ def railings():
         path.append((pt(tr_x(zb), y, zb), pt(tr_x(zb), y, zt), "transom"))
     for x in side_xs:                                 # starboard side, aft to forward
         path.append((pt(x, -side_y(x, zb), zb), pt(x, -side_y(x, zt), zt), "side"))
-    for y in stbd_front:                              # front, starboard of the gap, from the side in to the gap
+    for y in (stbd_front if not QD_BULWARK else []):  # front, starboard of the gap, from the side in to the gap
         path.append((pt(QD_FRONT - 0.05, y, zb), pt(QD_FRONT - 0.05, y, zt), "front"))
 
     posts = [[b, t] for b, t, _ in path]
@@ -601,15 +734,17 @@ def railings():
     # one member the posts' size halfway along each span that isn't open for a gun, no balusters
     bottom = [(b[0], b[1], zb) for b, _, _ in path]
     bal = []
-    for (b0, t0, k0), (b1, t1, k1) in zip(path[:-1], path[1:]):
+    for k_, ((b0, t0, k0), (b1, t1, k1)) in enumerate(zip(path[:-1], path[1:])):
         xm = 0.5 * (b0[0] + b1[0])
+        if k_ in breaks:
+            continue
         if k0 == k1 == "side" and any(c < xm < c + 1 for c in QD_GUN_CELLS):
             continue                                  # open for a gun
         if np.hypot(b1[0] - b0[0], b1[1] - b0[1]) < 0.6:
             continue
         bal.append([tuple(0.5 * (np.asarray(b0) + np.asarray(b1))), tuple(0.5 * (np.asarray(t0) + np.asarray(t1)))])
     mm = lambda q: [round(c * MM, 1) for c in q]
-    return {"posts": [[mm(b), mm(t)] for b, t in posts], "kinds": [k for _, _, k in path], "top": [mm(q) for q in top],
+    return {"posts": [[mm(b), mm(t)] for b, t in posts], "kinds": [k for _, _, k in path], "breaks": breaks, "top": [mm(q) for q in top],
             "bottom": [mm(q) for q in bottom], "balusters": [[mm(b), mm(t)] for b, t in bal]}
 
 
@@ -678,10 +813,18 @@ def build():
         "ropeLadders": rope_ladders(),
         "hullSamples": hull_samples(),
         "deckThickness": DECK_T * MM,
-        "transomPlane": {"low": [round(stern_line(LIFT) * MM, 3), LIFT * MM],
+        # the transom's plane (over a counter, the upright transom from its foot up), the rudder's line (the post's after
+        # face), and the stern's whole after outline and its inner face (SKIN in, square to it), [x, z] from the bottom
+        "transomPlane": {"low": [round(stern_line(COUNTER["foot_z"] if COUNTER else LIFT) * MM, 3),
+                                 (COUNTER["foot_z"] if COUNTER else LIFT) * MM],
                          "high": [round(stern_line(Z_QD_RAIL) * MM, 3), Z_QD_RAIL * MM]},
+        "rudderLine": {"low": [round(post_line(LIFT) * MM, 3), LIFT * MM],
+                       "high": [round(post_line(Z_QD_RAIL) * MM, 3), Z_QD_RAIL * MM]},
+        "sternProfile": [[round(x * MM, 1), round(z * MM, 1)] for z, x in STERN_PROFILE],
+        "sternProfileInner": [[round(x * MM, 1), round(z * MM, 1)] for z, x in offset_profile(STERN_PROFILE, SKIN)],
+        "counter": {k: v * MM for k, v in COUNTER.items()} if COUNTER else None,
         "stem": [[x * MM, round(real_z(z) * MM, 3)] for z, x in STEM],
-        "post": [[round(stern_line(z) * MM, 3), round(z * MM, 3)] for z in (LIFT, real_z(TRANSOM_FOOT_Z))],
+        "post": [[round(post_line(z) * MM, 3), round(z * MM, 3)] for z in (LIFT, real_z(TRANSOM_FOOT_Z))],
         "sheer": [[round(x * MM, 3), round(z * MM, 3)] for x, z in zip(sx, sz)],
         "layout": {"masts": {k: {"cell": v["cell"], "heel": v["heel"] * MM, "rigs": v["rigs"]} for k, v in MASTS.items()},
                    "ribs": RIBS, "guns": GUN_CELLS, "quarterdeckGuns": QD_GUN_CELLS,
@@ -690,7 +833,11 @@ def build():
                                "head": [v * MM for v in t["head"]], "y": t.get("y", 0.0) * MM} for t in STAIRS],
                    "gate": {"x": [GATE_CELL * MM, (GATE_CELL + 1) * MM], "sill": Z_DECK * MM, "head": Z_WAIST_RAIL * MM},
                    "port": {k: v * MM for k, v in PORT.items()},
-                   "cabin": {"x": CABIN["x"] * MM, "doors": CABIN["doors"], "windows": CABIN["windows"]},
+                   "cabin": {"x": CABIN["x"] * MM, "doors": CABIN["doors"], "windows": CABIN["windows"]} if not KITCHEN else None,
+                   "kitchen": KITCHEN,
+                   "swivels": LAY_V.get("swivels", []),
+                   "sails": {k: {kk: ([vv * MM if isinstance(vv, (int, float)) else vv for vv in v] if isinstance(v, list) else v)
+                                 for kk, v in sl.items()} for k, sl in LAY_V.get("sails", {}).items()},
                    "variant": VARIANT,
                    "fittings": FITTINGS},
     }

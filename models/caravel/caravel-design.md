@@ -71,21 +71,37 @@ the length with an open railing; a broad rudder on a straight sternpost.
 
 ## Plan
 
-Since 24 October 2026, 2 blocks longer (note 73; before: 23.6 m overall, 21.3 on the deck, 20.5 on the waterline, 222 t):
+Since 26 October 2026, 2 blocks longer (note 73), the sternpost upright (note 102) and a counter with the transom 1 block
+aft of it (the user's sketch); before note 73: 23.6 m overall, 21.3 on the deck, 20.5 on the waterline, 222 t; with
+the raked stern: 25.5, 23.8, 22.8, 256 t; upright without the counter: 24.55, 24.2, 23.64, 270 t:
 
 | | Value |
 |---|---|
-| Length overall, hull (transom top to stem head) | 25.5 m |
-| Length on the main deck | 23.8 m (transom −14.1, stem +9.7) |
-| Waterline length | 22.8 m |
+| Length overall, hull (transom to stem head) | 25.63 m |
+| Length on the main deck | 25.2 m (transom −15.5 over a counter, the post −14.5; stem +9.7) |
+| Waterline length | 23.64 m |
 | Beam | 6.60 m (half 3300 at Z 3500; the user: 6.6 blocks) — inside 7 cells, Y ±3500 |
 | Draft | 2.75 m (the keel is flush with the planking) |
-| Displacement | ≈ 249 m³, ≈ 256 t in seawater, block coefficient ≈ 0.58 |
+| Displacement | ≈ 264 m³, ≈ 270 t in seawater, block coefficient ≈ 0.60 |
 
 For comparison the carrack is 36.4 × 12.16 m with a 4.875 m draft: the caravel is about 0.7 her length and half
-her beam. L/B is 3.87 overall (25.54 / 6.60) and 3.49 on the waterline (22.78 / 6.53).
+her beam. L/B is 3.88 overall (25.63 / 6.60) and 3.62 on the waterline (23.64 / 6.53). The reference *Boa Esperança*:
+23.8 × 6.6 m, 21.7 on the waterline.
 
 ### Cells along X (named by their aft face, in blocks)
+
+Since 25 October 2026 (draft D, the user's OK; see "The fifth trial"):
+
+```
+cell  -16 -15 -14 -13 -12 -11 -10  -9  -8  -7  -6  -5  -4  -3  -2  -1   0   1   2   3   4   5   6   7   8   9
+       .   .  RIB  .  RIB MIZ RIB  W  RIB  QS RIB  HS RIB MAIN RIB  .  RIB  G  RIB  G  RIB  .  RIB FORE  .   .
+               S               S   [galley]|[  hatch   ]     pump gate             capstan
+       |<---------- quarterdeck --------->|<------------------------------ waist ------------------------------->
+```
+
+S a pair of swivel places on the quarterdeck's cap (X −13.5 and −9.5, both sides), W the wheel, QS the quarterdeck's
+stair against her starboard side (z +2), HS the hold's stair on the centreline rising forward, the hatch −7..−4, one clear
+block (−4) between it and the main mast (now −3); the galley under the quarterdeck's front, to port of the centreline.
 
 Since 24 October 2026 (chalk note 73, the user: 2 blocks longer aft of the main mast; see "The fourth trial"):
 
@@ -543,6 +559,130 @@ frames' strips (its posts are drawn whole). Server self-test (Release, 0.1.0-dev
 the broadsides' share of shots into her hull (18 of 56, 40 % wanted; she floods and founders as wanted). That check fails
 the same way on dev.8's own caravel (22 of 68): the balls are spent in the water short of her, not a change of this round.
 
+### The fifth trial (25 October 2026, release 0.1.0-dev.9, chalk notes 85-105)
+
+Note 85 ("now top of rails has holes and not continious. Do you ever check 3d edits?"): from this round every change is
+looked at as the game draws it, not only in the CAD viewer. `tools/caravel/game_view.py` renders the exported mesh
+(`config/shipmeshes/caravel.json`) with the game's own textures, her slots as a new ship has them and her laid pieces as
+plain boxes (cut to her side as the game cuts its places), from any eye in her ship-local frame, posed: `{"rudder": ±1}`
+turns the rudder and tiller, `{"tack": -1, "sheet": deg}` mirrors and sheets the rig about each mast with the windward
+shrouds only, as the mod does. `python tools/caravel/game_view.py <shots.json> <out dir>`; this round's pictures are
+`views/game/01-…24-*.png` (`views/game/shots.json`).
+
+**Draft D (the user's OK, "Yes, build it")**, `caravel_lines.LAYOUTS["D"]`, the default:
+
+- **The main mast 2 aft**, to cell −3 (X −2.5): the middle of her keel (Castro: a caravel's main mast stands on the
+  middle of the keel; hers runs −12.4..5.6). The pump beside it at −2, its pipe down the mast's cell.
+- **The waist**: one clear block (−4) between the mast and the hatch, now −7..−4; the hold's stair on the centreline in
+  −5, rising forward. Carlings beside the hatch run from the nearest whole beam aft of it to the nearest forward (notes
+  93, 94: they stopped at the opening's ends).
+- **The quarterdeck's stair against her starboard side** (the user: "Stairs to castle we could place on right side next to
+  hull. At least on Nao Victoria it is done like that"), in −7 at z +2, its head the quarterdeck's front. The cap rail
+  narrows to 330 inboard beside it (over 1 m), so its head isn't under the cap; through the castle's break, where the
+  tumblehome brings her side in over the stair's cell, its inner edge stays 15 outboard of that cell (her collision
+  there refused the stair).
+- **The galley (note 105)**, the user's from ship #227 in their world (read from a copy of the save, never the live file):
+  start pieces under the quarterdeck's front, open to the waist on the port side as they built it: plank partitions on
+  the front line x −7 at z 0 and +2 (three rows), +1 over a door, +3 (two rows, her side's outer cell: note 87 closed);
+  the back line x −9 at z −2..0 (none behind the hearth's bottom row, which it would share a plane with); a fore-and-aft
+  wall at z +0.5 from −9 to −7 between the galley and the cabin. The hearth (`game:firepit-extinct`) at (−9, −1) facing
+  forward, the oven on its table at (−9, −2) level 1, a second table at (−9, 0), a storage vessel at (−8, 0). All
+  ordinary pieces: taken up and moved as any.
+- **The quarterdeck's sides a bulwark** (note 103: "should we make hull board on top of castle instead of rails. gun port
+  gates are trash here"): her side planked up a block over the quarterdeck from the transom to the front, the ribs up
+  through it to the cap, narrowing from the deck; the cap rail one run a side from the transom to the gate and a cap
+  across the transom (note 85: no holes, no breaks). Only the front keeps its railing. Its row of planking comes out
+  as her side's panels (hull slots, band 7: note 56's spans became panels).
+- **No carriage guns on the quarterdeck**: 4 swivel places on its cap, 2 a side at X −13.5 and −9.5, in the fittings
+  session's format (`{"type": "gun", "kind": "swivel", "code": "swivel-<side>-<n>", "pos", "out", "trainLimits"
+  [-80, 80], "elevationLimits" [-25, 30]}`); the swivel itself is the fittings session's, drawn by the mod. Her 4
+  waist guns stay. The self-test counts great guns without swivels and wants at least 4.
+
+**The stern (note 102, then the user's sketch: "something like this, get 1 block overhang in cabin")**: the sternpost
+upright at X −14.5 with the rudder on it, a counter over it and the transom a block further aft. In the lines the stern's
+after outline (`caravel_lines.stern_profile`, `sternProfile` in the lines file) is the post from the keel to Z 3.2, a
+counter rounding out (a quarter sine: nearly level at the post, upright at the top) to the transom's foot at X −15.5,
+Z 3.6, and the transom flat and upright from there to the rail; its inner face (`sternProfileInner`) 250 in, square to it,
+so the counter's planking is as thick as her side's. The build cuts the hull and its inner solid by these outlines (a
+plane before). The cabin, both decks and the quarterdeck run 1 block further aft (25.2 m on the deck); the waterline is
+as it was (the counter starts above it). No new rib: cell −15 is the stern's one clear cell after rib −14 and the
+transom (cell −16) takes the decks' ends.
+
+The rudder's blade hangs on the post from the keel to Z 3.1, under the counter; a round stock (r 0.1, its fore side on the
+blade's leading edge) goes up through the counter and the main deck (a hole 25 round it) to the tiller, level at Z 6.25
+under the quarterdeck's beams, 2.4 long (X −14.69..−12.27), inside the cabin: no port in the transom (note 86). The
+game's rudder and tiller turn about the stock (X −14.63, `rudderAxis` in the report). The bumpkin's end 1.6 outside the
+transom (X −17.1), its heel in to the first quarterdeck beam. Before the counter (25 October 2026) the transom was flat in
+the post's plane at X −14.5, the tiller through a slot in it.
+
+**The sails (the user's choice B, then the user's sketch: "I made red triangles around approximate with 2 block
+clearance below")**: Boa Esperança's sails were 155 and 80 m² on a 26 m and a 20 m yard. The user's triangles bring the
+feet down to about 2 blocks over the deck under them, the main tacked low at the bow head and rising aft, the mizzen's
+level; the sail runs to its yard's end (no cut to an area):
+
+| | Yard | Tack | Peak | Clew | Foot over its deck | Area |
+|---|---|---|---|---|---|---|
+| Main | 29.6 m, crossing the mast at Z 20.0 | (8.1, 6.4), its tackle to the stem head | (−10.2, 29.8) | (−6.4, 9.1) | 2.4 at the tack, 4.4 at the mast | 144.9 m² |
+| Mizzen | 19.1 m, crossing at Z 18.1 | (−7.6, 9.25) | (−13.6, 27.5) | (−17.1, 9.25) at the bumpkin's end | 2.25 m, level | 86.7 m² |
+
+The sketch's were about 148 and 91 m²; the mizzen's tack is 0.5 aft of the sketch's, 1.2 aft of the main's clew (0.4 in
+the sketch, at nearly one height). Before the sketch (25 October 2026) both feet were level, 3.76 and 3.69 m up, 149.4 and
+80 m².
+
+**The others:**
+
+- **85**: the quarterdeck's cap continuous round the bulwark and the transom (above); the railing's spans are gone.
+- **86**: the tiller's slot (above).
+- **87**: the cabin wall's outer cell at z +3 closed (partitions in the default pieces; the build-place session cuts
+  them to her side).
+- **91** (the gate didn't line up and had gaps since its leaf was narrowed): the leaf the opening's full width again,
+  15 clear at each end, its own cap 40 proud outside as the cap rail; it is hinged on its inner face at the after edge and
+  its outer forward corner passes the forward jamb through a rebate in the jamb's planking and the cap's end; a stop
+  batten 75 × 25 on each jamb outside hides the gaps. The leaf's cap drawn in the cap rail's wood and grain (the game
+  view showed it as a dark band of tarred planking).
+- **92**: the cap rail's texture follows its curve into the stem: u along its middle line in plan, v off it.
+- **93, 94**: the carlings (above).
+- Rib −14, risen through the main deck to the bulwark, reached 40 into the next deck cell inboard: in the deck's planking
+  it stops at the cell's border, so that cell's planking stays a whole block (its faces were notched round the rib).
+- **101**: the topsides paint zone in block rows (`"rows": true`, the paint session's).
+- **104** ("ropes still cross the sails"): windward shrouds only, as lateen ships set them: each mast's and side's in a
+  group `rig:shrouds-<mast>-<port|starboard>`, the mod showing the windward set; main 3 a side to the waist's cap, mizzen
+  2 a side to the quarterdeck's. The halyards' falls to cleats on the masts; the main sheet to cleats on the quarterdeck's
+  front rail (±0.95); the mizzen's tack to one cleat on its centre, clear of the stair.
+- Also: `panelPlaces` false and the figurehead's hook on the stem from the pipeline (the build-place and fittings
+  sessions); each mast's `radius` its heel's (the widest); no stern lantern; the lateen dip data as the lateen session
+  asked.
+
+**Open: the quarterdeck stair against her side.** The game refuses to lay it: her quarterdeck's bulwark leans in
+(tumblehome), and 0.5 to 1 above the quarterdeck its planking's inside comes 0 to 80 into the outer quarter-block of
+the stair's cell, all along the landing at its head (x -8..-7), the ribs' heads too. The break's part (x -7..-6) is
+cleared (above); the landing is the user's choice: the stair a cell inboard (z +1, the cabin's front rearranged), or
+her bulwark's inside thinned over the landing's block and rib -8's head cut back there.
+
+Checks (26 October 2026, the counter build): `tools/caravel/overlap_check.py` 0 of 84,711 faces; `dotnet run --project
+tests/HansaTests -c Release --` holdstair, modular, steerage, gunclick, partitions, decor, stairs, hull, gates and lateen ALL
+OK; design caravel all but the stair above; slots' 2 failures are carrack-m's, paint's note 68 the paint session's (as in
+the fourth trial). The full offline run: 5 failures, none the caravel's but the stair (the carrack's dry hull at her stern,
+two of its holed-panel checks, note 68, the archived charters). In the slot layout a cell's side is drawn as one quad where
+a rib split it into a fan, and a cell's top and underside take their grain from their largest face (a sliver beside rib
+-14 had skewed it); note 83's side looks count only a side met within 2 of the cell's middle (by the sternpost one looked
+across the ship). `lateen-dump` isn't in this branch: the lateen checks find no sail within 0.02 of a mast on either tack
+or through the dip; the main's clew and the mizzen's tack, each turned about its mast to any sheet within ±25° on either
+tack, are never nearer than 1.13 m (through the dip the sail is brailed and the yards part); the main's sheet and the
+mizzen's tack, which cross in a view from the quarterdeck, are 0.9 apart (their cleats at z −0.95 and 0). Game views:
+`views/game/01-26`, the counter in 13, 25 and 26, the tiller in 10-12.
+
+Server self-test (Release, 0.1.0-dev.9 with her new data; `src/SelfTest.cs`: her great guns without the swivels, at
+least 4; with 2 a side the gunnery picks a gun not reloading; the lanterns are her start pieces on hooks; the hearth's room
+the steerage on a ship not a carrack): 234 ok, 3 FAIL. The broadsides' share into her hull (9 of 74; 23 of 60 the round
+before, and it failed on dev.8 too) and, with so few hits, her foundering 300 s after the first broadside, past the test's
+time; and the hearth's warmth in a closed room: her galley is open to the waist, as the user built it. The game logs the
+quarterdeck stair refused (`flight-no-landing`, the open point above), the oven refused (`no such place`: the oven on a
+stacked place is the build-place session's dev.9 work, not merged into this branch) and the hatch `piece-taken`.
+
+Left for the CAD speed-up's first build (the user, 26 October 2026): the stock's hole through the counter 10 round it
+(25 now: a ring seen from below), and the sky round the bumpkin in its socket.
+
 ### Server self-test on the caravel (20 October 2026)
 
 `tools/run_selftest.sh` on the Release build tests the caravel (the configured `carrack` isn't in it). The test is
@@ -587,7 +727,9 @@ Not done yet:
 ## Open points for the user
 
 1. Bulwark 1250 (as the carrack) or 1000 on a cell border — the carrack's open question 1.
-2. Gun cells −7, −3, −1, 3 (one under the quarterdeck), pending the carrack session's "one bay apart" rule.
+2. Guns: since 25 October 2026 the waist's 4 (cells 1 and 3) and 4 swivel places on the quarterdeck's cap; more or
+   fewer is open.
 3. A forecastle for the *redonda*? Historical *redondas* often had none; the hull stays common either way.
 4. Mast rake (lateen masts raked forward) is left out to keep each mast in one cell.
-5. Stairs to the quarterdeck, the tolda's front bulkhead and cabin are not modelled yet.
+5. Stairs, the cabin's front and the galley are default pieces (since 24 and 25 October 2026); the stairs' places and
+   some of the inner layout may change on the user's word.
