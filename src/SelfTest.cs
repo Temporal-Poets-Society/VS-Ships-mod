@@ -2246,8 +2246,9 @@ namespace Hansa
                 MadeUpWreck(mod, def, spawn, wy, () => CrewWorks(mod, def, spawn, wy, () => SailStrainWorks(mod, def, spawn, wy, () => HearthWorks(mod, def, spawn, wy, () => WorkingBlocksWorks(mod, def, spawn, wy, () => HullPanelsWorks(mod, spawn, wy, Finish))))));
                 return;
             }
-            // (the carracks have 5 guns a side laid, the caravel 4: two on her quarterdeck, two in her waist)
-            Check(guns.Length >= 6 && port.Length * 2 == guns.Length && mod.Shots != null && mod.Config.Cannons && !mod.Config.CannonsBreakBlocks,
+            // (the carracks have 5 guns a side laid; the caravel had 4 (two on her quarterdeck, two in her waist), and from 26
+            // October 2026 her quarterdeck has swivel guns instead: 2 a side)
+            Check(guns.Length >= 4 && port.Length * 2 == guns.Length && mod.Shots != null && mod.Config.Cannons && !mod.Config.CannonsBreakBlocks,
                 $"two {def.Code}s side by side, 17 apart, {port.Length} guns a side ({string.Join(", ", guns.Select(f => f.Code))}); cannons on, blocks don't break");
             // (the eighth client test) lidded ports: a new ship's guns are housed, their ports shut, and don't fire; opened
             // (someone laying it), one is run out first and fires after; Shift + right-click houses it again. Then all of
@@ -2386,8 +2387,10 @@ namespace Hansa
                             Check(e2 == null && ba.GetBlock(plankAt).Id == 0 && r2.Any(r => r.What == "broke") && r2.Any(r => r.What == "block"),
                                 $"with CannonsBreakBlocks on, a plank in its way breaks and the ball goes on to the wall ({string.Join(", ", r2.Select(r => r.What))})");
 
-                            // into the water: a splash, and it's spent
-                            var g3 = port[2];
+                            // into the water: a splash, and it's spent ((26 October 2026) a third port gun, or with 2 a side (the
+                            // caravel's waist since her quarterdeck has swivel guns) her first starboard one: fired 25° down it's
+                            // spent long before the other ship)
+                            var g3 = port.Length > 2 ? port[2] : starboard[0];
                             string e3 = shooter.FireGun(g3, null, null, -25);
                             var b3 = Last();
                             WaitFor(() => b3 == null || !shots.Flying.Contains(b3), 4, w4 =>
@@ -2492,7 +2495,10 @@ namespace Hansa
                     copy.Die(EnumDespawnReason.Removed);
 
                     // /hansa fire with an elevation and a train (as far as it goes; "-" leaves one as it is)
-                    var g3 = guns[2];
+                    // ((26 October 2026) a third gun; with 2 a side (the caravel's waist since her quarterdeck has swivel guns)
+                    // the one laid above, fired a few seconds ago: its reload let go for this)
+                    var g3 = guns.Length > 2 ? guns[2] : guns[1];
+                    if (guns.Length <= 2) ship.Gun(g3.Code).FiredMs = long.MinValue / 2;
                     var res = mod.FireCommand(ship, null, null, g3.Code, "1.5", "-8");
                     var l3 = ship.GunLayNow(g3);
                     Along(Last(), g3, l3, out double ang3, out double from3);
@@ -2547,7 +2553,7 @@ namespace Hansa
         }
 
         /// <summary>
-        /// Her starboard broadsides, every time her guns are ready, laid at the other's side just under the waterline (the
+        /// Her starboard broadsides, every time her guns are ready, laid at the other's side at the waterline (the
         /// other moved a frame space along between them, so they hole a new place each time), till the other goes down.
         /// </summary>
         void Broadsides(HansaMod mod, ShipDefinition def, EntityShip shooter, EntityShip target, FixtureDef[] guns,
@@ -2577,6 +2583,8 @@ namespace Hansa
                     if (gr.SolidAt(x, y, gr.OZ + (k + 0.5) * gr.V)) return gr.OZ + k * gr.V;
                 return -5;
             }
+            // ((26 October 2026) each shot: its gun, its muzzle and aim point in her frame (the target's), the elevation laid)
+            var fireLog = new List<(CannonShots.Ball Ball, string Gun, Vec3d Muzzle, Vec3d Aim, double Elev, int Broadside, double[] Pose)>();
             long id = 0;
             id = sapi.Event.RegisterGameTickListener(dt =>
             {
@@ -2587,9 +2595,27 @@ namespace Hansa
                     foreach (var gun in guns)
                     {
                         shooter.GunMuzzle(gun, 0, out var m, out _);
-                        double lx = m.X - target.Pos.X, ly = def.Waterline - 0.3;
+                        // ((26 October 2026) at her waterline, not 0.3 under it: a ball laid under it comes down into the water
+                        // short of her and goes through it first, and from the caravel's waist guns (1.75 over the water, 10
+                        // blocks off, coming down at 9-10°) that's 1.5 to 3 blocks of water: it struck her at 12 kJ or was spent
+                        // (a panel takes 80). The carracks' guns stand higher and come down steeper. Struck at the waterline in
+                        // the air, the panel there (its band reaches 0.13 over the waterline, its middle under it) is holed and
+                        // lets the sea in.)
+                        double lx = m.X - target.Pos.X, ly = def.Waterline + 0.05;
+                        // (and at the waterline as it is, not as she was built: she lies deeper as she fills, and the waves rise
+                        // and fall along her; laid at her design waterline, a filling ship's was under water: 12 of 20 spent)
+                        target.LocalToWorld(lx, ly, SideZ(lx, ly), out double sx, out double sy, out double sz);
+                        double sea = mod.SeaSurface(sx, sy, sz, target.Pos.Dimension);
+                        if (!double.IsNaN(sea)) ly = Math.Max(ly, target.WorldToLocal(sx, sea, sz).Y + 0.05);
                         target.LocalToWorld(lx, ly, SideZ(lx, ly) + 0.02, out double tx, out double ty, out double tz);
-                        if (shooter.FireGun(gun, null, null, lay(shooter, gun, new Vec3d(tx, ty, tz))) == null) fired++;
+                        double elev = lay(shooter, gun, new Vec3d(tx, ty, tz));
+                        if (shooter.FireGun(gun, null, null, elev) == null)
+                        {
+                            fired++;
+                            var ball = shots.Flying.Count > 0 ? shots.Flying[^1] : null;
+                            fireLog.Add((ball, gun.Code, target.WorldToLocal(m.X, m.Y, m.Z), target.WorldToLocal(tx, ty, tz), elev, broadsides + 1,
+                                new[] { target.Pos.X, target.Pos.Y, target.Pos.Z, target.Pos.Yaw, target.Pitch, target.Roll }));
+                        }
                     }
                     broadsides++;
                     int n = broadsides;
@@ -2600,18 +2626,24 @@ namespace Hansa
                 if (!target.GoneDown && secs < 300) return;
                 sapi.Event.UnregisterGameTickListener(id);
                 var recs = shots.Records.Where(r => r.What == "ship" && r.Entity == target.EntityId).ToList();
-                // (since 0.3.7 a ball into the water loses most of its way at once and is spent within two blocks: laid
-                // under her waterline from close by, it goes in a block or so short of her; some are spent before they get
-                // there, the rest strike her a good deal weaker)
+                // (since 0.3.7 a ball into the water loses most of its way at once and is spent within two blocks: one that
+                // comes down short of her, as a wave rises or she heaves, may be spent before it gets there, or strike her a
+                // good deal weaker)
                 int spent = shots.Records.Count(r => r.What == "spent" && r.Ms >= started);
                 var below = l.Parts.Where(p => p.Kind == DamageKind.Hull && p.Center.Y < def.Waterline && target.StateOfPart(p.Index) >= PartState.Cracked).ToList();
                 int holed = below.Count(p => target.StateOfPart(p.Index) == PartState.Holed);
+                LogShots(shots, target, fireLog, SideZ);
                 Check(fired >= 9 && recs.Count >= fired * 0.4 && recs.Count + spent >= fired * 0.8 && holed >= 3,
-                    $"{broadsides} broadsides, {fired} shots, {recs.Count} of them into her hull (through the water at her waterline, {recs.Where(r => r.Energy > 0).Select(r => r.Energy).DefaultIfEmpty(0).Average():0} kJ on average), " +
+                    $"{broadsides} broadsides, {fired} shots, {recs.Count} of them into her hull (at her waterline, {recs.Where(r => r.Energy > 0).Select(r => r.Energy).DefaultIfEmpty(0).Average():0} kJ on average), " +
                     $"{spent} spent in the water short of her: {holed} panels below her waterline holed, {below.Count - holed} more cracked");
                 // (20 October 2026) 3 t in a carrack (a thousand tonnes) as before; 0.3 % of a light ship's displacement (the caravel's 0.7 t)
                 double waterWant = l.Displacement >= 600 ? 3 : 0.003 * l.Displacement;
-                Check(waterAfter3 > waterWant, $"water comes into her ({waterAfter3:0.0} t after {waterAt} broadsides; more than {waterWant:0.0} t wanted)");
+                // ((26 October 2026) laid at her waterline as it is, the caravel's guns can sink her before the broadsides that
+                // fire 15 shots, or before the water's read 3 s after them: gone down by then, the water came in)
+                bool goneFirst = double.IsNaN(waterAfter3) && target.GoneDown;
+                Check(waterAfter3 > waterWant || goneFirst, goneFirst
+                    ? $"water comes into her: she went down after {broadsides} broadsides, before the water in her was read after {waterAt} ({target.Water:0} t in her)"
+                    : $"water comes into her ({waterAfter3:0.0} t after {waterAt} broadsides; more than {waterWant:0.0} t wanted)");
                 Check(target.GoneDown, $"she founders and goes down {secs:0} s after the first broadside ({target.Stage}, {target.Water:0} t in her)");
                 Check(Enumerable.Range(0, l.Count).All(i => shooter.StateOfPart(i) == PartState.Sound), "the one firing takes no hurt from her own guns");
                 WaitFor(() => target.Stage == SinkStage.Sunk, 60, sunk =>
@@ -2627,6 +2659,47 @@ namespace Hansa
                     });
                 });
             }, 200);
+        }
+
+        /// <summary>
+        /// (26 October 2026: the broadside check failing since 24 October) Each broadside shot as it went, in the target's frame
+        /// (x along her, y up from her waterline's level 0, z across: her near side is -z): its muzzle, the point it was laid
+        /// at and its elevation; where it went into the water and how far short of her side there (z); what came of it: a hit
+        /// (where), spent in the water short of her, over her, or wide of her ends. Then the counts.
+        /// </summary>
+        void LogShots(CannonShots shots, EntityShip target, List<(CannonShots.Ball Ball, string Gun, Vec3d Muzzle, Vec3d Aim, double Elev, int Broadside, double[] Pose)> fired,
+            System.Func<double, double, double> sideZ)
+        {
+            int hit = 0, shortOf = 0, over = 0, wide = 0, other = 0;
+            double x0 = target.Def.Bounds?[0]?[0] ?? -20, x1 = target.Def.Bounds?[1]?[0] ?? 20;
+            foreach (var f in fired)
+            {
+                var rs = f.Ball == null ? new List<CannonShots.ShotRecord>() : shots.Records.Where(r => r.Id == f.Ball.Id).ToList();
+                var struck = rs.FirstOrDefault(r => r.What == "ship" && r.Entity == target.EntityId);
+                var water = rs.FirstOrDefault(r => r.What == "water");
+                var last = rs.LastOrDefault();
+                // (in her frame as she lay when it was fired: she's moved along between broadsides, and lies deeper as she fills)
+                Vec3d L(Vec3d w)
+                {
+                    if (w == null) return null;
+                    var q = f.Pose;
+                    ShipFrame.ToLocal(q[3], q[4], q[5], w.X - q[0], w.Y - q[1], w.Z - q[2], out double lx, out double ly, out double lz);
+                    return new Vec3d(lx, ly, lz);
+                }
+                string P(Vec3d v) => v == null ? "-" : $"{v.X:0.00} {v.Y:0.00} {v.Z:0.00}";
+                var wl = L(water?.At);
+                string kind;
+                if (struck != null) { kind = "hit"; hit++; }
+                else if (wl != null && (wl.X < x0 || wl.X > x1)) { kind = "wide"; wide++; }
+                else if (wl != null && wl.Z < sideZ(wl.X, -0.3)) { kind = "short"; shortOf++; }
+                else if (rs.Any(r => r.What is "block" or "broke") || wl != null) { kind = "over"; over++; }
+                else { kind = "other"; other++; }
+                double shortBy = wl == null ? double.NaN : sideZ(wl.X, -0.3) - wl.Z;
+                Log($"  shot {f.Broadside}/{f.Gun}: muzzle {P(f.Muzzle)}, laid at {P(f.Aim)} ({f.Elev:0.00}°); water at {P(wl)}" +
+                    (double.IsNaN(shortBy) ? "" : $" ({shortBy:0.00} short of her side)") + $"; {kind}{(struck != null ? " at " + P(L(struck.At)) + $" {struck.Energy:0} kJ" : "")}; " +
+                    string.Join(" > ", rs.Select(r => r.What)));
+            }
+            Log($"  broadside shots: {fired.Count}: {hit} hit, {shortOf} short, {over} over, {wide} wide, {other} other");
         }
 
         // ------------------------------------------------------------------ the wreck
