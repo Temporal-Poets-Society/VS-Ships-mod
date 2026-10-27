@@ -630,7 +630,9 @@ def deflicker(M, D):
         nrm_of[a] = nrm_of[b] = nrm
         area_of[a], area_of[b] = aa, ab
     seen, moved = set(), 0
-    for start in link:
+    # ((27 October 2026) in a fixed order, ties by group and index: a set's order changed with Python's string hashing,
+    # and which of two equal faces moved changed from run to run)
+    for start in sorted(link):
         if start in seen:
             continue
         comp, todo = [], [start]
@@ -638,7 +640,7 @@ def deflicker(M, D):
         while todo:
             f = todo.pop()
             comp.append(f)
-            for o in link[f]:
+            for o in sorted(link[f]):
                 if o not in seen:
                     seen.add(o)
                     todo.append(o)
@@ -646,14 +648,14 @@ def deflicker(M, D):
         # their openings and collision are where they are); the others in front of them, the larger first. Two slots'
         # faces in one plane are left as they are (counted in what's left)
         slots_ = [f for f in comp if f[0].startswith("slot:")]
-        rest = sorted((f for f in comp if not f[0].startswith("slot:")), key=lambda f: -area_of[f])
+        rest = sorted((f for f in comp if not f[0].startswith("slot:")), key=lambda f: (-area_of[f], f))
         # (a face of a slot's own overlapping another of the same slot's, one group: the mesher's overlapping fan; the
         # smaller moves with it. Only faces that overlap each other: two side by side under one fitting both stay)
         def owner(f):
             pr = M["slotQuads"][f[0]][2 * f[1]: 2 * f[1] + 2]
             return (f[0], pr[0], pr[1]) if pr[0] >= 0 else None
         anchored = []
-        for f in sorted(slots_, key=lambda f: -area_of[f]):
+        for f in sorted(slots_, key=lambda f: (-area_of[f], f)):
             if owner(f) is not None and any(owner(a) == owner(f) and a in link[f] for a in anchored):
                 rest.append(f)
             else:
