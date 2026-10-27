@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System;
 using System.Linq;
 using Hansa;
@@ -17,8 +18,20 @@ namespace HansaTests
         static void Swivels(string root)
         {
             Console.WriteLine("the caravel's swivel guns");
-            var (def, _) = LoadHullDesign(root, "caravel");
+            var (def, file) = LoadHullDesign(root, "caravel");
             var sw = def.Fixtures.Where(f => f.Swivel).ToArray();
+            // her level faces (the rail caps' tops among them), from her mesh: x0 x1 z0 z1 at y
+            var level = new List<(double X0, double X1, double Y, double Z0, double Z1)>();
+            foreach (var g in file?.Groups ?? new Dictionary<string, float[][]>())
+                if (!g.Key.StartsWith("part:") && g.Value != null)
+                    foreach (var q in g.Value)
+                    {
+                        if (q == null || q.Length < 32) continue;
+                        double y0 = Math.Min(Math.Min(q[2], q[10]), Math.Min(q[18], q[26])), y1 = Math.Max(Math.Max(q[2], q[10]), Math.Max(q[18], q[26]));
+                        if (y1 - y0 > 0.003) continue;
+                        level.Add((Math.Min(Math.Min(q[1], q[9]), Math.Min(q[17], q[25])), Math.Max(Math.Max(q[1], q[9]), Math.Max(q[17], q[25])), y0,
+                                   Math.Min(Math.Min(q[3], q[11]), Math.Min(q[19], q[27])), Math.Max(Math.Max(q[3], q[11]), Math.Max(q[19], q[27]))));
+                    }
             Check(sw.Length == 4 && sw.Count(f => f.Out[2] < 0) == 2, $"four swivel guns, two a side ({string.Join(", ", sw.Select(f => f.Code))})");
             foreach (var f in sw)
             {
@@ -43,8 +56,8 @@ namespace HansaTests
                 // only within its arc
                 var c = GunLaying.Clamp(f, new GunLay(110, 45));
                 var up = GunLaying.Clamp(f, new GunLay(30, 45));
-                Check(c.Train == 80 && up.Train == 30 && up.Elevation == 30 && GunLaying.Beyond(f, new GunLay(-95, 0)) && !GunLaying.Beyond(f, new GunLay(-45, -15)),
-                    $"{f.Code}: laid 110° it goes to 80°, 45° up to 30°; 95° aft is past its arc, 45° aft and 15° down within it");
+                Check(c.Train == 80 && up.Train == 30 && up.Elevation <= 30 && up.Elevation >= 15 && GunLaying.Beyond(f, new GunLay(-95, 0)) && !GunLaying.Beyond(f, new GunLay(-45, -15)),
+                    $"{f.Code}: laid 110° it goes to 80°, 45° up to {up.Elevation:0.0}° (30° its limit; less as its tail comes over its rail); 95° aft is past its arc, 45° aft and 15° down within it");
                 // the gunner where he stands: his click takes it, and it's within his reach
                 var eye = new Vec3d(f.Seat[0], f.Seat[1] + 1.62, f.Seat[2]);
                 var sel = f.SelBox;
@@ -58,21 +71,37 @@ namespace HansaTests
                 var along = GunLaying.Clamp(f, new GunLay(75, -25));
                 var tail = GunLaying.Clamp(f, new GunLay(-80, 30));
                 var square = GunLaying.Clamp(f, new GunLay(0, -25));
-                Check(along.Elevation > -25 && SwivelGun.ClearOfRail(along) && tail.Elevation < 30 && SwivelGun.ClearOfRail(tail) && square.Elevation == -25,
-                    $"{f.Code}: laid 75° along her rail and 25° down it comes up to {along.Elevation:0.0}°; 80° aft and 30° up its tail keeps it to {tail.Elevation:0.0}°; square, 25° down her side");
-                // its muzzle out of her all over its arc, as it can be laid
-                int inside = 0, tried = 0;
+                Check(along.Elevation > -25 && SwivelGun.ClearOfRail(f, along) && tail.Elevation < 30 && SwivelGun.ClearOfRail(f, tail) && square.Elevation <= -20,
+                    $"{f.Code}: laid 75° along her rail and 25° down it comes up to {along.Elevation:0.0}°; 80° aft and 30° up its tail keeps it to {tail.Elevation:0.0}°; square, {-square.Elevation:0.0}° down her side");
+                // (27 October 2026) all over its arc, as it can be laid: its barrel and tail clear of her rail cap (her mesh's
+                // level faces under them, by a barrel's radius), and its ball's start, past the cap, out of her collision. (Her
+                // collision alone can't say it: a cap's top between two of its quarter-block rows is solid up to the next, so it
+                // only says where the ball starts lower than the cap.)
+                int touch = 0, inside = 0, tried = 0;
+                string where = null;
                 for (float t = -80; t <= 80; t += 10)
                     for (float e = -25; e <= 30; e += 5)
                     {
-                        // (a tenth past the muzzle, where its ball starts: her collision is in quarter-block cells, and a muzzle
-                        // over her side's outer face can stand on a cell's border)
-                        GunLaying.MuzzleLocal(f, GunLaying.Clamp(f, new GunLay(t, e)), out var m0, out var md);
-                        var m = new Vec3d(m0.X + md.X * 0.1, m0.Y + md.Y * 0.1, m0.Z + md.Z * 0.1);
+                        var lay = GunLaying.Clamp(f, new GunLay(t, e));
                         tried++;
-                        if (def.Grid.SolidAt(m.X, m.Y, m.Z)) inside++;
+                        bool hits = false;
+                        for (double r = -SwivelGun.TailReach; r <= SwivelGun.MuzzleReach + 1e-9; r += 0.05)
+                        {
+                            var p = GunLaying.Place(f, lay, 0, new Vec3d(f.Trunnion[0] + f.Out[0] * r, f.Trunnion[1], f.Trunnion[2] + f.Out[2] * r), true);
+                            foreach (var lv in level)
+                                if (p.X >= lv.X0 && p.X <= lv.X1 && p.Z >= lv.Z0 && p.Z <= lv.Z1 && lv.Y <= p.Y + 0.5 && p.Y - lv.Y < 0.0625 - 1e-3)
+                                { hits = true; where ??= $"{t} {e} -> {lay}: {r:0.00} along at {p.X:0.00} {p.Y:0.00} {p.Z:0.00}, {p.Y - lv.Y:0.000} over a face at {lv.Y:0.000}"; break; }
+                            if (hits) break;
+                        }
+                        if (hits) touch++;
+                        GunLaying.MuzzleLocal(f, lay, out var m0, out var md);
+                        var m = new Vec3d(m0.X + md.X * 0.1, m0.Y + md.Y * 0.1, m0.Z + md.Z * 0.1);
+                        bool overCap = level.Any(lv => m.X >= lv.X0 - 0.05 && m.X <= lv.X1 + 0.05 && m.Z >= lv.Z0 - 0.05 && m.Z <= lv.Z1 + 0.05 && lv.Y <= m.Y && m.Y - lv.Y < 0.3);
+                        // (over the cap's top, Pos's height, nothing of her is there but the cap: her collision's row there is the
+                        // cap rounded up)
+                        if (!overCap && m.Y < f.Pos[1] && def.Grid.SolidAt(m.X, m.Y, m.Z)) inside++;
                     }
-                Check(inside == 0, $"{f.Code}: its muzzle is out of her laid anywhere in its arc ({inside} of {tried} lays in her)");
+                Check(touch == 0 && inside == 0, $"{f.Code}: laid anywhere in its arc, barrel and tail clear over her rail cap ({touch} of {tried} lays touch it{(where != null ? ": " + where : "")}); its ball starts out of her ({inside} in her)");
             }
         }
     }

@@ -97,7 +97,7 @@ namespace Hansa
             float t = Math.Clamp(float.IsNaN(l.Train) ? 0 : l.Train, t0, t1);
             float e = float.IsNaN(l.Elevation) ? 0 : l.Elevation;
             // ((25 October 2026) a swivel gun trained along her rail is depressed (or its tail lowered) only as far as the rail lets it)
-            if (gun?.Swivel == true) return new GunLay(t, SwivelGun.ClampElevation(t, e, e0, e1));
+            if (gun?.Swivel == true) return new GunLay(t, SwivelGun.ClampElevation(gun, t, e, e0, e1));
             return new GunLay(t, Math.Clamp(e, e0, e1));
         }
 

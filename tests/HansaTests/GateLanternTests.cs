@@ -288,9 +288,18 @@ namespace HansaTests
             double[] a = rudder.AxisPoint, u = rudder.AxisDir;
             double ul = Math.Sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2]);
             u = new[] { u[0] / ul, u[1] / ul, u[2] / ul };
-            // the rudder: its nearest points to the axis, all along it (sampled inside its faces)
-            double worst = 0;
-            var near = new SortedDictionary<int, double>();
+            // the rudder about that axis, all along it (sampled inside its faces): how far forward of the axis it reaches (toward
+            // her bow, square to the axis) and how far aft. ((27 October 2026) It turns about its stock: the axis on the stock's
+            // middle (the upright post's rudder, its stock 0.2 thick, its fore face 0.1 forward of the axis) or on the blade's
+            // fore edge (the raked one's): either way its fore face 0 to 0.15 forward of the axis, the blade aft of it.)
+            double nx = u[1], ny = -u[0];
+            double nl = Math.Sqrt(nx * nx + ny * ny);
+            if (nl < 1e-9) { nx = 1; ny = 0; nl = 1; }
+            if (nx < 0) { nx = -nx; ny = -ny; }
+            nx /= nl;
+            ny /= nl;
+            var foreAt = new SortedDictionary<int, double>();
+            var aftAt = new SortedDictionary<int, double>();
             foreach (var q in file.Groups.TryGetValue(rudder.PartGroup, out var rq) ? rq : Array.Empty<float[]>())
                 for (double s = 0; s <= 1; s += 0.2)
                     for (double t = 0; t <= 1; t += 0.2)
@@ -300,12 +309,15 @@ namespace HansaTests
                             p[k] = (1 - s) * ((1 - t) * q[1 + k] + t * q[9 + k]) + s * ((1 - t) * q[25 + k] + t * q[17 + k]);
                         double[] r = { p[0] - a[0], p[1] - a[1], p[2] - a[2] };
                         double along = r[0] * u[0] + r[1] * u[1] + r[2] * u[2];
-                        double off = Math.Sqrt(Math.Max(0, r[0] * r[0] + r[1] * r[1] + r[2] * r[2] - along * along));
+                        double fwd = r[0] * nx + r[1] * ny;
                         int bin = (int)Math.Floor(along / 0.5);
-                        near[bin] = near.TryGetValue(bin, out double v) ? Math.Min(v, off) : off;
+                        foreAt[bin] = foreAt.TryGetValue(bin, out double f0) ? Math.Max(f0, fwd) : fwd;
+                        aftAt[bin] = aftAt.TryGetValue(bin, out double a0) ? Math.Min(a0, fwd) : fwd;
                     }
-            foreach (var v in near.Values) worst = Math.Max(worst, v);
-            Check(near.Count > 4 && worst < 0.1, $"her rudder hangs on that axis: its fore edge within {worst:0.000} of it all along its {near.Count * 0.5:0.0} blocks");
+            double foreMin = foreAt.Count > 0 ? foreAt.Values.Min() : double.NaN, foreMax = foreAt.Count > 0 ? foreAt.Values.Max() : double.NaN;
+            bool bladeAft = aftAt.Values.Count(v => v < -0.3) >= aftAt.Count / 2;
+            Check(foreAt.Count > 4 && foreMin >= -0.05 && foreMax <= 0.15 && bladeAft,
+                $"her rudder turns about that axis: its fore face {foreMin:0.000} to {foreMax:0.000} forward of it all along its {foreAt.Count * 0.5:0.0} blocks, its blade aft of it");
             // the tiller's long way and its tip at full helm
             var tq = file.Groups.TryGetValue(tiller.PartGroup, out var tqs) ? tqs : Array.Empty<float[]>();
             var tips = tq.SelectMany(q => Enumerable.Range(0, 4).Select(k => new[] { (double)q[1 + 8 * k], q[2 + 8 * k], q[3 + 8 * k] })).ToList();
