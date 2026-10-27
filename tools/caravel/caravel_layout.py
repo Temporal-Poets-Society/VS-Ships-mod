@@ -893,11 +893,32 @@ def main():
     # (the cap's top on its middle line, level and outboard; the shrouds' feet 1.25 or more along the rail, outside the
     # barrel's 1.0 swing)
     cap_top = (LV["quarterdeckSide"] + REP["capRail"]["h"]) / 1000.0 - F.WL
+    cap_z = LV["quarterdeckSide"] / 1000.0 - 0.015
+    _in_at = REP["capRail"]["inAtRibs"]
+
+    def cap_in(x):
+        """The cap's width inboard of her planking's outside at x (blocks), as the build made it at each rib."""
+        return float(np.interp(x * 1000.0, [q[0] for q in _in_at], [q[1] for q in _in_at])) / 1000.0
     for side, sgn in (("port", -1.0), ("starboard", 1.0)):
         for n_, sx in enumerate(sorted(LAY.get("swivels", [])), 1):
-            mid = hb(sx, LV["quarterdeckSide"] / 1000.0 - 0.015) - (REP["capRail"]["in"] - REP["capRail"]["out"]) / 2000.0
+            mid = hb(sx, cap_z) - (REP["capRail"]["in"] - REP["capRail"]["out"]) / 2000.0
+            # ((27 October 2026, the fittings session's "rail": [inboard, outboard]) how far the cap reaches in and out from
+            # the socket within the barrel's reach along it (its muzzle's 0.62), from the cap's own section: the runtime keeps
+            # barrel and tail clear over that much)
+            xs_ = np.linspace(sx - 0.62, sx + 0.62, 25)
+            r_in = max(mid - (hb(x, cap_z) - cap_in(x)) for x in xs_)
+            r_out = max(hb(x, cap_z) + REP["capRail"]["out"] / 1000.0 - mid for x in xs_)
+            # (and as drawn: the cap's top faces' corners within that reach, their loft between stations reaching further)
+            for q in M["groups"]["exterior"]:
+                if sum(q[7 + 8 * k] for k in range(4)) < 3.6:
+                    continue
+                for k in range(4):
+                    x, y, z = q[1 + 8 * k: 4 + 8 * k]
+                    if abs(x - sx) <= 0.62 and abs(y - cap_top) < 0.01 and z * sgn > mid - 0.6:
+                        r_in, r_out = max(r_in, mid - z * sgn), max(r_out, z * sgn - mid)
             fixtures.append({"type": "gun", "kind": "swivel", "code": f"swivel-{side}-{n_}", "pos": v4((sx, cap_top, sgn * mid)),
-                             "out": [0.0, 0.0, sgn], "trainLimits": [-80.0, 80.0], "elevationLimits": [-25.0, 30.0]})
+                             "out": [0.0, 0.0, sgn], "trainLimits": [-80.0, 80.0], "elevationLimits": [-25.0, 30.0],
+                             "rail": [math.ceil(r_in * 100) / 100, math.ceil(r_out * 100) / 100]})
 
     # ---------------------------------------------------------------- stairs, the hatch (chalk notes 18, 22)
     modular = []
