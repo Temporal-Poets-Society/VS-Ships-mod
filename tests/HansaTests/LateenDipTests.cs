@@ -60,7 +60,7 @@ namespace HansaTests
                     Mat4f.Mul(set, furl, belly);
                     var pts = (float[])src.Clone();
                     Apply(set, pts);
-                    if (pressIt && LateenRig.Presses(p)) (p.Mirror ? pressAll.Masts(rig.Side, rig.Mast.Z).Mirrored(rig.Mast.Z) : pressAll.Masts(-rig.Side, rig.Mast.Z)).Press(f, ym, pts, pts.Length / 3);
+                    if (pressIt && LateenRig.Presses(p)) rig.PressIn(pressAll, p.Mirror).Press(f, ym, pts, pts.Length / 3);
                     rig.Drawn(p, ym, dm);
                     Apply(dm, pts);
                     return pts;
@@ -91,6 +91,7 @@ namespace HansaTests
                 // ---- both tacks, the crew's trim
                 int bad = 0, windward = 0, trims = 0;
                 double pressedMost = 0;
+                string pressedAt = "";
                 double deepest = double.MinValue, leastLee = double.MaxValue;
                 string worstAt = "";
                 foreach (int side in new[] { 1, -1 })
@@ -104,7 +105,10 @@ namespace HansaTests
                             // (the press moves the cloth only off what's really in its way: nothing on its lee side, the shrouds there cast off)
                             var free = SailDrawn(pose, false);
                             for (int i = 0; i < pts.Length; i += 3)
-                                pressedMost = Math.Max(pressedMost, Math.Sqrt(Math.Pow(pts[i] - free[i], 2) + Math.Pow(pts[i + 1] - free[i + 1], 2) + Math.Pow(pts[i + 2] - free[i + 2], 2)));
+                            {
+                                double mv = Math.Sqrt(Math.Pow(pts[i] - free[i], 2) + Math.Pow(pts[i + 1] - free[i + 1], 2) + Math.Pow(pts[i + 2] - free[i + 2], 2));
+                                if (mv > pressedMost) { pressedMost = mv; pressedAt = $"({free[i]:0.00}, {free[i + 1]:0.00}, {free[i + 2]:0.00}), {awa}° on the {(side > 0 ? "starboard" : "port")} tack"; }
+                            }
                             double into = Into(pts, out string where);
                             if (into > deepest) { deepest = into; worstAt = $"{where}, {awa}° on the {(side > 0 ? "starboard" : "port")} tack"; }
                             if (into > -0.02) bad++;
@@ -118,7 +122,7 @@ namespace HansaTests
                         }
                 Check(bad == 0, $"{sail.Code}: on both tacks, over {trims} trims, every vertex of the sail is at least 0.02 clear of every mast " +
                                 $"(closest: {-deepest:0.000} off {worstAt})");
-                Check(pressedMost < 0.05, $"note 104: {sail.Code}: on both tacks the press against the masts and the windward shrouds moves no cloth more than {pressedMost:0.000} (no jog in its leech)");
+                Check(pressedMost < 0.05, $"note 104: {sail.Code}: on both tacks the press against its own mast and that mast's windward shrouds moves no cloth more than {pressedMost:0.000} (no jog in its leech){(pressedMost >= 0.05 ? ": " + pressedAt : "")}");
                 Check(windward == 0, $"{sail.Code}: on both tacks it lies on the lee side of its mast, bellied (its middle at least {leastLee:0.00} to leeward)");
 
                 // ---- the dip, both ways, the sheet coming over as the crew trims to the new tack
@@ -343,21 +347,42 @@ namespace HansaTests
                 var plain = JsonConvert.DeserializeObject<ShipSkinFile>(raw);
                 var split = JsonConvert.DeserializeObject<ShipSkinFile>(raw);
                 var shrouds = LateenShrouds.Of(def);
-                int moved = LateenShrouds.Split(def, split);
-                int collapsed = split.Groups["exterior"].Count(q => q[1] == q[9] && q[2] == q[10] && q[3] == q[11] && q[1] == q[25] && q[3] == q[27]);
-                bool each = shrouds.All(sh => split.Groups.TryGetValue(sh.Group, out var g) && g.Length > 0);
                 string per = string.Join(", ", shrouds.GroupBy(sh => (sh.Mast.Code, sh.Side)).Select(g => $"{g.Key.Code} {(g.Key.Side > 0 ? "starboard" : "port")} {g.Count()}"));
-                Check(shrouds.Length > 0 && each && moved == shrouds.Sum(sh => split.Groups[sh.Group].Length) && collapsed >= moved &&
-                      split.Groups["exterior"].Length == plain.Groups["exterior"].Length && (split.PaintQuads == null || split.PaintQuads.Count == plain.PaintQuads.Count),
-                    $"note 104: her lateens' masts' shrouds ({per}) are taken out of her exterior, a group each ({moved} quads; the exterior keeps its {plain.Groups["exterior"].Length} quads, those collapsed)");
-                // (the model's own groups, rig:shrouds-<mast>-<side>, are used as they are)
-                var exported = JsonConvert.DeserializeObject<ShipSkinFile>(raw);
-                foreach (var g in shrouds.GroupBy(sh => (sh.Mast.Code, sh.Side)))
-                    exported.Groups[LateenShrouds.ExportPrefix + g.Key.Code + (g.Key.Side > 0 ? "-starboard" : "-port")] = g.SelectMany(sh => split.Groups[sh.Group]).ToArray();
-                int movedExported = LateenShrouds.Split(def, exported);
-                Check(movedExported == moved && exported.Groups["exterior"].SequenceEqual(plain.Groups["exterior"], new QuadSame()) &&
-                      shrouds.All(sh => exported.Groups[sh.Group].Length == split.Groups[sh.Group].Length),
-                    $"note 104: with the model's own groups (rig:shrouds-<mast>-port/-starboard) the same shrouds are found there, the exterior left alone ({movedExported} quads)");
+                var modelGroups = plain.Groups.Keys.Where(k => k.StartsWith(LateenShrouds.ExportPrefix)).OrderBy(k => k).ToList();
+                int moved = LateenShrouds.Split(def, split);
+                bool each = shrouds.All(sh => split.Groups.TryGetValue(sh.Group, out var g) && g.Length > 0);
+                if (modelGroups.Count > 0)
+                {
+                    // the model's own groups (rig:shrouds-<mast>-port/-starboard): every quad of them is a shroud's, the shroud of
+                    // that group's mast and side; the exterior left alone, and no shroud left in it (drawn twice)
+                    int inGroups = modelGroups.Sum(k => plain.Groups[k].Length);
+                    var bare = JsonConvert.DeserializeObject<ShipSkinFile>(raw);
+                    foreach (var k in modelGroups) bare.Groups.Remove(k);
+                    int leftInExterior = LateenShrouds.Split(def, bare);
+                    bool named = shrouds.All(sh => !split.Groups[sh.Group].Any() ||
+                                                   plain.Groups.TryGetValue(LateenShrouds.ExportPrefix + sh.Mast.Code + (sh.Side > 0 ? "-starboard" : "-port"), out var mg) &&
+                                                   split.Groups[sh.Group].All(q => mg.Any(m => m.SequenceEqual(q))));
+                    Check(shrouds.Length > 0 && each && moved == inGroups && named && leftInExterior == 0 &&
+                          split.Groups["exterior"].SequenceEqual(plain.Groups["exterior"], new QuadSame()),
+                        $"note 104: her lateens' masts' shrouds ({per}) come from the model's groups ({string.Join(", ", modelGroups)}): all {inGroups} quads " +
+                        $"each a shroud's, of its group's mast and side{(named ? "" : " (NOT)")}; {leftInExterior} left in her exterior");
+                }
+                else
+                {
+                    // without them, out of her exterior: collapsed there, its quads and ranges kept
+                    int collapsed = split.Groups["exterior"].Count(q => q[1] == q[9] && q[2] == q[10] && q[3] == q[11] && q[1] == q[25] && q[3] == q[27]);
+                    Check(shrouds.Length > 0 && each && moved == shrouds.Sum(sh => split.Groups[sh.Group].Length) && collapsed >= moved &&
+                          split.Groups["exterior"].Length == plain.Groups["exterior"].Length && (split.PaintQuads == null || split.PaintQuads.Count == plain.PaintQuads.Count),
+                        $"note 104: her lateens' masts' shrouds ({per}) are taken out of her exterior, a group each ({moved} quads; the exterior keeps its {plain.Groups["exterior"].Length} quads, those collapsed)");
+                    // (the model's own groups, rig:shrouds-<mast>-<side>, are used as they are)
+                    var exported = JsonConvert.DeserializeObject<ShipSkinFile>(raw);
+                    foreach (var g in shrouds.GroupBy(sh => (sh.Mast.Code, sh.Side)))
+                        exported.Groups[LateenShrouds.ExportPrefix + g.Key.Code + (g.Key.Side > 0 ? "-starboard" : "-port")] = g.SelectMany(sh => split.Groups[sh.Group]).ToArray();
+                    int movedExported = LateenShrouds.Split(def, exported);
+                    Check(movedExported == moved && exported.Groups["exterior"].SequenceEqual(plain.Groups["exterior"], new QuadSame()) &&
+                          shrouds.All(sh => exported.Groups[sh.Group].Length == split.Groups[sh.Group].Length),
+                        $"note 104: with the model's own groups (rig:shrouds-<mast>-port/-starboard) the same shrouds are found there, the exterior left alone ({movedExported} quads)");
+                }
                 Check(shrouds.All(sh => LateenShrouds.SetUp(def, sh, 0.01f) == (sh.Side < 0) && LateenShrouds.SetUp(def, sh, -0.01f) == (sh.Side > 0) &&
                                         LateenShrouds.SetUp(def, sh, 1) == (sh.Side < 0)),
                     "note 104: the windward set is set up, the lee set cast off, and they change over in the middle of a dip");
@@ -499,7 +524,7 @@ namespace HansaTests
                         var pts = new float[12];
                         for (int v = 0; v < 4; v++) { pts[v * 3] = q[1 + 8 * v]; pts[v * 3 + 1] = q[2 + 8 * v]; pts[v * 3 + 2] = q[3 + 8 * v]; }
                         if (pre != null) Apply(pre, pts);
-                        if (pressIt && LateenRig.Presses(pose) && Environment.GetEnvironmentVariable("NOPRESS") == null) (pose.Mirror ? pressAll.Masts(rig.Side, rig.Mast.Z).Mirrored(rig.Mast.Z) : pressAll.Masts(-rig.Side, rig.Mast.Z)).Press(f, frame, pts, 4);
+                        if (pressIt && LateenRig.Presses(pose) && Environment.GetEnvironmentVariable("NOPRESS") == null) rig.PressIn(pressAll, pose.Mirror).Press(f, frame, pts, 4);
                         Apply(m, pts);
                         list.Add(pts);
                     }

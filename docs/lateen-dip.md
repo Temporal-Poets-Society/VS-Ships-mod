@@ -27,7 +27,7 @@ tried in the game by the user.
   5° to `maxSheet`), always toward the server's lee, held until the wind calls for 3° more or less, and eased.
 - **In its frame.** On either side the sheet only takes the yard's after end out to that side's lee (never across the
   mast), the belly is always away from the mast, and the press (`SailPress`) is worked in the sail's own frame with the
-  obstacles mirrored to it. A dipping lateen is pressed against the masts only (`SailPress.Masts`). The press is off while the yard is peaked up and going round (the
+  obstacles mirrored to it. A dipping lateen is pressed against its own mast and that mast's windward shrouds only (`SailPress.Around`). The press is off while the yard is peaked up and going round (the
   sail is brailed by then).
 - **Sailing.** Speed comes from the polar on either tack, unchanged. While brailed up for a dip the lateens don't
   drive her (`LateenRig.Drive`: the brailed share of her sail area), so she loses way for a few seconds, as she does
@@ -62,13 +62,13 @@ There is weird triangle sticking out. ropes still cross the sails."
   mast (`LateenShrouds.HangMatrix`: its eye at the mast's radius + 0.05 aft, its foot 0.12 + 0.07 a rank further aft and
   0.3 above its channel, 0.03 to its side). They change over in the middle of a dip (the sign of `LeeShown`, which the
   server's synced lee drives). A dipping lateen is pressed against the masts and the windward set only
-  (`SailPress.Masts(side, mz)`, in the sail's frame). No shroud, set up or hanging, crosses a sail on either tack or
+  (`LateenRig.PressIn`, `SailPress.Around`: its own mast and that mast's windward shrouds, in the sail's frame). No shroud, set up or hanging, crosses a sail on either tack or
   through a dip; the yard's surface stays 0.15 (main) and 0.18 (mizzen) from the nearest shroud, also while it dips
   (it went 0.04 into the lee shrouds before).
 
 Code: `src/Ship/LateenDip.cs` (`LateenDipDef`, `LateenRig`, `LateenPose`), `EntityShip` (`Lee`, `LeeShown`,
 `ServerLateens`, `LateenSheet`), `ShipRenderer` (`ComputeLateens`, `SailMeshRay`, the yard, ropes and sail),
-`SailPress.Mirrored`, `SailPress.Masts`; `LateenShrouds` (split, which are set up, the hanging ones), drawn by
+`SailPress.Mirrored`, `SailPress.Around`; `LateenShrouds` (split, which are set up, the hanging ones), drawn by
 `ShipRenderer.ShroudPlace`.
 
 ## Data: `sails[].dip`
