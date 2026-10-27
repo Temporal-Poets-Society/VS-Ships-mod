@@ -108,7 +108,7 @@ def piece_grain(body, so):
     backbone and a carling along their own longest extent in the cell."""
     if body in ("Shell", "Decks"):
         return 0
-    b = so.BoundBox
+    b = box_of(so)
     ext = [b.XLength, b.YLength, b.ZLength]
     if body == "Ribs":
         return 1 if ext[1] >= ext[2] else 2
@@ -143,7 +143,7 @@ def covered(tri, n, cell, a, cell_solids):
         q = list(q)
         q[a] += d * 1.0                                   # 1 mm across the border
         p = V(*q)
-        if not any(so.BoundBox.isInside(p) and so.isInside(p, 0.1, False) for so in solids):
+        if not any(near_box(so, p) and piece_inside(so, p, 0.1) for so in solids):
             return False
     return True
 
@@ -151,6 +151,106 @@ def covered(tri, n, cell, a, cell_solids):
 def mesh_of(shape, defl=8.0):
     m = MeshPart.meshFromShape(Shape=shape, LinearDeflection=defl, AngularDeflection=0.4, Relative=False)
     return m
+
+
+# (27 October 2026, the build speed-up) the cells' pieces' meshes and the inside tests on them (most of the export's 12
+# minutes) kept between exports, keyed by each piece's exact BREP text: a sail's or a fitting's change re-exports with her
+# hull's cells as they were. Only what this export used is written back. CARAVEL_NOCACHE=1 recomputes it all
+import hashlib as _hashlib
+import pickle as _pickle
+_XC_PATH = os.path.join(os.environ.get("TEMP", MOD), "caravel-cache", "export-pieces.pkl")
+_XC_OFF = os.environ.get("CARAVEL_NOCACHE") == "1"
+try:
+    with open(_XC_PATH, "rb") as _f:
+        _XC_OLD = _pickle.load(_f)
+except (OSError, ValueError, EOFError, _pickle.UnpicklingError):
+    _XC_OLD = {}
+_XC = {}
+_XC_KEYS = {}
+
+
+def _xkey(so):
+    k = _XC_KEYS.get(id(so))
+    if k is None or k[0] is not so:
+        k = (so, _hashlib.md5(so.exportBrepToString().encode()).hexdigest())
+        _XC_KEYS[id(so)] = k
+    return k[1]
+
+
+def _xget(key, compute):
+    if key in _XC:
+        return _XC[key]
+    v = _XC_OLD.get(key) if not _XC_OFF else None
+    if v is None:
+        v = compute()
+    _XC[key] = v
+    return v
+
+
+_GEO_BB = {}
+
+
+def near_box(so, p):
+    """Is p within so's exact bounding box, 2 mm larger? (27 October 2026) so.BoundBox comes from a shape's mesh once it's
+    been meshed, a little inside its curved faces: as a quick test before isInside it turned points away from a piece or
+    not by whether the cell loop had meshed it yet, and a cached export, which meshes none, drew a few faces otherwise."""
+    k = _GEO_BB.get(id(so))
+    if k is None or k[0] is not so:
+        b_ = so.optimalBoundingBox(False, False)
+        k = (so, (b_.XMin - 2, b_.YMin - 2, b_.ZMin - 2, b_.XMax + 2, b_.YMax + 2, b_.ZMax + 2))
+        _GEO_BB[id(so)] = k
+    b_ = k[1]
+    return b_[0] <= p.x <= b_[3] and b_[1] <= p.y <= b_[4] and b_[2] <= p.z <= b_[5]
+
+
+def piece_inside(so, p, tol):
+    """so.isInside(p, tol, False), kept between exports."""
+    return _xget(("in", _xkey(so), p.x, p.y, p.z, tol), lambda: bool(so.isInside(p, tol, False)))
+
+
+class _Facet:
+    __slots__ = ("Normal",)
+
+    def __init__(self, n):
+        self.Normal = n
+
+
+class _PieceMesh:
+    """A mesh's points, facets and normals, as mesh_of's (Topology, Facets[].Normal)."""
+    def __init__(self, pts, facets, normals, bb):
+        self.Topology = ([V(*q) for q in pts], facets)
+        self.Facets = [_Facet(V(*n)) for n in normals]
+        self.BoundBox = App.BoundBox(*bb)
+
+
+_MESHED_BB = {}
+
+
+def piece_mesh(so, defl=8.0):
+    """mesh_of(so, defl)'s points, facets and normals, kept between exports; and the piece's BoundBox as it is once meshed
+    (from its mesh: what the export always read after meshing a piece, a cached one not meshed again)."""
+    def compute():
+        m = mesh_of(so, defl)
+        pts, facets = m.Topology
+        b_ = so.BoundBox
+        return ([(q.x, q.y, q.z) for q in pts], [tuple(f) for f in facets], [(f.Normal.x, f.Normal.y, f.Normal.z) for f in m.Facets],
+                (b_.XMin, b_.YMin, b_.ZMin, b_.XMax, b_.YMax, b_.ZMax))
+    pm = _PieceMesh(*_xget(("mesh2", _xkey(so), defl), compute))
+    _MESHED_BB[id(so)] = (so, pm.BoundBox)
+    return pm
+
+
+def box_of(so):
+    """so.BoundBox as the export saw it: from its mesh once the cell loop has meshed it (fresh or from the cache)."""
+    k = _MESHED_BB.get(id(so))
+    return k[1] if k is not None and k[0] is so else so.BoundBox
+
+
+def save_export_cache():
+    os.makedirs(os.path.dirname(_XC_PATH), exist_ok=True)
+    with open(_XC_PATH + ".tmp", "wb") as f_:
+        _pickle.dump(_XC, f_, protocol=4)
+    os.replace(_XC_PATH + ".tmp", _XC_PATH)
 
 
 # (outside her: from her lines, fast; the envelope's own inside test took over 20 minutes for every hull face)
@@ -197,7 +297,7 @@ hatch_cells = {("main", i, j) for i in range(HX[0], HX[1]) for j in range(HY[0],
 
 def deck_of(so):
     for d_, z in DECK_Z.items():
-        if abs(so.BoundBox.ZMax - z) < 2 and abs(so.BoundBox.ZMin - (z - L["deckThickness"])) < 2:
+        if abs(box_of(so).ZMax - z) < 2 and abs(box_of(so).ZMin - (z - L["deckThickness"])) < 2:
             return d_
     return None
 
@@ -323,7 +423,7 @@ def cover_pieces(tri, n, cell, a):
         q = list(q)
         q[a] += d * 1.0
         pt = V(*q)
-        hit = next((ix for ix in ixs if pieces[ix].BoundBox.isInside(pt) and pieces[ix].isInside(pt, 0.1, False)), None)
+        hit = next((ix for ix in ixs if near_box(pieces[ix], pt) and piece_inside(pieces[ix], pt, 0.1)), None)
         if hit is None:
             return None
         found.append(hit)
@@ -381,7 +481,7 @@ for c in cells["cells"]:
     for p in c["pieces"]:
         so = pieces[p["index"]]
         body = p["body"]
-        m = mesh_of(so)
+        m = piece_mesh(so)
         pts_all, facets = m.Topology
         normals = [f.Normal for f in m.Facets]           # (m.Facets builds the whole list on every access)
         grain = piece_grain(body, so)
@@ -1139,8 +1239,8 @@ for key in sorted(seg_cells):
     z0 = -(cj + 0.5)
     bx0, bx1, by0, whole_ = 1e9, -1e9, 1e9, True
     # (the voxel columns the beam's own piece is in, not a hatch's framing beside it in the cell)
-    _xa = min(pieces[ix].BoundBox.XMin for ix in seg_cells[key]) / 1000.0
-    _xb = max(pieces[ix].BoundBox.XMax for ix in seg_cells[key]) / 1000.0
+    _xa = min(box_of(pieces[ix]).XMin for ix in seg_cells[key]) / 1000.0
+    _xb = max(box_of(pieces[ix]).XMax for ix in seg_cells[key]) / 1000.0
     _xqs = [ci + 0.125 + 0.25 * q for q in range(4) if _xa - 0.125 < ci + 0.125 + 0.25 * q < _xb + 0.125]
     for zq in [z0 + 0.125 + 0.25 * q for q in range(4)]:
         any_ = False
@@ -1412,5 +1512,6 @@ import importlib.util
 _spec = importlib.util.spec_from_file_location("caravel_layout", os.path.join(ROOT, "tools", "caravel", "caravel_layout.py"))
 _lay = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_lay)
+save_export_cache()
 _lay.main()
 log("done")
