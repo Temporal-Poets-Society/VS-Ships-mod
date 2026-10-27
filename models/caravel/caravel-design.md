@@ -653,15 +653,19 @@ the sketch, at nearly one height). Before the sketch (25 October 2026) both feet
   sessions); each mast's `radius` its heel's (the widest); no stern lantern; the lateen dip data as the lateen session
   asked.
 
-**Open: the quarterdeck stair against her side.** The game refuses to lay it: her quarterdeck's bulwark leans in
-(tumblehome), and 0.5 to 1 above the quarterdeck its planking's inside comes 0 to 80 into the outer quarter-block of
-the stair's cell, all along the landing at its head (x -8..-7), the ribs' heads too. The break's part (x -7..-6) is
-cleared (above); the landing is the user's choice: the stair a cell inboard (z +1, the cabin's front rearranged), or
-her bulwark's inside thinned over the landing's block and rib -8's head cut back there.
+**The quarterdeck stair against her side (the user's choice B, 26 October 2026).** The game refused to lay it: her
+quarterdeck's bulwark leans in (tumblehome), and 0.5 to 1 above the quarterdeck its planking's inside and rib -8's head
+came into the outer quarter-block of the stair's cell all along the landing at its head (x -8..-7), where the game wants
+a walking channel 0.6 wide and 1.8 high. Over the flight and the landing (x -8..-6), from just over the quarterdeck to the
+cap, her planking now stops 15 outboard of the cell (z 2.515; at most 80 off its 200 at the top), the ribs' heads there go
+whole from the quarterdeck up on that side (shaved to the cell, rib -8's left a 50 sliver on the planking, as if broken
+off), and the cap rail's inner edge, 5 outboard of the cell, overhangs the cut by 10: a shallow recess in the bulwark's
+inside beside the stair's head, her outside unchanged (`views/game/27`, `28`). The galley's front wall has no top row
+behind the stair (its last tread's top in that partition's plane). The other choice was the stair a cell inboard.
 
-Checks (26 October 2026, the counter build): `tools/caravel/overlap_check.py` 0 of 84,711 faces; `dotnet run --project
+Checks (26 October 2026, the counter build with the stair's landing): `tools/caravel/overlap_check.py` 0 of 84,642 faces; `dotnet run --project
 tests/HansaTests -c Release --` holdstair, modular, steerage, gunclick, partitions, decor, stairs, hull, gates and lateen ALL
-OK; design caravel all but the stair above; slots' 2 failures are carrack-m's, paint's note 68 the paint session's (as in
+OK; design caravel ALL OK (the stair laid); slots' 2 failures are carrack-m's, paint's note 68 the paint session's (as in
 the fourth trial). The full offline run: 5 failures, none the caravel's but the stair (the carrack's dry hull at her stern,
 two of its holed-panel checks, note 68, the archived charters). In the slot layout a cell's side is drawn as one quad where
 a rib split it into a fan, and a cell's top and underside take their grain from their largest face (a sliver beside rib
@@ -672,16 +676,13 @@ tack, are never nearer than 1.13 m (through the dip the sail is brailed and the 
 mizzen's tack, which cross in a view from the quarterdeck, are 0.9 apart (their cleats at z −0.95 and 0). Game views:
 `views/game/01-26`, the counter in 13, 25 and 26, the tiller in 10-12.
 
-Server self-test (Release, 0.1.0-dev.9 with her new data; `src/SelfTest.cs`: her great guns without the swivels, at
-least 4; with 2 a side the gunnery picks a gun not reloading; the lanterns are her start pieces on hooks; the hearth's room
-the steerage on a ship not a carrack): 234 ok, 3 FAIL. The broadsides' share into her hull (9 of 74; 23 of 60 the round
-before, and it failed on dev.8 too) and, with so few hits, her foundering 300 s after the first broadside, past the test's
-time; and the hearth's warmth in a closed room: her galley is open to the waist, as the user built it. The game logs the
-quarterdeck stair refused (`flight-no-landing`, the open point above), the oven refused (`no such place`: the oven on a
-stacked place is the build-place session's dev.9 work, not merged into this branch) and the hatch `piece-taken`.
+Server self-test (Release, 0.1.0-dev.9 with her new data, the stair's landing in): 235 ok, 2 FAIL, both the broadsides'
+(20 of 60 shots into her hull; 0.6 t in her after 8 broadsides, 0.9 wanted), left to the fittings session's broadside fix.
+The hearth check takes an open galley under a deck (warm by the fire, nothing on the waist); the stair is laid; the game
+logs the oven refused (the build-place session's stacked places, not merged here) and the hatch `piece-taken`.
 
-Left for the CAD speed-up's first build (the user, 26 October 2026): the stock's hole through the counter 10 round it
-(25 now: a ring seen from below), and the sky round the bumpkin in its socket.
+With the stair's landing (26 October 2026): the stock's hole through the counter 10 round it (it was 25, a ring seen from
+below), and the bumpkin's socket its own taper 5 larger round it (the sky showed round the spar): `views/game/29`, `30`.
 
 ### Server self-test on the caravel (20 October 2026)
 

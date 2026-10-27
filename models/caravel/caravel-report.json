@@ -1,11 +1,11 @@
 {
  "massProps": {
   "Shell": {
-   "volume_m3": 78.9887,
+   "volume_m3": 78.9691,
    "centroid_mm": [
     -4604,
-    0,
-    2953
+    1,
+    2952
    ]
   },
   "Backbone": {
@@ -17,11 +17,11 @@
    ]
   },
   "Ribs": {
-   "volume_m3": 11.6088,
+   "volume_m3": 11.5505,
    "centroid_mm": [
-    -4554,
-    0,
-    2870
+    -4539,
+    12,
+    2847
    ]
   },
   "Beams": {
@@ -33,7 +33,7 @@
    ]
   },
   "Decks": {
-   "volume_m3": 46.9839,
+   "volume_m3": 46.9861,
    "centroid_mm": [
     -4433,
     0,
@@ -41,11 +41,11 @@
    ]
   },
   "Railings": {
-   "volume_m3": 2.4568,
+   "volume_m3": 2.4357,
    "centroid_mm": [
-    -4009,
-    68,
-    6532
+    -3978,
+    89,
+    6518
    ]
   },
   "Fittings": {
@@ -361,7 +361,7 @@
  "shell": {
   "valid": true,
   "solids": 1,
-  "volume_m3": 78.989,
+  "volume_m3": 78.969,
   "skinSamples": [
    {
     "x": 0,
@@ -799,5 +799,5 @@
    27525
   ]
  },
- "buildSeconds": 3833.5
+ "buildSeconds": 3383.1
 }

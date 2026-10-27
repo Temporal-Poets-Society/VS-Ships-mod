@@ -147,7 +147,9 @@ CABIN = {"x": QD_FRONT, "doors": [-1, 1], "windows": [0]}
 # x -9, its starboard wall on z 0.5; the cabin's front on x -7 to starboard of it, a doorway at z 1 (the user's: no door)
 KITCHEN = {
     "walls": [
-        {"line": "x", "at": QD_FRONT, "cells": [0, 2], "rows": [0, 1, 2]},          # the cabin's front either side of the doorway
+        {"line": "x", "at": QD_FRONT, "cells": [0], "rows": [0, 1, 2]},             # the cabin's front either side of the doorway;
+        {"line": "x", "at": QD_FRONT, "cells": [2], "rows": [0, 1]},                # behind the quarterdeck stair (26 October 2026)
+                                                                                     # no top row: the stair's last tread meets its top
         {"line": "x", "at": QD_FRONT, "cells": [1], "rows": [2]},                   # over the doorway
         {"line": "x", "at": QD_FRONT, "cells": [3], "rows": [0, 1]},                # the side's wedge
         {"line": "x", "at": QD_FRONT - 2.0, "cells": [-2, 0], "rows": [0, 1, 2]},       # the galley's after wall,

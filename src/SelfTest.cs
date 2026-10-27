@@ -3245,10 +3245,14 @@ namespace Hansa
                     bool sheltered = cook != null && ShipShelter.IsSheltered(cook);
                     float warm = cook == null ? 0 : ShipShelter.HearthHeat(cook, sheltered);
                     float waist = deckhand == null ? -1 : ShipShelter.HearthHeat(deckhand, ShipShelter.IsSheltered(deckhand));
-                    // ((25 October 2026) the caravel's galley stands in her steerage, under her quarterdeck)
-                    string hearthRoom = def.Code.StartsWith("carrack") ? "forecastle" : "steerage";
-                    Check(sheltered && ShipShelter.Room(cook)?.Code == hearthRoom && warm > 5 && waist == 0,
-                        $"while it burns the {hearthRoom} is warm: {warm:0.0} of its 10 for someone by it there (a closed room); none on the waist ({waist:0.0})");
+                    // ((26 October 2026, caravel note 105) the caravel's galley is open to the waist under her quarterdeck, as the
+                    // user built it: no closed room, so its warmth reaches those by it (3.5 blocks, the open falloff), the deck
+                    // overhead keeping the rain off; the carracks' hearth in the forecastle, a closed room)
+                    bool closed = def.Code.StartsWith("carrack");
+                    string hearthRoom = closed ? "forecastle" : "steerage";
+                    bool place = closed ? sheltered : !sheltered && ShipShelter.Covered(cook);
+                    Check(place && ShipShelter.Room(cook)?.Code == hearthRoom && warm > 5 && waist == 0,
+                        $"while it burns the {hearthRoom} is warm: {warm:0.0} of its 10 for someone by it there ({(closed ? "a closed room" : "an open galley under the deck above")}); none on the waist ({waist:0.0})");
                     WaitFor(() => !ship.Fire.IsBurning, 30, wentOut =>
                     {
                         double burnt = (sapi.World.ElapsedMilliseconds - lit) / 1000.0;

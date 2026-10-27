@@ -385,5 +385,61 @@
    0.0
   ],
   "fov": 75
+ },
+ {
+  "name": "27-stair-landing-recess-from-quarterdeck",
+  "eye": [
+   -9.2,
+   5.825,
+   0.6
+  ],
+  "at": [
+   -7.4,
+   4.9,
+   2.7
+  ],
+  "fov": 70
+ },
+ {
+  "name": "28-stair-head-and-recess-from-waist",
+  "eye": [
+   -4.4,
+   2.825,
+   0.8
+  ],
+  "at": [
+   -7.4,
+   4.5,
+   2.5
+  ],
+  "fov": 70
+ },
+ {
+  "name": "29-rudder-stock-in-counter-close",
+  "eye": [
+   -16.2,
+   -0.3,
+   -1.3
+  ],
+  "at": [
+   -14.63,
+   0.4,
+   0.0
+  ],
+  "fov": 45
+ },
+ {
+  "name": "30-bumpkin-socket-close",
+  "eye": [
+   -17.6,
+   4.5,
+   -1.9
+  ],
+  "at": [
+   -15.5,
+   4.2,
+   0.0
+  ],
+  "fov": 40
  }
 ]
