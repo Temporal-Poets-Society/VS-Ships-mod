@@ -144,6 +144,8 @@ namespace Hansa
                                 looks++;
                                 // (at a corner of her side the next cell's shelf is as good)
                                 string why = got == null ? "nothing" : got != want && (what != "her side" || got.Kind != MountKind.Horizontal) ? got.Id : plan?.Error ?? ship.PlaceProblem(plan, true);
+                                // ((27 October 2026, dev.11) a shelf a piece aboard is in the way of (the galley's tables): occupied, not a miss)
+                                if (why == "hansa:piece-taken" && plan != null && ship.Pieces.Blocking(plan) != null) { looks--; continue; }
                                 if (why != null) missed.Add($"{slabB.Code.Path} on {f.Id} ({what}): {why}");
                             }
                         }
