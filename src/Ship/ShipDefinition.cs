@@ -824,6 +824,13 @@ namespace Hansa
         /// </summary>
         public bool Swivel => Type == "gun" && Kind == SwivelGun.Kind;
         /// <summary>
+        /// (27 October 2026) swivel gun: how far its rail cap reaches in from its socket and out from it, across the rail
+        /// (blocks; [inboard, outboard]), within the barrel's reach along it: trained along the rail the barrel and its tail
+        /// stay clear over that much of it (<see cref="SwivelGun.ClearOfRail"/>). Null: <see cref="SwivelGun.RailIn"/>,
+        /// <see cref="SwivelGun.RailOut"/>.
+        /// </summary>
+        public float[] Rail;
+        /// <summary>
         /// gun, laying it (<see cref="GunLaying"/>): the point on the upright it trains about (in its port), the point on
         /// the trunnions' line it elevates about (across the barrel), where the gun captain stands (feet, laid square, run
         /// out); how far it trains (degrees, + toward her bow: [aft, forward]) and is elevated ([down, up]), and how fast
