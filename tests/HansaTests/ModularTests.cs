@@ -410,7 +410,10 @@ namespace HansaTests
             // (railings beside stairs raked, as the server does whenever her pieces change)
             int raked = PiecePlanner.ApplyRakes(l, set.All).Count;
             Console.WriteLine($"         {raked} railings raked beside her stairs");
-            Check(blocked.Count == 0 && byEntry.Count + besideStairs.Count == (md.ModularPieces?.Count(x => x.Kind != "hatch") ?? 0), $"{md.Code}: all {byEntry.Count} modular pieces laid ({blocked.Count} in another's way; the hatches over her deck cells: DesignSlots)");
+            // ((26 October 2026) an entry on a start piece's top, the caravel's oven on its table, is laid by the game after the
+            // start pieces, which this offline set doesn't lay)
+            int onTops = md.ModularPieces?.Count(x => x.Kind != "hatch" && l.ForModular(x) == null && OnStartPieceTop(md, l, x)) ?? 0;
+            Check(blocked.Count == 0 && byEntry.Count + besideStairs.Count + onTops == (md.ModularPieces?.Count(x => x.Kind != "hatch") ?? 0), $"{md.Code}: all {byEntry.Count} modular pieces laid ({blocked.Count} in another's way; {onTops} on a start piece's top, laid after it; the hatches over her deck cells: DesignSlots)");
             var doors = byEntry.Where(kv => kv.Key.Kind == "door").ToList();
             // ((21 October 2026) a design with door entries: the caravel has none, carrack-m's cabins have theirs)
             bool hasDoors = md.ModularPieces?.Any(x => x.Kind == "door") == true;
@@ -750,6 +753,13 @@ namespace HansaTests
         }
 
         /// <summary>(0.3.19) The block a modular entry is laid with, as the server reads it (in building mode), for the kind it's laid as.</summary>
+        /// <summary>((25 October 2026, caravel note 105) An entry standing on a start piece's top, the galley's oven on its
+        /// table: its place is the stacked one the game makes once it lays the start pieces, which it does first.</summary>
+        static bool OnStartPieceTop(ShipDefinition md, MountLayout l, ModularPieceDef e) =>
+            e.At?.Length >= 3 && md.StartPieces != null && md.StartPieces.Any(sp =>
+                sp.Mount != null && sp.Mount.StartsWith("f:") && l.Get(sp.Mount) is MountPoint f &&
+                e.At[0] > f.X && e.At[0] < f.X + 1 && e.At[2] > f.Z && e.At[2] < f.Z + 1 && Math.Abs(e.At[1] - (f.Y + 1)) < 0.05);
+
         static FakePiece ModularFake(ModularPieceDef e, string kind) => new FakePiece
         {
             Code = kind != e.Kind ? ModularPieceDef.DefaultBlock(kind) : e.Block ?? ModularPieceDef.DefaultBlock(kind), Family = "x", Rise = e.Rise, DoorInto = e.Into != null ? MountLayout.DirOf(e.Into) : -1,
@@ -776,11 +786,7 @@ namespace HansaTests
                 if (e.Kind == "hatch") continue;
                 n++;
                 var m = l.ForModular(e);
-                // ((25 October 2026, caravel note 105) an entry standing on a start piece's top, the galley's oven on its
-                // table: its place is the stacked one the game makes once it lays the start pieces, which it does first)
-                if (m == null && e.At?.Length >= 3 && md.StartPieces != null && md.StartPieces.Any(sp =>
-                        sp.Mount != null && sp.Mount.StartsWith("f:") && l.Get(sp.Mount) is MountPoint f &&
-                        e.At[0] > f.X && e.At[0] < f.X + 1 && e.At[2] > f.Z && e.At[2] < f.Z + 1 && Math.Abs(e.At[1] - (f.Y + 1)) < 0.05))
+                if (m == null && OnStartPieceTop(md, l, e))
                 {
                     Console.WriteLine($"         {e.Key}: on a start piece's top (laid after it)");
                     continue;
