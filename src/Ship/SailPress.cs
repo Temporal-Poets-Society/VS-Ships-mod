@@ -63,18 +63,21 @@ namespace Hansa
         }
 
         /// <summary>
-        /// (note 104: "There is weird triangle sticking out"; the user: shrouds "windward only, as on real lateen ships") Its masts,
-        /// and the rigging on one side of the plane z = mz only (side +1 starboard, -1 port; 0 none): a dipping lateen is pressed
-        /// against the masts and the windward shrouds, which are all that's set up. Pressed against the lee shrouds that crossed
-        /// it, its leech was folded out in a jog.
+        /// (note 104: "There is weird triangle sticking out"; the user: shrouds "windward only, as on real lateen ships") A dipping
+        /// lateen's obstacles: its own mast, and that mast's rigging on one side of it only (side +1 starboard, -1 port), its
+        /// windward set, all that's set up. Pressed against the lee shrouds that crossed it, its leech was folded out in a jog;
+        /// and another mast or its shrouds, blocks off, still bent its cloth once its yard's turn swung them across the line of
+        /// its plane (27 October: the caravel's mizzen tack, by the mainmast and its shrouds).
         /// </summary>
-        public SailPress Masts(int side = 0, double mz = 0)
+        public SailPress Around(MastDef mast, int side)
         {
             var p = new SailPress();
             for (int i = 0; i < Lines.Count; i++)
             {
                 var l = Lines[i];
-                if (Kinds[i] == "mast" || side != 0 && (l[2] - mz) * side > 0.01 && (l[5] - mz) * side > 0.01) p.Add(l, Kinds[i]);
+                bool AtMast(int e) => Math.Sqrt((l[e] - mast.X) * (l[e] - mast.X) + (l[e + 2] - mast.Z) * (l[e + 2] - mast.Z)) <= mast.Radius + 0.5;
+                if (Kinds[i] == "mast") { if (AtMast(0) && AtMast(3)) p.Add(l, Kinds[i]); continue; }
+                if ((AtMast(0) || AtMast(3)) && (l[2] - mast.Z) * side > 0.01 && (l[5] - mast.Z) * side > 0.01) p.Add(l, Kinds[i]);
             }
             return p;
         }

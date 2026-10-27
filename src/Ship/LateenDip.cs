@@ -265,6 +265,13 @@ namespace Hansa
             fd = new Vec3d(m[0] * d.X + m[1] * d.Y + m[2] * dz, m[4] * d.X + m[5] * d.Y + m[6] * dz, m[8] * d.X + m[9] * d.Y + m[10] * dz);
         }
 
+        /// <summary>
+        /// Its press in its own frame (<see cref="SailPress.Around"/>) from all her obstacles: its mast and that mast's windward
+        /// shrouds (as made, those on its mast's other side), mirrored to it when it's drawn on the other side.
+        /// </summary>
+        public SailPress PressIn(SailPress all, bool mirror) =>
+            mirror ? all.Around(Mast, Side).Mirrored(Mast.Z) : all.Around(Mast, -Side);
+
         /// <summary>How near a ray must pass the line of its sail's head (along its yard) to meet the yard, in blocks.</summary>
         public const double YardReach = 0.25;
 

@@ -55,11 +55,10 @@ namespace Hansa
             public readonly Dictionary<MultiTextureMeshRef, MeshData> SailData = new();
             public SailPress Press;
             /// <summary>
-            /// (note 104) A dipping lateen's press in its own frame (<see cref="SailPress.Masts"/>): her masts and the shrouds set up
-            /// when it lies on the side it's made on (the other side's), by that side, the mast's z and (note 64) whether it's
-            /// mirrored across the mast, for its sail on its other side.
+            /// (note 104) A dipping lateen's press in its own frame (<see cref="LateenRig.PressIn"/>): its mast and that mast's
+            /// windward shrouds, by its sail's index and (note 64) whether it's mirrored across the mast, on its other side.
             /// </summary>
-            public readonly Dictionary<(int Side, double Mz, bool Mirror), SailPress> PressLateen = new();
+            public readonly Dictionary<(int Sail, bool Mirror), SailPress> PressLateen = new();
         }
 
         /// <summary>
@@ -2221,11 +2220,11 @@ namespace Hansa
                     belly = lt.Pose.Belly;
                     yard = lt.Frame;
                     dip = (1 + (int)Math.Round(lt.Pose.Depth * 40)) * (lt.Pose.Mirror ? -1 : 1);
-                    var pk = (lt.Rig.Side, lt.Rig.Mast.Z, lt.Pose.Mirror);
+                    var pk = (lt.Rig.Sail, lt.Pose.Mirror);
                     if (!m.PressLateen.TryGetValue(pk, out press))
                     {
                         // (the windward shrouds where they are in its frame: on its other side as made, mirrored to it as drawn there)
-                        press = lt.Pose.Mirror ? m.Press.Masts(lt.Rig.Side, lt.Rig.Mast.Z).Mirrored(lt.Rig.Mast.Z) : m.Press.Masts(-lt.Rig.Side, lt.Rig.Mast.Z);
+                        press = lt.Rig.PressIn(m.Press, lt.Pose.Mirror);
                         m.PressLateen[pk] = press;
                     }
                     if (!LateenRig.Presses(lt.Pose)) press = null;
