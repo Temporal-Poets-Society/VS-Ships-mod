@@ -19,9 +19,11 @@ python tools/caravel/caravel_lines.py
 C:/AstoCAD/bin/AstoCADCmd.exe -c "exec(open(r'C:/VS mods/Hansa/tools/caravel/build_caravel.py').read())"
 ```
 
-The first build of a set of lines takes about 12 minutes, mostly the shell boolean. The envelope, inner solid and
-shell are then cached under `%TEMP%/caravel-cache/<hash of the lines>`, so rebuilding fittings, rig or ribs takes
-a few minutes (`CARAVEL_NOCACHE=1` forces a full build).
+Build times (27 October 2026; see "Build speed"): on new lines 23 minutes, mostly three face merges of the lofted
+solids; then about 2 minutes for the build and 2 for the export after a change to the rig or a fitting, every step
+whose inputs didn't change read back from `%TEMP%/caravel-cache` (`CARAVEL_NOCACHE=1` forces a full build and export).
+The slice (7 minutes) runs only when the structure changes. All the offline checks the caravel's work runs, in one pass:
+`dotnet run --project tests/HansaTests -c Release -- caravel-all` (44 s).
 
 **Viewer:** drag to rotate, right-drag to pan, wheel to zoom. **Click** picks a point: it is marked, its cell is
 outlined in orange, and the list shows the body, X/Y/Z in mm and the cell (x by its aft face, y from the
@@ -708,6 +710,56 @@ now ship-agnostic in `src/SelfTest.cs`:
   close enough to measure from hers, as before); the wreck block broken for its timber is the one with the most.
   Runs on 20 October 2026: ALL OK twice in a row, 182 checks. The water check's margin is small (0.9–2.3 t after
   4 broadsides in six runs, 0.7 wanted): her first holes come with the third or fourth broadside. The sweeps test uses the ship under test when carrack-m is absent.
+
+## Build speed (27 October 2026)
+
+The user asked for a faster CAD build. Profiled statement by statement (`tools/caravel/profile_build.py`, which runs a
+script one top-level statement at a time and writes each one's seconds), the build took 54 minutes with the hull taken
+from its cache, 34 of them in five cuts of the whole shell (the backbone; the stock and the bumpkin; the stair's landing;
+the gates' rebates; a merge after the gates' openings and the waist's ports). Each cut took 5-8 seconds; the rest was
+FreeCAD's face merge after it (`removeSplitter`), some 300 seconds a time, which on her faceted shell gave back the very
+shape it was given (its BREP text the same). OpenCascade's own merge (`ShapeUpgrade_UnifySameDomain`, 0.8 s) would merge
+306 faces: a change, so not used. The export took 12 minutes, 590 seconds of them meshing the cells' pieces and testing
+points inside them.
+
+- **The shell cut once.** Every tool that cuts her shell is gathered (`SHELL_TOOLS`), fused into one solid with its faces
+  merged (cheap on the tools: a gate's opening and its rebate meet in one plane and, cut apart, left the jamb's face in
+  two), and the shell cut by it in one boolean with no face merge after. The lofted envelope and inner solid keep theirs
+  (the envelope's merges some 200 faces); they only run on new lines, and their results are kept with the lines' hash.
+- **Stages kept between builds** (`memo`, `memo_value` in `build_caravel.py`): an expensive step's result, keyed by its
+  name and its inputs' exact BREP text (numbers and strings as they are), is written to `%TEMP%/caravel-cache/stages` and
+  read back on every run, the first included, so a fresh and a cached build go on from the same shape. The shell's cut,
+  the beams, the cap rail's lofts, the galley's placeholders, the guns' clearance pieces, the report's overlap checks
+  (each now one boolean against a compound of the parts, which don't overlap each other: the same sums), the solids'
+  validity, and every half-breadth the build asks of the envelope (a section each) are kept. A part intersected with the
+  inner solid is intersected with the inner solid's piece round it (the galley: 268 s to 6 s; the beams: 10 s each).
+- **The export's cells kept** (`export_caravel.py`): each piece's mesh and the inside tests on it, keyed by the piece's
+  BREP text, in `%TEMP%/caravel-cache/export-pieces.pkl`. Two things that depended on whether a piece had been meshed are
+  now the same either way: the quick box test before an inside test uses the piece's exact bounding box, 2 mm larger (a
+  meshed shape's BoundBox comes from its mesh, a little inside its curved faces), and the grain and deck tests read the
+  piece's box as it is once meshed, kept with its mesh.
+- **The layout** spreads faces in one plane in a fixed order (which of two equal faces moved 2 mm changed with Python's
+  string hashing), and the swivels' `rail` widths come from the cap's section and its drawn faces.
+
+| | Before | After |
+|---|---|---|
+| Build, new lines | about 64 min | 23 min |
+| Build, the hull's lines unchanged | 54 min | 2-4 min |
+| Export | 12 min | 12 min fresh, about 2 min with its cache |
+| A sail's change (lines, build, export) | about 66 min | 4 min |
+| A fitting's change (build, export) | about 66 min | 4 min |
+| The caravel's offline checks | 13 runs, 50 s | one pass, 44 s |
+
+Checked against prototype/grid-bays' a953ca2 (`tools/caravel/model_fingerprint.py` on both models, then
+`tools/caravel/compare_builds.py`): every body's volume, area, face and edge counts and bounding box the same but for the
+shell's edges (28,500 for 28,502: the two edges at each gate jamb's top, where the jamb's face meets the cap, now one);
+`cells.json` and the build's report the same. The design: the swivels' `rail` inboard widths 0.01 less than the hand-set
+ones (from the cap's section), and 16 numbers in 4 of the stern's hull panels' corners (a corner level with other points
+along a top edge is the first of them, and the order of the shell's faces changed). The mesh: 891 of its 96,443 quads,
+order aside: the gates' and the stern panels' faces, the few the corrected box test draws otherwise, and the 2 mm
+spreading of faces on the guns, the anchor and the ropes, which a953ca2's layout picked at random. A fresh and a cached
+export are byte for byte the same, and after a sail's and a fitting's change and back, the design, the mesh and the
+report came back byte for byte.
 
 ## Codex review, 17 October 2026
 

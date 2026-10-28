@@ -30,6 +30,75 @@ def log(*a):
     print(f"[{time.time() - T0:6.1f}s]", *a, flush=True)
 
 
+# (27 October 2026, the build speed-up) an expensive step's result kept on disk, keyed by its name and its inputs: shapes by
+# their exact BREP text, numbers and strings as they are. The same inputs give back the same shape, read from the file
+# (on the first run as well, so a cached and a fresh build go on from the same shape); a change anywhere upstream changes
+# a key and recomputes only what it reaches. CARAVEL_NOCACHE=1 recomputes everything.
+STAGES = os.path.join(os.environ.get("TEMP", OUT), "caravel-cache", "stages")
+_SHAPE_KEYS = {}
+
+
+def shape_key(s):
+    """A shape's exact geometry as a short hash (its BREP text), remembered for the same object."""
+    k = _SHAPE_KEYS.get(id(s))
+    if k is None or k[0] is not s:
+        k = (s, hashlib.md5(s.exportBrepToString().encode()).hexdigest()[:16])
+        _SHAPE_KEYS[id(s)] = k
+    return k[1]
+
+
+def memo(name, inputs, compute):
+    """compute()'s shape for these inputs (shapes, numbers, strings), from the stage cache when it has it."""
+    keys = [shape_key(v) if hasattr(v, "exportBrepToString") else v for v in inputs]
+    h = hashlib.md5(json.dumps([name] + keys, sort_keys=True).encode()).hexdigest()[:16]
+    path = os.path.join(STAGES, f"{name}-{h}.brep")
+    if os.environ.get("CARAVEL_NOCACHE") != "1" and os.path.exists(path):
+        log("stage from cache:", name)
+    else:
+        t_ = time.time()
+        r = compute()
+        os.makedirs(STAGES, exist_ok=True)
+        r.exportBrep(path + ".tmp")
+        os.replace(path + ".tmp", path)
+        log("stage built:", name, f"{time.time() - t_:.1f}s")
+    r = Part.read(path)
+    if r.ShapeType == "Compound" and len(r.SubShapes) == 1 and r.SubShapes[0].ShapeType == "Solid":
+        return r.SubShapes[0]                         # (a solid written alone reads back as itself)
+    return r
+
+
+def shell_cut(shape, tools):
+    """shape less every tool, in one boolean. The tools fused into one first, their faces merged (cheap on them): a gate's
+    opening and its rebate meet in one plane, and cut apart they left the jamb's face in two pieces, which the old face
+    merge after the last cut joined. (No face merge on the cut shell itself: on her faceted shell removeSplitter took 300 s
+    a time and gave back the very shape it was given, its BREP text the same; OCC's own merge would merge 306 faces)"""
+    tool = tools[0].multiFuse(tools[1:]).removeSplitter()
+    return shape.cut(tool)
+
+
+def inner_near(shape):
+    """Her inner solid where a shape is (its box 100 larger all round): a part's common with it is its common with the
+    whole inner solid, at a fraction of the work (each part's own against the whole took 10 s)."""
+    b = shape.BoundBox
+    box = Part.makeBox(b.XLength + 200, b.YLength + 200, b.ZLength + 200, V(b.XMin - 100, b.YMin - 100, b.ZMin - 100))
+    return memo("inner-near", [LINES_HASH, box], lambda: inner.common(box))
+
+
+def memo_value(name, inputs, compute):
+    """compute()'s number (or JSON value) for these inputs, from the stage cache when it has it."""
+    keys = [shape_key(v) if hasattr(v, "exportBrepToString") else v for v in inputs]
+    h = hashlib.md5(json.dumps([name] + keys, sort_keys=True).encode()).hexdigest()[:16]
+    path = os.path.join(STAGES, f"{name}-{h}.json")
+    if os.environ.get("CARAVEL_NOCACHE") != "1" and os.path.exists(path):
+        with open(path) as f_:
+            return json.load(f_)
+    v = compute()
+    os.makedirs(STAGES, exist_ok=True)
+    with open(path, "w") as f_:
+        json.dump(v, f_)
+    return v
+
+
 with open(os.path.join(OUT, "caravel-lines.json")) as f:
     L = json.load(f)
 LV = L["levels"]
@@ -137,7 +206,7 @@ else:
 
     fwd = forward_of_transom()
     envelope = loft.common(sheer_prism.common(fwd))
-    envelope = envelope.removeSplitter()
+    envelope = envelope.removeSplitter()        # (it merges some 200 faces here: kept; these three only run on new lines)
     log("envelope valid", envelope.isValid(), "solids", len(envelope.Solids))
 
     log("lofting the inner skin lines")
@@ -151,24 +220,25 @@ else:
     for n, shp in (("envelope", envelope), ("inner", inner), ("shell", shell)):
         shp.exportBrep(os.path.join(CACHE, n + ".brep"))
 log("shell", round(shell.Volume / 1e9, 3), "m3; cutting the backbone out of it; backbone valid", backbone.isValid())
-shell = shell.cut(backbone).removeSplitter()
+# (27 October 2026, the build speed-up) every tool that cuts her shell is gathered here and the shell cut once, after the
+# gates' rebates (one boolean and one face merge; five, each over the whole shell, took 34 of the build's 54 minutes):
+# the backbone, the gates' openings, the waist's ports, the rudder's stock (the tiller's port), the bumpkin's socket, the
+# quarterdeck stair's cell and landing, the gates' rebates. Nothing reads the shell in between
+SHELL_TOOLS = [backbone]
 GATE = LAY["gate"]
 GATE_POST = 150.0
 gate_cuts = [Part.makeBox(GATE["x"][1] - GATE["x"][0] - 2 * GATE_POST / 2, 2500, GATE["head"] + 300 - GATE["sill"],
                           V(GATE["x"][0] + GATE_POST / 2, (2000 if sgn > 0 else -4500), GATE["sill"]))
              for sgn in (1, -1)]
-for c in gate_cuts:
-    shell = shell.cut(c)
+SHELL_TOOLS += gate_cuts
 # the waist's gun ports (20 October 2026, the guns in the game): 750 wide in the cell's middle, from the sill up through
 # the bulwark's top (the port's head is the rail, 1 block over the deck), both sides; no lids yet. The quarterdeck's
 # guns fire over its side, through the railing's open cells.
 PORT_CUT = LAY["port"]
 for c in LAY["guns"]:
     for sgn in (1, -1):
-        shell = shell.cut(Part.makeBox(1000 - 2 * PORT_CUT["inset"], 2500, 1500,
-                                       V(c * 1000 + PORT_CUT["inset"], 2000 if sgn > 0 else -4500, LV["mainDeck"] + PORT_CUT["sill"])))
-shell = shell.removeSplitter()
-log("shell valid", shell.isValid(), "volume m3", round(shell.Volume / 1e9, 3))
+        SHELL_TOOLS.append(Part.makeBox(1000 - 2 * PORT_CUT["inset"], 2500, 1500,
+                                        V(c * 1000 + PORT_CUT["inset"], 2000 if sgn > 0 else -4500, LV["mainDeck"] + PORT_CUT["sill"])))
 
 
 # ------------------------------------------------------------------------------------------------ decks
@@ -216,7 +286,10 @@ beam_solids = []
 for x0, x1, z0, z1, half in L["beams"]:
     # (21 October 2026, chalk note 23) each beam runs into its rib and is cut by it: it ends on the rib's curved face
     # (22 October 2026, chalk note 35) square-ended, seated in a notch cut in its rib (below, once all are made)
-    b_ = Part.makeBox(x1 - x0, 2 * half, z1 - z0, V(x0, -half, z0)).cut(backbone).common(inner)
+    _box = Part.makeBox(x1 - x0, 2 * half, z1 - z0, V(x0, -half, z0))
+    # (the inner solid in the beams' band at this deck: once for all its beams)
+    _band = Part.makeBox(2 * BIG, 2 * BIG, z1 - z0, V(-BIG, -BIG, z0))
+    b_ = memo("beam", [LINES_HASH, _box, backbone], lambda: _box.cut(backbone).common(inner_near(_band)))
     if b_.BoundBox.intersect(hatch_cut.BoundBox):
         b_ = b_.cut(hatch_cut)                       # a beam across the hatch stops at its sides
     beam_solids += [so for so in b_.Solids if so.Volume > 5e6]
@@ -272,18 +345,42 @@ log("decks", [round(s.Volume / 1e9, 2) for s in (hold, main, qd)])
 
 
 # ------------------------------------------------------------------------------------------------ reference
+# (27 October 2026, the build speed-up) each half-breadth a section of the whole envelope (or inner solid): some 0.3 s, and
+# the cap rail's sections alone asked for hundreds. Kept with the lines' hash, which fixes both solids
+_HB_PATH = os.path.join(STAGES, f"half-breadths-{LINES_HASH}.json")
+try:
+    with open(_HB_PATH) as _f:
+        _HB = json.load(_f)
+except (OSError, ValueError):
+    _HB = {}
+_HB_NEW = [0]
+
+
+def _hb_cached(kind, solid, x, z):
+    k = f"{kind} {x!r} {z!r}"
+    if os.environ.get("CARAVEL_NOCACHE") == "1" or k not in _HB:
+        sec = solid.section(Part.LineSegment(V(x, 0, z), V(x, 9000, z)).toShape())
+        ys = [v.Point.y for v in sec.Vertexes]
+        _HB[k] = max(ys) if ys else None
+        _HB_NEW[0] += 1
+    return _HB[k]
+
+
+def save_half_breadths():
+    if _HB_NEW[0]:
+        os.makedirs(STAGES, exist_ok=True)
+        with open(_HB_PATH + ".tmp", "w") as f_:
+            json.dump(_HB, f_)
+        os.replace(_HB_PATH + ".tmp", _HB_PATH)
+
+
 def half_breadth(x, z):
     """Envelope half-breadth at (x, z), from the shape itself."""
-    line = Part.LineSegment(V(x, 0, z), V(x, 9000, z)).toShape()
-    sec = envelope.section(line)
-    ys = [v.Point.y for v in sec.Vertexes]
-    return max(ys) if ys else None
+    return _hb_cached("envelope", envelope, x, z)
 
 
 def inner_half_breadth(x, z):
-    sec = inner.section(Part.LineSegment(V(x, 0, z), V(x, 9000, z)).toShape())
-    ys = [v.Point.y for v in sec.Vertexes]
-    return max(ys) if ys else None
+    return _hb_cached("inner", inner, x, z)
 
 
 ref_edges = []
@@ -552,15 +649,11 @@ bk0, bk1 = BK_IN, BK_OUT                                 # the bumpkin's ends
 # (26 October 2026: the sky showed round the spar) the socket the spar's own taper, 5 larger round it
 bumpkin_socket = spar(bk0 - (bk1 - bk0).normalize() * 50, bk1 + (bk1 - bk0).normalize() * 50, 115, 85)
 # (over a counter the tiller is inside her, under the quarterdeck: no port; the stock's hole through the counter instead)
-shell = shell.cut(stock_hole if COUNTER else tiller_port).cut(bumpkin_socket).removeSplitter()
+SHELL_TOOLS += [stock_hole if COUNTER else tiller_port, bumpkin_socket]
 # (25 October 2026, the slot check: her collision refused the quarterdeck's stair) over the quarterdeck's level, where the
 # castle break's tumblehome brings her side into the stair's cell beside it, her planking stops 5 outboard of the cell
 # (at most 65 off its inside, at the quarterdeck's front corner); the cap rail covers what's left
-for _clear in STAIR_CLEAR:          # (the stair's flight and its landing: above, by the ribs)
-    _cut = shell.common(_clear).Volume
-    if _cut > 1.0:
-        shell = shell.cut(_clear).removeSplitter()
-    log("the quarterdeck stair's cell and landing kept clear of her side:", round(_cut / 1e6, 4), "litres of planking off")
+SHELL_TOOLS += STAIR_CLEAR          # (the stair's flight and its landing: above, by the ribs)
 RAIL = L["railings"]
 
 
@@ -721,7 +814,7 @@ for run in _runs:
                 break
             secs.append(w_)
         if len(secs) >= 2:
-            rail_parts.append(Part.makeLoft(secs, True, True))
+            rail_parts.append(memo("caprail", secs, lambda: Part.makeLoft(secs, True, True)))
             CAP_RECORD["runs"].append({"side": "port" if sgn > 0 else "starboard", "x0": run[0], "x1": run[len(secs) - 1],
                                        "stations": len(secs)})
 if QD_BULWARK:
@@ -793,7 +886,8 @@ if KIT:
     for t_ in KIT["things"]:
         parts_.append(cellbox(t_["cell"], d0, 1000 if "table" in t_["block"] else 900, 60 if "table" in t_["block"] else 120))
     parts_.append(cellbox(KIT["oven"]["cell"], d0 + 1000, 750, 80))
-    cabin = Part.makeCompound([q.common(inner) for q in parts_])
+    cabin = memo("cabin", [LINES_HASH] + parts_, lambda: (lambda in_: Part.makeCompound([q.common(in_) for q in parts_]))(
+        inner_near(Part.makeCompound(parts_))))
 # (25 October 2026, note 103) the swivel guns' places on the quarterdeck's cap rail, 2 a side (the fittings session
 # draws the gun: a placeholder here, a crotch's post and a short barrel)
 swivels = []
@@ -864,8 +958,11 @@ for ropes in L["ropeLadders"]:
 gates = Part.makeCompound(gate_parts)
 gate_leaves_shape = Part.makeCompound(gate_leaves)
 for rb_ in GATE_REBATE:
-    shell = shell.cut(rb_).removeSplitter()
     rail_parts = [q.cut(rb_) if q.BoundBox.intersect(rb_.BoundBox) else q for q in rail_parts]
+SHELL_TOOLS += GATE_REBATE
+shell = memo("shell", [LINES_HASH, "fused tools"] + SHELL_TOOLS, lambda: shell_cut(shell, SHELL_TOOLS))
+log("shell valid", memo_value("valid", [shell], shell.isValid), "volume m3", round(shell.Volume / 1e9, 3), "after",
+    len(SHELL_TOOLS), "cuts")
 rail_parts += GATE_BATTENS
 # (22 October 2026, the user: "visible surface overlaps create texture flickers ... railings") one solid: the posts'
 # caps, the bars' joints and the members overlapped, their faces in one plane drawn twice
@@ -942,9 +1039,10 @@ for c, deck in GUN_DECKS:
     rear_parked = PLACE_Y[0] + CLEAR
     for sgn in (1, -1):
         region = Part.makeBox(3200, 4300, 1700, V(xc - 1600, 0 if sgn > 0 else -4300, deck + 1))
-        near = [s for s in (shell.common(region),) if s.Volume > 1.0] + \
-               [so for so in railings.Solids + gates.Solids if so.BoundBox.intersect(region.BoundBox)]
-        overlap = sum(so.common(shell).Volume for q in gun_parts(xc, rear_parked, sgn, axis_z, deck) for so in q.Solids)
+        _near_shell = memo("gun-near", [shell, region], lambda: shell.common(region))
+        near = [s for s in (_near_shell,) if s.Volume > 1.0] +                [so for so in railings.Solids + gates.Solids if so.BoundBox.intersect(region.BoundBox)]
+        # (the parked gun stands inside the region: against the shell's piece there, the same overlap, far less work)
+        overlap = sum(so.common(_near_shell).Volume for q in gun_parts(xc, rear_parked, sgn, axis_z, deck) for so in q.Solids)
         # out from the parked place in 50 mm steps to the first that meets something, then halving the step
         lo, hi = rear_parked, None
         while hi is None and lo < 4000:
@@ -1031,7 +1129,9 @@ def end_points():
     return pts
 
 
-open_ends = [[round(p.x), round(p.z)] for p in end_points() if not shell.isInside(p, 1.0, True)]
+_ends = end_points()
+open_ends = memo_value("open-ends", [shell] + [[p.x, p.y, p.z] for p in _ends],
+                       lambda: [[round(p.x), round(p.z)] for p in _ends if not shell.isInside(p, 1.0, True)])
 def mass_props(shp):
     """Volume (m3) and centroid (mm) of a shape's solids."""
     v, c = 0.0, V(0, 0, 0)
@@ -1050,9 +1150,9 @@ report = {
     "rigGeometry": RIG_RECORD, "hullLength_mm": round(HULL_L),
     "loft": "polygon waterlines, ruled",
     "linesFidelity": "exact at every lines point (polygon waterlines), linear between",
-    "envelope": {"valid": envelope.isValid(), "closed": envelope.isClosed(), "solids": len(envelope.Solids),
+    "envelope": {"valid": memo_value("valid", [envelope], envelope.isValid), "closed": memo_value("closed", [envelope], envelope.isClosed), "solids": len(envelope.Solids),
                  "volume_m3": round(envelope.Volume / 1e9, 2), "bbox_mm": bbox(envelope)},
-    "shell": {"valid": shell.isValid(), "solids": len(shell.Solids), "volume_m3": round(shell.Volume / 1e9, 3),
+    "shell": {"valid": memo_value("valid", [shell], shell.isValid), "solids": len(shell.Solids), "volume_m3": round(shell.Volume / 1e9, 3),
               "skinSamples": thick, "innerValid": inner_ok,
               "endsOpenOnCentreline": open_ends},
     "lengthOverall_mm": round(envelope.BoundBox.XLength), "beam_mm": round(envelope.BoundBox.YLength),
@@ -1062,16 +1162,22 @@ report = {
     "beamWithinCells": envelope.BoundBox.YMax <= 3500.0,
     "underside_mm": LV["underside"], "draft_mm": LV["waterline"] - LV["underside"],
     "ribs": {"count": len(rib_solids), "valid": all(r.isValid() for r in rib_solids),
-             "skinOverlap_mm3": round(sum(r.common(shell).Volume for r in rib_solids)),
-             "backboneOverlap_mm3": round(sum(r.common(backbone).Volume for r in rib_solids))},
+             # ((27 October 2026, the build speed-up) the overlaps' checks each one boolean over a compound of the parts, which
+             # don't overlap each other: the same sum; kept with their inputs in the stage cache)
+             "skinOverlap_mm3": round(memo_value("rib-skin", [shell] + rib_solids,
+                                                 lambda: Part.makeCompound(rib_solids).common(shell).Volume)),
+             "backboneOverlap_mm3": round(memo_value("rib-backbone", [backbone] + rib_solids,
+                                                     lambda: Part.makeCompound(rib_solids).common(backbone).Volume))},
     "backbone": {"valid": backbone.isValid(), "volume_m3": round(backbone.Volume / 1e9, 3),
-                 "bottomZ_mm": round(backbone.BoundBox.ZMin), "skinOverlap_mm3": round(backbone.common(shell).Volume),
+                 "bottomZ_mm": round(backbone.BoundBox.ZMin), "skinOverlap_mm3": round(memo_value("backbone-skin", [backbone, shell], lambda: backbone.common(shell).Volume)),
                  "draftToKeel_mm": round(LV["waterline"] - backbone.BoundBox.ZMin)},
     "beams": {"count": len(beam_solids),
-              "ribOverlap_mm3": round(sum(b.common(r).Volume for b in beam_solids for r in rib_solids
-                                          if b.BoundBox.intersect(r.BoundBox))),
-              "deckOverlap_mm3": round(sum(b.common(decks).Volume for b in beam_solids)),
-              "skinOverlap_mm3": round(sum(b.common(shell).Volume for b in beam_solids))},
+              "ribOverlap_mm3": round(memo_value("beam-rib", beam_solids + ["ribs"] + rib_solids, lambda: sum(
+                  b.common(r).Volume for b in beam_solids for r in rib_solids if b.BoundBox.intersect(r.BoundBox)))),
+              "deckOverlap_mm3": round(memo_value("beam-deck", beam_solids + [decks],
+                                                  lambda: Part.makeCompound(beam_solids).common(decks).Volume)),
+              "skinOverlap_mm3": round(memo_value("beam-skin", beam_solids + [shell],
+                                                  lambda: Part.makeCompound(beam_solids).common(shell).Volume))},
     "sailFeet": sail_clear,
     "guns": gun_fit,
     "gateLeaves": GATE_LEAF,
@@ -1156,4 +1262,5 @@ _bundle = os.path.join(ROOT, "tools", "shipview", "bundle.py")
 _g = {"__file__": _bundle, "__name__": "shipview_bundle"}
 exec(open(_bundle).read(), _g)
 _g["bundle"](os.path.join(OUT, "views", "caravel-mesh.js"), os.path.join(OUT, "caravel.html"))
+save_half_breadths()
 log("done")
