@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Func1 = System.Func<Hansa.MountPoint, bool>;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
@@ -82,8 +83,9 @@ namespace Hansa
             {
                 t = tp;
                 hit = o.AddCopy(d.X * tp, d.Y * tp, d.Z * tp);
-                foreach (var sb in piece.Sel)
-                    if (Math.Abs(ShipFittings.RayBox(o, d, new Cuboidd(sb[0], sb[1], sb[2], sb[3], sb[4], sb[5])) - tp) < 1e-6) { normal = AimPlace.BoxNormal(o, d, sb); break; }
+                // A piece's walking voxels can be met before its drawn face. Snap from the actual block face,
+                // never from that quarter-block halo or from the direction of the player's gaze.
+                if(AimPlace.PieceFace(piece,o,d,range,out double faceT,out normal)) { t=faceT;hit=o.AddCopy(d.X*t,d.Y*t,d.Z*t); }
             }
             else if (AimPlace.GridHit(ship.Grid, o, d, range, out double tg, out var ng))
             {
@@ -93,7 +95,10 @@ namespace Hansa
             }
             if (hit == null || normal == null) return null;
             MountPoint m = null;
-            foreach (var c in AimPlace.Candidates(ship.Mounts, ship.Pieces, hit, normal, piece, free, h.OnBorder && !h.Chalk))
+            var candidates = h.Stairs && !h.Chalk
+                ? AimPlace.StairFloors(ship.Mounts, hit, normal).Where(c => free == null || free(c))
+                : AimPlace.Candidates(ship.Mounts, ship.Pieces, hit, normal, piece, free, h.OnBorder && !h.Chalk);
+            foreach (var c in candidates)
             {
                 if (h.Chalk) { m = c; break; }
                 var pl = plan(c, hit);

@@ -193,7 +193,8 @@ namespace Hansa
                 int mounted = def.Fixtures.Count(f => f.Type == "gun" && ship.GunMounted(f));
                 int laid = def.Fixtures.Count(f => f.Type == "gun" && (!def.GunPlaceOf.TryGetValue(f.Code, out var gp) || gp.StartsLaid));
                 int portLaid = def.Fixtures.Count(f => f.Type == "gun" && f.Out[2] < 0 && ship.GunMounted(f));
-                int fired = ship.FireBroadside(-1, null, null, 2, 0);
+                foreach(var gun in ship.Def.Fixtures.Where(f=>f.Type=="gun")) ship.Gun(gun.Code).Charge=GunLoading.Loaded;
+            int fired = ship.FireBroadside(-1, null, null, 2, 0);
                 sapi.Event.RegisterCallback(__ =>
                 {
                     var hurt = Enumerable.Range(0, def.Hull.Count).Where(n => ship.StateOfPart(n) != PartState.Sound).Select(n => def.HullSlots[n].Id).ToList();

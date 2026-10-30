@@ -23,14 +23,15 @@ namespace Hansa
     {
         /// <summary>
         /// A gun's state on the server: when it last fired (it's ready when it has cooled down since), how it's laid and
-        /// where its crew is laying it. Loading comes later and goes here: the powder, the wad, the shot, rammed home, run
-        /// out, primed; each a step at the gun (held right-click with the item, like mending), and FireGun asks for all of
-        /// them.
+        /// where its crew is laying it. Powder and shot are loaded while run in; firing consumes the charge and leaves
+        /// the carriage run in with its port open for the next load.
         /// </summary>
         public class GunState
         {
             public long FiredMs = long.MinValue / 2;
             public int Shots;
+            public byte Charge;
+            public bool RunIn;
             /// <summary>How it's laid now, and where it's being laid (it follows at its crew's rates).</summary>
             public GunLay Lay, Aim;
         }
@@ -73,6 +74,10 @@ namespace Hansa
         }
 
         public GunLay GunLayNow(string code) => GunLayNow(Def?.Fixture(code));
+
+        public double GunPick(FixtureDef f,Vec3d o,Vec3d d) => GunLaying.Pick(f,GunLayNow(f),GunBack(f),o,d);
+        public double[] GunSelectionBounds(FixtureDef f) => GunLaying.SelectionBounds(f,GunLayNow(f),GunBack(f));
+        double GunBack(FixtureDef f) => (Api.Side==EnumAppSide.Client?GunRecoil(f.Code):!GunOpen(f)||GunRunIn(f)?1:PartMotion.Recoil((World.ElapsedMilliseconds-Gun(f.Code).FiredMs)/1000.0))*GunRecoilDistance(f);
 
         /// <summary>
         /// The lay toward where someone at a gun looks (vanilla's view yaw and pitch: a player's, sent by their client): their
@@ -121,7 +126,7 @@ namespace Hansa
         /// <summary>Seconds till a gun is run out (0: it is, or it's housed). Server: its own clock; clients: from when they saw it open.</summary>
         public double GunRunningOut(FixtureDef gun)
         {
-            if (gun?.Lid == null || !GunOpen(gun)) return 0;
+            if (gun==null || gun.Swivel || !GunOpen(gun) || GunRunIn(gun)) return 0;
             long since = Api?.Side == EnumAppSide.Server
                 ? gunOpenedMs.TryGetValue(gun.Code, out long at) ? World.ElapsedMilliseconds - at : long.MaxValue / 2
                 : GunPortSeen.TryGetValue(gun.Code, out var seen) && seen.Open ? World.ElapsedMilliseconds - seen.Ms : long.MaxValue / 2;
@@ -131,10 +136,12 @@ namespace Hansa
         /// <summary>Server: open a housed gun's port and run it out (at once: for a test or a command).</summary>
         public void OpenGunPort(FixtureDef gun, bool instant = false)
         {
-            if (gun?.Lid == null || GunOpen(gun) || GunAbsent(gun)) return;
+            if (gun==null || GunAbsent(gun) || GunOpen(gun) && !GunRunIn(gun)) return;
+            Gun(gun.Code).RunIn=false;
             OpenFittings.Add(gun.Code);
             gunOpenedMs[gun.Code] = World.ElapsedMilliseconds - (instant ? RunOutMs : 0);
             FittingsChanged();
+            SaveGunLays(true);
             LocalToWorld(gun.Pos[0], gun.Pos[1] + 0.8, gun.Pos[2], out double x, out double y, out double z);
             World.PlaySoundAt(new AssetLocation("sounds/block/door"), x, y, z, null, true, 16, 0.8f);
         }
@@ -163,8 +170,8 @@ namespace Hansa
             long now = World.ElapsedMilliseconds;
             foreach (var f in GunList)
             {
-                if (f.Lid == null) continue;
-                bool open = OpenFittings.Contains(f.Code);
+                if (f.Swivel) continue;
+                bool open = GunOpen(f) && !Gun(f.Code).RunIn;
                 if (!GunPortSeen.TryGetValue(f.Code, out var s)) GunPortSeen[f.Code] = (open, long.MinValue / 4);
                 else if (s.Open != open) GunPortSeen[f.Code] = (open, now);
             }
@@ -173,8 +180,8 @@ namespace Hansa
         /// <summary>Client: how far a housed or housing gun is run in now (0 out .. 1 in), for its moving part.</summary>
         public float GunHoused(FixtureDef gun)
         {
-            if (gun?.Lid == null) return 0;
-            bool open = OpenFittings.Contains(gun.Code);
+            if (gun==null || gun.Swivel) return 0;
+            bool open = GunOpen(gun) && !Gun(gun.Code).RunIn;
             double since = GunPortSeen.TryGetValue(gun.Code, out var s) && s.Open == open ? (World.ElapsedMilliseconds - s.Ms) / (double)RunOutMs : 1;
             double k = Math.Clamp(since, 0, 1);
             k = k * k * (3 - 2 * k);
@@ -222,10 +229,7 @@ namespace Hansa
         /// <summary>Where the gun captain stands at a gun now (feet, ship-local): behind the breech as it's laid, and back with it as it runs back.</summary>
         public Vec3d GunSeatLocal(FixtureDef gun)
         {
-            double back;
-            if (Api?.Side == EnumAppSide.Server) back = PartMotion.Recoil((World.ElapsedMilliseconds - Gun(gun.Code).FiredMs) / 1000.0);
-            else back = GunRecoil(gun.Code);
-            return GunLaying.SeatLocal(gun, GunLayNow(gun), back * GunRecoilDistance(gun));
+            return GunLaying.SeatLocal(gun, GunLayNow(gun), GunBack(gun));
         }
 
         // server: who is laying each gun (holding right mouse by it), till when (their client says so again twice a second)
@@ -253,7 +257,7 @@ namespace Hansa
         /// Server: a player holds right mouse by a gun (or at its gun captain's place): it's laid toward where they look while
         /// they go on holding it (their client says so twice a second). Returns an error lang code, or null.
         /// </summary>
-        public string StartLaying(FixtureDef gun, EntityPlayer who)
+        public string StartLaying(FixtureDef gun, EntityPlayer who, bool begin = true)
         {
             if (gun?.Type != "gun" || who == null || !who.Alive) return "hansa:gun-cannot";
             if (GunAbsent(gun)) return "hansa:gunplace-no-gun";
@@ -264,7 +268,7 @@ namespace Hansa
             if (gunLayers.TryGetValue(gun.Code, out var other) && other.Who != who && other.Who.Alive && other.Until > now) return "hansa:gun-taken";
             // housed: its crew opens the port and runs it out first (it's laid once it's out: the client asks again
             // twice a second while the button is held)
-            if (!GunOpen(gun)) { OpenGunPort(gun); return null; }
+            if (!GunOpen(gun) || GunRunIn(gun)) { if(begin) OpenGunPort(gun); return null; }
             if (GunRunningOut(gun) > 0) return null;
             // (0.3.27) a new layer: the gun stays as it's laid, their view now its zero (no drop to where they look)
             if (!(gunLayers.TryGetValue(gun.Code, out var was) && was.Who == who && was.Until > now))
@@ -360,6 +364,8 @@ namespace Hansa
             var lays = new GunLay[list.Length];
             for (int i = 0; i < list.Length; i++) lays[i] = Gun(list[i].Code).Lay;
             WatchedAttributes.GetOrAddTreeAttribute("hansaGuns").SetBytes("lay", GunLaying.Pack(lays));
+            var loads=WatchedAttributes.GetOrAddTreeAttribute("hansaGuns").GetOrAddTreeAttribute("loads");
+            foreach(var f in list) loads.SetInt(f.Code,Gun(f.Code).Charge | (Gun(f.Code).RunIn?4:0));
             if (!force) return;
             WatchedAttributes.MarkPathDirty("hansaGuns");
             gunSyncAccum = 0;
@@ -377,6 +383,9 @@ namespace Hansa
             for (int i = 0; i < list.Length; i++)
             {
                 var l = GunLaying.Clamp(list[i], lays[i], GunGateOpen(list[i]));
+                int load=WatchedAttributes.GetTreeAttribute("hansaGuns")?.GetTreeAttribute("loads")?.GetInt(list[i].Code)??0;
+                Gun(list[i].Code).Charge=(byte)(load&3);
+                Gun(list[i].Code).RunIn=(load&4)!=0;
                 if (Api?.Side == EnumAppSide.Server)
                 {
                     var st = Gun(list[i].Code);
@@ -384,6 +393,7 @@ namespace Hansa
                 }
                 else gunLaySent[list[i].Code] = l;
             }
+            if(Api?.Side==EnumAppSide.Client) NotePorts();
         }
 
         /// <summary>Client: the gun of hers this player is laying now (holding right mouse by it), or null (ShipClientSystem sets it).</summary>
@@ -392,6 +402,16 @@ namespace Hansa
         public GunLay LayingAim;
         GunLay layingOffset;
         FixtureDef layingOffsetOf;
+
+        public void BeginLayingHere(FixtureDef gun)
+        {
+            LayingHere=gun;
+            LayingAim=GunLayNow(gun);
+            var me=(Api as ICoreClientAPI)?.World.Player?.Entity;
+            if(me==null) return;
+            layingOffset=GunLaying.AimOffset(LayingAim,GunAimFromView(gun,me.Pos.Yaw,me.Pos.Pitch));
+            layingOffsetOf=gun;
+        }
 
         /// <summary>
         /// Client, every frame: the guns as drawn ease toward the lays the server sent, at a little over their crews' rates,
@@ -402,7 +422,7 @@ namespace Hansa
         {
             if (Def == null || GunList.Length == 0) return;
             var me = (Api as ICoreClientAPI)?.World.Player?.Entity;
-            var mine = me != null && CannonsOn && !GoneDown && GunOpen(LayingHere) && GunRunningOut(LayingHere) <= 0 ? LayingHere : null;
+            var mine = me != null && CannonsOn && !GoneDown && !GunRunIn(LayingHere) && GunOpen(LayingHere) && GunRunningOut(LayingHere) <= 0 ? LayingHere : null;
             foreach (var f in GunList)
             {
                 var sent = gunLaySent.TryGetValue(f.Code, out var s) ? s : new GunLay(0, f.Elevation);
@@ -492,11 +512,15 @@ namespace Hansa
             if (Mod.Shots == null) return "hansa:gun-cannot";
             if (GunReloading(gun) > 0) return "hansa:gun-reloading";
             if (!GunOpen(gun)) return "hansa:gun-housed";
+            if (GunRunIn(gun)) return "hansa:gun-load-run-out";
             if (GunRunningOut(gun) > 0) return "hansa:gun-running-out";
-            // (later: is she loaded and primed? The loading steps go here.)
             var st = Gun(gun.Code);
+            if(st.Charge!=GunLoading.Loaded) return st.Charge==0?"hansa:gun-load-powder":"hansa:gun-load-shot";
             st.FiredMs = World.ElapsedMilliseconds;
             st.Shots++;
+            st.Charge=0;
+            st.RunIn=!gun.Swivel;
+            SaveGunLays(true);
             GunMuzzle(gun, new GunLay(train ?? st.Lay.Train, elevation ?? st.Lay.Elevation), out var at, out var dir);
             // the shot flies off with her own way too
             var d = Def.Cannon;
@@ -549,7 +573,9 @@ namespace Hansa
             float r = GunFiredAt.TryGetValue(code, out long at) ? (float)PartMotion.Recoil((World.ElapsedMilliseconds - at) / 1000.0) : 0;
             // housed, or being run in or out: back as far as the recoil takes it
             var f = Def?.Fixture(code);
-            return f?.Lid != null ? Math.Max(r, GunHoused(f)) : r;
+            if(f!=null && GunRunIn(f) && GunFiredAt.TryGetValue(code,out long fired) && World.ElapsedMilliseconds-fired<RunOutMs)
+                r=Math.Max(r,(float)Math.Clamp((World.ElapsedMilliseconds-fired)/180.0,0,1));
+            return f!=null && !f.Swivel ? Math.Max(r, GunHoused(f)) : r;
         }
 
         /// <summary>The look-at box and the hint's line for a gun: ready, or reloading (seconds), or guns off.</summary>
@@ -557,10 +583,12 @@ namespace Hansa
         {
             if (!CannonsOn) return Lang.Get("hansa:gun-state-off");
             if (!GunOpen(gun)) return Lang.Get("hansa:gun-state-housed");
+            if (GunRunIn(gun)) return Lang.Get("hansa:gun-state-run-in")+" · "+Lang.Get(Gun(gun.Code).Charge==GunLoading.Loaded?"hansa:gun-load-full":Gun(gun.Code).Charge==0?"hansa:gun-load-powder":"hansa:gun-load-shot");
             double outIn = GunRunningOut(gun);
             if (outIn > 0) return Lang.Get("hansa:gun-state-running-out", Math.Ceiling(outIn));
             double left = GunReloading(gun);
-            return left > 0 ? Lang.Get("hansa:gun-state-reloading", Math.Ceiling(left)) : Lang.Get("hansa:gun-state-ready");
+            return left > 0 ? Lang.Get("hansa:gun-state-reloading", Math.Ceiling(left)) : Gun(gun.Code).Charge!=GunLoading.Loaded
+                ? Lang.Get(Gun(gun.Code).Charge==0?"hansa:gun-load-powder":"hansa:gun-load-shot") : Lang.Get("hansa:gun-state-ready");
         }
 
         /// <summary>

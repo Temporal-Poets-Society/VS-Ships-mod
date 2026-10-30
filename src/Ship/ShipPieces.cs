@@ -82,6 +82,10 @@ namespace Hansa
         public bool Hearth, Oven, Flue;
         /// <summary>(0.1.0-dev.9, caravel note 78) A figurehead: vanilla's carved ones, or a chiseled block (as the sailboat takes them).</summary>
         public bool Figurehead;
+        /// <summary>Visible bounds in the block's own frame (for hanging and figurehead shapes).</summary>
+        public double[] VisualBounds;
+        public virtual double[] BoundsOf(string variant) => VisualBounds;
+        public virtual List<PieceVolume> VolumesOf(string variant) => null;
         /// <summary>(0.3.17) A door's way to swing (0 +x, 1 +z, 2 -x, 3 -z; across its line) when it's given (a design's modular piece); -1: into the anchor cell.</summary>
         public int DoorInto = -1;
 
@@ -113,6 +117,7 @@ namespace Hansa
         public int Dir;
         public readonly List<string> Mounts = new();
         public readonly List<PiecePart> Parts = new();
+        public readonly List<PieceVolume> Volumes = new();
         public readonly List<double[]> Sel = new(), Solids = new();
         public double[] Box;
         public PieceRole Role;
@@ -610,8 +615,9 @@ namespace Hansa
             for (int c = 1; c < n; c++)
             {
                 var cell = layout.FloorAt(m.Deck, m.I + MountLayout.DX[look] * c, m.K + MountLayout.DZ[look] * c);
-                if (cell == null) { p.Error = "hansa:flight-no-room"; return p; }
-                cells.Add(cell);
+                // Only the foot and landings need floor support. A flight can cross a cell whose floor place is
+                // reserved by the layout; its actual timbers and walking channel are checked against the ship below.
+                if (cell != null) cells.Add(cell);
             }
             double rise = b.Rise > 0 ? b.Rise : FlightRise(layout, m, look, run);
             if (rise < 1 || rise > 4.5) { p.Error = "hansa:stair-no-deck"; return p; }
@@ -1292,6 +1298,13 @@ namespace Hansa
             p.Mounts.Add(m.Id);
             p.Hang = down ? "down" : "up";
             AddBoxes(p, b, variant, q, origin);
+            // The renderer hangs the visible mesh by its bounds, not by the surrounding unit cube.
+            var bounds=Turn(b.BoundsOf(variant) ?? Union(b.Boxes(variant,false)) ?? new double[] {0,0,0,1,1,1},q);
+            var offset=new[] { m.X-(bounds[0]+bounds[3])/2,m.Y-(down?bounds[4]:bounds[1]),m.Z-(bounds[2]+bounds[5])/2 };
+            p.Parts[0].Origin=offset;
+            PieceShape.FitVolumes(p,b.VolumesOf(variant),offset,q);
+            p.Sel.Clear();
+            p.Sel.Add(Offset(bounds,offset));
             // (hanging overhead: not solid)
             p.Solids.Clear();
             Finish(p, b);
@@ -1311,11 +1324,27 @@ namespace Hansa
             // the quarter turn that takes the shape's +z nearest the normal (Turn: 1 → +x, 2 → -z, 3 → -x)
             int q = Math.Abs(nx) >= Math.Abs(nz) ? (nx >= 0 ? 1 : 3) : (nz >= 0 ? 0 : 2);
             double fx = q == 1 ? 1 : q == 3 ? -1 : 0, fz = q == 0 ? 1 : q == 2 ? -1 : 0;
-            var origin = new[] { m.X + fx * 0.5 - 0.5, m.Y, m.Z + fz * 0.5 - 0.5 };
+            var bounds=Turn(b.VisualBounds ?? new double[] {0,0,0,1,1,1},q);
+            var origin = new[] {
+                m.X-(fx>0?bounds[0]:fx<0?bounds[3]:(bounds[0]+bounds[3])/2),
+                m.Y-bounds[1],
+                m.Z-(fz>0?bounds[2]:fz<0?bounds[5]:(bounds[2]+bounds[5])/2) };
             p.Parts.Add(new PiecePart { Block = b.Code, Origin = origin, Quarter = q });
             p.Mounts.Add(m.Id);
             p.Hang = FigureheadHang;
+            p.Dir=MountLayout.Snap(fx,fz);
+            p.Pivot=new[]{m.X,m.Y,m.Z};
+            p.Tilt=m.Normal;
+            PieceShape.FitVolumes(p,b.VolumesOf(b.Code),origin,q);
             AddBoxes(p, b, b.Code, q, origin);
+            p.Sel.Clear();
+            var tilt=PieceShape.Tilt(p.Pivot,p.Tilt,p.Dir);
+            if(p.Volumes.Count>0)
+                p.Sel.AddRange(p.Volumes.Select(v=>PlacementMesh.Bounds(PlacementMesh.Corners(v.Box).Select(c=>PlacementMesh.Transform(v.Pose,c)))));
+            else {
+                var box=Offset(bounds,origin);
+                p.Sel.Add(tilt==null?box:PlacementMesh.Bounds(PlacementMesh.Corners(box).Select(c=>PlacementMesh.Transform(tilt,c))));
+            }
             p.Solids.Clear();
             Finish(p, b);
             p.Role = PieceRole.Deco;
@@ -1400,7 +1429,7 @@ namespace Hansa
                 var fb = FlightBoxes(plan.Mount, plan.Dir, plan.Rise, plan.Cells > 0 ? plan.Cells : FlightCells);
                 steps = fb.Take(Math.Max(0, fb.Count - 1));
             }
-            var boxes = plan.Role == PieceRole.Ladder ? plan.Room : plan.Role == PieceRole.Stair ? (steps ?? plan.Solids.Take(Math.Max(0, plan.Solids.Count - 1))).Concat(plan.Room) : plan.Solids.Concat(plan.Room);
+            var boxes = plan.Role == PieceRole.Ladder ? plan.Room : plan.Role == PieceRole.Stair ? (steps ?? plan.Solids.Take(Math.Max(0, plan.Solids.Count - 1))).Concat(plan.Room) : plan.Solids.Concat(plan.Sel).Concat(plan.Room);
             foreach (var s0 in boxes)
             {
                 var s = ClipTo(s0, cells);
@@ -1512,6 +1541,25 @@ namespace Hansa
 
         /// <summary>(0.3.19) A ladder-stair or a walked stair.</summary>
         public bool IsStair => Role is PieceRole.Ladder or PieceRole.Stair;
+
+        public IEnumerable<double[]> PlacementBoxes
+        {
+            get
+            {
+                if(Role==PieceRole.Door && Open && OpenLeafBox is double[] door) return new[]{door};
+                if(Role!=PieceRole.Hatch || !Open) return Sel;
+                return HatchPlanner.Leaves(Box,Dir).Select(leaf=>{
+                    var part=new MovingPartDef { AxisPoint=leaf.Hinge,AxisDir=leaf.Axis==0?new double[]{1,0,0}:new double[]{0,0,1},Angle=leaf.Sign*HatchPlanner.OpenAngle };
+                    var matrix=new float[16];PartMotion.Place(part,1,matrix,null);
+                    return PlacementMesh.Bounds(PlacementMesh.Corners(leaf.Box).Select(p=>PlacementMesh.Transform(matrix,p)));
+                });
+            }
+        }
+
+        List<PieceVolume> stairPlacement;
+        public IEnumerable<PieceVolume> PlacementVolumes => Role==PieceRole.Stair && Parts.Count>0
+            ? stairPlacement??=PieceShape.StairVolumes(new MountPoint {X=Parts[0].Origin[0],Y=Parts[0].Origin[1],Z=Parts[0].Origin[2]},Dir,Rise,Cells,Rails).ToList()
+            : PlacementBoxes.Select(b=>new PieceVolume {Box=b});
 
         /// <summary>The area (m²) painting it covers: a partition's and a door's two faces, a panel's one, by their height.</summary>
         public double PaintArea
@@ -1658,13 +1706,15 @@ namespace Hansa
         public ShipPiece Blocking(PiecePlan plan)
         {
             foreach (string m in plan.Mounts) if (At(m) is ShipPiece p) return p;
+            var volumes=(plan.Role==PieceRole.Stair ? PieceShape.StairVolumes(plan.Mount,plan.Dir,plan.Rise,plan.Cells,plan.Rails) :
+                plan.Volumes.Count>0 ? plan.Volumes : plan.Sel.Select(b=>new PieceVolume {Box=b})).ToList();
             foreach (var p in ById.Values)
             {
                 // (a hatch shuts over a ladder's way up, its top step in the opening: the climber opens it, note 169)
                 if (plan.Role == PieceRole.Hatch && p.Role == PieceRole.Ladder) continue;
-                foreach (var a in plan.Sel)
-                    foreach (var b in p.Sel)
-                        if (PiecePlanner.Overlap(a, b)) return p;
+                foreach (var a in volumes)
+                    foreach (var b in p.PlacementVolumes)
+                        if(PieceShape.Overlap(a,b)) return p;
             }
             return null;
         }

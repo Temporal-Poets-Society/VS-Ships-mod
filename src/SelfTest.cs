@@ -2259,6 +2259,7 @@ namespace Hansa
             // (someone laying it), one is run out first and fires after; Shift + right-click houses it again. Then all of
             // both ships' are run out at once for what follows.
             var lidded = guns.FirstOrDefault(f => f.Lid != null);
+            if(lidded!=null) RuntimeLoadingAboard(shooter,lidded);
             if (lidded != null)
             {
                 bool housedNew = guns.All(f => f.Lid == null || !shooter.GunOpen(f));
@@ -2311,13 +2312,13 @@ namespace Hansa
                     var within = shooter.GunLayNow(swivel);
                     shooter.SetGunLay(swivel, new GunLay(120, 50));
                     swPast = shooter.GunLayNow(swivel);
-                    swArc = Math.Abs(within.Train - 40) < 0.01 && Math.Abs(within.Elevation - 12) < 0.01 && Math.Abs(swPast.Train - 80) < 0.01 && swPast.Elevation <= 30;
+                    swArc = Math.Abs(within.Train - 40) < 0.01 && Math.Abs(within.Elevation - 12) < 0.01 && Math.Abs(swPast.Train - 100) < 0.01 && swPast.Elevation <= 40;
                     target.LocalToWorld(swivel.Pos[0], swivel.Pos[1] + 0.2, -swivel.Pos[2], out double ax, out double ay, out double az);
                     var tl = shooter.WorldToLocal(ax, ay, az);
                     GunLaying.MuzzleLocal(swivel, new GunLay(0, 0), out var sm, out _);
                     swLay = GunLaying.FromLocalDir(swivel, tl.X - sm.X, tl.Y - sm.Y, tl.Z - sm.Z);
                     shooter.SetGunLay(swivel, swLay);
-                    swErr = shooter.FireGun(swivel, null, null);
+                    swErr = FirePrepared(shooter, swivel);
                     sb = Last();
                     swAgain = shooter.FireGun(swivel, null, null);
                 }
@@ -2346,7 +2347,7 @@ namespace Hansa
                     {
                         var box = chicken.SelectionBox;
                         var aim = new Vec3d(chicken.Pos.X, chicken.Pos.Y + (box.Y1 + box.Y2) / 2, chicken.Pos.Z);
-                        err = shooter.FireGun(g1, null, null, Lay(shooter, g1, aim));
+                        err = FirePrepared(shooter, g1, Lay(shooter, g1, aim));
                         b1 = Last();
                     }
                     string again = shooter.FireGun(g1, null, null);
@@ -2383,7 +2384,7 @@ namespace Hansa
                         var plankAt = new BlockPos((int)Math.Floor(m2.X), (int)Math.Floor(m2.Y), (int)Math.Floor(m2.Z) - 6, 0);
                         ba.SetBlock(planks.Id, plankAt);
                         mod.Config.CannonsBreakBlocks = true;
-                        string e2 = shooter.FireGun(g2, null, null, Lay(shooter, g2, new Vec3d(plankAt.X + 0.5, plankAt.Y + 0.5, plankAt.Z + 0.5)));
+                        string e2 = FirePrepared(shooter, g2, Lay(shooter, g2, new Vec3d(plankAt.X + 0.5, plankAt.Y + 0.5, plankAt.Z + 0.5)));
                         var b2 = Last();
                         WaitFor(() => b2 == null || !shots.Flying.Contains(b2), 3, w3 =>
                         {
@@ -2396,7 +2397,7 @@ namespace Hansa
                             // caravel's waist since her quarterdeck has swivel guns) her first starboard one: fired 25° down it's
                             // spent long before the other ship)
                             var g3 = port.Length > 2 ? port[2] : starboard[0];
-                            string e3 = shooter.FireGun(g3, null, null, -25);
+                            string e3 = FirePrepared(shooter, g3, -25);
                             var b3 = Last();
                             WaitFor(() => b3 == null || !shots.Flying.Contains(b3), 4, w4 =>
                             {
@@ -2446,7 +2447,7 @@ namespace Hansa
             var want = new GunLay(-6, 2.5);
             ship.SetGunLay(gun, want);
             var lay = ship.GunLayNow(gun);
-            string err = ship.FireGun(gun, null, null);
+            string err = FirePrepared(ship, gun);
             Along(Last(), gun, lay, out double ang, out double from);
             double speed = Last() == null ? 0 : Last().S.Speed;
             Check(err == null && lay.Train == want.Train && lay.Elevation == want.Elevation && ang < 0.01 && from < 1e-6 && Math.Abs(speed - v) < Math.Abs(ship.Speed) + 0.01,
@@ -2503,11 +2504,13 @@ namespace Hansa
                     // ((26 October 2026) a third gun; with 2 a side (the caravel's waist since her quarterdeck has swivel guns)
                     // the one laid above, fired a few seconds ago: its reload let go for this)
                     var g3 = guns.Length > 2 ? guns[2] : guns[1];
+                    ship.Gun(g3.Code).Charge=GunLoading.Loaded;
                     if (guns.Length <= 2) ship.Gun(g3.Code).FiredMs = long.MinValue / 2;
                     var res = mod.FireCommand(ship, null, null, g3.Code, "1.5", "-8");
                     var l3 = ship.GunLayNow(g3);
                     Along(Last(), g3, l3, out double ang3, out double from3);
                     var g1 = guns[guns.Length > 2 ? 0 : 1];
+                    ship.Gun(g1.Code).Charge=GunLoading.Loaded;
                     float e1Before = ship.GunLayNow(g1).Elevation;
                     var res1 = mod.FireCommand(ship, null, null, g1.Code, "-", "-30");
                     var l1 = ship.GunLayNow(g1);
@@ -2614,7 +2617,7 @@ namespace Hansa
                         if (!double.IsNaN(sea)) ly = Math.Max(ly, target.WorldToLocal(sx, sea, sz).Y + 0.05);
                         target.LocalToWorld(lx, ly, SideZ(lx, ly) + 0.02, out double tx, out double ty, out double tz);
                         double elev = lay(shooter, gun, new Vec3d(tx, ty, tz));
-                        if (shooter.FireGun(gun, null, null, elev) == null)
+                        if (FirePrepared(shooter, gun, elev) == null)
                         {
                             fired++;
                             var ball = shots.Flying.Count > 0 ? shots.Flying[^1] : null;

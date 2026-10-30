@@ -583,7 +583,7 @@
 	"hud-gun": "At the {0}: {1} · {2}",
 	"hud-gun-limit": "As far as it goes (it trains {0}° aft to {1}° forward, elevation {2}° to {3}°)",
 	"hud-gun-limit-across": "As far as it goes (it trains {0}° to port to {1}° to starboard, elevation {2}° to {3}°)",
-	"hud-gun-keys": "Hold right and move the view: lay it (from where it's laid) · Left-click: fire (while laying too) · Ctrl + right-click the gun: stand to it · Shift + right-click it: house it",
+	"hud-gun-keys": "Hold right and move the view: lay it (from where it's laid) · Left-click: fire (while laying too) · Ctrl + right-click the gun: stand to it · Shift + right-click: pull back (again: shut port)",
 	"hud-gun-keys-seat": "Hold right and move the view: lay it (from where it's laid) · Left-click: fire (while laying too) · Shift: leave the gun",
 	"gun-state-ready": "ready",
 	"gun-state-reloading": "reloading ({0} s)",
@@ -810,5 +810,12 @@
 	"hull-port-in": "A gun port is in her side there: take it out first (an axe in building mode), then plank the opening.",
 	"gunplace-no-port": "There's no port in her side here: put a port into the opening (a trapdoor, building mode).",
 	"hint-port-out": "A gun port in her side · hold left mouse to take it out (its trapdoor back; the opening stays, planks close it)",
-	"hint-port-in": "An opening in her side at a gun's place · right-click: put a lidded port in with the {0}"
+	"hint-port-in": "An opening in her side at a gun's place · right-click: put a lidded port in with the {0}",
+  "gun-load-run-in": "Pull the gun back and let it stop before loading. The port stays open.",
+  "gun-load-run-out": "Run the gun out before firing.",
+  "gun-load-powder": "Empty: right-click with blasting powder to charge the gun.",
+  "gun-load-shot": "Powder in: right-click with lead shot (4 for a carriage gun, 1 for a swivel).",
+  "gun-load-more": "You need 4 lead shot for a carriage gun, or 1 for a swivel.",
+  "gun-load-full": "Loaded",
+  "gun-state-run-in": "Run in, port open"
 }

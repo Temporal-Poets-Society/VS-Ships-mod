@@ -16,6 +16,7 @@
     <EnableDefaultItems>false</EnableDefaultItems>
     <VintageStoryPath Condition="'$(VintageStoryPath)' == ''">$(VINTAGE_STORY)</VintageStoryPath>
     <VintageStoryPath Condition="'$(VintageStoryPath)' == ''">$(APPDATA)\Vintagestory</VintageStoryPath>
+    <SeaRoot Condition="'$(SeaRoot)' == ''">..\Sea</SeaRoot>
   </PropertyGroup>
 
   <ItemGroup>
@@ -49,7 +50,7 @@
 
   <!-- The Sea mod (wind, waves, the water shaders). Uses the existing Sea build; this project never builds or changes Sea. -->
   <ItemGroup>
-    <Reference Include="Sea"><HintPath>..\Sea\bin\$(Configuration)\mod\Sea.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Sea"><HintPath>$(SeaRoot)\bin\$(Configuration)\mod\Sea.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
 
   <ItemGroup>

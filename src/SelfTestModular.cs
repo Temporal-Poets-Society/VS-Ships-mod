@@ -148,7 +148,7 @@ namespace Hansa
             if (g == null) { Check(false, "0.3.21: a gun place of carrack-m with its gun"); return null; }
             // fired as any gun
             ship.OpenGunPort(g, true);
-            string fired = ship.FireGun(g, null, null);
+            string fired = FirePrepared(ship, g);
             string runOut = ship.TakeGunProblem(p3);
             ship.HouseGun(g);
             string hot = ship.TakeGunProblem(p3);
@@ -177,7 +177,7 @@ namespace Hansa
             Check(back == null && ship.GunMounted(g) && ship.Grid.SolidAt(cx, cy, cz) && ship.WatchedAttributes.GetTreeAttribute("hansaGunPlaces")?.Count == 0,
                 $"0.3.21: {g.Code} mounted again ({back ?? "ok"}): in her collision, as designed");
             ship.OpenGunPort(g, true);
-            string again = ship.FireGun(g, null, null);
+            string again = FirePrepared(ship, g);
             Check(again == null, $"0.3.21: mounted again, it fires ({again ?? "fired"})");
             ship.Gun(g.Code).FiredMs = long.MinValue / 2;
             ship.HouseGun(g);
@@ -319,7 +319,7 @@ namespace Hansa
             double transomOut = Math.Min(Math.Min(sg.Wall[0], sg.Wall[1]), Math.Min(sg.Wall[2], sg.Wall[3]));
             int shotsBefore = ship.Gun(sg.Code).Shots;
             // (fired 40° up: over the carrack sailing in the pool astern of her, out of the pool)
-            string fired = ship.FireGun(sg, null, null, 40);
+            string fired = FirePrepared(ship, sg, 40);
             int shotsAfter = ship.Gun(sg.Code).Shots;
             // trained to starboard by the crew's laying (positive train: GunLaying.TrainAcross)
             int across = GunLaying.TrainAcross(sg);

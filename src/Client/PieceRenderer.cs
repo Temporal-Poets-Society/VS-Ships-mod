@@ -126,7 +126,7 @@ namespace Hansa
                     catch (Exception) { }
                 }
             }
-            else if (pc.Kind == MountKind.Wall && pc.Tilt != null && pc.Pivot != null)
+            else if ((pc.Kind == MountKind.Wall || pc.Hang == PiecePlanner.FigureheadHang) && pc.Tilt != null && pc.Pivot != null)
             {
                 // tilted onto the wall's face where her side leans: from her level way into the room to the wall's normal
                 double sx = MountLayout.DX[pc.Dir], sz = MountLayout.DZ[pc.Dir];

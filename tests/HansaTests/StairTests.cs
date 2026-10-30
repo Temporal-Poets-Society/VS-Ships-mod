@@ -216,7 +216,13 @@ namespace HansaTests
                     }
                     posts++;
                     var bx = p.AsBox();
-                    foreach (var tb in treads) if (tb != null && PiecePlanner.Overlap(bx, tb, 0.001)) { bad.Add("a stanchion through a tread"); break; }
+                    if(p.Corners!=null) {
+                        var a=p.Corners[0];var b=p.Corners[1];
+                        double du=(b[0]-a[0])*MountLayout.DX[plan.Dir]+(b[2]-a[2])*MountLayout.DZ[plan.Dir];
+                        if(Math.Abs(du+(b[1]-a[1])*plan.Rise/cells)>1e-6) bad.Add("a post not square to its stringer");
+                        bx=PlacementMesh.Bounds(p.Corners);
+                    }
+                    foreach (var tb in treads) if (tb != null && bx!=null && PiecePlanner.Overlap(bx, tb, 0.001)) { bad.Add("a stanchion through a tread"); break; }
                 }
                 var boxes = parts.Select(x => x.AsBox()).Where(x => x != null).ToList();
                 int coplanar = ModularGeometry.Coplanar(boxes).Count;
@@ -324,7 +330,7 @@ namespace HansaTests
                     foreach (int up in new[] { 0, 1, 2, 3 })
                     {
                         var parts = ModularGeometry.Flight(foot, up, 3, cells, true, thick);
-                        double low = parts.Min(p => p.AsBox() is double[] b ? b[1] : Math.Min(p.P0[1], p.P1[1]) - p.H / 2) - foot.Y;
+                        double low = parts.Min(p => p.Corners!=null ? p.Corners.Min(v=>v[1]) : p.AsBox() is double[] b ? b[1] : Math.Min(p.P0[1], p.P1[1]) - p.H / 2) - foot.Y;
                         var stringers = parts.Where(Stringer).ToList();
                         double high = stringers.Max(p => Math.Max(p.P0[1], p.P1[1]) + p.H / 2) - foot.Y;
                         double footTop = stringers.Min(p => Math.Min(p.P0[1], p.P1[1]) + p.H / 2) - foot.Y;

@@ -19,6 +19,7 @@ namespace Hansa
         {
             var l = ship.Mounts;
             if (ship.Def?.Code != "caravel" || l == null) { Log($"24 October 2026: the caravel's building notes are checked on the caravel ({ship.Def?.Code} under test)"); return; }
+            RuntimePlacementAboard(ship);
             Block B(string c) => sapi.World.GetBlock(new AssetLocation("game", c)) is Block b && b.Id != 0 ? b : null;
             var put = new List<ShipPiece>();
             string Put(MountPoint m, Block b, int dir, out ShipPiece placed)
@@ -115,7 +116,7 @@ namespace Hansa
                 {
                     var slabs = new[] { "plankslab-oak-down-free", "plankslab-oak-up-free", "plankslab-oak-north-free", "plankslab-pine-down-free", "plankslab-aged-east-free" }
                         .Select(c => B(c)).Where(b => b != null).ToList();
-                    int looks = 0;
+                    int looks = 0, blocked = 0;
                     var missed = new List<string>();
                     foreach (var slabB in slabs)
                     {
@@ -146,12 +147,15 @@ namespace Hansa
                                 string why = got == null ? "nothing" : got != want && (what != "her side" || got.Kind != MountKind.Horizontal) ? got.Id : plan?.Error ?? ship.PlaceProblem(plan, true);
                                 // ((27 October 2026, dev.11) a shelf a piece aboard is in the way of (the galley's tables): occupied, not a miss)
                                 if (why == "hansa:piece-taken" && plan != null && ship.Pieces.Blocking(plan) != null) { looks--; continue; }
+                                // A tiller, rigging or other visible fitting is an obstruction even without walking voxels.
+                                // The transom shelf crosses the moving tiller: it must now be refused.
+                                if(why=="hansa:piece-blocked" && ship.VisibleObstructed(plan)) { blocked++; continue; }
                                 if (why != null) missed.Add($"{slabB.Code.Path} on {f.Id} ({what}): {why}");
                             }
                         }
                     }
                     Check(slabs.Count >= 4 && looks > 100 && missed.Count == 0,
-                        $"dev.9: the shelf as the client's crosshair finds it, with the game's plank slabs ({string.Join(", ", slabs.Select(b => b.Code.Path))}): {looks} looks{(missed.Count == 0 ? ", every one" : "; not: " + string.Join("; ", missed.Take(6)))}");
+                        $"dev.9: the shelf as the client's crosshair finds it, with the game's plank slabs ({string.Join(", ", slabs.Select(b => b.Code.Path))}): {looks} looks, {blocked} refused at visible fittings{(missed.Count == 0 ? ", every one" : "; not: " + string.Join("; ", missed.Take(6)))}");
                 }
                 // ---- (25 October 2026, dev.9) note 89: a door hung at either end; note 90: a window on a place her side cuts; note
                 // 99: the short stair up aft from her hold's cell under the hatchway: its top on the hatch, not "no landing"

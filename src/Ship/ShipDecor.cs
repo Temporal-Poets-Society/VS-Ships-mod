@@ -106,19 +106,15 @@ namespace Hansa
                 if (at == null || p.Parts.Count == 0) return false;
                 var again = PiecePlanner.Plan(Mounts, at, new VanillaPieceBlock(World, p.Stack, false), p.Dir);
                 if (again.Error != null || again.Parts.Count == 0) return false;
-                var o0 = p.Parts[0].Origin;
-                var o1 = again.Parts[0].Origin;
-                if (Math.Abs(o0[0] - o1[0]) + Math.Abs(o0[1] - o1[1]) + Math.Abs(o0[2] - o1[2]) < 1e-3 && p.Parts[0].Quarter == again.Parts[0].Quarter) return false;
+                if (SameHookGeometry(p,again)) return false;
                 var fp = ShipPiece.From(again, p.Id, p.Stack);
                 fp.Paint = p.Paint;
                 Pieces.Remove(p.Id);
                 Pieces.Add(fp);
                 return true;
             }
-            bool moved = at != null && MountLayout.IsMastHook(at.Id) && Math.Abs(at.Y - p.Box[4]) > 0.1 && p.Hang != "up";
-            if (at != null && !moved) return false;
             double hx = (p.Box[0] + p.Box[3]) / 2, hy = p.Hang == "up" ? p.Box[1] : p.Box[4], hz = (p.Box[2] + p.Box[5]) / 2;
-            MountPoint best = moved ? at : null;
+            MountPoint best = at;
             double bd = 1.2;
             if (best == null)
                 foreach (var m in Mounts.All)
@@ -130,11 +126,20 @@ namespace Hansa
             if (best == null) return false;
             var plan = PiecePlanner.Plan(Mounts, best, new VanillaPieceBlock(World, p.Stack, false), p.Dir);
             if (plan.Error != null) return false;
+            if(SameHookGeometry(p,plan)) return false;
             var np = ShipPiece.From(plan, p.Id, p.Stack);
             np.Paint = p.Paint;
             Pieces.Remove(p.Id);
             Pieces.Add(np);
             return true;
+        }
+
+        static bool SameHookGeometry(ShipPiece piece,PiecePlan plan)
+        {
+            static bool Equal(double[] a,double[] b) => a==null || b==null ? a==b : a.Length==b.Length && a.Zip(b).All(v=>Math.Abs(v.First-v.Second)<1e-5);
+            return piece.Mount==plan.Mount?.Id && piece.Parts.Count==plan.Parts.Count && piece.Parts.Count>0 &&
+                piece.Parts[0].Quarter==plan.Parts[0].Quarter && Equal(piece.Parts[0].Origin,plan.Parts[0].Origin) &&
+                Equal(piece.Box,plan.Box) && Equal(piece.Pivot,plan.Pivot) && Equal(piece.Tilt,plan.Tilt);
         }
 
         void SavePieces()
@@ -486,6 +491,7 @@ namespace Hansa
         /// <summary>Why her collision refuses a piece's plan (its boxes, its room), or null: what PlaceProblem asks of her structure.</summary>
         string StructureProblem(PiecePlan plan)
         {
+            if(plan.Kind==MountKind.Hook) return null; // hooks use the drawn surfaces beyond the coarse walking grid
             // ((25 October 2026, caravel note 99) a stair's foot and top on her deck as it is: the planner asked it of her decks
             // laid (a hatchway shut by its hatch is deck to step off onto, a cell taken up isn't)
             if (PiecePlanner.LandingMissing(plan, PlaceGrid ?? Grid)) return "hansa:stair-no-landing";
@@ -523,6 +529,8 @@ namespace Hansa
             if (Def?.GunPlaces?.Length > 0 && MountLayout.FreeGunRoomHit(Def, plan.Solids.Concat(plan.Sel), GunMounted, plan.Role == PieceRole.Railing) != null) return "hansa:piece-gun-room";
             // (0.3.20, step B) nothing stands over an opening in her deck (a cell taken up); a hatch goes over one
             if (OverOpening(plan) is string open) return open;
+            if(PiecePlanner.LandingMissing(plan,PlaceGrid??Grid)) return "hansa:stair-no-landing";
+            if (VisiblePlacementProblem(plan) is string visibleProblem) return visibleProblem;
             if (plan.Role == PieceRole.Hatch)
                 return checkPeople && plan.Solids.Any(s => BoxOccupied(new[] { s[0], s[1], s[2], s[3], s[4] + 0.05, s[5] })) ? "hansa:piece-someone" : null;
             // (0.3.19, the user: "ladders look better without rails") no railing beside a ladder-stair
@@ -1037,7 +1045,7 @@ namespace Hansa
                 var plan = PiecePlanner.Plan(Mounts, m, new VanillaPieceBlock(World, stack), ShipMounts.DirOfYaw(sp.Yaw));
                 string err = PlacePiece(plan, stack, false, out _);
                 if (err == null) any = true;
-                else Api.Logger.Warning("[hansa] {0}: start piece {1} on {2}: {3}", Def.Code, sp.Block, sp.Mount, err);
+                else Api.Logger.Warning("[hansa] {0}: start piece {1} on {2}: {3} ({4})", Def.Code, sp.Block, sp.Mount, err,LastPlacementObstacle);
             }
             return any;
         }

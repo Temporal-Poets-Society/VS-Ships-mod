@@ -246,7 +246,7 @@ namespace Hansa
 
         /// <summary>
         /// With the wind panel off: her motion, the wind and how she lies to it, in the panel's words on two lines
-        /// ("Ship: 9.0 kn (4.6 m/s) ahead · Wind: force 8 gale, 36 kn (19 m/s) from the SW", "On her sails: … · Beam
+        /// ("Ship: 9.0 kn (4.6 b/s) ahead · Wind: force 8 gale, 36 kn from the SW", "On her sails: … · Beam
         /// reach, port tack · Best she can make here: …").
         /// </summary>
         static string WindText(EntityShip ship)

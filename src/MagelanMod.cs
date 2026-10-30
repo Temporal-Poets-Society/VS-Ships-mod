@@ -612,9 +612,16 @@ namespace Hansa
             var ep = player.Entity;
             if (ship?.Def == null || ep == null || p.Gun < 0 || p.Gun >= ship.Def.Fixtures.Length) return;
             var gun = ship.Def.Fixtures[p.Gun];
+            if (p.Load)
+            {
+                if(CrewOnly(player,ship)) return;
+                string loadError=ship.TryLoadGun(gun,player);
+                if(loadError!=null) player.SendIngameError("hansa-gun",Lang.GetL(player.LanguageCode,loadError));
+                return;
+            }
             if (!p.On) { ship.StopLaying(gun, ep); return; }
             if (CrewOnly(player, ship)) return;
-            string err = ship.StartLaying(gun, ep);
+            string err = ship.StartLaying(gun, ep, p.Begin);
             if (err != null) player.SendIngameError("hansa-gun", Lang.GetL(player.LanguageCode, err));
             else if (p.HasAim) ship.LayerAim(gun, ep, new GunLay(p.Train, p.Elevation));
         }

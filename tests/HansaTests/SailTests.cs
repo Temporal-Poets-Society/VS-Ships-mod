@@ -205,7 +205,8 @@ namespace HansaTests
             var patterns = new[] { ShipRepairs.Sail, ShipRepairs.Cloth, ShipRepairs.Plank, ShipRepairs.Nails, ShipRepairs.Flax, ShipRepairs.Resin, ShipRepairs.Rope };
             Check(patterns.All(pt => lang.ContainsKey("item-" + ShipRepairs.ItemKey(pt))) && lang.ContainsKey("repair-or") && !lang.ContainsKey("item-linen") &&
                   lang["repair-hint-sail"].Contains("{0}"), "the hint and the 'you need' message name every way to mend it (a line for each item, joined by 'or')");
-            string vanilla = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Vintagestory", "assets", "survival");
+            string vanilla = Path.Combine(Environment.GetEnvironmentVariable("VINTAGE_STORY") ??
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Vintagestory"), "assets", "survival");
             if (Directory.Exists(vanilla))
             {
                 var codes = new HashSet<string>();
