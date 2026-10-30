@@ -153,11 +153,13 @@ namespace Hansa
             float calm, double floodY)
         {
             var wc = def.WaterClip;
-            ShipFrame.WaterlinePlane(pitch, roll, wc.Height, out double y0, out double along, out double across);
+            ShipFrame.WaterlinePlane(pitch, roll, wc.Height, out _, out double along, out double across);
+            // Sea rebuilds a rigid frame about this waterline point: rotate the point with the hull.
+            ShipFrame.ToWorld(yaw, pitch, roll, 0, wc.Height, 0, out double hx, out double hy, out double hz);
             ShipFrame.WaterlinePlane(pitch, roll - heel, wc.Height, out _, out _, out double calmAcross);
             return new Sea.WaterClipBox
             {
-                X = ox, Z = oz, WaterY = oy + y0, Yaw = yaw,
+                X = ox + hx, Z = oz + hz, WaterY = oy + hy, Yaw = yaw,
                 HalfLength = wc.HalfLength, HalfWidth = wc.HalfWidth, CentreOffset = wc.CenterX, Profile = wc.Profile,
                 SlopeAlong = (float)along, SlopeAcross = (float)across, CalmSlopeAcross = (float)calmAcross, CalmZone = calm,
                 // a dry hull: no water drawn inside its outline, keel to main deck; the waves run up to it (no calm ring)
