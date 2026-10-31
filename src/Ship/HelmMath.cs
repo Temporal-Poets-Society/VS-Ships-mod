@@ -29,6 +29,21 @@ namespace Hansa
         public static double YawRate(double rudder, double turnRateDeg, double steer) => -rudder * turnRateDeg * Math.PI / 180 * steer;
 
         /// <summary>
+        /// Advance the centre of lateral resistance, then recover the entity origin. Shared by the server,
+        /// client prediction and packet extrapolation: a turn must not pin an arbitrary model origin in place.
+        /// Exact circular arc for constant speed and yaw rate, including sternway and leeway.
+        /// </summary>
+        public static void Advance(double x, double z, double yaw, double nextYaw, double speed, double leeway,
+            double dt, double pivotX, out double nx, out double nz)
+        {
+            double delta = nextYaw - yaw, mid = yaw + delta / 2, distance = dt * ShipMotion.Sinc(delta / 2);
+            nx = x + (Math.Sin(yaw) - Math.Sin(nextYaw)) * pivotX +
+                distance * (Math.Sin(mid) * speed - Math.Cos(mid) * leeway);
+            nz = z + (Math.Cos(yaw) - Math.Cos(nextYaw)) * pivotX +
+                distance * (Math.Cos(mid) * speed + Math.Sin(mid) * leeway);
+        }
+
+        /// <summary>
         /// A world direction (x, z) relative to her bow, as an angle (radians) clockwise seen from above: 0 right ahead,
         /// +π/2 to starboard, -π/2 to port, ±π right astern. What the wind panel turns its arrows by.
         /// </summary>

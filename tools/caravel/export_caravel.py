@@ -1553,7 +1553,7 @@ definition = {
               {"code": "quarterdeck", "y": r4(qd_y), "x0": -30.0, "x1": L["quarterdeckFront"] / 1000}],
     "frames": {"x0": float(FR["x0"]), "space": float(FR["space"]), "count": FR["count"]},
     "grid": {"origin": [0.0, 0.125, 0.5]},
-    "motion": {"rollPeriod": 4.5},
+    "motion": {"rollPeriod": 4.5, "rollDamping": 0.55},
     "sailing": {"maxBrace": 36.0, "noGo": 60.0, "maxSheet": 25.0},
     "damage": {"hullToughness": 70.0, "deckToughness": 55.0, "rudderToughness": 50.0, "mastToughness": 300.0,
                "sailToughness": 25.0, "riggingToughness": 70.0,

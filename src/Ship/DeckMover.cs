@@ -72,6 +72,10 @@ namespace Hansa
 
         /// <summary>Rotation for Mat4f.RotateY that maps ship-local axes to world axes.</summary>
         public static float ModelYaw(double yaw) => (float)(yaw - Math.PI / 2);
+
+        /// <summary>The renderer's complete hull transform; also used by headless pose measurements.</summary>
+        public static Matrixf ModelMatrix(Matrixf m, double x, double y, double z, double yaw, double pitch, double roll) =>
+            m.Identity().Translate(x, y, z).RotateY(ModelYaw(yaw)).RotateZ((float)pitch).RotateX((float)roll);
     }
 
     /// <summary>

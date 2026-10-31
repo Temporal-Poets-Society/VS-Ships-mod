@@ -140,6 +140,10 @@ namespace Hansa
         /// </summary>
         public double Heave, Pitch, Roll, Heel;
         readonly Sea.WavePlace waves = new();
+        ShipWaveHull waveHull;
+        ShipDefinition waveHullOf;
+        public ShipWaveHull WaveHull => waveHullOf == Def && waveHull != null ? waveHull :
+            (waveHull = new ShipWaveHull(waveHullOf = Def));
         public Sea.SeaSystem SeaSys;
         double writtenY = double.NaN;
         double renderBaseY = double.NaN, fullHeave;
@@ -380,6 +384,7 @@ namespace Hansa
             if (sea?.Spectrum == null || Def == null) return default;
             sea.SampleWaves(waves, x, z);
             Def.Waterplane(out double halfLength, out double halfBeam, out double centreX);
+            centreX = WaveHull.FlotationCentre;
             double steady = ShipMotion.SailSteadiness(SailsDrawing, WindHere(x, z).Strength);
             // (the water in her slows her roll: MotionNow; the heave and pitch are the design's, alike everywhere)
             return ShipMotion.Waves(waves, sea.WaveFactorAt(x, z), waves.Time, x, z, yaw, Speed, halfLength, halfBeam, centreX, MotionNow, steady);
@@ -2003,10 +2008,17 @@ namespace Hansa
             if (Crawl) YawRate = Hansa.Crawl.StepYaw(lastCrawlYaw, Hansa.Crawl.YawTarget(crawlTurn, cfg.CrawlTurn), cfg.CrawlTurn, dt);
             lastCrawlYaw = Crawl ? YawRate : 0;
 
+            // Waves supply a small yaw moment, resisted by the hull and rudder. Anchored or under the sweeps,
+            // the chain/oars hold her heading. All yaw (helm and sea) is authoritative and synced together.
+            if (!Anchored && !OnBottom && !Crawl && SeaSys?.Spectrum != null)
+            {
+                SeaSys.SampleWaves(waves, Pos.X, Pos.Z);
+                YawRate += (float)ShipMotion.WaveYawRate(waves, SeaSys.WaveFactorAt(Pos.X, Pos.Z), waves.Time,
+                    Pos.X, Pos.Z, Pos.Yaw, Speed, WaveHull, RudderAnswers);
+            }
+
             double newYaw = Pos.Yaw + YawRate * dt;
-            double fx = Math.Sin(newYaw), fz = Math.Cos(newYaw);
-            // (her leeway: to starboard of her heading is (-cos yaw, sin yaw) in the world)
-            double nx = Pos.X + fx * Speed * dt - Math.Cos(newYaw) * Leeway * dt, nz = Pos.Z + fz * Speed * dt + Math.Sin(newYaw) * Leeway * dt;
+            HelmMath.Advance(Pos.X, Pos.Z, Pos.Yaw, newYaw, Speed, Leeway, dt, WaveHull.LateralCentre, out double nx, out double nz);
 
             // (review H1-8: leeway alone moves her too, as clients reckon it)
             if (Math.Abs(Speed) + Math.Abs(Leeway) > 1e-4 || Math.Abs(YawRate) > 1e-5)
@@ -2356,15 +2368,21 @@ namespace Hansa
         {
             base.OnReceivedServerPos(isTeleport);
             if (Api.Side != EnumAppSide.Client) return;
-            targetPos.Set(Pos.X, Pos.Y, Pos.Z);
-            targetYaw = Pos.Yaw;
-            targetMs = World.ElapsedMilliseconds;
+            ReceiveMotionPose(Pos.X, Pos.Y, Pos.Z, Pos.Yaw, World.ElapsedMilliseconds, isTeleport);
+        }
+
+        // Also used by the headless pose replay: exactly the client's packet and frame paths, without a GPU.
+        internal void ReceiveMotionPose(double x, double y, double z, double yaw, long ms, bool isTeleport = false)
+        {
+            targetPos.Set(x, y, z);
+            targetYaw = yaw;
+            targetMs = ms;
             if (!smoothInit || isTeleport || RenderPos.SquareDistanceTo(targetPos) > 20 * 20)
             {
                 RenderPos.Set(targetPos);
                 RenderYaw = targetYaw;
                 renderBaseY = targetPos.Y - fullHeave;
-                jumpMs = World.ElapsedMilliseconds;
+                jumpMs = ms;
                 smoothInit = true;
             }
             Pos.SetPos(RenderPos);
@@ -2374,6 +2392,9 @@ namespace Hansa
 
         /// <summary>Called every frame on the client before player physics: dead-reckon and blend toward the server pose.</summary>
         public void ClientFrame(float dt)
+            => ClientMotionFrame(dt, World.ElapsedMilliseconds);
+
+        internal void ClientMotionFrame(float dt, long ms)
         {
             if (!smoothInit) return;
             dt = Math.Min(dt, 0.1f);
@@ -2384,27 +2405,32 @@ namespace Hansa
             if (Math.Abs(Pos.X - lastWritten.X) + Math.Abs(Pos.Y - lastWritten.Y) + Math.Abs(Pos.Z - lastWritten.Z) > 1e-6)
             {
                 targetPos.Set(Pos.X, Pos.Y, Pos.Z);
-                targetMs = World.ElapsedMilliseconds;
+                targetMs = ms;
                 if (RenderPos.SquareDistanceTo(targetPos) > 8 * 8)
                 {
                     RenderPos.Set(targetPos);
                     renderBaseY = targetPos.Y - fullHeave;
-                    jumpMs = World.ElapsedMilliseconds;
+                    jumpMs = ms;
                     jumped = true;
                 }
             }
+            double pivot = Def == null ? 0 : WaveHull.LateralCentre;
+            HelmMath.Advance(RenderPos.X, RenderPos.Z, RenderYaw, RenderYaw + YawRate * dt, Speed, Leeway, dt,
+                pivot, out RenderPos.X, out RenderPos.Z);
             RenderYaw += YawRate * dt;
-            RenderPos.X += Math.Sin(RenderYaw) * Speed * dt - Math.Cos(RenderYaw) * Leeway * dt;
-            RenderPos.Z += Math.Cos(RenderYaw) * Speed * dt + Math.Sin(RenderYaw) * Leeway * dt;
 
-            double age = Math.Min(0.5, (World.ElapsedMilliseconds - targetMs) / 1000.0);
+            double age = Math.Clamp((ms - targetMs) / 1000.0, 0, 0.5);
             double tyaw = targetYaw + YawRate * age;
-            double tx = targetPos.X + Math.Sin(tyaw) * Speed * age - Math.Cos(tyaw) * Leeway * age;
-            double tz = targetPos.Z + Math.Cos(tyaw) * Speed * age + Math.Sin(tyaw) * Leeway * age;
+            HelmMath.Advance(targetPos.X, targetPos.Z, targetYaw, tyaw, Speed, Leeway, age, pivot, out double tx, out double tz);
             double k = 1 - Math.Exp(-dt * 3);
-            RenderPos.X += (tx - RenderPos.X) * k;
-            RenderPos.Z += (tz - RenderPos.Z) * k;
+            // Blend the hull's centre, then recover its origin at the blended heading. Blending origins
+            // independently makes correction turns orbit a different point from authoritative turns.
+            double rcx = RenderPos.X + Math.Sin(RenderYaw) * pivot, rcz = RenderPos.Z + Math.Cos(RenderYaw) * pivot;
+            rcx += (tx + Math.Sin(tyaw) * pivot - rcx) * k;
+            rcz += (tz + Math.Cos(tyaw) * pivot - rcz) * k;
             RenderYaw += GameMath.AngleRadDistance((float)RenderYaw, (float)tyaw) * k;
+            RenderPos.X = rcx - Math.Sin(RenderYaw) * pivot;
+            RenderPos.Z = rcz - Math.Cos(RenderYaw) * pivot;
 
             // height: the still-water level the server floats her at, plus the waves (worked out here from the same
             // waves and clock as the server's, so no lag behind the drawn water)
@@ -2413,7 +2439,7 @@ namespace Hansa
             {
                 // right after a teleport the synced level may still be the old one: wait a moment for the new one
                 double gap = BaseY - renderBaseY;
-                if (Math.Abs(gap) < 2 || World.ElapsedMilliseconds - jumpMs > 1500) renderBaseY += gap * k;
+                if (Math.Abs(gap) < 2 || ms - jumpMs > 1500) renderBaseY += gap * k;
             }
             RideWaves(dt);
             RenderPos.Y = renderBaseY - sinkShown + Heave;

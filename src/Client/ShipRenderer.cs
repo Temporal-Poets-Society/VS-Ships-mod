@@ -2148,7 +2148,7 @@ namespace Hansa
         /// </summary>
         void SetModel(EntityShip ship, double rx, double ry, double rz)
         {
-            model.Identity().Translate(rx, ry, rz).RotateY(ShipFrame.ModelYaw(ship.Pos.Yaw)).RotateZ((float)ship.Pitch).RotateX((float)ship.Roll);
+            ShipFrame.ModelMatrix(model, rx, ry, rz, ship.Pos.Yaw, ship.Pitch, ship.Roll);
         }
 
         /// <summary>
