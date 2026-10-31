@@ -18,7 +18,7 @@ namespace HansaTests
         /// </summary>
         static void GunPlacesTest(string root)
         {
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "carrack-m.json");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", "carrack-m.json");
             var jo = JObject.Parse(File.ReadAllText(path));
             // (her without gun places: fixed guns, as before)
             var plainJo = (JObject)jo.DeepClone();
@@ -102,7 +102,7 @@ namespace HansaTests
                     string blocked = boxes == null ? "no place" : GunPlaces.MountProblem(def, ep, stE, null, boxes);
                     stE.Set(ep, true);
                     string after = boxes == null ? null : MountLayout.FreeGunRoomHit(def, boxes, stE.Mounted)?.Code;
-                    Check(inRoom != null && before == null && blocked == "hansa:gunplace-blocked" && after == ef.Code,
+                    Check(inRoom != null && before == null && blocked == "ships:gunplace-blocked" && after == ef.Code,
                         $"0.3.24: a chest on {inRoom?.Id ?? "(no floor place)"} in {ep.Id}'s room: fine while it's empty ({before ?? "ok"}), its gun then can't be mounted ({blocked ?? "mounted"}); with the gun mounted, a piece there is refused ({after ?? "allowed"})");
                 }
             }
@@ -114,27 +114,27 @@ namespace HansaTests
             var g3 = def.Fixture("gun-port-3");
             Check(def.Fixtures.Where(f => f.Type == "gun").All(f => st.Mounted(f) != startEmpty.Contains(f.Code)) && SameGone(st.Gone()),
                 $"a new ship has every laid place's gun mounted, none on the {startEmpty.Count} empty ones");
-            Check(GunPlaces.TakeProblem(def, p3, st, 2.0, false, false, false) == "hansa:gun-take-hot" &&
-                  GunPlaces.TakeProblem(def, p3, st, 0, true, false, false) == "hansa:gun-take-run-out" &&
-                  GunPlaces.TakeProblem(def, p3, st, 0, false, true, false) == "hansa:gun-taken" &&
-                  GunPlaces.TakeProblem(def, p3, st, 0, false, false, true) == "hansa:gun-seat-taken",
+            Check(GunPlaces.TakeProblem(def, p3, st, 2.0, false, false, false) == "ships:gun-take-hot" &&
+                  GunPlaces.TakeProblem(def, p3, st, 0, true, false, false) == "ships:gun-take-run-out" &&
+                  GunPlaces.TakeProblem(def, p3, st, 0, false, true, false) == "ships:gun-taken" &&
+                  GunPlaces.TakeProblem(def, p3, st, 0, false, false, true) == "ships:gun-seat-taken",
                 "a gun isn't taken up hot, run out, being laid or manned");
-            Check(GunPlaces.MountProblem(def, p3, st, cells, null) == "hansa:gunplace-taken", "a place with its gun takes no other");
+            Check(GunPlaces.MountProblem(def, p3, st, cells, null) == "ships:gunplace-taken", "a place with its gun takes no other");
             Check(GunPlaces.TakeProblem(def, p3, st, 0, false, false, false) == null, "cold, housed, nobody at it: it's taken up");
             st.Set(p3, false);
             Check(st.Absent(g3) && !st.Mounted(g3) && SameGone(st.Gone(), "gun-port-3") && st.Delta.Count == 1, "taken up: gun-port-3 is gone (one difference saved)");
-            Check(GunPlaces.TakeProblem(def, p3, st, 0, false, false, false) == "hansa:gunplace-no-gun", "nothing more to take up there");
+            Check(GunPlaces.TakeProblem(def, p3, st, 0, false, false, false) == "ships:gunplace-no-gun", "nothing more to take up there");
             var need = GunPlaces.Cells(def, p3);
             // (the generator's place lists its own cells; the test's had main:4:-4 and main:5:-4 made slots)
             Check(need.Count >= 2 && need.Contains(def.Slots.IndexOf("main:4:-4")) && (generators ? (p3.Cells ?? Array.Empty<string>()).All(id => need.Contains(def.Slots.IndexOf(id))) : need.Contains(def.Slots.IndexOf("main:5:-4"))),
                 $"gun-port-3 needs its cells ({string.Join(", ", need.Select(n => def.Slots.Slots[n].Id))})");
             int c4 = def.Slots.IndexOf("main:4:-4");
             cells.Set(c4, SlotState.Empty);
-            Check(GunPlaces.MountProblem(def, p3, st, cells, null) == "hansa:gunplace-cell-empty", "a gun is refused while a cell under it is out");
+            Check(GunPlaces.MountProblem(def, p3, st, cells, null) == "ships:gunplace-cell-empty", "a gun is refused while a cell under it is out");
             cells.Set(c4, SlotState.Filled);
             var room = MountLayout.GunRoom(g3);
             var chest = new[] { room[3][0] + 0.1, g3.Pos[1], room[3][2] + 0.1, room[3][0] + 0.6, g3.Pos[1] + 0.8, room[3][2] + 0.6 };
-            Check(GunPlaces.MountProblem(def, p3, st, cells, new[] { chest }) == "hansa:gunplace-blocked", "a gun is refused while something stands in its working room");
+            Check(GunPlaces.MountProblem(def, p3, st, cells, new[] { chest }) == "ships:gunplace-blocked", "a gun is refused while something stands in its working room");
             var aside = new[] { g3.Pos[0] + 3, g3.Pos[1], 0.0, g3.Pos[0] + 3.5, g3.Pos[1] + 0.8, 0.5 };
             Check(GunPlaces.MountProblem(def, p3, st, cells, new[] { aside }) == null, "with the cells in and its room clear it's mounted");
             st.Set(p3, true);

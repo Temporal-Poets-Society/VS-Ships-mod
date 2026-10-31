@@ -8,11 +8,11 @@ namespace Hansa
         public static bool IsLoad(string code) => code==Powder || code==Shot;
         public static string Problem(byte charge,bool runIn,bool moving,string code,int count,int need)
         {
-            if(!runIn || moving) return "hansa:gun-load-run-in";
-            if(charge==Loaded) return "hansa:gun-load-full";
-            if(charge==0 && code!=Powder) return "hansa:gun-load-powder";
-            if(charge==PowderIn && code!=Shot) return "hansa:gun-load-shot";
-            return count<need?"hansa:gun-load-more":null;
+            if(!runIn || moving) return "ships:gun-load-run-in";
+            if(charge==Loaded) return "ships:gun-load-full";
+            if(charge==0 && code!=Powder) return "ships:gun-load-powder";
+            if(charge==PowderIn && code!=Shot) return "ships:gun-load-shot";
+            return count<need?"ships:gun-load-more":null;
         }
     }
 }

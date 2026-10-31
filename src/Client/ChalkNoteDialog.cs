@@ -62,21 +62,21 @@ namespace Hansa
             var cancel = ElementBounds.Fixed(0, y, 120, 30);
             var save = ElementBounds.Fixed(W + 26 - 170, y, 170, 30);
 
-            SingleComposer = capi.Gui.CreateCompo("hansa-chalknote", dialog)
+            SingleComposer = capi.Gui.CreateCompo("ships-chalknote", dialog)
                 .AddShadedDialogBG(bg)
-                .AddDialogTitleBar(Lang.Get("hansa:chalk-title", number), () => TryClose())
+                .AddDialogTitleBar(Lang.Get("ships:chalk-title", number), () => TryClose())
                 .BeginChildElements(bg)
                     .BeginClip(infoClip)
                         .AddRichtext(vtml, font, infoText, "info")
                     .EndClip()
                     .AddVerticalScrollbar(OnInfoScroll, infoBar, "infoscroll")
-                    .AddStaticText(Lang.Get("hansa:chalk-comment"), CairoFont.WhiteSmallText(), label)
+                    .AddStaticText(Lang.Get("ships:chalk-comment"), CairoFont.WhiteSmallText(), label)
                     .BeginClip(areaClip)
                         .AddInteractiveElement(new ChalkTextArea(capi, area, OnCommentChanged, CairoFont.TextInput().WithFontSize(16)), "comment")
                     .EndClip()
                     .AddVerticalScrollbar(OnCommentScroll, areaBar, "commentscroll")
                     .AddSmallButton(Lang.Get("Cancel"), () => TryClose(), cancel)
-                    .AddSmallButton(Lang.Get("hansa:chalk-save"), Save, save)
+                    .AddSmallButton(Lang.Get("ships:chalk-save"), Save, save)
                 .EndChildElements()
                 .Compose();
             SingleComposer.GetScrollbar("commentscroll")?.SetHeights((float)CommentHeight, (float)CommentHeight);

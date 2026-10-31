@@ -17,8 +17,8 @@ namespace Hansa
         void GridLaunch(HansaMod mod, BlockPos spawn, int y0, Action done)
         {
             var def = mod.GetShip("hansa-carrack");
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", "hansa-carrack"));
-            var deed = sapi.World.GetItem(new AssetLocation("hansa", "shipdeed-hansa-carrack"));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", "hansa-carrack"));
+            var deed = sapi.World.GetItem(new AssetLocation("ships", "shipdeed-hansa-carrack"));
             // (the user, 18 October 2026: the carrack is paused, only the caravel's charter in the creative inventory)
             Check(def != null && type != null && deed?.Attributes?["ship"].AsString() == "hansa-carrack" && deed.CreativeInventoryTabs?.Contains("general") != true,
                 "Hansa carrack: her design loaded, her entity and charter registered, the charter out of the creative inventory (paused)");

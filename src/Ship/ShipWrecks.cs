@@ -108,7 +108,7 @@ namespace Hansa
             }
             catch (Exception e)
             {
-                sapi.Logger.Error("[hansa] Couldn't read the wrecks made so far: {0}", e.Message);
+                sapi.Logger.Error("[ships] Couldn't read the wrecks made so far: {0}", e.Message);
             }
         }
 
@@ -166,7 +166,7 @@ namespace Hansa
                 try { Step(job); }
                 catch (Exception e)
                 {
-                    sapi.Logger.Error("[hansa] Making the wreck #{0} failed: {1}", job.Id, e);
+                    sapi.Logger.Error("[ships] Making the wreck #{0} failed: {1}", job.Id, e);
                     jobs.Remove(job.Id);
                 }
             }
@@ -373,7 +373,7 @@ namespace Hansa
                 if (dy <= 0) continue;
                 e.TeleportToDouble(x, y + dy, z);
                 moved++;
-                sapi.Logger.Notification("[hansa] Moved {0} up {1:0.00} out of a wreck's blocks", e.GetName(), dy);
+                sapi.Logger.Notification("[ships] Moved {0} up {1:0.00} out of a wreck's blocks", e.GetName(), dy);
             }
             return moved;
         }
@@ -499,11 +499,11 @@ namespace Hansa
                 // the guns
                 foreach (var spot in plan.Guns)
                 {
-                    var gun = world.GetBlock(new AssetLocation("hansa:gun-bronze-" + spot.Side));
+                    var gun = world.GetBlock(new AssetLocation("ships:gun-bronze-" + spot.Side));
                     if (gun == null) continue;
                     var pos = new BlockPos(spot.X, spot.Y, spot.Z, dim);
                     if (site.At(spot.X, spot.Y, spot.Z, out _) != WreckGround.Ground) ba.SetBlock(gun.Id, pos);
-                    else world.SpawnItemEntity(new ItemStack(world.GetBlock(new AssetLocation("hansa:gun-bronze-north")) ?? gun), pos.ToVec3d().Add(0.5, 1, 0.5));
+                    else world.SpawnItemEntity(new ItemStack(world.GetBlock(new AssetLocation("ships:gun-bronze-north")) ?? gun), pos.ToVec3d().Add(0.5, 1, 0.5));
                     report.Guns++;
                 }
                 // sand or gravel against her lowest blocks, where the seabed is sand or gravel
@@ -519,7 +519,7 @@ namespace Hansa
             }
             catch (Exception ex)
             {
-                sapi.Logger.Error("[hansa] Placing the wreck #{0}'s containers and guns failed; what's left of her cargo is dropped beside her: {1}", job.Id, ex);
+                sapi.Logger.Error("[ships] Placing the wreck #{0}'s containers and guns failed; what's left of her cargo is dropped beside her: {1}", job.Id, ex);
                 foreach (var l in pending)
                 {
                     if (l.Container != null) loose.Add(l.Container);
@@ -531,7 +531,7 @@ namespace Hansa
             report.Dropped += loose.Count;
             report.Finished = true;
             var rec = Registry.Done[job.Id];
-            sapi.Logger.Notification("[hansa] {0} #{1} is a wreck at {2},{3},{4}: {5} blocks ({6} cells), {7} containers, {8} guns{9}",
+            sapi.Logger.Notification("[ships] {0} #{1} is a wreck at {2},{3},{4}: {5} blocks ({6} cells), {7} containers, {8} guns{9}",
                 rec.Name, job.Id, rec.X, rec.Y, rec.Z, plan.Blocks.Count, plan.CellsPlaced, report.Containers.Count, report.Guns,
                 report.Dropped > 0 ? $", {report.Dropped} stacks dropped beside her" : "");
         }

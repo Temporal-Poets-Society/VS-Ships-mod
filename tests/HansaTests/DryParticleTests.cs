@@ -14,7 +14,7 @@ namespace HansaTests
         /// </summary>
         static void DryHold(string root, string code)
         {
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", code + ".json");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", code + ".json");
             if (!File.Exists(path)) { Check(false, $"{code}.json is there"); return; }
             var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
             def.Init();

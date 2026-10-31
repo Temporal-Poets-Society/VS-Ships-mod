@@ -21,7 +21,7 @@ namespace Hansa
     /// </summary>
     public class ShipMapLayer : MapLayer
     {
-        public const string Code = "hansa-ships", Group = "ships";
+        public const string Code = "ships-ships", Group = "ships";
 
         /// <summary>
         /// (0.3.12) The depths drawn at: vanilla's terrain is at 50, its player and creature markers (and the waypoints)
@@ -265,10 +265,10 @@ namespace Hansa
                 Screen(map, s.X, s.Z, out float sx, out float sy);
                 double r = Math.Max(6 * GuiElement.scaled(1), s.Length * zoom / 2);
                 if (Math.Abs(args.X - sx) > r || Math.Abs(args.Y - sy) > r) continue;
-                string name = s.Name ?? Lang.Get("hansa:map-ship-unnamed");
+                string name = s.Name ?? Lang.Get("ships:map-ship-unnamed");
                 // (0.3.12: knots with m/s, as the wind panel says every speed)
-                hoverText.AppendLine(Lang.Get(s.Own ? "hansa:map-ship-own" : "hansa:map-ship", name, HansaMod.HeadingDeg(s.Yaw),
-                    WindPanel.Speed(Math.Abs(s.Speed))) + (s.Loaded ? "" : " · " + Lang.Get("hansa:map-ship-lastseen")));
+                hoverText.AppendLine(Lang.Get(s.Own ? "ships:map-ship-own" : "ships:map-ship", name, HansaMod.HeadingDeg(s.Yaw),
+                    WindPanel.Speed(Math.Abs(s.Speed))) + (s.Loaded ? "" : " · " + Lang.Get("ships:map-ship-lastseen")));
             }
             var ep = capi.World.Player?.Entity;
             var sea = sys.Sea;

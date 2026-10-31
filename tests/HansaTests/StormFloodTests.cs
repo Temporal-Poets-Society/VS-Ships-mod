@@ -11,7 +11,7 @@ namespace HansaTests
     {
         static void StormFloodTests(string root)
         {
-            var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets/hansa/config/ships/caravel.json")));
+            var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets/ships/config/ships/caravel.json")));
             def.Init();
             var l = def.DamageParts;
             Console.WriteLine($"ISSUE30 displacement {l.Displacement:F2}, reserve {l.Reserve:F2}, capacity {l.Capacity:F2}, hold bottom {l.HoldBottom:F3}");

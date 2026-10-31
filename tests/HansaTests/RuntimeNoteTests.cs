@@ -91,13 +91,13 @@ namespace HansaTests
                     Check(Math.Abs(aimed.Train-lay.Train)<1e-4 && Math.Abs(aimed.Elevation-lay.Elevation)<1e-4,"132: view and gun train/elevation agree ("+gun.Code+", "+lay+")");
                 }
             Check(selected==def.Fixtures.Count(f=>f.Type=="gun"&&!f.Swivel)*18,"132: the full barrel remains selectable at every tested train, elevation and run-back");
-            Check(GunLoading.Problem(0,false,false,GunLoading.Powder,1,1)=="hansa:gun-load-run-in" &&
-                  GunLoading.Problem(0,true,true,GunLoading.Powder,1,1)=="hansa:gun-load-run-in" &&
-                  GunLoading.Problem(0,true,false,GunLoading.Shot,4,4)=="hansa:gun-load-powder" &&
+            Check(GunLoading.Problem(0,false,false,GunLoading.Powder,1,1)=="ships:gun-load-run-in" &&
+                  GunLoading.Problem(0,true,true,GunLoading.Powder,1,1)=="ships:gun-load-run-in" &&
+                  GunLoading.Problem(0,true,false,GunLoading.Shot,4,4)=="ships:gun-load-powder" &&
                   GunLoading.Problem(0,true,false,GunLoading.Powder,1,1)==null &&
-                  GunLoading.Problem(1,true,false,GunLoading.Shot,3,4)=="hansa:gun-load-more" &&
+                  GunLoading.Problem(1,true,false,GunLoading.Shot,3,4)=="ships:gun-load-more" &&
                   GunLoading.Problem(1,true,false,GunLoading.Shot,4,4)==null &&
-                  GunLoading.Problem(3,true,false,GunLoading.Shot,4,4)=="hansa:gun-load-full",
+                  GunLoading.Problem(3,true,false,GunLoading.Shot,4,4)=="ships:gun-load-full",
                   "132: load only after run-in stops, powder before shot, enough shot, no double charge");
 
             string outDir=Path.Combine(root,"tmp/runtime-meshes");Directory.CreateDirectory(outDir);

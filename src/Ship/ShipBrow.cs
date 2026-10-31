@@ -105,17 +105,17 @@ namespace Hansa
         /// <summary>Server: boards in hand at an open entry port's gate: run the brow out, or take it in. An error lang code, or null.</summary>
         public string ToggleBrow(IServerPlayer player, FixtureDef gate)
         {
-            if (gate?.Type != "gate") return "hansa:brow-no-port";
+            if (gate?.Type != "gate") return "ships:brow-no-port";
             if (Brows.ContainsKey(gate.Code))
             {
                 TakeInBrow(gate.Code);
                 return null;
             }
-            if (GoneDown) return "hansa:gone-down";
-            if (!Anchored || Math.Abs(Speed) > 0.3) return "hansa:brow-not-anchored";
-            if (!OpenFittings.Contains(gate.Code)) return "hansa:brow-gate-shut";
+            if (GoneDown) return "ships:gone-down";
+            if (!Anchored || Math.Abs(Speed) > 0.3) return "ships:brow-not-anchored";
+            if (!OpenFittings.Contains(gate.Code)) return "ships:brow-gate-shut";
             var end = FindBrowLanding(gate);
-            if (end == null) return "hansa:brow-no-landing";
+            if (end == null) return "ships:brow-no-landing";
             Brows[gate.Code] = end;
             SaveBrows();
             BrowSound(gate);

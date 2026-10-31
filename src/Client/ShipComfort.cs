@@ -4,7 +4,7 @@ using Vintagestory.API.Config;
 
 namespace Hansa
 {
-    /// <summary>ModConfig/hansa-client.json: how much of the sea each player feels (their own setting, their own screen).</summary>
+    /// <summary>ModConfig/ships-client.json: how much of the sea each player feels (their own setting, their own screen).</summary>
     public class HansaClientConfig
     {
         /// <summary>
@@ -18,14 +18,14 @@ namespace Hansa
         public bool ShipShadows = true;
         /// <summary>
         /// The wind panel aboard a ship (0.3.10): the true and apparent wind on a little compass round her, the force, and
-        /// at the helm the point of sail. Toggled with Ctrl+U (rebindable: "Hansa: wind panel") or .hansa wind.
+        /// at the helm the point of sail. Toggled with Ctrl+U (rebindable: "Hansa: wind panel") or .ships wind.
         /// </summary>
         public bool WindPanel = true;
         /// <summary>Masthead pennants streaming in the wind the ship feels (0.3.10).</summary>
         public bool Pennants = true;
     }
 
-    /// <summary>.hansa: a slider for how much of the sea's motion you see, and the steady-horizon switch.</summary>
+    /// <summary>.ships: a slider for how much of the sea's motion you see, and the steady-horizon switch.</summary>
     public class GuiDialogSeaComfort : GuiDialog
     {
         readonly ShipClientSystem sys;
@@ -49,15 +49,15 @@ namespace Hansa
             var steadyLabel = ElementBounds.Fixed(42, 112, 300, 25);
             var hint = ElementBounds.Fixed(0, 150, 340, 70);
 
-            SingleComposer = capi.Gui.CreateCompo("hansa-seacomfort", dialog)
+            SingleComposer = capi.Gui.CreateCompo("ships-seacomfort", dialog)
                 .AddShadedDialogBG(bg)
-                .AddDialogTitleBar(Lang.Get("hansa:comfort-title"), () => TryClose())
+                .AddDialogTitleBar(Lang.Get("ships:comfort-title"), () => TryClose())
                 .BeginChildElements(bg)
-                    .AddStaticText(Lang.Get("hansa:comfort-seamotion"), CairoFont.WhiteSmallText(), motionLabel)
+                    .AddStaticText(Lang.Get("ships:comfort-seamotion"), CairoFont.WhiteSmallText(), motionLabel)
                     .AddSlider(OnSlider, slider, "seamotion")
                     .AddSwitch(OnSwitch, steady, "steady")
-                    .AddStaticText(Lang.Get("hansa:comfort-steadyhorizon"), CairoFont.WhiteSmallText(), steadyLabel)
-                    .AddStaticText(Lang.Get("hansa:comfort-hint"), CairoFont.WhiteDetailText(), hint)
+                    .AddStaticText(Lang.Get("ships:comfort-steadyhorizon"), CairoFont.WhiteSmallText(), steadyLabel)
+                    .AddStaticText(Lang.Get("ships:comfort-hint"), CairoFont.WhiteDetailText(), hint)
                 .EndChildElements()
                 .Compose();
             SingleComposer.GetSlider("seamotion").SetValues((int)Math.Round(sys.Comfort.SeaMotion * 100), 0, 100, 5, "%");

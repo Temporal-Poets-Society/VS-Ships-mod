@@ -93,7 +93,7 @@ namespace Hansa
         public int Since;
 
         /// <summary>(0.3.23) The ship's stairs, by their cells: the steep one (2) and the long one (3); (0.1.0-dev.6, note 36) the short one (1).</summary>
-        public const string SteepStair = "hansa:shipstair-steep", LongStair = "hansa:shipstair-long", ShortStair = "hansa:shipstair-short";
+        public const string SteepStair = "ships:shipstair-steep", LongStair = "ships:shipstair-long", ShortStair = "ships:shipstair-short";
 
         /// <summary>(0.1.0-dev.6) The ship's stair of so many cells (any other: the long one).</summary>
         public static string StairBlock(int cells) => cells switch
@@ -109,7 +109,7 @@ namespace Hansa
             if (kind == "stair")
             {
                 string want = StairBlock(Length);
-                return Block != null && Block.StartsWith("hansa:shipstair-") && (Length == 0 || Block == want) ? Block : want;
+                return Block != null && Block.StartsWith("ships:shipstair-") && (Length == 0 || Block == want) ? Block : want;
             }
             return Block ?? DefaultBlock(kind);
         }

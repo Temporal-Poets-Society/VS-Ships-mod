@@ -6,7 +6,7 @@ oars on thole pins: at rest they lie out over the water on their pins, rowing th
 they're shipped along the sides (the item's model). Vanilla's places for chests, baskets, vessels, boat seats (and so
 animals) stay where they were (bar the two the rower sits on), plus two at the stern where the seats were.
 
-Writes assets/hansa/shapes/entity/rowboat.json (in the water) and rowboat-stowed.json (the item: on the gallows,
+Writes assets/ships/shapes/entity/rowboat.json (in the water) and rowboat-stowed.json (the item: on the gallows,
 in hand), and previews in docs/rowboat-*.png.
 
   python rowboat.py
@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 import vsshape as vs  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-ASSETS = os.path.join(ROOT, "assets", "hansa")
+ASSETS = os.path.join(ROOT, "assets", "ships")
 DOCS = os.path.join(ROOT, "docs")
 VANILLA = os.path.join(os.environ.get("APPDATA", ""), "Vintagestory", "assets", "survival", "shapes", "entity",
                        "nonliving", "boat", "sailed.json")

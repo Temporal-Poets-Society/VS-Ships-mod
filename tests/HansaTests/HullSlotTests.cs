@@ -22,13 +22,13 @@ namespace HansaTests
     {
         static (ShipDefinition Def, ShipSkinFile File) LoadHullDesign(string root, string code = "carrack-m")
         {
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", code + ".json");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", code + ".json");
             var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
             def.Init();
             ShipSkinFile file = null;
             if (def.Shapes?.Skin != null)
             {
-                var skinPath = Path.Combine(root, "assets", "hansa", def.Shapes.Skin.Replace("hansa:", "").Replace('/', Path.DirectorySeparatorChar));
+                var skinPath = Path.Combine(root, "assets", "ships", def.Shapes.Skin.Replace("ships:", "").Replace('/', Path.DirectorySeparatorChar));
                 if (File.Exists(skinPath)) file = JsonConvert.DeserializeObject<ShipSkinFile>(File.ReadAllText(skinPath));
             }
             return (def, file);

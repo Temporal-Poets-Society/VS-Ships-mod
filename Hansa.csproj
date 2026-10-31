@@ -6,7 +6,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <LangVersion>12</LangVersion>
     <Nullable>disable</Nullable>
-    <AssemblyName>Hansa</AssemblyName>
+    <AssemblyName>Ships</AssemblyName>
     <RootNamespace>Hansa</RootNamespace>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <OutputPath>bin\$(Configuration)\mod\</OutputPath>
@@ -59,7 +59,7 @@
   <!-- (the user, 18 October 2026) the release carries the caravel, not the carracks: their ship files stay in the repo
        (tests read them, and work on the carrack resumes later) but are left out of the Release build. -->
   <PropertyGroup>
-    <CarrackAssets>assets\hansa\config\ships\carrack*.json;assets\hansa\config\ships\hansa-carrack.json;assets\hansa\config\shipmeshes\carrack*.json;assets\hansa\config\shipmeshes\hansa-carrack.json;assets\hansa\shapes\entity\ship\carrack*\**;assets\hansa\shapes\entity\ship\hansa-carrack\**;assets\hansa\entities\ship\carrack*.json;assets\hansa\entities\ship\hansa-carrack.json</CarrackAssets>
+    <CarrackAssets>assets\ships\config\ships\carrack*.json;assets\ships\config\ships\hansa-carrack.json;assets\ships\config\shipmeshes\carrack*.json;assets\ships\config\shipmeshes\hansa-carrack.json;assets\ships\shapes\entity\ship\carrack*\**;assets\ships\shapes\entity\ship\hansa-carrack\**;assets\ships\entities\ship\carrack*.json;assets\ships\entities\ship\hansa-carrack.json</CarrackAssets>
   </PropertyGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Release'">
     <None Include="assets\**\*" CopyToOutputDirectory="PreserveNewest" />
@@ -80,7 +80,7 @@
   <Target Name="PackageMod" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
     <Error Condition="'$(ModVersion)' == ''" Text="No version found in modinfo.json" />
     <MakeDir Directories="$(MSBuildProjectDirectory)\release" />
-    <ZipDirectory SourceDirectory="$(OutputPath)" DestinationFile="$(MSBuildProjectDirectory)\release\hansa-$(ModVersion).zip" Overwrite="true" />
+    <ZipDirectory SourceDirectory="$(OutputPath)" DestinationFile="$(MSBuildProjectDirectory)\release\ships-$(ModVersion).zip" Overwrite="true" />
   </Target>
 
 </Project>

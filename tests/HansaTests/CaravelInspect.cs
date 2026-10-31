@@ -16,7 +16,7 @@ namespace HansaTests
         /// </summary>
         static void Inspect(string root, string code)
         {
-            var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", code + ".json")));
+            var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", code + ".json")));
             def.Init();
             var l = def.Mounts;
             Console.WriteLine($"{code}: {l.Floors.Count()} floor places, {l.Walls.Count()} wall spots, {l.All.Count(m => m.Kind == MountKind.Hook)} hooks, " +

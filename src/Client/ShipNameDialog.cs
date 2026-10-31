@@ -27,7 +27,7 @@ namespace Hansa
             Compose();
         }
 
-        static string ColourName(string c) => c == ShipPaint.Gold ? Lang.Get("hansa:name-gilt") : DecoClient.DyeName(c);
+        static string ColourName(string c) => c == ShipPaint.Gold ? Lang.Get("ships:name-gilt") : DecoClient.DyeName(c);
 
         void Compose()
         {
@@ -49,27 +49,27 @@ namespace Hansa
 
             var colours = NameStyle.Colours;
             string[] backs = new[] { "" }.Concat(colours).ToArray();
-            string[] backNames = new[] { Lang.Get("hansa:name-back-none") }.Concat(colours.Select(ColourName)).ToArray();
+            string[] backNames = new[] { Lang.Get("ships:name-back-none") }.Concat(colours.Select(ColourName)).ToArray();
             string[] sizes = Enumerable.Range(0, NameStyle.Sizes.Length).Select(i => i.ToString()).ToArray();
-            string[] sizeNames = sizes.Select(i => Lang.Get("hansa:name-size-" + i)).ToArray();
+            string[] sizeNames = sizes.Select(i => Lang.Get("ships:name-size-" + i)).ToArray();
             int ti = Math.Max(0, Array.IndexOf(colours, style.Text)), bi = Math.Max(0, Array.IndexOf(backs, style.Back ?? ""));
 
-            SingleComposer = capi.Gui.CreateCompo("hansa-shipname", dialog)
+            SingleComposer = capi.Gui.CreateCompo("ships-shipname", dialog)
                 .AddShadedDialogBG(bg)
-                .AddDialogTitleBar(Lang.Get("hansa:name-title"), () => TryClose())
+                .AddDialogTitleBar(Lang.Get("ships:name-title"), () => TryClose())
                 .BeginChildElements(bg)
-                    .AddStaticText(Lang.Get("hansa:name-label", EntityShip.MaxNameLength), CairoFont.WhiteSmallText(), label)
+                    .AddStaticText(Lang.Get("ships:name-label", EntityShip.MaxNameLength), CairoFont.WhiteSmallText(), label)
                     .AddTextInput(input, null, CairoFont.TextInput(), "name")
-                    .AddStaticText(Lang.Get("hansa:name-text-colour"), CairoFont.WhiteSmallText(), textLabel)
+                    .AddStaticText(Lang.Get("ships:name-text-colour"), CairoFont.WhiteSmallText(), textLabel)
                     .AddDropDown(colours, colours.Select(ColourName).ToArray(), ti, (code, sel) => style.Text = code, textDrop, "text")
-                    .AddStaticText(Lang.Get("hansa:name-back-colour"), CairoFont.WhiteSmallText(), backLabel)
+                    .AddStaticText(Lang.Get("ships:name-back-colour"), CairoFont.WhiteSmallText(), backLabel)
                     .AddDropDown(backs, backNames, bi, (code, sel) => style.Back = string.IsNullOrEmpty(code) ? null : code, backDrop, "back")
-                    .AddStaticText(Lang.Get("hansa:name-size"), CairoFont.WhiteSmallText(), sizeLabel)
+                    .AddStaticText(Lang.Get("ships:name-size"), CairoFont.WhiteSmallText(), sizeLabel)
                     .AddDropDown(sizes, sizeNames, Math.Clamp(style.Size, 0, sizes.Length - 1), (code, sel) => style.Size = int.Parse(code), sizeDrop, "size")
-                    .AddStaticText(Lang.Get("hansa:name-italic"), CairoFont.WhiteSmallText(), italicLabel)
+                    .AddStaticText(Lang.Get("ships:name-italic"), CairoFont.WhiteSmallText(), italicLabel)
                     .AddSwitch(on => style.Italic = on, italicSwitch, "italic")
                     .AddSmallButton(Lang.Get("Cancel"), () => TryClose(), cancel)
-                    .AddSmallButton(Lang.Get("hansa:name-paint"), Confirm, ok)
+                    .AddSmallButton(Lang.Get("ships:name-paint"), Confirm, ok)
                 .EndChildElements()
                 .Compose();
             var field = SingleComposer.GetTextInput("name");

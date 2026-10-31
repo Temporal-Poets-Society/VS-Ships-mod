@@ -11,7 +11,7 @@ using Vintagestory.API.MathTools;
 namespace Hansa
 {
     /// <summary>
-    /// A block of a wreck (hansa:wreck): a 4 × 4 × 4 grid of 0.25 cells of her timber, sheathing or iron, kept by its
+    /// A block of a wreck (ships:wreck): a 4 × 4 × 4 grid of 0.25 cells of her timber, sheathing or iron, kept by its
     /// block entity (<see cref="BlockEntityWreck"/>), which also draws it. Its collision and selection are its cells as
     /// boxes. Breaking it gives part of its raw materials (<see cref="WreckDrops"/>), never the block; it can't be chiselled
     /// (it isn't a microblock, and its JSON says canChisel false). Wood to the tools (an axe is quickest), metal where it's
@@ -19,7 +19,7 @@ namespace Hansa
     /// </summary>
     public class BlockWreck : Block
     {
-        public const string BlockCode = "hansa:wreck";
+        public const string BlockCode = "ships:wreck";
 
         BlockEntityWreck Be(IBlockAccessor ba, BlockPos pos) => pos == null ? null : ba?.GetBlockEntity(pos) as BlockEntityWreck;
 
@@ -60,7 +60,7 @@ namespace Hansa
         public override string GetPlacedBlockName(IWorldAccessor world, BlockPos pos)
         {
             var c = Be(world.BlockAccessor, pos)?.Cells;
-            return c == null || c.Empty ? Lang.Get("hansa:block-wreck") : Lang.Get("hansa:wreck-name-" + WreckMat.Texture(c.Main));
+            return c == null || c.Empty ? Lang.Get("ships:block-wreck") : Lang.Get("ships:wreck-name-" + WreckMat.Texture(c.Main));
         }
     }
 
@@ -73,7 +73,7 @@ namespace Hansa
     /// </summary>
     public class BlockEntityWreck : BlockEntity
     {
-        public const string ClassName = "hansa.Wreck";
+        public const string ClassName = "ships.Wreck";
 
         public WreckCells Cells { get; private set; }
         public long WreckId { get; private set; }
@@ -141,7 +141,7 @@ namespace Hansa
             catch (Exception e)
             {
                 drawFailed = true;
-                capi.Logger.Error("[hansa] Drawing wreck blocks failed (they're drawn as plain cubes from now on): {0}", e);
+                capi.Logger.Error("[ships] Drawing wreck blocks failed (they're drawn as plain cubes from now on): {0}", e);
                 return false;
             }
         }
@@ -153,8 +153,8 @@ namespace Hansa
             if (c == null || c.Empty) return;
             var parts = c.Mats.Select((m, i) => (m, n: System.Numerics.BitOperations.PopCount(c.Masks[i]))).OrderByDescending(p => p.n)
                 .Select(p => Lang.Get(WreckMat.Lang(p.m)) + " " + p.n);
-            dsc.AppendLine(Lang.Get("hansa:wreck-info", string.Join(", ", parts), c.Count));
-            dsc.AppendLine(Lang.Get(WreckMat.Metal(c.Main) ? "hansa:wreck-info-metal" : "hansa:wreck-info-wood"));
+            dsc.AppendLine(Lang.Get("ships:wreck-info", string.Join(", ", parts), c.Count));
+            dsc.AppendLine(Lang.Get(WreckMat.Metal(c.Main) ? "ships:wreck-info-metal" : "ships:wreck-info-wood"));
         }
     }
 }

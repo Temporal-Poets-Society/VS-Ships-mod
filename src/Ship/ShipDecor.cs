@@ -193,7 +193,7 @@ namespace Hansa
                     int slots = Math.Clamp(p.Slots > 0 ? p.Slots : 16, 1, 64);
                     if (!(Storages.TryGetValue(p.StorageCode, out var existing) && existing.Count == slots))
                     {
-                        var inv = new InventoryGeneric(slots, "hansa-" + p.StorageCode, EntityId.ToString(), Api);
+                        var inv = new InventoryGeneric(slots, "ships-" + p.StorageCode, EntityId.ToString(), Api);
                         if (Api.Side == EnumAppSide.Server)
                         {
                             string code = p.StorageCode;
@@ -359,13 +359,13 @@ namespace Hansa
             if (p.Role == PieceRole.Storage && Storages.TryGetValue(p.StorageCode, out var inv))
             {
                 int used = inv.Count(s => !s.Empty);
-                return Lang.Get("hansa:piece-info-storage", name, used, inv.Count);
+                return Lang.Get("ships:piece-info-storage", name, used, inv.Count);
             }
             // (0.3.18) a hearth or an oven put aboard: how it stands, as the design's
             if (p.Role == PieceRole.Hearth && HearthFixture != null && HearthFixture == PlacedHearth)
             {
                 var sb = new System.Text.StringBuilder(name).AppendLine();
-                if (!HearthFlued) sb.AppendLine(Lang.Get("hansa:hearth-no-flue"));
+                if (!HearthFlued) sb.AppendLine(Lang.Get("ships:hearth-no-flue"));
                 HearthInfo(sb);
                 return sb.ToString().TrimEnd();
             }
@@ -379,12 +379,12 @@ namespace Hansa
         }
 
         public string PieceName(ShipPiece p) =>
-            p?.Role == PieceRole.Panel ? Lang.Get("hansa:piece-panel", p.Stack?.GetName() ?? "") :
-            p?.Role == PieceRole.Partition ? Lang.Get("hansa:piece-partition", p.Stack?.GetName() ?? "") :
+            p?.Role == PieceRole.Panel ? Lang.Get("ships:piece-panel", p.Stack?.GetName() ?? "") :
+            p?.Role == PieceRole.Partition ? Lang.Get("ships:piece-partition", p.Stack?.GetName() ?? "") :
             // (0.3.16) what the modular pieces are called: "Window (Leaded glass pane)", "Railing (Oak fence)"...
-            p?.Role == PieceRole.Hatch ? Lang.Get(VanillaPieceBlock.IsGlazedTrapdoor(p.Stack?.Collectible?.Code?.ToString()) ? "hansa:piece-hatch-glazed" : "hansa:piece-hatch", p.Stack?.GetName() ?? "") :
-            p?.Role is PieceRole.Window or PieceRole.Railing or PieceRole.Ladder or PieceRole.Stair or PieceRole.Shelf or PieceRole.Hearth or PieceRole.Oven or PieceRole.Flue ? Lang.Get("hansa:piece-" + p.Role.ToString().ToLowerInvariant(), p.Stack?.GetName() ?? "") :
-            p?.Stack?.GetName() ?? Lang.Get("hansa:piece");
+            p?.Role == PieceRole.Hatch ? Lang.Get(VanillaPieceBlock.IsGlazedTrapdoor(p.Stack?.Collectible?.Code?.ToString()) ? "ships:piece-hatch-glazed" : "ships:piece-hatch", p.Stack?.GetName() ?? "") :
+            p?.Role is PieceRole.Window or PieceRole.Railing or PieceRole.Ladder or PieceRole.Stair or PieceRole.Shelf or PieceRole.Hearth or PieceRole.Oven or PieceRole.Flue ? Lang.Get("ships:piece-" + p.Role.ToString().ToLowerInvariant(), p.Stack?.GetName() ?? "") :
+            p?.Stack?.GetName() ?? Lang.Get("ships:piece");
 
         /// <summary>A piece's name by its storage's (and stand-in fixture's) code, "piece-12".</summary>
         public string PieceNameByCode(string code) =>
@@ -411,22 +411,22 @@ namespace Hansa
         /// </summary>
         public string TryPlacePiece(IServerPlayer player, string mountId, int dir)
         {
-            if (Def == null || Mounts == null) return "hansa:piece-nowhere";
-            if (GoneDown) return "hansa:gone-down";
+            if (Def == null || Mounts == null) return "ships:piece-nowhere";
+            if (GoneDown) return "ships:gone-down";
             var slot = player.InventoryManager.ActiveHotbarSlot;
             var stack = slot?.Itemstack;
-            if (stack?.Block == null || stack.Block.Id == 0) return "hansa:piece-needs-block";
+            if (stack?.Block == null || stack.Block.Id == 0) return "ships:piece-needs-block";
             // (0.3.21, step C) a gun goes on a gun place, not on a floor place
-            if (IsGunBlock(stack.Collectible)) return "hansa:gunplace-gun-not-piece";
+            if (IsGunBlock(stack.Collectible)) return "ships:gunplace-gun-not-piece";
             var m = Mounts.Get(mountId);
-            if (m == null) return "hansa:piece-nowhere";
+            if (m == null) return "ships:piece-nowhere";
             // (after 0.1.0-dev.6) building mode puts ship structure only; decoration goes aboard with it off
             // ((24 October 2026, caravel note 66) but a lantern on a hook: it's taken down in building mode too; (25 October,
             // note 100) and a figurehead on its place)
             if (VanillaPieceBlock.BuildingRefusal(stack.Block, VanillaPieceBlock.BuildingMode(player.Entity)) is string berr &&
                 !(m.Kind == MountKind.Hook && (new VanillaPieceBlock(World, stack).Light || VanillaPieceBlock.IsFigurehead(stack.Block)))) return berr;
-            if (!InReach(player, m.CX, m.CY, m.CZ)) return "hansa:piece-too-far";
-            if (m.Kind != MountKind.Hook && !SeenBy(player, m.Box)) return "hansa:piece-too-far";
+            if (!InReach(player, m.CX, m.CY, m.CZ)) return "ships:piece-too-far";
+            if (m.Kind != MountKind.Hook && !SeenBy(player, m.Box)) return "ships:piece-too-far";
             // (0.3.18) building mode (0.3.19: the player's toggle, not a saw in the off hand)
             // ((24 October 2026, notes 70, 79) as the client planned it: another way over the place where vanilla's doesn't fit)
             var plan = PiecePlanner.Plan(Mounts, m, new VanillaPieceBlock(World, stack, VanillaPieceBlock.BuildingMode(player.Entity)), dir, pl => PlaceProblem(pl, false) == null);
@@ -496,7 +496,7 @@ namespace Hansa
             if(plan.Kind==MountKind.Hook) return null; // hooks use the drawn surfaces beyond the coarse walking grid
             // ((25 October 2026, caravel note 99) a stair's foot and top on her deck as it is: the planner asked it of her decks
             // laid (a hatchway shut by its hatch is deck to step off onto, a cell taken up isn't)
-            if (PiecePlanner.LandingMissing(plan, PlaceGrid ?? Grid)) return "hansa:stair-no-landing";
+            if (PiecePlanner.LandingMissing(plan, PlaceGrid ?? Grid)) return "ships:stair-no-landing";
             if (PiecePlanner.GridClash(Mounts, plan, PlaceGrid ?? Grid) is not double[] clash) return null;
             // ((0.3.27, the user's stairs and beams) a beam in its way that can come out with it (the deck either side
             // open): fine, it comes out when the stair is put (TryPlacePiece); one that can't: say what to do
@@ -504,18 +504,18 @@ namespace Hansa
             // ((22 October 2026, caravel note 52) a beam only if one is in its way with the deck's cells over it up)
             if (BeamRules.ClashSays(Mounts, SlotLayout, Slots, plan, PlaceGrid ?? Grid, BeamAt) is string beam) return beam;
             // ((0.3.28) where one steps off it at its foot or onto the deck at its top: her side's curve, a fitting)
-            if (plan.Role == PieceRole.Stair && StairLanding.At(plan, PlaceGrid ?? Grid)) return "hansa:flight-no-landing";
-            return plan.Role == PieceRole.Ladder ? "hansa:stair-no-well" : plan.Role == PieceRole.Stair ? "hansa:flight-no-well" : plan.Role == PieceRole.Hearth ? "hansa:hearth-no-room" : "hansa:piece-blocked";
+            if (plan.Role == PieceRole.Stair && StairLanding.At(plan, PlaceGrid ?? Grid)) return "ships:flight-no-landing";
+            return plan.Role == PieceRole.Ladder ? "ships:stair-no-well" : plan.Role == PieceRole.Stair ? "ships:flight-no-well" : plan.Role == PieceRole.Hearth ? "ships:hearth-no-room" : "ships:piece-blocked";
         }
 
         public string PlaceProblem(PiecePlan plan, bool checkPeople)
         {
-            if (plan == null || plan.Error != null) return plan?.Error ?? "hansa:piece-nowhere";
-            foreach (string mid in plan.Mounts) if (Pieces.Taken(mid)) return "hansa:piece-taken";
+            if (plan == null || plan.Error != null) return plan?.Error ?? "ships:piece-nowhere";
+            foreach (string mid in plan.Mounts) if (Pieces.Taken(mid)) return "ships:piece-taken";
             // (0.3.20, step B) its places with her deck cells as they are (over a cell taken up: none)
             if (Slots != null && plan.Role != PieceRole.Hatch)
                 foreach (string mid in plan.Mounts)
-                    if (Mounts?.Get(mid) is MountPoint mp && !MountOpen(mp)) return "hansa:cell-empty-under";
+                    if (Mounts?.Get(mid) is MountPoint mp && !MountOpen(mp)) return "ships:cell-empty-under";
             // on top of a piece: every place it takes stands on one with a top to stand on
             // (a door's upper half stands on its own lower half)
             // (0.3.16: a stair takes the places over its cells, standing on the deck)
@@ -523,30 +523,30 @@ namespace Hansa
             {
                 var mm = Mounts?.Get(mid);
                 if (mm?.Under != null && plan.Mounts.Contains(mm.Under)) continue;
-                if (!Pieces.Supports(Mounts, mm)) return "hansa:piece-no-support";
+                if (!Pieces.Supports(Mounts, mm)) return "ships:piece-no-support";
             }
-            if (Pieces.Blocking(plan) != null) return "hansa:piece-taken";
+            if (Pieces.Blocking(plan) != null) return "ships:piece-taken";
             // (0.3.24, notes 176, 181) not in the working room of a gun mounted on a place that started empty (its room
             // isn't kept in her layout: the player chooses the gun or the stair there)
-            if (Def?.GunPlaces?.Length > 0 && MountLayout.FreeGunRoomHit(Def, plan.Solids.Concat(plan.Sel), GunMounted, plan.Role == PieceRole.Railing) != null) return "hansa:piece-gun-room";
+            if (Def?.GunPlaces?.Length > 0 && MountLayout.FreeGunRoomHit(Def, plan.Solids.Concat(plan.Sel), GunMounted, plan.Role == PieceRole.Railing) != null) return "ships:piece-gun-room";
             // (0.3.20, step B) nothing stands over an opening in her deck (a cell taken up); a hatch goes over one
             if (OverOpening(plan) is string open) return open;
-            if(PiecePlanner.LandingMissing(plan,PlaceGrid??Grid)) return "hansa:stair-no-landing";
+            if(PiecePlanner.LandingMissing(plan,PlaceGrid??Grid)) return "ships:stair-no-landing";
             if (VisiblePlacementProblem(plan) is string visibleProblem) return visibleProblem;
             if (plan.Role == PieceRole.Hatch)
-                return checkPeople && plan.Solids.Any(s => BoxOccupied(new[] { s[0], s[1], s[2], s[3], s[4] + 0.05, s[5] })) ? "hansa:piece-someone" : null;
+                return checkPeople && plan.Solids.Any(s => BoxOccupied(new[] { s[0], s[1], s[2], s[3], s[4] + 0.05, s[5] })) ? "ships:piece-someone" : null;
             // (0.3.19, the user: "ladders look better without rails") no railing beside a ladder-stair
             // ((0.3.23) nor beside a ship's stair: it has its own handrails)
-            if (plan.Role == PieceRole.Railing && PiecePlanner.BesideRailed(Mounts, Pieces.All, plan.Mount) is ShipPiece railed) return railed.Role == PieceRole.Ladder ? "hansa:railing-by-ladder" : "hansa:railing-by-stair";
+            if (plan.Role == PieceRole.Railing && PiecePlanner.BesideRailed(Mounts, Pieces.All, plan.Mount) is ShipPiece railed) return railed.Role == PieceRole.Ladder ? "ships:railing-by-ladder" : "ships:railing-by-stair";
             // (0.3.18, note 165) one hearth and one oven: the design's, or one put aboard
-            if (plan.Role == PieceRole.Hearth && HearthFixture != null) return "hansa:hearth-have-one";
-            if (plan.Role == PieceRole.Oven && OvenFixture != null) return "hansa:oven-have-one";
+            if (plan.Role == PieceRole.Hearth && HearthFixture != null) return "ships:hearth-have-one";
+            if (plan.Role == PieceRole.Oven && OvenFixture != null) return "ships:oven-have-one";
             // (a panel fills the wedge between the border and her side: her side is meant to be in its box; a partition's
             // and a door's layer was found free of her with its place; a flue's place was found free of her but for the deck
             // it goes through)
             if (plan.Role is PieceRole.Panel or PieceRole.Partition or PieceRole.Window or PieceRole.Railing or PieceRole.Flue) return null;
-            if (plan.Role == PieceRole.Shelf) return checkPeople && plan.Solids.Any(BoxOccupied) ? "hansa:piece-someone" : null;
-            if (plan.Role == PieceRole.Door) return checkPeople && plan.Solids.Any(BoxOccupied) ? "hansa:piece-someone" : null;
+            if (plan.Role == PieceRole.Shelf) return checkPeople && plan.Solids.Any(BoxOccupied) ? "ships:piece-someone" : null;
+            if (plan.Role == PieceRole.Door) return checkPeople && plan.Solids.Any(BoxOccupied) ? "ships:piece-someone" : null;
             // (on floor places, a piece's boxes only within its places' blocks: those the layout found free of her, a floor
             // cell's whole block; a lip over the edge, a cabinet's top board, touching her leaning side is no clash: note 72)
             // (0.3.18, note 162) a ladder-stair: the climber's room up it through the well and its landings (its own boxes
@@ -564,7 +564,7 @@ namespace Hansa
             {
                 double[] cells = plan.Kind == MountKind.Floor ? PiecePlanner.PlaceBounds(Mounts, plan) : null;
                 foreach (var s0 in plan.Solids.Concat(plan.Room))
-                    if (PiecePlanner.ClipTo(s0, cells) is double[] s && BoxOccupied(s)) return "hansa:piece-someone";
+                    if (PiecePlanner.ClipTo(s0, cells) is double[] s && BoxOccupied(s)) return "ships:piece-someone";
             }
             return null;
         }
@@ -596,10 +596,10 @@ namespace Hansa
         {
             var p = Pieces.Get(id);
             if (p == null) return null;
-            if (GoneDown) return "hansa:gone-down";
+            if (GoneDown) return "ships:gone-down";
             var c = p.Center;
-            if (!InReach(player, c[0], c[1], c[2])) return "hansa:piece-too-far";
-            if (!SeenBy(player, p.SeenBox)) return "hansa:piece-too-far";
+            if (!InReach(player, c[0], c[1], c[2])) return "ships:piece-too-far";
+            if (!SeenBy(player, p.SeenBox)) return "ships:piece-too-far";
             string err = RemovePiece(p, player);
             if (err == null)
             {
@@ -612,11 +612,11 @@ namespace Hansa
         /// <summary>Take a piece away: not a container with something in it, nor a bed or seat someone's in; its item to the player (survival; refused if it doesn't fit). Null player: just gone (the commands).</summary>
         public string RemovePiece(ShipPiece p, IServerPlayer player)
         {
-            if (p.Role == PieceRole.Storage && Storages.TryGetValue(p.StorageCode, out var inv) && !inv.Empty) return "hansa:piece-not-empty";
-            if (GetSeat("bunk:" + p.StorageCode)?.Passenger != null) return "hansa:bunk-taken";
-            if (GetSeat("sit:" + p.StorageCode)?.Passenger != null) return "hansa:piece-seat-taken";
+            if (p.Role == PieceRole.Storage && Storages.TryGetValue(p.StorageCode, out var inv) && !inv.Empty) return "ships:piece-not-empty";
+            if (GetSeat("bunk:" + p.StorageCode)?.Passenger != null) return "ships:bunk-taken";
+            if (GetSeat("sit:" + p.StorageCode)?.Passenger != null) return "ships:piece-seat-taken";
             // (not from under another piece: that one first)
-            if (Pieces.StandingOn(Mounts, p) != null) return p.Role == PieceRole.Hearth ? "hansa:hearth-flue-first" : "hansa:piece-under";
+            if (Pieces.StandingOn(Mounts, p) != null) return p.Role == PieceRole.Hearth ? "ships:hearth-flue-first" : "ships:piece-under";
             // (0.3.18, note 165) the hearth and the oven empty and cold first; a flue not while the fire draws through it
             if (PieceFireProblem(p) is string fireErr) return fireErr;
             // (0.3.14) a working block: its real block out of her dimension (not while something's in it: ShipBlocks)
@@ -625,7 +625,7 @@ namespace Hansa
             if (player != null && !Creative(player) && p.Stack != null)
             {
                 // (all or nothing: never dropped, it'd go into the sea)
-                if (!player.InventoryManager.TryGiveItemstack(ReturnedStack(p), true)) return "hansa:piece-inventory-full";
+                if (!player.InventoryManager.TryGiveItemstack(ReturnedStack(p), true)) return "ships:piece-inventory-full";
             }
             Pieces.Remove(p.Id);
             Changed();
@@ -669,7 +669,7 @@ namespace Hansa
                     break;
                 case PieceRole.Seat when !GoneDown:
                     if (GetSeat("sit:" + f.Code) is not PieceSeat seat) return;
-                    if (seat.Passenger != null && seat.Passenger != player.Entity) { Notify(player, "hansa:piece-seat-taken"); return; }
+                    if (seat.Passenger != null && seat.Passenger != player.Entity) { Notify(player, "ships:piece-seat-taken"); return; }
                     player.Entity.TryMount(seat);
                     break;
                 case PieceRole.Door:
@@ -686,7 +686,7 @@ namespace Hansa
                     break;
                 default:
                     // (a forge, an anvil, a quern: its workings are its block entity's, which pieces haven't got)
-                    if (p.Stack?.Block is Block wb && VanillaPieceBlock.IsWorkstation(wb)) player.SendIngameError("hansa-ashore", Lang.GetL(player.LanguageCode, "hansa:piece-ashore-only", p.Stack.GetName()));
+                    if (p.Stack?.Block is Block wb && VanillaPieceBlock.IsWorkstation(wb)) player.SendIngameError("ships-ashore", Lang.GetL(player.LanguageCode, "ships:piece-ashore-only", p.Stack.GetName()));
                     break;
             }
         }
@@ -697,7 +697,7 @@ namespace Hansa
             if (p?.Role != PieceRole.Door) return false;
             if (p.Open && p.Solids.Any(BoxOccupied))
             {
-                if (player != null) Notify(player, "hansa:doorway-blocked");
+                if (player != null) Notify(player, "ships:doorway-blocked");
                 return false;
             }
             p.Open = !p.Open;
@@ -740,12 +740,12 @@ namespace Hansa
         {
             errArgs = Array.Empty<object>();
             var plan = Mod.PaintPlanFor(Def);
-            if (plan == null) return "hansa:paint-notready";
+            if (plan == null) return "ships:paint-notready";
             int zi = plan.ZoneIndex(zoneCode);
             // (0.3.17) a zone with nothing of hers in it on this design isn't one
-            if (zi < 0 || plan.Area[zi] <= 0) return "hansa:paint-where";
-            if (GoneDown) return "hansa:gone-down";
-            if (at == null || !InReach(player, at.X, at.Y, at.Z, 0.3) || !plan.Near(zi, at.X, at.Y, at.Z, 0.6)) return "hansa:paint-where";
+            if (zi < 0 || plan.Area[zi] <= 0) return "ships:paint-where";
+            if (GoneDown) return "ships:gone-down";
+            if (at == null || !InReach(player, at.X, at.Y, at.Z, 0.3) || !plan.Near(zi, at.X, at.Y, at.Z, 0.6)) return "ships:paint-where";
             string err = PaintWith(player.InventoryManager.ActiveHotbarSlot, player.Entity, Creative(player), plan.Zones[zi].Code, at, out errArgs, out var kind, out string colour);
             if (err == null)
                 World.Logger.Audit("{0} {1} the {2} of {3} #{4}.", player.PlayerName, kind == PaintToolKind.Knife ? "scraped" : kind == PaintToolKind.Gold ? "gilded" : "painted " + colour,
@@ -764,9 +764,9 @@ namespace Hansa
             kind = PaintToolKind.None;
             colour = null;
             var plan = Mod.PaintPlanFor(Def);
-            if (plan == null) return "hansa:paint-notready";
+            if (plan == null) return "ships:paint-notready";
             int zi = plan.ZoneIndex(zoneCode);
-            if (zi < 0) return "hansa:paint-where";
+            if (zi < 0) return "ships:paint-where";
             var zone = plan.Zones[zi];
             // ((0.1.0-dev.9) a row's zone: as the whole zone was painted, if it wasn't itself)
             string err = ApplyPaintTool(slot, byEntity, creative, plan.PaintOf(Paint, zi), plan.Area[zi], ShipPaint.Gildable(zone), at, out errArgs, out kind, out colour, out string now);
@@ -796,18 +796,18 @@ namespace Hansa
             {
                 case PaintToolKind.Dye:
                 {
-                    if (was == colour) return "hansa:paint-same";
+                    if (was == colour) return "ships:paint-same";
                     int need = ShipPaint.DyeItems(area);
                     if (!creative)
                     {
                         if (have < need)
                         {
                             errArgs = new object[] { need / (double)ShipPaint.DyeItemsPerLitre, have / (double)ShipPaint.DyeItemsPerLitre };
-                            return "hansa:paint-dye-short";
+                            return "ships:paint-dye-short";
                         }
                         var src = (ILiquidSource)stack.Collectible;
                         var taken = src.TryTakeContent(stack, need);
-                        if (taken == null || taken.StackSize < need) return "hansa:paint-dye-short";
+                        if (taken == null || taken.StackSize < need) return "ships:paint-dye-short";
                         slot.MarkDirty();
                     }
                     now = colour;
@@ -816,12 +816,12 @@ namespace Hansa
                 }
                 case PaintToolKind.Gold:
                 {
-                    if (!gildable) return "hansa:paint-gild-kind";
-                    if (was == ShipPaint.Gold) return "hansa:paint-same";
+                    if (!gildable) return "ships:paint-gild-kind";
+                    if (was == ShipPaint.Gold) return "ships:paint-same";
                     int need = ShipPaint.GoldPlates(area);
                     if (!creative)
                     {
-                        if (have < need) { errArgs = new object[] { need, have }; return "hansa:paint-gold-short"; }
+                        if (have < need) { errArgs = new object[] { need, have }; return "ships:paint-gold-short"; }
                         slot.TakeOut(need);
                         slot.MarkDirty();
                     }
@@ -830,13 +830,13 @@ namespace Hansa
                     return null;
                 }
                 case PaintToolKind.Knife:
-                    if (was == null) return "hansa:paint-bare";
+                    if (was == null) return "ships:paint-bare";
                     now = null;
                     if (!creative && byEntity != null) stack.Collectible.DamageItem(World, byEntity, slot, 1);
                     if (at != null) PaintSound(at, "sounds/effect/woodgrind");
                     return null;
                 default:
-                    return "hansa:paint-needs-tool";
+                    return "ships:paint-needs-tool";
             }
         }
 
@@ -850,10 +850,10 @@ namespace Hansa
         {
             errArgs = Array.Empty<object>();
             var p = Pieces.Get(id);
-            if (p == null || !p.Paintable) return "hansa:paint-where";
-            if (GoneDown) return "hansa:gone-down";
+            if (p == null || !p.Paintable) return "ships:paint-where";
+            if (GoneDown) return "ships:gone-down";
             var c = p.Center;
-            if (!InReach(player, c[0], c[1], c[2]) || !SeenBy(player, p.Box)) return "hansa:paint-where";
+            if (!InReach(player, c[0], c[1], c[2]) || !SeenBy(player, p.Box)) return "ships:paint-where";
             string err = PaintPieceWith(player.InventoryManager.ActiveHotbarSlot, player.Entity, Creative(player), p, out errArgs, out var kind, out string colour);
             if (err == null)
                 World.Logger.Audit("{0} {1} a {2} on {3} #{4}.", player.PlayerName, kind == PaintToolKind.Knife ? "scraped" : "painted " + colour,
@@ -867,7 +867,7 @@ namespace Hansa
             errArgs = Array.Empty<object>();
             kind = PaintToolKind.None;
             colour = null;
-            if (p == null || !p.Paintable) return "hansa:paint-where";
+            if (p == null || !p.Paintable) return "ships:paint-where";
             var c = p.Center;
             string err = ApplyPaintTool(slot, byEntity, creative, p.Paint, p.PaintArea, false, new Vec3d(c[0], c[1], c[2]), out errArgs, out kind, out colour, out string now);
             if (err != null) return err;
@@ -944,7 +944,7 @@ namespace Hansa
                     attached.RemoveAttribute(kv.Key);
                     WatchedAttributes.MarkPathDirty("hansaFit");
                     changed = true;
-                    Api.Logger.Notification("[hansa] {0} #{1}: the {2} on the old place {3} is a placed piece now", Code, EntityId, stack.Collectible.Code, kv.Key);
+                    Api.Logger.Notification("[ships] {0} #{1}: the {2} on the old place {3} is a placed piece now", Code, EntityId, stack.Collectible.Code, kv.Key);
                 }
             }
             if (changed || !hadPieces) SavePieces();
@@ -1003,7 +1003,7 @@ namespace Hansa
                 }
                 if (placed == null && p.Stack != null) StowInHold(p.Stack);
                 foreach (var s in contents) StowInHold(s);
-                Api.Logger.Notification("[hansa] {0} #{1}: the {2} on {3}, a place her design no longer has, {4}", Code, EntityId, p.Stack?.Collectible?.Code,
+                Api.Logger.Notification("[ships] {0} #{1}: the {2} on {3}, a place her design no longer has, {4}", Code, EntityId, p.Stack?.Collectible?.Code,
                     string.Join("+", p.Mounts), placed != null ? "stands on " + string.Join("+", placed.Mounts) + " now" : "went into the hold");
             }
             Changed();
@@ -1027,7 +1027,7 @@ namespace Hansa
                 Pieces.Remove(r.Id);
                 if (r.Stack != null) StowInHold(r.Stack);
             }
-            Api.Logger.Notification("[hansa] {0} #{1}: {2} railings beside her ladder-stairs taken off (0.3.19), their fences in her hold", Code, EntityId, off.Count);
+            Api.Logger.Notification("[ships] {0} #{1}: {2} railings beside her ladder-stairs taken off (0.3.19), their fences in her hold", Code, EntityId, off.Count);
             Changed();
             if (Storages.ContainsKey("hold")) SaveInventory("hold");
             return true;
@@ -1049,7 +1049,7 @@ namespace Hansa
                 var plan = PiecePlanner.Plan(Mounts, m, new VanillaPieceBlock(World, stack), ShipMounts.DirOfYaw(sp.Yaw));
                 string err = PlacePiece(plan, stack, false, out _);
                 if (err == null) any = true;
-                else Api.Logger.Warning("[hansa] {0}: start piece {1} on {2}: {3} ({4})", Def.Code, sp.Block, sp.Mount, err,LastPlacementObstacle);
+                else Api.Logger.Warning("[ships] {0}: start piece {1} on {2}: {3} ({4})", Def.Code, sp.Block, sp.Mount, err,LastPlacementObstacle);
             }
             if(any) PlaceModularPieces();
             return any;
@@ -1076,7 +1076,7 @@ namespace Hansa
                 if (laid.HasAttribute(key)) continue;
                 string err = PlaceModular(e, out _);
                 if (err == null) {n++;laid.SetBool(key,true);}
-                else Api.Logger.Warning("[hansa] {0}: modular {1} at {2}: {3}", Def.Code, e.Kind, key, err);
+                else Api.Logger.Warning("[ships] {0}: modular {1} at {2}: {3}", Def.Code, e.Kind, key, err);
             }
             WatchedAttributes["hansaLaid"] = laid;
             WatchedAttributes.MarkPathDirty("hansaLaid");
@@ -1162,7 +1162,7 @@ namespace Hansa
                     if (placed.Role == PieceRole.Storage && invTree?.GetTreeAttribute(oldCode) is ITreeAttribute old &&
                         Storages.TryGetValue(placed.StorageCode, out var inv))
                     {
-                        var from = new InventoryGeneric(Math.Max(1, old.GetInt("qslots", 64)), "hansa-old-" + oldCode, EntityId.ToString(), Api);
+                        var from = new InventoryGeneric(Math.Max(1, old.GetInt("qslots", 64)), "ships-old-" + oldCode, EntityId.ToString(), Api);
                         from.FromTreeAttributes(old);
                         from.AfterBlocksLoaded(World);
                         int n = 0;
@@ -1308,7 +1308,7 @@ namespace Hansa
             base.OnControls(action, on, ref handled);
             if (!on || action is not (EnumEntityAction.Forward or EnumEntityAction.Backward or EnumEntityAction.Left or EnumEntityAction.Right or EnumEntityAction.Jump)) return;
             if (Ship.Api.Side != EnumAppSide.Server || Passenger is not EntityAgent agent || Ship.World.ElapsedMilliseconds - mountedAt < SettleMs) return;
-            Ship.Api.Event.EnqueueMainThreadTask(() => { if (agent.MountedOn == this) Ship.StandUp(agent, Fixture); }, "hansa-standup");
+            Ship.Api.Event.EnqueueMainThreadTask(() => { if (agent.MountedOn == this) Ship.StandUp(agent, Fixture); }, "ships-standup");
         }
     }
 }

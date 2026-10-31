@@ -51,7 +51,7 @@ namespace Hansa
                     var taken = inBefore.Where(n => !ship.Slots.Filled(n)).ToList();
                     bool beamOut = !ship.Slots.Filled(seg) && !ship.Grid.SolidAt(sd.CX, (sd.Box[1] + sd.Box[4]) / 2, sd.CZ);
                     bool walked = stair != null && PiecePlanner.WalkFlight(ship.Grid, foot, stair.Dir, stair.Rise, out double top, out double back, PiecePlanner.RunOf(stair));
-                    Check(before == "hansa:beam-deck-in" && handErr == null && beamOut && walked,
+                    Check(before == "ships:beam-deck-in" && handErr == null && beamOut && walked,
                         $"0.3.27: the {sd.Beam} beam's length {sd.Id} doesn't come out with the deck over it in ({before}); the well's three cells taken up and a steep stair put by hand through it ({handErr ?? "placed"}): the beam's length came out with it ({beamOut}), the stair walked up and down ({walked})");
                     string layThrough = ship.LayCell(seg, false);
                     string rem = stair != null ? ship.RemovePiece(stair, null) : "no stair";

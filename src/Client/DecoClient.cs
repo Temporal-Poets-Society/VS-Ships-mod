@@ -77,9 +77,9 @@ namespace Hansa
             this.capi = capi;
             this.sys = sys;
             this.channel = channel;
-            capi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "hansa-decor");
+            capi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "ships-decor");
             // (0.3.19, the user: "the saw can't be held in the offhand") building mode: a hotkey (vanilla's controls list it)
-            capi.Input.RegisterHotKey(BuildHotKey, Lang.Get("hansa:hotkey-build"), GlKeys.B, HotkeyType.CharacterControls);
+            capi.Input.RegisterHotKey(BuildHotKey, Lang.Get("ships:hotkey-build"), GlKeys.B, HotkeyType.CharacterControls);
             capi.Input.SetHotKeyHandler(BuildHotKey, _ => { SendBuild(null); return true; });
         }
 
@@ -123,7 +123,7 @@ namespace Hansa
             var dir = new Vec3d(vd.X, vd.Y, vd.Z);
             var held = player.InventoryManager.ActiveHotbarSlot?.Itemstack;
             bool block = held?.Block != null && held.Block.Id != 0;
-            // (0.3.18) building mode (0.3.19: the player's toggle, B or .hansa build); only then are planks, fences, panes,
+            // (0.3.18) building mode (0.3.19: the player's toggle, B or .ships build); only then are planks, fences, panes,
             // plank stairs, slabs and ladders structure
             bool building = VanillaPieceBlock.BuildingMode(ep);
             bool planks = block && building && VanillaPieceBlock.IsPlanks(held.Block);
@@ -292,9 +292,9 @@ namespace Hansa
             // (0.3.18) planks, a fence, a pane, plank stairs, a slab or a ladder in hand aboard out of building mode: say so
             // (0.3.19, the user: "I can stack 3 plank blocks on top of each other ... but cannot add to the sides": out of
             // building mode they're decoration, on a floor place or on top of a piece only, and the hint says why)
-            string needSaw = block && !building && (VanillaPieceBlock.IsBuildingBlock(held.Block) || gunItem) && ep.MountedOn is ShipSeat ? Lang.Get("hansa:hint-build-off", BuildKeyName(capi)) :
+            string needSaw = block && !building && (VanillaPieceBlock.IsBuildingBlock(held.Block) || gunItem) && ep.MountedOn is ShipSeat ? Lang.Get("ships:hint-build-off", BuildKeyName(capi)) :
                 // (after 0.1.0-dev.6) decoration in hand in building mode: it goes aboard with building mode off
-                decorOff && ep.MountedOn is ShipSeat ? Lang.Get("hansa:hint-build-decor", BuildKeyName(capi)) : null;
+                decorOff && ep.MountedOn is ShipSeat ? Lang.Get("ships:hint-build-decor", BuildKeyName(capi)) : null;
             if (best.Kind == TargetKind.None || best.Dist > fixtureDist + 0.05)
             {
                 Hint = needSaw;
@@ -313,7 +313,7 @@ namespace Hansa
                 best.Problem = best.Ship.PlaceProblem(best.Plan, true);
                 // ((25 October 2026, dev.9: the shelf "cannot be placed") the one in the way is the player: say so (aimed at the
                 // floor close by, they often stand in the cell a shelf or a piece would take)
-                if (best.Problem == "hansa:piece-someone" && ep.MountedOn is ShipSeat me && me.Ship == best.Ship && SelfInWay(me, best.Plan)) best.Problem = "hansa:piece-you";
+                if (best.Problem == "ships:piece-someone" && ep.MountedOn is ShipSeat me && me.Ship == best.Ship && SelfInWay(me, best.Plan)) best.Problem = "ships:piece-you";
             }
             Look = best;
             // (with the chalk its own line says what's in the crosshair: ChalkLine adds a mount point's id to it)
@@ -375,15 +375,15 @@ namespace Hansa
         /// <summary>(0.3.16) What the HUD says a modular piece in hand would be on the place in the crosshair (a window, a railing, a stair, a panel), or null.</summary>
         static string ModularHint(PiecePlan plan) => plan?.Role switch
         {
-            PieceRole.Window => Lang.Get("hansa:hint-place-window"),
-            PieceRole.Railing => Lang.Get("hansa:hint-place-railing"),
-            PieceRole.Ladder => Lang.Get("hansa:hint-place-ladder", plan.Rise),
-            PieceRole.Stair => Lang.Get(plan.Cells == PiecePlanner.ShortCells ? "hansa:hint-place-shortstair" : plan.Cells == PiecePlanner.SteepCells ? "hansa:hint-place-steepstair" : "hansa:hint-place-stair", plan.Rise),
-            PieceRole.Shelf => Lang.Get(MountLayout.IsHood(plan.Mount?.Id) ? "hansa:hint-place-hood" : plan.Mount?.Level >= 3 ? "hansa:hint-place-welltop" : "hansa:hint-place-shelf"),
-            PieceRole.Partition => Lang.Get("hansa:hint-place-partition"),
-            PieceRole.Hearth => Lang.Get("hansa:hint-place-hearth"),
-            PieceRole.Oven => Lang.Get("hansa:hint-place-oven"),
-            PieceRole.Flue => Lang.Get("hansa:hint-place-flue"),
+            PieceRole.Window => Lang.Get("ships:hint-place-window"),
+            PieceRole.Railing => Lang.Get("ships:hint-place-railing"),
+            PieceRole.Ladder => Lang.Get("ships:hint-place-ladder", plan.Rise),
+            PieceRole.Stair => Lang.Get(plan.Cells == PiecePlanner.ShortCells ? "ships:hint-place-shortstair" : plan.Cells == PiecePlanner.SteepCells ? "ships:hint-place-steepstair" : "ships:hint-place-stair", plan.Rise),
+            PieceRole.Shelf => Lang.Get(MountLayout.IsHood(plan.Mount?.Id) ? "ships:hint-place-hood" : plan.Mount?.Level >= 3 ? "ships:hint-place-welltop" : "ships:hint-place-shelf"),
+            PieceRole.Partition => Lang.Get("ships:hint-place-partition"),
+            PieceRole.Hearth => Lang.Get("ships:hint-place-hearth"),
+            PieceRole.Oven => Lang.Get("ships:hint-place-oven"),
+            PieceRole.Flue => Lang.Get("ships:hint-place-flue"),
             _ => null
         };
 
@@ -404,7 +404,7 @@ namespace Hansa
 
         PiecePlan PlanFor(EntityShip ship, MountPoint m, ItemStack held, int toward, bool building)
         {
-            if (held?.Block == null) return new PiecePlan { Error = "hansa:piece-nowhere", Mount = m };
+            if (held?.Block == null) return new PiecePlan { Error = "ships:piece-nowhere", Mount = m };
             string code = held.Block.Code.ToString();
             var key = (ship.EntityId, m.Id, code, toward, ship.FitVersion, building);
             if (plans.TryGetValue(key, out var cached)) return cached;
@@ -414,8 +414,8 @@ namespace Hansa
             try { planCache = PiecePlanner.Plan(ship.Mounts, m, new VanillaPieceBlock(capi.World, held, building), toward, pl => ship.PlaceProblem(pl, false) == null); }
             catch (Exception e)
             {
-                capi.Logger.Warning("[hansa] Can't work out where {0} goes: {1}", code, e.Message);
-                planCache = new PiecePlan { Error = "hansa:piece-nowhere", Mount = m };
+                capi.Logger.Warning("[ships] Can't work out where {0} goes: {1}", code, e.Message);
+                planCache = new PiecePlan { Error = "ships:piece-nowhere", Mount = m };
             }
             plans[key] = planCache;
             return planCache;
@@ -431,25 +431,25 @@ namespace Hansa
                     string name = ship.PieceName(t.Piece);
                     string use = t.Piece.Role switch
                     {
-                        PieceRole.Storage => Lang.Get("hansa:hint-piece-open"),
-                        PieceRole.Bed => Lang.Get("hansa:hint-piece-sleep"),
-                        PieceRole.Seat => Lang.Get("hansa:hint-piece-sit"),
-                        PieceRole.Door => Lang.Get(t.Piece.Open ? "hansa:hint-door-shut" : "hansa:hint-door-open"),
-                        PieceRole.Hatch => Lang.Get(t.Piece.Open ? "hansa:hint-hatch-shut" : "hansa:hint-hatch-open"),
+                        PieceRole.Storage => Lang.Get("ships:hint-piece-open"),
+                        PieceRole.Bed => Lang.Get("ships:hint-piece-sleep"),
+                        PieceRole.Seat => Lang.Get("ships:hint-piece-sit"),
+                        PieceRole.Door => Lang.Get(t.Piece.Open ? "ships:hint-door-shut" : "ships:hint-door-open"),
+                        PieceRole.Hatch => Lang.Get(t.Piece.Open ? "ships:hint-hatch-shut" : "ships:hint-hatch-open"),
                         // (0.3.14) a working block aboard is the real block: vanilla's own clicks (ShipBlocks)
-                        _ => ship.IsWorkingPiece(t.Piece.Id) ? Lang.Get(ShipBlocksClient.Loaded(capi, ship, t.Piece.Id) ? "hansa:hint-piece-working" : "hansa:hint-piece-working-notloaded") :
-                             t.Piece.Stack?.Block is Block wb && VanillaPieceBlock.IsWorkstation(wb) ? Lang.Get("hansa:hint-piece-ashore") : null
+                        _ => ship.IsWorkingPiece(t.Piece.Id) ? Lang.Get(ShipBlocksClient.Loaded(capi, ship, t.Piece.Id) ? "ships:hint-piece-working" : "ships:hint-piece-working-notloaded") :
+                             t.Piece.Stack?.Block is Block wb && VanillaPieceBlock.IsWorkstation(wb) ? Lang.Get("ships:hint-piece-ashore") : null
                     };
-                    if (ship.IsWorkingPiece(t.Piece.Id)) return Lang.Get("hansa:hint-piece", name) + " · " + use;
+                    if (ship.IsWorkingPiece(t.Piece.Id)) return Lang.Get("ships:hint-piece", name) + " · " + use;
                     // ((0.3.27, note 199) the wrench turns it)
-                    if (EntityShip.IsWrench(held)) return Lang.Get("hansa:hint-piece", name) + " · " + Lang.Get("hansa:hint-piece-turn");
-                    return Lang.Get("hansa:hint-piece", name) + (use != null ? " · " + use : "") + " · " + Lang.Get("hansa:hint-piece-take") +
-                           (stackOver && held?.Block != null ? " · " + Lang.Get("hansa:hint-piece-stack", held.GetName()) : "");
+                    if (EntityShip.IsWrench(held)) return Lang.Get("ships:hint-piece", name) + " · " + Lang.Get("ships:hint-piece-turn");
+                    return Lang.Get("ships:hint-piece", name) + (use != null ? " · " + use : "") + " · " + Lang.Get("ships:hint-piece-take") +
+                           (stackOver && held?.Block != null ? " · " + Lang.Get("ships:hint-piece-stack", held.GetName()) : "");
                 }
                 case TargetKind.Shown:
                 {
                     string code = t.Mount.Id.StartsWith("h:") ? t.Mount.Id.Substring(2) : t.Mount.Id;
-                    return Lang.HasTranslation("hansa:hint-attach-" + code, false, false) ? Lang.Get("hansa:hint-attach-" + code) : Lang.Get("hansa:hint-hook");
+                    return Lang.HasTranslation("ships:hint-attach-" + code, false, false) ? Lang.Get("ships:hint-attach-" + code) : Lang.Get("ships:hint-hook");
                 }
                 case TargetKind.Mount:
                     if (t.Problem != null) return Lang.Get(t.Problem);
@@ -458,14 +458,14 @@ namespace Hansa
                     {
                         // ((0.3.27) a stair through a well: the beam in its way comes out with it)
                         var bw = t.Plan.Role is PieceRole.Stair or PieceRole.Ladder ? ship.BeamsInTheWay(t.Plan) : null;
-                        if (bw != null) mh += " · " + Lang.Get("hansa:hint-stair-beam", bw.Count);
-                        return Lang.Get("hansa:hint-place", held.GetName()) + " · " + mh +
-                            (t.Plan.Role is PieceRole.Hearth or PieceRole.Oven or PieceRole.Flue ? "" : " · " + Lang.Get("hansa:hint-build-on", BuildKeyName(capi)));
+                        if (bw != null) mh += " · " + Lang.Get("ships:hint-stair-beam", bw.Count);
+                        return Lang.Get("ships:hint-place", held.GetName()) + " · " + mh +
+                            (t.Plan.Role is PieceRole.Hearth or PieceRole.Oven or PieceRole.Flue ? "" : " · " + Lang.Get("ships:hint-build-on", BuildKeyName(capi)));
                     }
-                    return Lang.Get(t.Plan.Mounts.Count > 1 ? "hansa:hint-place-two" : "hansa:hint-place", held.GetName()) +
+                    return Lang.Get(t.Plan.Mounts.Count > 1 ? "ships:hint-place-two" : "ships:hint-place", held.GetName()) +
                            // (0.3.14) a working block on a floor place on her grid works aboard (ShipBlocks)
-                           (t.Plan.Kind == MountKind.Floor && ship.GridFrac != null && ShipBlocksSystem.ClientInstance?.IsWorking(held.Block) == true ? " · " + Lang.Get("hansa:hint-piece-works-aboard") :
-                            VanillaPieceBlock.IsWorkstation(held.Block) ? " · " + Lang.Get("hansa:hint-piece-ashore") : "");
+                           (t.Plan.Kind == MountKind.Floor && ship.GridFrac != null && ShipBlocksSystem.ClientInstance?.IsWorking(held.Block) == true ? " · " + Lang.Get("ships:hint-piece-works-aboard") :
+                            VanillaPieceBlock.IsWorkstation(held.Block) ? " · " + Lang.Get("ships:hint-piece-ashore") : "");
                 case TargetKind.Zone:
                     return ZoneHint(ship, t.Zone, held, tool);
                 case TargetKind.PaintPiece:
@@ -478,8 +478,8 @@ namespace Hansa
                 {
                     if (t.Problem != null) return Lang.Get(t.Problem);
                     var gf = ship.GunOf(ship.Def.GunPlaces[t.Zone]);
-                    return Lang.Get("hansa:hint-gunplace-mount", held?.GetName() ?? "", Lang.Get(ShipCompartments.AlongX(gf) ? (gf.Out[0] < 0 ? "hansa:side-stern" : "hansa:side-bow")
-                        : (gf?.Out?[2] ?? gf?.Pos?[2] ?? 0) < 0 ? "hansa:side-port" : "hansa:side-starboard"));
+                    return Lang.Get("ships:hint-gunplace-mount", held?.GetName() ?? "", Lang.Get(ShipCompartments.AlongX(gf) ? (gf.Out[0] < 0 ? "ships:side-stern" : "ships:side-bow")
+                        : (gf?.Out?[2] ?? gf?.Pos?[2] ?? 0) < 0 ? "ships:side-port" : "ships:side-starboard"));
                 }
             }
             return null;
@@ -523,12 +523,12 @@ namespace Hansa
                 double y = ship.Grid.OY + (cj + 0.5) * ship.Grid.V;
                 foreach (var (top, thick) in l.Tops)
                     if (y < top && y > top - thick)
-                        return new Target { Kind = TargetKind.Cell, Ship = ship, Cell = -1, CellMode = CellTake, Dist = t, At = at, Problem = "hansa:cell-fixed" };
+                        return new Target { Kind = TargetKind.Cell, Ship = ship, Cell = -1, CellMode = CellTake, Dist = t, At = at, Problem = "ships:cell-fixed" };
                 // ((0.3.27) a deck beam with no lengths that come out there)
                 if (l.Beams.Count > 0)
                     foreach (var (top, thick) in l.Tops)
                         if (y < top - thick && y > top - thick - 0.75)
-                            return new Target { Kind = TargetKind.Cell, Ship = ship, Cell = -1, CellMode = CellTake, Dist = t, At = at, Problem = "hansa:beam-fixed" };
+                            return new Target { Kind = TargetKind.Cell, Ship = ship, Cell = -1, CellMode = CellTake, Dist = t, At = at, Problem = "ships:beam-fixed" };
                 return default;
             }
             bool planks = EntityShip.LaysOpenings(held), trap = building && held?.Block != null && VanillaPieceBlock.IsTrapdoor(held.Block);
@@ -619,7 +619,7 @@ namespace Hansa
                 if (n >= 0) return new Target { Kind = TargetKind.Hull, Ship = ship, Cell = n, CellMode = CellTake, Dist = t, At = at };
                 // (her fixed planking: a frame's strip, a wale, her ends, a panel with something on it)
                 if (ship.Def.PartMap?.IsShell(ci, cj, ck) == true && at.Y <= ship.Def.PartMap.HullTop)
-                    return new Target { Kind = TargetKind.Hull, Ship = ship, Cell = -1, CellMode = CellTake, Dist = t + 1e-4, At = at, Problem = "hansa:hull-fixed" };
+                    return new Target { Kind = TargetKind.Hull, Ship = ship, Cell = -1, CellMode = CellTake, Dist = t + 1e-4, At = at, Problem = "ships:hull-fixed" };
                 return default;
             }
             if (!EntityShip.LaysOpenings(held) && !(building && held?.Block!=null && VanillaPieceBlock.IsPane(held.Block))) return default;
@@ -662,9 +662,9 @@ namespace Hansa
             // ((0.3.30) with her planking behind a ceiling: that first)
             int first = ship.HullBehind(t.Cell) is int b && b >= 0 ? b : t.Cell;
             if(held?.Block!=null && VanillaPieceBlock.IsPane(held.Block))
-                return HullWindows.Fits(ship.Def,ship.HullLayout.Slots[first]) ? ship.HullLayProblem(first,true) : "hansa:hull-window-above";
+                return HullWindows.Fits(ship.Def,ship.HullLayout.Slots[first]) ? ship.HullLayProblem(first,true) : "ships:hull-window-above";
             int need = EntityShip.LayNeed(ship.HullLayout.Slots[first].Mat, held);
-            if (need < 0 || !EntityShip.Creative(capi.World.Player) && (held?.StackSize ?? 0) < need) return "hansa:hull-needs-planks";
+            if (need < 0 || !EntityShip.Creative(capi.World.Player) && (held?.StackSize ?? 0) < need) return "ships:hull-needs-planks";
             return ship.HullLayProblem(first, true);
         }
 
@@ -678,14 +678,14 @@ namespace Hansa
             {
                 // ((0.3.30) her planking behind it out too: both laid from here (the planking first: the sea's kept out))
                 int both = ship.HullLayCount(t.Cell, held);
-                return ship.HullPanels.Filled(t.Cell) ? Lang.Get("hansa:hint-hull-lay-behind", both, held?.GetName() ?? "")
-                    : Lang.Get("hansa:hint-hull-lay-both", both, held?.GetName() ?? "", name);
+                return ship.HullPanels.Filled(t.Cell) ? Lang.Get("ships:hint-hull-lay-behind", both, held?.GetName() ?? "")
+                    : Lang.Get("ships:hint-hull-lay-both", both, held?.GetName() ?? "", name);
             }
             if(t.CellMode==CellTake)
-                return Lang.Get("hansa:hint-hull-material-take",name,ship.HullPanels[t.Cell]==SlotState.Glazed?1:s.Mat.Count,
-                    Lang.Get(ship.HullPanels[t.Cell]==SlotState.Glazed?"hansa:material-pane":"hansa:material-boards"))+
-                    (s.Sill<ship.Def.Waterline+ship.Sinkage+.5?" · "+Lang.Get("hansa:hull-removal-floods"):"");
-            return Lang.Get("hansa:hint-hull-lay", held?.Block!=null && VanillaPieceBlock.IsPane(held.Block)?1:Math.Max(1,EntityShip.LayNeed(s.Mat,held)),held?.GetName()??"",name);
+                return Lang.Get("ships:hint-hull-material-take",name,ship.HullPanels[t.Cell]==SlotState.Glazed?1:s.Mat.Count,
+                    Lang.Get(ship.HullPanels[t.Cell]==SlotState.Glazed?"ships:material-pane":"ships:material-boards"))+
+                    (s.Sill<ship.Def.Waterline+ship.Sinkage+.5?" · "+Lang.Get("ships:hull-removal-floods"):"");
+            return Lang.Get("ships:hint-hull-lay", held?.Block!=null && VanillaPieceBlock.IsPane(held.Block)?1:Math.Max(1,EntityShip.LayNeed(s.Mat,held)),held?.GetName()??"",name);
         }
 
         /// <summary>Why the deck cell in the crosshair can't be done (a lang code), or null; a hatch's plan into the target's Plan.</summary>
@@ -699,14 +699,14 @@ namespace Hansa
                     var dd=ship.SlotLayout.Slots[t.Cell];
                     int need = EntityShip.LayNeed(dd.Mat, held);
                     if (need < 0 || !EntityShip.Creative(capi.World.Player) && (held?.StackSize ?? 0) < need)
-                        return dd.IsBeam || dd.IsStructure ? "hansa:cell-needs-supportbeam" : "hansa:cell-needs-planks";
+                        return dd.IsBeam || dd.IsStructure ? "ships:cell-needs-supportbeam" : "ships:cell-needs-planks";
                     return ship.LayProblem(t.Cell, true);
                 case CellHatch:
                 {
                     var plan = ship.HatchPlanAt(t.Cell, held?.Collectible?.Code?.ToString());
                     t.Plan = plan;
                     if (plan.Error != null) return plan.Error;
-                    if (!EntityShip.Creative(capi.World.Player) && (held?.StackSize ?? 0) < plan.Mounts.Count) return "hansa:hatch-needs-trapdoors";
+                    if (!EntityShip.Creative(capi.World.Player) && (held?.StackSize ?? 0) < plan.Mounts.Count) return "ships:hatch-needs-trapdoors";
                     return ship.PlaceProblem(plan, true);
                 }
             }
@@ -718,26 +718,26 @@ namespace Hansa
             if (t.Problem != null) return Lang.Get(t.Problem);
             var ship = t.Ship;
             var dd = ship.SlotLayout.Slots[t.Cell];
-            string deck = Lang.HasTranslation("hansa:deck-" + dd.Deck, false, false) ? Lang.Get("hansa:deck-" + dd.Deck) : dd.Deck;
-            if(dd.IsStructure) return Lang.Get(t.CellMode==CellTake?"hansa:hint-rib-take":"hansa:hint-rib-lay");
+            string deck = Lang.HasTranslation("ships:deck-" + dd.Deck, false, false) ? Lang.Get("ships:deck-" + dd.Deck) : dd.Deck;
+            if(dd.IsStructure) return Lang.Get(t.CellMode==CellTake?"ships:hint-rib-take":"ships:hint-rib-lay");
             // ((0.3.28, D2.4) a gun port's cover)
             if (dd.IsGunPort)
-                return t.CellMode == CellTake ? Lang.Get("hansa:hint-port-out") : t.CellMode == CellLay ? Lang.Get("hansa:hint-port-in", held?.GetName() ?? "") : null;
+                return t.CellMode == CellTake ? Lang.Get("ships:hint-port-out") : t.CellMode == CellLay ? Lang.Get("ships:hint-port-in", held?.GetName() ?? "") : null;
             if (dd.IsPort)
-                return t.CellMode == CellTake ? Lang.Get("hansa:hint-port-take") : t.CellMode == CellLay ? Lang.Get("hansa:hint-port-lay", Math.Max(1, EntityShip.LayNeed(dd.Mat, held)), held?.GetName() ?? "") : null;
+                return t.CellMode == CellTake ? Lang.Get("ships:hint-port-take") : t.CellMode == CellLay ? Lang.Get("ships:hint-port-lay", Math.Max(1, EntityShip.LayNeed(dd.Mat, held)), held?.GetName() ?? "") : null;
             // ((0.3.27) a length of a deck beam)
             if (dd.IsBeam)
-                return t.CellMode == CellTake ? Lang.Get("hansa:hint-beam-take", deck) : t.CellMode == CellLay ? Lang.Get("hansa:hint-beam-lay", Math.Max(1, EntityShip.LayNeed(dd.Mat, held)), held?.GetName() ?? "") : null;
+                return t.CellMode == CellTake ? Lang.Get("ships:hint-beam-take", deck) : t.CellMode == CellLay ? Lang.Get("ships:hint-beam-lay", Math.Max(1, EntityShip.LayNeed(dd.Mat, held)), held?.GetName() ?? "") : null;
             switch (t.CellMode)
             {
-                case CellTake: return Lang.Get("hansa:hint-cell-take", deck);
-                case CellLay: return Lang.Get("hansa:hint-cell-lay", Math.Max(1, EntityShip.LayNeed(dd.Mat, held)), held?.GetName() ?? "");
-                case CellInfo: return Lang.Get("hansa:hint-cell-open");
+                case CellTake: return Lang.Get("ships:hint-cell-take", deck);
+                case CellLay: return Lang.Get("ships:hint-cell-lay", Math.Max(1, EntityShip.LayNeed(dd.Mat, held)), held?.GetName() ?? "");
+                case CellInfo: return Lang.Get("ships:hint-cell-open");
                 case CellHatch:
                 {
                     var b = t.Plan?.Box;
                     int nx = b == null ? 0 : (int)Math.Round(b[3] - b[0]), nz = b == null ? 0 : (int)Math.Round(b[5] - b[2]);
-                    return Lang.Get(VanillaPieceBlock.IsGlazedTrapdoor(held?.Collectible?.Code?.ToString()) ? "hansa:hint-cell-hatch-glazed" : "hansa:hint-cell-hatch", nx, nz, t.Plan?.Mounts.Count ?? 0);
+                    return Lang.Get(VanillaPieceBlock.IsGlazedTrapdoor(held?.Collectible?.Code?.ToString()) ? "ships:hint-cell-hatch-glazed" : "ships:hint-cell-hatch", nx, nz, t.Plan?.Mounts.Count ?? 0);
                 }
             }
             return null;
@@ -751,10 +751,10 @@ namespace Hansa
             bool creative = EntityShip.Creative(capi.World.Player);
             EntityShip.PaintTool(held, out string colour, out int have);
             if (tool == PaintToolKind.Knife)
-                return p.Paint == null ? Lang.Get("hansa:hint-scrape-bare-piece", name) : Lang.Get("hansa:hint-scrape-piece", name);
-            if (p.Paint == colour) return Lang.Get("hansa:hint-paint-same", name, DyeName(colour));
+                return p.Paint == null ? Lang.Get("ships:hint-scrape-bare-piece", name) : Lang.Get("ships:hint-scrape-piece", name);
+            if (p.Paint == colour) return Lang.Get("ships:hint-paint-same", name, DyeName(colour));
             double need = ShipPaint.DyeItems(area) / (double)ShipPaint.DyeItemsPerLitre, got = have / (double)ShipPaint.DyeItemsPerLitre;
-            return Lang.Get(creative ? "hansa:hint-paint-free" : got + 1e-9 < need ? "hansa:hint-paint-short" : "hansa:hint-paint", name, area, DyeName(colour), need, got);
+            return Lang.Get(creative ? "ships:hint-paint-free" : got + 1e-9 < need ? "ships:hint-paint-short" : "ships:hint-paint", name, area, DyeName(colour), need, got);
         }
 
         string ZoneHint(EntityShip ship, int zi, ItemStack held, PaintToolKind tool)
@@ -770,19 +770,19 @@ namespace Hansa
             {
                 case PaintToolKind.Dye:
                 {
-                    if (now == colour) return Lang.Get("hansa:hint-paint-same", name, DyeName(colour));
+                    if (now == colour) return Lang.Get("ships:hint-paint-same", name, DyeName(colour));
                     double need = ShipPaint.DyeItems(area) / (double)ShipPaint.DyeItemsPerLitre, got = have / (double)ShipPaint.DyeItemsPerLitre;
-                    return Lang.Get(creative ? "hansa:hint-paint-free" : got + 1e-9 < need ? "hansa:hint-paint-short" : "hansa:hint-paint", name, area, DyeName(colour), need, got);
+                    return Lang.Get(creative ? "ships:hint-paint-free" : got + 1e-9 < need ? "ships:hint-paint-short" : "ships:hint-paint", name, area, DyeName(colour), need, got);
                 }
                 case PaintToolKind.Gold:
                 {
-                    if (!ShipPaint.Gildable(zone)) return Lang.Get("hansa:hint-gild-kind", name);
-                    if (now == ShipPaint.Gold) return Lang.Get("hansa:hint-gild-same", name);
+                    if (!ShipPaint.Gildable(zone)) return Lang.Get("ships:hint-gild-kind", name);
+                    if (now == ShipPaint.Gold) return Lang.Get("ships:hint-gild-same", name);
                     int need = ShipPaint.GoldPlates(area);
-                    return Lang.Get(creative ? "hansa:hint-gild-free" : have < need ? "hansa:hint-gild-short" : "hansa:hint-gild", name, area, need, have);
+                    return Lang.Get(creative ? "ships:hint-gild-free" : have < need ? "ships:hint-gild-short" : "ships:hint-gild", name, area, need, have);
                 }
                 case PaintToolKind.Knife:
-                    return now == null ? Lang.Get("hansa:hint-scrape-bare", name, DefaultName(zone)) : Lang.Get("hansa:hint-scrape", name, DefaultName(zone));
+                    return now == null ? Lang.Get("ships:hint-scrape-bare", name, DefaultName(zone)) : Lang.Get("ships:hint-scrape", name, DefaultName(zone));
             }
             return null;
         }
@@ -792,19 +792,19 @@ namespace Hansa
         {
             if (chalkText == null || Look.Kind != TargetKind.Inspect || Look.Mount == null) return chalkText;
             var m = Look.Mount;
-            string kind = Lang.Get("hansa:mount-kind-" + m.Kind.ToString().ToLowerInvariant());
-            string room = Lang.HasTranslation("hansa:room-" + m.Room, false, false) ? Lang.Get("hansa:room-" + m.Room)
-                : m.Deck != null && Lang.HasTranslation("hansa:deck-" + m.Deck, false, false) ? Lang.Get("hansa:deck-" + m.Deck) : m.Room;
-            return chalkText + Environment.NewLine + Lang.Get("hansa:hint-inspect-mount", kind, room, m.Id);
+            string kind = Lang.Get("ships:mount-kind-" + m.Kind.ToString().ToLowerInvariant());
+            string room = Lang.HasTranslation("ships:room-" + m.Room, false, false) ? Lang.Get("ships:room-" + m.Room)
+                : m.Deck != null && Lang.HasTranslation("ships:deck-" + m.Deck, false, false) ? Lang.Get("ships:deck-" + m.Deck) : m.Room;
+            return chalkText + Environment.NewLine + Lang.Get("ships:hint-inspect-mount", kind, room, m.Id);
         }
 
         public static string ZoneName(PaintZoneDef z) =>
-            Lang.HasTranslation("hansa:zone-" + z.Code, false, false) ? Lang.Get("hansa:zone-" + z.Code) : z.Name ?? z.Code;
+            Lang.HasTranslation("ships:zone-" + z.Code, false, false) ? Lang.Get("ships:zone-" + z.Code) : z.Name ?? z.Code;
 
-        public static string DyeName(string colour) => colour == null ? "" : Lang.Get("hansa:dye-" + colour);
+        public static string DyeName(string colour) => colour == null ? "" : Lang.Get("ships:dye-" + colour);
 
         public static string DefaultName(PaintZoneDef z) =>
-            Lang.HasTranslation("hansa:paint-default-" + z.Default, false, false) ? Lang.Get("hansa:paint-default-" + z.Default) : z.Default ?? "";
+            Lang.HasTranslation("ships:paint-default-" + z.Default, false, false) ? Lang.Get("ships:paint-default-" + z.Default) : z.Default ?? "";
 
         // ------------------------------------------------------------------ clicks
 
@@ -819,7 +819,7 @@ namespace Hansa
                 if (action != EnumEntityAction.InWorldRightMouseDown) return action == EnumEntityAction.InWorldLeftMouseDown;
                 if (OnceAClick("gunplace:" + t.Zone))
                 {
-                    if (t.Problem != null) capi.TriggerIngameError(this, "hansa-decor", Lang.Get(t.Problem));
+                    if (t.Problem != null) capi.TriggerIngameError(this, "ships-decor", Lang.Get(t.Problem));
                     else channel.SendPacket(new DecorPacket { ShipId = t.Ship.EntityId, Action = DecorPacket.GunMount, Mount = t.Ship.Def.GunPlaces[t.Zone].Id });
                 }
                 return true;
@@ -831,7 +831,7 @@ namespace Hansa
                 {
                     if (t.Cell < 0 || t.Problem != null)
                     {
-                        if (OnceAClick("hullfixed")) capi.TriggerIngameError(this, "hansa-decor", Lang.Get(t.Problem ?? "hansa:hull-fixed"));
+                        if (OnceAClick("hullfixed")) capi.TriggerIngameError(this, "ships-decor", Lang.Get(t.Problem ?? "ships:hull-fixed"));
                         return true;
                     }
                     if (takingShip == t.Ship && takingCell == t.Cell && takingHull) return true;
@@ -848,7 +848,7 @@ namespace Hansa
                 {
                     if (OnceAClick("hull:" + t.Cell))
                     {
-                        if (t.Problem != null) capi.TriggerIngameError(this, "hansa-decor", Lang.Get(t.Problem));
+                        if (t.Problem != null) capi.TriggerIngameError(this, "ships-decor", Lang.Get(t.Problem));
                         else channel.SendPacket(new DecorPacket { ShipId = t.Ship.EntityId, Action = DecorPacket.HullLay, Mount = t.Ship.HullLayout.Slots[t.Cell].Id });
                     }
                     return true;
@@ -862,7 +862,7 @@ namespace Hansa
                 {
                     if (t.Cell < 0 || t.Problem != null)
                     {
-                        if (OnceAClick("cellfixed")) capi.TriggerIngameError(this, "hansa-decor", Lang.Get(t.Problem ?? "hansa:cell-fixed"));
+                        if (OnceAClick("cellfixed")) capi.TriggerIngameError(this, "ships-decor", Lang.Get(t.Problem ?? "ships:cell-fixed"));
                         return true;
                     }
                     if (takingShip == t.Ship && takingCell == t.Cell && !takingHull) return true;
@@ -877,14 +877,14 @@ namespace Hansa
                 }
                 if (action == EnumEntityAction.InWorldRightMouseDown && t.CellMode == CellInfo)
                 {
-                    if (OnceAClick("cellinfo")) capi.TriggerIngameError(this, "hansa-decor", Lang.Get("hansa:hint-cell-open"));
+                    if (OnceAClick("cellinfo")) capi.TriggerIngameError(this, "ships-decor", Lang.Get("ships:hint-cell-open"));
                     return true;
                 }
                 if (action == EnumEntityAction.InWorldRightMouseDown && t.CellMode is CellLay or CellHatch && t.Cell >= 0)
                 {
                     if (OnceAClick("cell:" + t.Cell))
                     {
-                        if (t.Problem != null) capi.TriggerIngameError(this, "hansa-decor", Lang.Get(t.Problem));
+                        if (t.Problem != null) capi.TriggerIngameError(this, "ships-decor", Lang.Get(t.Problem));
                         else channel.SendPacket(new DecorPacket { ShipId = t.Ship.EntityId, Action = t.CellMode == CellLay ? DecorPacket.CellLay : DecorPacket.CellHatch, Mount = t.Ship.SlotLayout.Slots[t.Cell].Id });
                     }
                     return true;
@@ -926,27 +926,27 @@ namespace Hansa
                     {
                         if (OnceAClick("working:" + t.Piece.Id))
                         {
-                            capi.Logger.Notification("[hansa] working blocks: a click on {0} (piece {1} of {2} #{3}) didn't reach its block: {4}", t.Piece.Stack?.GetName(), t.Piece.Id,
+                            capi.Logger.Notification("[ships] working blocks: a click on {0} (piece {1} of {2} #{3}) didn't reach its block: {4}", t.Piece.Stack?.GetName(), t.Piece.Id,
                                 t.Ship.GetName(), t.Ship.EntityId, ShipBlocksClient.WhyNot(capi, t.Ship, t.Piece.Id) ?? "the crosshair's pick didn't run");
-                            capi.TriggerIngameError(this, "hansa-working", Lang.Get("hansa:piece-working-notloaded", t.Piece.Stack?.GetName() ?? ""));
+                            capi.TriggerIngameError(this, "ships-working", Lang.Get("ships:piece-working-notloaded", t.Piece.Stack?.GetName() ?? ""));
                         }
                         return true;
                     }
                     // a workstation (a forge, an anvil, a quern): its workings don't run aboard yet, say so
                     if (t.Piece.Stack?.Block is Block ws && VanillaPieceBlock.IsWorkstation(ws) && OnceAClick("ashore:" + t.Piece.Id))
-                        capi.TriggerIngameError(this, "hansa-ashore", Lang.Get("hansa:piece-ashore-only", t.Piece.Stack.GetName()));
+                        capi.TriggerIngameError(this, "ships-ashore", Lang.Get("ships:piece-ashore-only", t.Piece.Stack.GetName()));
                     // a decoration: a right-click on it does nothing (with a block in hand it isn't put on it either)
                     return capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack?.Block != null ||
                            t.Piece.Stack?.Block is Block ws2 && VanillaPieceBlock.IsWorkstation(ws2);
                 case TargetKind.Mount:
                     if (OnceAClick("place:" + t.Mount.Id))
                     {
-                        if (t.Problem != null) capi.TriggerIngameError(this, "hansa-decor", Lang.Get(t.Problem));
+                        if (t.Problem != null) capi.TriggerIngameError(this, "ships-decor", Lang.Get(t.Problem));
                         else channel.SendPacket(new DecorPacket { ShipId = t.Ship.EntityId, Action = DecorPacket.Place, Mount = t.Mount.Id, Dir = t.Plan.Toward });
                     }
                     return true;
                 case TargetKind.Shown:
-                    if (OnceAClick("shown")) capi.TriggerIngameError(this, "hansa-decor", Hint);
+                    if (OnceAClick("shown")) capi.TriggerIngameError(this, "ships-decor", Hint);
                     return true;
                 case TargetKind.PaintPiece:
                     if (OnceAClick("paintpiece:" + t.Piece.Id))
@@ -1009,7 +1009,7 @@ namespace Hansa
                     takingSent = true;
                     channel.SendPacket(new DecorPacket { ShipId = takingShip.EntityId, Action = DecorPacket.HullTake, Mount = hs.Id });
                 }
-                Busy = Lang.Get("hansa:hud-hull-taking", (int)(Math.Min(1, hf) * 100));
+                Busy = Lang.Get("ships:hud-hull-taking", (int)(Math.Min(1, hf) * 100));
                 return;
             }
             if (takingCell >= 0)
@@ -1036,7 +1036,7 @@ namespace Hansa
                     takingSent = true;
                     channel.SendPacket(new DecorPacket { ShipId = takingShip.EntityId, Action = DecorPacket.CellTake, Mount = cd.Id });
                 }
-                Busy = Lang.Get("hansa:hud-cell-taking", (int)(Math.Min(1, cf) * 100));
+                Busy = Lang.Get("ships:hud-cell-taking", (int)(Math.Min(1, cf) * 100));
                 return;
             }
             var p = takingShip.Pieces.Get(takingPiece);
@@ -1056,7 +1056,7 @@ namespace Hansa
                 takingSent = true;
                 channel.SendPacket(new DecorPacket { ShipId = takingShip.EntityId, Action = DecorPacket.Remove, Piece = takingPiece });
             }
-            Busy = Lang.Get("hansa:hud-piece-taking", takingShip.PieceName(p), (int)(Math.Min(1, f) * 100));
+            Busy = Lang.Get("ships:hud-piece-taking", takingShip.PieceName(p), (int)(Math.Min(1, f) * 100));
         }
 
         /// <summary>The block's hit sound and a puff of its texture at the piece, as vanilla's breaking does.</summary>
@@ -1123,7 +1123,7 @@ namespace Hansa
             }
             catch (Exception e)
             {
-                capi.Logger.Warning("[hansa] Drawing the outline failed: {0}", e.Message);
+                capi.Logger.Warning("[ships] Drawing the outline failed: {0}", e.Message);
                 Look = default;
             }
         }

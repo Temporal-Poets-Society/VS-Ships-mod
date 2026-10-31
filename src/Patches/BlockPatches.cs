@@ -34,7 +34,7 @@ namespace Hansa
         static void Try(string what, Action patch)
         {
             try { patch(); }
-            catch (Exception e) { log?.Warning("[hansa] Could not patch ({0}) for working blocks aboard, that part won't work: {1}", what, e.Message); }
+            catch (Exception e) { log?.Warning("[ships] Could not patch ({0}) for working blocks aboard, that part won't work: {1}", what, e.Message); }
         }
 
         /// <summary>What's patched (for the self-test).</summary>
@@ -405,7 +405,7 @@ namespace Hansa
             }
             catch (Exception e)
             {
-                if (!renderWarned) { renderWarned = true; log?.Warning("[hansa] A working block's renderer couldn't be drawn aboard: {0}", e.Message); }
+                if (!renderWarned) { renderWarned = true; log?.Warning("[ships] A working block's renderer couldn't be drawn aboard: {0}", e.Message); }
             }
             return true;
         }

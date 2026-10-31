@@ -20,8 +20,8 @@ namespace HansaTests
         /// </summary>
         static void CaravelLateenDip(string root)
         {
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "caravel.json");
-            string assets = Path.Combine(root, "assets", "hansa");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", "caravel.json");
+            string assets = Path.Combine(root, "assets", "ships");
             if (!File.Exists(path)) { Console.WriteLine("  --   caravel.json not there: the lateens' dip isn't checked"); return; }
             Console.WriteLine("caravel: the lateens dip round their masts to the lee (note 64)");
             var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
@@ -492,7 +492,7 @@ namespace HansaTests
         /// </summary>
         static void LateenDump(string root, float lee, double sheetDeg, string outPath)
         {
-            string assets = Path.Combine(root, "assets", "hansa");
+            string assets = Path.Combine(root, "assets", "ships");
             var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(assets, "config", "ships", "caravel.json")));
             def.Init();
             var skin = JsonConvert.DeserializeObject<ShipSkinFile>(File.ReadAllText(Path.Combine(assets, "config", "shipmeshes", "caravel.json")));

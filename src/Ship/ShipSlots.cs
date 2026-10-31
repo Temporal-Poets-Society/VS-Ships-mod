@@ -67,7 +67,7 @@ namespace Hansa
                 foreach (string k in r.NewlyLaid) laidTree.SetBool(k, true);
                 WatchedAttributes.MarkPathDirty("hansaLaid");
                 SaveSlots();
-                World.Logger.Audit("[hansa] {0} #{1}: her layout from revision {2} to {3}: kept {4}; {5} new pieces of her design not put (she keeps her own)",
+                World.Logger.Audit("[ships] {0} #{1}: her layout from revision {2} to {3}: kept {4}; {5} new pieces of her design not put (she keeps her own)",
                     GetName(), EntityId, rev, Def.LayoutRev, r.Notes.Count == 0 ? "nothing to keep" : string.Join(", ", r.Notes), r.NewlyLaid.Count);
             }
             WatchedAttributes.SetInt("hansaLayoutRev", Def.LayoutRev);
@@ -166,37 +166,37 @@ namespace Hansa
         public string TakeProblem(int n)
         {
             var l = SlotLayout;
-            if (Slots == null || n < 0 || n >= l.Count) return "hansa:cell-fixed";
+            if (Slots == null || n < 0 || n >= l.Count) return "ships:cell-fixed";
             // ((0.3.27) a length of a deck beam: its own rules)
             if (l.Slots[n].IsBeam) return BeamTakeProblem(n);
             if (l.Slots[n].IsStructure)
             {
-                if (!Slots.Filled(n)) return "hansa:cell-already-out";
+                if (!Slots.Filled(n)) return "ships:cell-already-out";
                 foreach (var piece in Pieces.All)
-                    if (piece.Solids.Any(b => PiecePlanner.Overlap(b,l.Slots[n].Box,0.005))) return "hansa:beam-under-piece";
+                    if (piece.Solids.Any(b => PiecePlanner.Overlap(b,l.Slots[n].Box,0.005))) return "ships:beam-under-piece";
                 return null;
             }
             // ((0.3.29) a castle port: taken out (its trapdoor back) it leaves the opening; not with a gun on it or its lid open)
             if (l.Slots[n].IsGunPort)
             {
-                if (!Slots.Filled(n)) return "hansa:port-not-in";
+                if (!Slots.Filled(n)) return "ships:port-not-in";
                 var pf = Def.Fixture(l.Slots[n].Gun);
-                if (pf != null && GunMounted(pf)) return "hansa:port-has-gun";
-                if (pf?.Lid != null && OpenFittings.Contains("open:" + pf.Code)) return "hansa:port-lid-open";
+                if (pf != null && GunMounted(pf)) return "ships:port-has-gun";
+                if (pf?.Lid != null && OpenFittings.Contains("open:" + pf.Code)) return "ships:port-lid-open";
                 return null;
             }
             // ((0.3.28, D2.4) a port's cover: taken out it's the lidded port)
-            if (l.Slots[n].IsPort) return Slots.Filled(n) ? null : "hansa:port-already-open";
-            if (HatchOver(n) != null) return "hansa:cell-hatch";
-            if (!Slots.Filled(n)) return "hansa:cell-already-out";
+            if (l.Slots[n].IsPort) return Slots.Filled(n) ? null : "ships:port-already-open";
+            if (HatchOver(n) != null) return "ships:cell-hatch";
+            if (!Slots.Filled(n)) return "ships:cell-already-out";
             var d = l.Slots[n];
             // (0.3.21, step C) under a mounted gun (its carriage, run-back and trail's sweep)
             if (Def.GunPlaces != null)
                 foreach (var gp in Def.GunPlaces)
-                    if (GunPlaceLaid(gp) && GunPlaceCells(gp).Contains(n)) return "hansa:cell-under-gun";
+                    if (GunPlaceLaid(gp) && GunPlaceCells(gp).Contains(n)) return "ships:cell-under-gun";
             foreach (var p in Pieces.All)
                 foreach (var b in p.Solids.Concat(p.Sel))
-                    if (OnCell(d, b)) return "hansa:cell-under-piece";
+                    if (OnCell(d, b)) return "ships:cell-under-piece";
             foreach (var f in Def.Fixtures.Concat(PlacedFixtures))
             {
                 if (GunAbsent(f)) continue;
@@ -205,8 +205,8 @@ namespace Hansa
                     ? new[] { Attached.TryGetValue(f.Code ?? "", out var st) ? ShipFittings.AttachBox(f, st, Def) : null }
                     : new[] { f.Box, f.Sel };
                 foreach (var b in boxes)
-                    if (b != null && b.Length == 6 && OnCell(d, b)) return "hansa:cell-under-fixture";
-                if (f.Pos != null && StandsOnDeck(f.Type) && Math.Abs(f.Pos[1] - d.Top) < 0.3 && In(d, f.Pos[0], f.Pos[2])) return "hansa:cell-under-fixture";
+                    if (b != null && b.Length == 6 && OnCell(d, b)) return "ships:cell-under-fixture";
+                if (f.Pos != null && StandsOnDeck(f.Type) && Math.Abs(f.Pos[1] - d.Top) < 0.3 && In(d, f.Pos[0], f.Pos[2])) return "ships:cell-under-fixture";
             }
             return null;
         }
@@ -232,31 +232,31 @@ namespace Hansa
         public string LayProblem(int n, bool checkPeople)
         {
             var l = SlotLayout;
-            if (Slots == null || n < 0 || n >= l.Count) return "hansa:cell-fixed";
-            if (Slots.Filled(n)) return "hansa:cell-already-in";
+            if (Slots == null || n < 0 || n >= l.Count) return "ships:cell-fixed";
+            if (Slots.Filled(n)) return "ships:cell-already-in";
             var d = l.Slots[n];
             if (d.IsGunPort)
             {
                 // ((0.3.29) a port put into her side: its board out (the opening)
-                if (l.IndexOf(d.Cover) is int cv && cv >= 0 && Slots.Filled(cv)) return "hansa:port-needs-opening";
+                if (l.IndexOf(d.Cover) is int cv && cv >= 0 && Slots.Filled(cv)) return "ships:port-needs-opening";
                 return null;
             }
             if (d.IsPort)
             {
                 // ((0.3.29) boarding over a port's place: not with the port in it)
-                if (GunPortOfCover(n) is int gpn && gpn >= 0 && Slots.Filled(gpn)) return "hansa:port-in-there";
+                if (GunPortOfCover(n) is int gpn && gpn >= 0 && Slots.Filled(gpn)) return "ships:port-in-there";
                 // ((0.3.28, D2.4) planking a port over: no gun there, its lid shut)
                 var gf = Def.Fixture(d.Gun);
-                if (gf != null && GunMounted(gf)) return "hansa:port-has-gun";
-                if (gf?.Lid != null && OpenFittings.Contains("open:" + gf.Code)) return "hansa:port-lid-open";
-                if (checkPeople && BoxOccupied(d.Box)) return "hansa:piece-someone";
+                if (gf != null && GunMounted(gf)) return "ships:port-has-gun";
+                if (gf?.Lid != null && OpenFittings.Contains("open:" + gf.Code)) return "ships:port-lid-open";
+                if (checkPeople && BoxOccupied(d.Box)) return "ships:piece-someone";
                 return null;
             }
-            if (d.IsCell && HatchOver(n) != null) return "hansa:cell-hatch";
+            if (d.IsCell && HatchOver(n) != null) return "ships:cell-hatch";
             foreach (var p in Pieces.All)
                 foreach (var b in p.Solids.Concat(p.Sel).Concat(d.IsBeam ? ClimbRoom(p) : Enumerable.Empty<double[]>()))
-                    if (PiecePlanner.Overlap(b, d.Box)) return "hansa:cell-occupied";
-            if (checkPeople && BoxOccupied(new[] { d.Box[0], d.Box[1], d.Box[2], d.Box[3], d.Box[4] + 0.05, d.Box[5] })) return "hansa:piece-someone";
+                    if (PiecePlanner.Overlap(b, d.Box)) return "ships:cell-occupied";
+            if (checkPeople && BoxOccupied(new[] { d.Box[0], d.Box[1], d.Box[2], d.Box[3], d.Box[4] + 0.05, d.Box[5] })) return "ships:piece-someone";
             return null;
         }
 
@@ -279,13 +279,13 @@ namespace Hansa
         {
             var l = SlotLayout;
             int n = l?.IndexOf(slotId) ?? -1;
-            if (n < 0) return "hansa:cell-fixed";
-            if (GoneDown) return "hansa:gone-down";
+            if (n < 0) return "ships:cell-fixed";
+            if (GoneDown) return "ships:gone-down";
             var d = l.Slots[n];
-            if (!VanillaPieceBlock.BuildingMode(player.Entity)) return "hansa:cell-build-mode";
+            if (!VanillaPieceBlock.BuildingMode(player.Entity)) return "ships:cell-build-mode";
             var held = player.InventoryManager.ActiveHotbarSlot?.Itemstack;
-            if (held?.Collectible?.Tool != EnumTool.Axe) return "hansa:cell-needs-axe";
-            if (!InReach(player, d.CX, d.Top, d.CZ)) return "hansa:piece-too-far";
+            if (held?.Collectible?.Tool != EnumTool.Axe) return "ships:cell-needs-axe";
+            if (!InReach(player, d.CX, d.Top, d.CZ)) return "ships:piece-too-far";
             string err = TakeCell(n, player);
             if (err != null) return err;
             CellSound(d, "sounds/block/planks");
@@ -302,7 +302,7 @@ namespace Hansa
             if (player != null && !Creative(player))
             {
                 var stack = MaterialStack(d);
-                if (stack != null && !player.InventoryManager.TryGiveItemstack(stack, true)) return "hansa:piece-inventory-full";
+                if (stack != null && !player.InventoryManager.TryGiveItemstack(stack, true)) return "ships:piece-inventory-full";
             }
             Slots.Set(n, SlotState.Empty);
             // ((0.3.28, step D2) taken up: its damage gone with it)
@@ -316,16 +316,16 @@ namespace Hansa
         {
             var l = SlotLayout;
             int n = l?.IndexOf(slotId) ?? -1;
-            if (n < 0) return "hansa:cell-fixed";
-            if (GoneDown) return "hansa:gone-down";
+            if (n < 0) return "ships:cell-fixed";
+            if (GoneDown) return "ships:gone-down";
             var d = l.Slots[n];
             // ((0.3.27) out of building mode too, and with boards: mending a hole is no building)
             var slot = player.InventoryManager.ActiveHotbarSlot;
             var held = slot?.Itemstack;
             int need = LayNeed(d.Mat, held);
-            if (need < 0) return d.IsBeam || d.IsStructure ? "hansa:cell-needs-supportbeam" : "hansa:cell-needs-planks";
-            if (!Creative(player) && held.StackSize < need) return d.IsBeam || d.IsStructure ? "hansa:cell-needs-supportbeam" : "hansa:cell-needs-planks";
-            if (!InReach(player, d.CX, d.Top, d.CZ)) return "hansa:piece-too-far";
+            if (need < 0) return d.IsBeam || d.IsStructure ? "ships:cell-needs-supportbeam" : "ships:cell-needs-planks";
+            if (!Creative(player) && held.StackSize < need) return d.IsBeam || d.IsStructure ? "ships:cell-needs-supportbeam" : "ships:cell-needs-planks";
+            if (!InReach(player, d.CX, d.Top, d.CZ)) return "ships:piece-too-far";
             string err = LayCell(n, true);
             if (err != null) return err;
             if (!Creative(player))
@@ -446,7 +446,7 @@ namespace Hansa
             bool Solid(double x, double y, double z) => g.SolidAt(x, y, z);
             if (HatchPlanner.SwingClash(plan.Box, plan.Dir, Solid, Ladders,plan.DoubleLeaf) == null) return plan;
             if (hinge == null && HatchPlanner.SwingClash(plan.Box, 1 - plan.Dir, Solid, Ladders,plan.DoubleLeaf) == null) { plan.Dir = 1 - plan.Dir; return plan; }
-            plan.Error = "hansa:hatch-no-swing";
+            plan.Error = "ships:hatch-no-swing";
             return plan;
         }
 
@@ -455,18 +455,18 @@ namespace Hansa
         {
             var l = SlotLayout;
             int n = l?.IndexOf(slotId) ?? -1;
-            if (n < 0) return "hansa:hatch-no-opening";
-            if (GoneDown) return "hansa:gone-down";
-            if (!VanillaPieceBlock.BuildingMode(player.Entity)) return "hansa:cell-build-mode";
+            if (n < 0) return "ships:hatch-no-opening";
+            if (GoneDown) return "ships:gone-down";
+            if (!VanillaPieceBlock.BuildingMode(player.Entity)) return "ships:cell-build-mode";
             var slot = player.InventoryManager.ActiveHotbarSlot;
             var held = slot?.Itemstack;
-            if (!VanillaPieceBlock.IsTrapdoor(held?.Block)) return "hansa:hatch-needs-trapdoors";
+            if (!VanillaPieceBlock.IsTrapdoor(held?.Block)) return "ships:hatch-needs-trapdoors";
             var d = l.Slots[n];
-            if (!InReach(player, d.CX, d.Top, d.CZ)) return "hansa:piece-too-far";
+            if (!InReach(player, d.CX, d.Top, d.CZ)) return "ships:piece-too-far";
             var plan = HatchPlanAt(n, held.Collectible.Code.ToString());
             if (plan.Error != null) return plan.Error;
             int need = plan.Mounts.Count;
-            if (!Creative(player) && held.StackSize < need) return "hansa:hatch-needs-trapdoors";
+            if (!Creative(player) && held.StackSize < need) return "ships:hatch-needs-trapdoors";
             string err = PlaceHatch(plan, held, true, out var placed);
             if (err != null) return err;
             if (!Creative(player))
@@ -519,7 +519,7 @@ namespace Hansa
             if (p?.Role != PieceRole.Hatch) return false;
             if (p.Open && p.Box != null && BoxOccupied(new[] { p.Box[0], p.Box[1] - 0.25, p.Box[2], p.Box[3], p.Box[4] + 0.05, p.Box[5] }))
             {
-                if (player != null) Notify(player, "hansa:doorway-blocked");
+                if (player != null) Notify(player, "ships:doorway-blocked");
                 return false;
             }
             p.Open = !p.Open;
@@ -528,7 +528,7 @@ namespace Hansa
             return true;
         }
 
-        /// <summary>(0.3.20) What her deck cells are now, for <c>.hansa slots</c>.</summary>
+        /// <summary>(0.3.20) What her deck cells are now, for <c>.ships slots</c>.</summary>
         public string SlotsText()
         {
             if (Slots == null) return $"The {Def?.Code} has no deck cells that can be taken up.";

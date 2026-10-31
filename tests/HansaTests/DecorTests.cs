@@ -205,7 +205,7 @@ namespace HansaTests
                 var pw = PiecePlanner.Plan(l, wallSpot, painting, 3);
                 var pf = PiecePlanner.Plan(l, floor, painting, 1);
                 Check(pw.Error == null && pw.Parts[0].Block == "game:painting-trout-north" && pw.Mounts.Count == 2 && pw.Mounts[1] == l.WallAt(wallSpot.Wall, wallSpot.I + 1, wallSpot.Row).Id &&
-                      Math.Abs(pw.Box[2] - wallSpot.Z) < 1e-9 && pw.Solids.Count == 0 && pw.Tilt != null && pf.Error == "hansa:piece-needs-wall",
+                      Math.Abs(pw.Box[2] - wallSpot.Z) < 1e-9 && pw.Solids.Count == 0 && pw.Tilt != null && pf.Error == "ships:piece-needs-wall",
                     $"a 2 × 1 painting on a wall spot ({wallSpot.Id}): the side toward the wall, flush on its face, the next spot along the wall too, not solid; on a floor refused");
                 var lantern = new FakePiece { Code = "game:lantern-small-up", Family = "game:lantern-small", Orient = PieceOrient.Omni, OmniWalls = true, Light = true, States = new[] { "up", "down", "north", "east", "south", "west" } };
                 var hook = l.Hooks.First(m => m.Hang == "down");
@@ -213,7 +213,7 @@ namespace HansaTests
                 var lf = PiecePlanner.Plan(l, floor, lantern, 0);
                 var lw = PiecePlanner.Plan(l, wallSpot, lantern, 0);
                 Check(lh.Error == null && lh.Parts[0].Block == "game:lantern-small-down" && lh.Role == PieceRole.Light && lh.Solids.Count == 0 && lh.Hang == "down" &&
-                      lf.Parts[0].Block == "game:lantern-small-up" && lw.Parts[0].Block == "game:lantern-small-south" && PiecePlanner.Plan(l, hook, chest, 0).Error == "hansa:piece-hook-light",
+                      lf.Parts[0].Block == "game:lantern-small-up" && lw.Parts[0].Block == "game:lantern-small-south" && PiecePlanner.Plan(l, hook, chest, 0).Error == "ships:piece-hook-light",
                     "a lantern (omni-attachable): hung from a hook (down, not solid), standing on a floor (up), on a wall its side away from the wall; a chest on a hook refused");
                 var chair = new FakePiece { Code = "game:chair-plain", Family = "game:chair", Seat = true, Sel = new[] { 0.125, 0, 0.125, 0.875, 0.5, 0.875 } };
                 var ch = PiecePlanner.Plan(l, floor, chair, 2);
@@ -221,7 +221,7 @@ namespace HansaTests
                     "a chair: sat on at its seat's height, facing the way it faces (toward the one who put it)");
                 var antlers = new FakePiece { Code = "game:antlermount-oak", Family = "game:antlermount", Sel = new[] { 0.25, 0.25, 0.0, 0.75, 0.75, 0.25 } };
                 var aw = PiecePlanner.Plan(l, wallSpot, antlers, 3);
-                Check(aw.Error == null && aw.Parts[0].Quarter == PiecePlanner.QuarterFor(wallSpot.In) && Math.Abs(aw.Box[2] - wallSpot.Z) < 1e-9 && aw.Box[5] < wallSpot.Z + 0.3 && PiecePlanner.Plan(l, wallSpot, chest, 3).Error == "hansa:piece-not-wall",
+                Check(aw.Error == null && aw.Parts[0].Quarter == PiecePlanner.QuarterFor(wallSpot.In) && Math.Abs(aw.Box[2] - wallSpot.Z) < 1e-9 && aw.Box[5] < wallSpot.Z + 0.3 && PiecePlanner.Plan(l, wallSpot, chest, 3).Error == "ships:piece-not-wall",
                     "a block with no variant of its own on a wall spot: its front turned into the room (its back against the wall); a chest on a wall refused");
                 // the boxes turn with the mesh: a box against a block's south side (its front, +z), turned a quarter, is against its east side (+x)
                 var tb = PiecePlanner.Turn(new[] { 0, 0, 0.75, 1, 1, 1 }, 1);
@@ -308,7 +308,7 @@ namespace HansaTests
 
                 // ---- the ship's one block grid (0.3.9): with the design's grid origin every floor place and wall spot is on it
                 {
-                    string json = File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", def.Code + ".json"));
+                    string json = File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", def.Code + ".json"));
                     var gd = JsonConvert.DeserializeObject<ShipDefinition>(json);
                     bool theirs = gd.BlockGrid?.Origin?.Length >= 3;
                     if (!theirs) gd.BlockGrid = new BlockGridDef { Origin = new[] { 0.0, 0.125, 0.5 } };
@@ -369,7 +369,7 @@ namespace HansaTests
                     var wallpaper = new FakePiece { Code = "game:wallpaper-brown", Family = "game:wallpaper", Overlay = true, Col = null };
                     var wpFloor = PiecePlanner.Plan(gl, cellOf(pp), wallpaper, 0);
                     MountPoint cellOf(MountPoint p) => gl.FloorAt(p.Deck, p.I, p.K);
-                    Check(plan.Error == null && refused.Error == "hansa:panel-needs-planks" && spotShut && flush && hangs && held && wpFloor.Error == "hansa:piece-needs-wall",
+                    Check(plan.Error == null && refused.Error == "ships:panel-needs-planks" && spotShut && flush && hangs && held && wpFloor.Error == "ships:piece-needs-wall",
                         $"a planks block on {pp.Id}: a panel, its face on the border, the wedge behind it filled a block high; only planks panel it; its wall spot ({spotOn.Id}) " +
                         "takes a painting (upright) only while the panel is up, and the panel isn't taken down from under it; wallpaper only on a wall");
 
@@ -400,7 +400,7 @@ namespace HansaTests
                         bool thin = part.Error == null && part.Role == PieceRole.Partition && Math.Abs((bx ? part.Box[5] - part.Box[2] : part.Box[3] - part.Box[0]) - MountLayout.PartitionThickness) < 1e-9 &&
                                     part.Sel.Count == 1 && part.Solids.Count == 1 && Math.Abs(part.Box[4] - part.Box[1] - 1) < 1e-9;
                         bool doorOk = doorPlan.Error == null && doorPlan.Role == PieceRole.Door && doorPlan.Mounts.Count == 2 && Math.Abs(doorPlan.Box[4] - doorPlan.Box[1] - 2) < 1e-9 &&
-                                      doorPlan.Pivot != null && doorOnFloor.Error == "hansa:door-needs-border";
+                                      doorPlan.Pivot != null && doorOnFloor.Error == "ships:door-needs-border";
                         // pieces stand right up to a partition either side (its sheet is on the line)
                         var ps2 = new ShipPieceSet();
                         ps2.Add(ShipPiece.From(part, ps2.NextId, null));
@@ -421,7 +421,7 @@ namespace HansaTests
                         bool paintOk = pp1.Paint == "red" && pp1.Paintable && Math.Abs(pp1.PaintArea - 2) < 1e-9 && Math.Abs(dp.PaintArea - 4) < 1e-9 &&
                                        ShipPiece.FromTree(pt0).Paint == null && !ShipPiece.From(nextTo, 3, null).Paintable;
                         Check(paintOk, $"a partition and a door put aboard are painted like her surfaces (2 and 4 m², the colour saved, an unknown one dropped); a chest isn't");
-                        Check(bs.Count > 0 && badB.Count == 0 && dupes == 0 && thin && partChest.Error == "hansa:partition-needs-planks" && doorOk && upTo && openSaved,
+                        Check(bs.Count > 0 && badB.Count == 0 && dupes == 0 && thin && partChest.Error == "ships:partition-needs-planks" && doorOk && upTo && openSaved,
                             $"border places on the grid lines of the rooms' floor cells (one per border, row 1 over row 0, under the band; wrong: {(badB.Count == 0 ? "none" : string.Join(", ", badB.Take(5)))}, twice: {dupes}); " +
                             $"planks on {b0.Id} a partition 1/8 thick, a block high (only planks); a door there both rows, hung on its end, not on a floor place; a chest stands right up to the partition; a door's open state saved");
 
@@ -592,14 +592,14 @@ namespace HansaTests
                     Check(seatsOk && doorsOk, "her seats (the heads) each with a place and a box, no floor place on them; every door with its opening, the way it faces and a block or hinge");
                 }
 
-                var inv = new InventoryGeneric(16, "hansa-piece-1", "1", null);
+                var inv = new InventoryGeneric(16, "ships-piece-1", "1", null);
                 inv[0].Itemstack = new ItemStack(stick, 12);
                 inv[15].Itemstack = new ItemStack(blockChest, 1);
                 var it = new TreeAttribute();
                 inv.ToTreeAttributes(it);
                 var itBack = new TreeAttribute();
                 itBack.FromBytes(it.ToBytes());
-                var inv2 = new InventoryGeneric(16, "hansa-piece-1", "1", null);
+                var inv2 = new InventoryGeneric(16, "ships-piece-1", "1", null);
                 inv2.FromTreeAttributes(itBack);
                 Check(inv2[0].Itemstack?.StackSize == 12 && inv2[0].Itemstack.Id == 7 && inv2[15].Itemstack?.Id == 101 && inv2[15].Itemstack.Class == EnumItemClass.Block && inv2.Count(s => !s.Empty) == 2,
                     "a container piece's contents saved and loaded (by vanilla's inventory, as the hold's)");
@@ -625,7 +625,7 @@ namespace HansaTests
                     Math.Abs(p[0] - f.Pos[0]) + Math.Abs(p[1] - f.Pos[1]) + Math.Abs(p[2] - f.Pos[2]) > 1e-3 || Math.Abs(yaw - f.Yaw) > 1e-3).Select(f => f.Code).ToList();
                 Check(legacy.Count == 0 || wrong.Count == 0, $"the 0.3.7 places kept for moving an older ship's things ({legacy.Count} in the design; wrong: {(wrong.Count == 0 ? "none" : string.Join(", ", wrong))})");
                 // the design without its chest, cargo and bed places (the generator takes them out): a free place within 4 of each
-                var bare = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", def.Code + ".json")));
+                var bare = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", def.Code + ".json")));
                 bare.Fixtures = bare.Fixtures.Where(f => !(f.Type == "attach" && f.Kind is "chest" or "cargo" or "bed")).ToArray();
                 bare.Init();
                 var lost = new List<string>();
@@ -641,14 +641,14 @@ namespace HansaTests
 
             // ---- paint: textures, cost, saved state
             {
-                string tarred = "game:block/wood/planks/oak3++3~hansa:block/tar", deck = "game:block/wood/planks/oak2++0~hansa:block/caulk";
-                Check(ShipPaint.Painted(tarred, "red") == "hansa:block/paint/oak3++3~hansa:block/dye/red" &&
-                      ShipPaint.Painted(deck, "white") == "hansa:block/paint/oak2++3~hansa:block/dye/white++0~hansa:block/caulk" &&
-                      ShipPaint.Painted("game:block/wood/debarked/oak", "blue") == "hansa:block/paint/timber++3~hansa:block/dye/blue" &&
+                string tarred = "game:block/wood/planks/oak3++3~ships:block/tar", deck = "game:block/wood/planks/oak2++0~ships:block/caulk";
+                Check(ShipPaint.Painted(tarred, "red") == "ships:block/paint/oak3++3~ships:block/dye/red" &&
+                      ShipPaint.Painted(deck, "white") == "ships:block/paint/oak2++3~ships:block/dye/white++0~ships:block/caulk" &&
+                      ShipPaint.Painted("game:block/wood/debarked/oak", "blue") == "ships:block/paint/timber++3~ships:block/dye/blue" &&
                       ShipPaint.Painted(tarred, "gold") == ShipPaint.GoldTexture && ShipPaint.Painted(tarred, null) == tarred,
                     "a painted quad's texture: the oak's grain in grey (the same plank) times the dye, a deck's caulked seams kept over it; gilt: vanilla's gold plate; as built: its own");
                 Check(ShipPaint.DyeItems(892.02) == 1785 && ShipPaint.DyeItems(1.26) == 3 && ShipPaint.GoldPlates(35.25) == 4 && ShipPaint.GoldPlates(1.26) == 1 &&
-                      ShipPaint.DyeColour("game:dye-woad") == "woad" && ShipPaint.DyeColour("game:dye-brown") == null && ShipPaint.DyeColour("hansa:dye-red") == null &&
+                      ShipPaint.DyeColour("game:dye-woad") == "woad" && ShipPaint.DyeColour("game:dye-brown") == null && ShipPaint.DyeColour("ships:dye-red") == null &&
                       ShipPaint.Gildable(new PaintZoneDef { Kind = "carving" }) && !ShipPaint.Gildable(new PaintZoneDef { Kind = "panel" }),
                     "cost: 0.02 L of dye a m² (the lower deck's 892 m²: 17.85 L), a gold plate per 10 m² (at least one); vanilla's eleven dyes; only mouldings and carvings gilded");
                 var st = new ShipPaintState();
@@ -675,7 +675,7 @@ namespace HansaTests
         /// </summary>
         static void PaintZonesOnMesh(ShipDefinition def, string root)
         {
-            string meshPath = Path.Combine(root, "assets", "hansa", "config", "shipmeshes", def.Code + ".json");
+            string meshPath = Path.Combine(root, "assets", "ships", "config", "shipmeshes", def.Code + ".json");
             var file = JsonConvert.DeserializeObject<ShipSkinFile>(File.ReadAllText(meshPath));
             var shapes = new Dictionary<string, Dictionary<string, double[]>>();
             foreach (var (role, loc) in new[] { ("exterior", def.Shapes.Exterior), ("interior", def.Shapes.Interior) })
@@ -689,7 +689,7 @@ namespace HansaTests
             {
                 // test zones: 0 the great cabin's inside planking (oak, inside group), 1 her topsides (tarred, outside, over the
                 // waterline, amidships), 2 the great cabin front's boards seen from inside (voxel faces facing aft)
-                def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", def.Code + ".json")));
+                def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", def.Code + ".json")));
                 def.PaintZones = new[]
                 {
                     new PaintZoneDef { Code = "test-cabin", Name = "Great cabin's sides", Kind = "panel", Default = "oak" },
@@ -700,7 +700,7 @@ namespace HansaTests
                 file.PaintQuads = new Dictionary<string, int[]>();
                 bool InCabin(float[] q) => Mid(q, 0) > cabin.Min[0] + 0.3 && Mid(q, 0) < cabin.Max[0] - 0.3 && Mid(q, 1) > cabin.Min[1] + 0.1 && Mid(q, 1) < cabin.Max[1] && Math.Abs(Mid(q, 2)) > 3;
                 file.PaintQuads["interior"] = Runs(file.Groups["interior"], q => InCabin(q) && file.Textures[(int)q[0]].Contains("planks/oak") && !file.Textures[(int)q[0]].Contains("~") ? 0 : -1);
-                file.PaintQuads["exterior"] = Runs(file.Groups["exterior"], q => file.Textures[(int)q[0]].Contains("~hansa:block/tar") && Mid(q, 1) > 0.5 && Mid(q, 1) < 2.2 && Math.Abs(Mid(q, 0)) < 6 ? 1 : -1);
+                file.PaintQuads["exterior"] = Runs(file.Groups["exterior"], q => file.Textures[(int)q[0]].Contains("~ships:block/tar") && Mid(q, 1) > 0.5 && Mid(q, 1) < 2.2 && Math.Abs(Mid(q, 0)) < 6 ? 1 : -1);
                 file.PaintFaces = new Dictionary<string, Dictionary<string, Dictionary<string, int>>> { ["interior"] = new(), ["exterior"] = new() };
                 foreach (var (role, boxes) in shapes)
                     foreach (var kv in boxes)
@@ -792,7 +792,7 @@ namespace HansaTests
                     var quads = file.Groups["exterior"];
                     var built = hull.Build(chunk, looks, q => zoneOf[q] == 1 ? hull.TextureIndex(ShipPaint.Painted(hull.Textures[(int)quads[q][0]], "red")) : (int)quads[q][0]);
                     var names = built.Select(b => hull.Textures[(int)b[0]]).ToList();
-                    bool redCracked = names.Any(n => n.StartsWith("hansa:block/paint/oak") && n.Contains("dye/red++0~hansa:block/dmg-cracked"));
+                    bool redCracked = names.Any(n => n.StartsWith("ships:block/paint/oak") && n.Contains("dye/red++0~ships:block/dmg-cracked"));
                     bool othersOwn = chunk.Quads.Where(q => zoneOf[q] != 1).All(q => !names.Contains(null)) && names.Any(n => !n.Contains("dye/"));
                     Check(redCracked && othersOwn, $"a painted zone in a cracked hull panel: drawn as red-painted oak with the cracks over it ({names.Count(n => n.Contains("dye/red"))} of {names.Count} quads), the rest as they are");
                 }

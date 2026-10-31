@@ -35,7 +35,7 @@ import numpy as np
 from PIL import Image
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-OUT = os.path.join(ROOT, "assets", "hansa", "textures", "block")
+OUT = os.path.join(ROOT, "assets", "ships", "textures", "block")
 SEAMS = (0, 11, 22)          # the vanilla plank seams (rows of a 32 x 32 texture)
 N = 32
 

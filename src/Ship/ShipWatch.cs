@@ -31,7 +31,7 @@ namespace Hansa
         long lastEventAlarmMs = -100000;
 
         /// <summary>
-        /// Something outside her needs all hands (server): wakes anyone asleep aboard, telling them "hansa:watch-" +
+        /// Something outside her needs all hands (server): wakes anyone asleep aboard, telling them "ships:watch-" +
         /// reason if there's such a text (else the reason as it is). The Sea Monsters mod calls it with "kraken" when one
         /// starts circling her.
         /// </summary>
@@ -66,7 +66,7 @@ namespace Hansa
             if (GoneDown) now.Add("sinking");
             if (DamageOn && DamageParts != null && (Stage == SinkStage.Foundering || WaterRate > 0.02f && Water > 0.1 * DamageParts.Reserve)) now.Add("water");
             if (Aground || OnBottom) now.Add("aground");
-            if (SailSet > 0 && (WhySlow == "hansa:why-aback" || WhySlow == "hansa:why-irons")) now.Add("aback");
+            if (SailSet > 0 && (WhySlow == "ships:why-aback" || WhySlow == "ships:why-irons")) now.Add("aback");
             if (DamageOn && SailStrain > 0) now.Add("sails");
             // (0.3.13: the strain comes and goes with the gusts: turned out for it once an episode, EpisodeNotice)
             bool sailsDue = watchSailsNotice.Due(DamageOn && SailStrain > 0, World.ElapsedMilliseconds / 1000.0);
@@ -90,13 +90,13 @@ namespace Hansa
             watchActive.UnionWith(now);
             if (why == null) return;
 
-            string key = Lang.HasTranslation("hansa:watch-" + why, false, false) ? "hansa:watch-" + why : null;
-            NotifyAboard("hansa:watch-allhands", key ?? why);
+            string key = Lang.HasTranslation("ships:watch-" + why, false, false) ? "ships:watch-" + why : null;
+            NotifyAboard("ships:watch-allhands", key ?? why);
             foreach (var b in sleepers)
                 if (b.Passenger is EntityPlayer ep) StandUp(ep, b.Fixture);
             LocalToWorld(0, Def.DeckY + 1, 0, out double x, out double y, out double z);
             World.PlaySoundAt(new AssetLocation("sounds/effect/receptionbell"), x, y, z, null, false, 32);
-            World.Logger.Notification("[hansa] {0} #{1}: the watch turns out all hands ({2})", GetName(), EntityId, why);
+            World.Logger.Notification("[ships] {0} #{1}: the watch turns out all hands ({2})", GetName(), EntityId, why);
         }
 
         /// <summary>
@@ -123,7 +123,7 @@ namespace Hansa
         void HelmLeft(EntityAgent agent)
         {
             if (Def?.PickUpItem != null || Anchored || SailSet <= 0 || agent is not EntityPlayer ep || ep.Player is not IServerPlayer sp) return;
-            Notify(sp, "hansa:helm-lashed");
+            Notify(sp, "ships:helm-lashed");
         }
     }
 }

@@ -88,7 +88,7 @@ def clip_to_side(b):
 
 def swivel_quads(M):
     """Read the runtime's own block shape for the preview; the ship definition supplies only its sockets."""
-    shape = json.load(open(os.path.join(ROOT, "assets", "hansa", "shapes", "block", "swivelgun.json")))
+    shape = json.load(open(os.path.join(ROOT, "assets", "ships", "shapes", "block", "swivelgun.json")))
     result = []
     faces = {"west": (0, 0), "east": (0, 1), "down": (1, 0), "up": (1, 1), "north": (2, 0), "south": (2, 1)}
     for e in shape["elements"]:
@@ -349,8 +349,8 @@ def main():
     outdir = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else os.path.join(ROOT, "models", "caravel", "export", "views")
     os.makedirs(outdir, exist_ok=True)
     profile = os.path.join(tempfile.gettempdir(), "caravel-preview-" + hashlib.sha256(outdir.encode()).hexdigest()[:12])
-    D = json.load(open(os.path.join(ROOT, "assets", "hansa", "config", "ships", "caravel.json")))
-    M = json.load(open(os.path.join(ROOT, "assets", "hansa", "config", "shipmeshes", "caravel.json")))
+    D = json.load(open(os.path.join(ROOT, "assets", "ships", "config", "ships", "caravel.json")))
+    M = json.load(open(os.path.join(ROOT, "assets", "ships", "config", "shipmeshes", "caravel.json")))
     pages = {}
     for s in shots:
         key = json.dumps(s.get("pose") or {}, sort_keys=True)

@@ -9,7 +9,7 @@ using Vintagestory.API.MathTools;
 namespace Hansa
 {
     /// <summary>
-    /// One ship design, loaded from assets/hansa/config/ships/*.json (written by tools/shipgen).
+    /// One ship design, loaded from assets/ships/config/ships/*.json (written by tools/shipgen).
     /// All positions are ship-local blocks: +X = bow, +Y = up, +Z = starboard, origin = waterline midships.
     /// </summary>
     public class ShipDefinition
@@ -697,7 +697,7 @@ namespace Hansa
     /// <summary>A deck (or the main top) you stand on: its top (ship-local y) and how far it runs along the keel.</summary>
     public class DeckDef
     {
-        /// <summary>hold (the cargo deck), lower, main, quarter, forecastle, poop, top: what it's called ("hansa:deck-" + Code).</summary>
+        /// <summary>hold (the cargo deck), lower, main, quarter, forecastle, poop, top: what it's called ("ships:deck-" + Code).</summary>
         public string Code;
         public double Y;
         public double X0 = -1000, X1 = 1000;
@@ -706,7 +706,7 @@ namespace Hansa
     /// <summary>A mast: its foot's centre (ship-local x, z), its radius there, and from where to where it stands.</summary>
     public class MastDef
     {
-        /// <summary>main, fore, mizzen ("hansa:mast-" + Code).</summary>
+        /// <summary>main, fore, mizzen ("ships:mast-" + Code).</summary>
         public string Code;
         public double X, Z, Radius = 0.4, Y0, Y1;
     }
@@ -735,7 +735,7 @@ namespace Hansa
         [JsonIgnore] public int Index;
         [JsonIgnore] public bool StartsLaid => Start != "empty";
         [JsonIgnore] public string BlockCode => string.IsNullOrEmpty(Block) ? DefaultBlock : Block;
-        public const string DefaultBlock = "hansa:gun-bronze-north";
+        public const string DefaultBlock = "ships:gun-bronze-north";
     }
 
     public class FixtureDef

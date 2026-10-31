@@ -29,10 +29,10 @@ block). Moving groups (the mod composes them, parent first):
 
   add_gun(d, origin, out, code, ...)   the gun on a ship design
   add_shot(d, group, centre)           a cannon ball (the mod draws the shot in flight with it)
-  shape()                              the same gun as a block shape of boxes (the placeable gun, hansa:gun-bronze-*)
+  shape()                              the same gun as a block shape of boxes (the placeable gun, ships:gun-bronze-*)
   check()                              the barrel clear of its own carriage, laid
 
-  python gun.py                        writes assets/hansa/shapes/block/gun-bronze.json (and runs check())
+  python gun.py                        writes assets/ships/shapes/block/gun-bronze.json (and runs check())
 """
 import json
 import math
@@ -380,7 +380,7 @@ def shape():
     """
     The gun on its carriage as a vanilla block shape (boxes, like vanilla's own models): the muzzle toward north (-z),
     the trunnions over the block's middle; the barrel as octagonal sections (a square and the same square turned 45°),
-    the trucks as octagonal disks. For the placeable gun (hansa:gun-bronze-*): a gun a wreck gives back.
+    the trucks as octagonal disks. For the placeable gun (ships:gun-bronze-*): a gun a wreck gives back.
     """
     els = []
 
@@ -449,5 +449,5 @@ def write_shape(asset_dir):
 
 if __name__ == "__main__":
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    print(write_shape(os.path.join(root, "assets", "hansa")))
+    print(write_shape(os.path.join(root, "assets", "ships")))
     check()

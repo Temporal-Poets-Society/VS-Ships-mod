@@ -79,7 +79,7 @@ namespace Hansa
                     RebuildGrid();
                 }
             }
-            World.Logger.Audit("[hansa] {0} #{1}: her {2} shot scars from an older save made {3} cracked slots (0.3.30: no scars)", GetName(), EntityId, Scars.Count, n);
+            World.Logger.Audit("[ships] {0} #{1}: her {2} shot scars from an older save made {3} cracked slots (0.3.30: no scars)", GetName(), EntityId, Scars.Count, n);
             Scars.Clear();
             WatchedAttributes.RemoveAttribute("hansaScars");
             ScarVersion++;

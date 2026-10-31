@@ -11,7 +11,7 @@ namespace Hansa
     /// the mainmast and a shorter one at the fore, streaming with the apparent wind (the wind her sails feel: the true
     /// wind less her own way), fluttering faster the harder it blows, hanging slack in a calm. Drawn by the mod from the
     /// masts' tops in the design (ships/*.json "masts": x, z, y1), every frame on this client only.
-    /// .hansa pennants switches them off (HansaClientConfig.Pennants).
+    /// .ships pennants switches them off (HansaClientConfig.Pennants).
     /// </summary>
     public class PennantRenderer : IRenderer, IDisposable
     {
@@ -79,7 +79,7 @@ namespace Hansa
             catch (Exception e)
             {
                 failed = true;
-                capi.Logger.Error("[hansa] Drawing the masthead pennants failed; they're off until the game is restarted: {0}", e);
+                capi.Logger.Error("[ships] Drawing the masthead pennants failed; they're off until the game is restarted: {0}", e);
                 try { prog?.Stop(); } catch (Exception) { }
             }
         }

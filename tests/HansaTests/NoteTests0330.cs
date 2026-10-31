@@ -21,7 +21,7 @@ namespace HansaTests
         {
             Console.WriteLine("0.3.30: chalk notes 234-243");
             var (md, file) = LoadHullDesign(root);
-            var raw = JObject.Parse(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack-m.json")));
+            var raw = JObject.Parse(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack-m.json")));
             Ports0330(md);
             GunSweep0330(md, file, raw);
             Shots0330(md);

@@ -256,8 +256,8 @@ namespace Hansa
         public string UseOven(IServerPlayer player, FixtureDef f)
         {
             if (OvenInv == null || f != OvenFixture) return null;
-            if (!OvenOn) return "hansa:oven-off";
-            if (GoneDown) return "hansa:gone-down";
+            if (!OvenOn) return "ships:oven-off";
+            if (GoneDown) return "ships:gone-down";
             var slot = player.InventoryManager.ActiveHotbarSlot;
             var stack = slot?.Itemstack;
             bool done;
@@ -270,11 +270,11 @@ namespace Hansa
             }
             else if (stack.Collectible.Attributes?.IsTrue("isClayOvenFuel") == true)
             {
-                if (Oven.Burning || OvenHasBakeables) return "hansa:oven-busy";
+                if (Oven.Burning || OvenHasBakeables) return "ships:oven-busy";
                 done = OvenInv[0].Empty || OvenInv[0].StackSize < OvenFire.FuelCapacity && OvenInv[0].Itemstack.Equals(World, stack, GlobalConstants.IgnoredStackAttributes)
                     ? slot.TryPutInto(World, OvenInv[0], 1) > 0 : false;
                 if (done) { ovenLastRemoved = null; PlayOvenSound("sounds/block/planks"); }
-                else return "hansa:oven-full";
+                else return "ships:oven-full";
             }
             else if (OvenBakeable(stack))
             {
@@ -283,7 +283,7 @@ namespace Hansa
                 {
                     done = OvenPut(slot);
                     if (done) PlayOvenSound("sounds/player/buildhigh");
-                    else return Oven.Burning ? "hansa:oven-burning" : OvenFuel > 0 ? "hansa:oven-fuelled" : "hansa:oven-full";
+                    else return Oven.Burning ? "ships:oven-burning" : OvenFuel > 0 ? "ships:oven-fuelled" : "ships:oven-full";
                 }
             }
             else done = OvenTake(player);
@@ -390,7 +390,7 @@ namespace Hansa
         public void OvenInfo(StringBuilder sb)
         {
             if (OvenInv == null) return;
-            if (!OvenOn) { sb.AppendLine(Lang.Get("hansa:oven-off")); return; }
+            if (!OvenOn) { sb.AppendLine(Lang.Get("ships:oven-off")); return; }
             if (Oven.Temperature <= 25)
             {
                 sb.AppendLine(Lang.Get("Temperature: {0}", Lang.Get("Cold")));
@@ -401,7 +401,7 @@ namespace Hansa
                 sb.AppendLine(Lang.Get("Temperature: {0}°C", (int)Oven.Temperature));
                 if (Oven.Temperature < 100 && !Oven.Burning) sb.AppendLine(Lang.Get("Reheat to continue baking"));
             }
-            if (OvenFuel > 0) sb.AppendLine(Lang.Get("hansa:oven-fuel", OvenFuel, Oven.Burning ? Lang.Get("hansa:oven-burning-now") : ""));
+            if (OvenFuel > 0) sb.AppendLine(Lang.Get("ships:oven-fuel", OvenFuel, Oven.Burning ? Lang.Get("ships:oven-burning-now") : ""));
             for (int i = 0; i < OvenFire.Capacity; i++)
             {
                 if (OvenInv[i].Empty || i == 0 && OvenFuel > 0) continue;

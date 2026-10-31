@@ -58,14 +58,14 @@ static class Program
         string root = dir.FullName;
         if (Array.IndexOf(args, "--skin") >= 0) return SkinMain(args, root);
         string designPath = args.FirstOrDefault(a => !a.StartsWith("--") && a.EndsWith(".json"))
-            ?? Path.Combine(root, "assets/hansa/config/shipdesigns/two-bay.json");
+            ?? Path.Combine(root, "assets/ships/config/shipdesigns/two-bay.json");
         int o = Array.IndexOf(args, "--out");
         string outDir = o >= 0 ? args[o + 1] : Path.Combine(root, "docs/preview");
         string game = Environment.GetEnvironmentVariable("VINTAGE_STORY") ??
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Vintagestory");
         string textures = Path.Combine(game, "assets/survival/textures/block");
 
-        var kinds = BlockKinds.Read(File.ReadAllText(Path.Combine(root, "assets/hansa/config/construction/kinds.json")));
+        var kinds = BlockKinds.Read(File.ReadAllText(Path.Combine(root, "assets/ships/config/construction/kinds.json")));
         var design = ShipDesign.Read(File.ReadAllText(designPath));
         var lattice = new ShipLattice(design);
         if (lattice.Problems.Count > 0) { Console.Error.WriteLine(string.Join("\n", lattice.Problems)); return 1; }

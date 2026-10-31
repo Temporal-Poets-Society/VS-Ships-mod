@@ -17,7 +17,7 @@ namespace HansaTests
         /// </summary>
         static void GridPieces(string root)
         {
-            string A(string p) => File.ReadAllText(Path.Combine(root, "assets", "hansa", p));
+            string A(string p) => File.ReadAllText(Path.Combine(root, "assets", "ships", p));
             var kinds = BlockKinds.Read(A("config/construction/kinds.json"));
             var designJson = Newtonsoft.Json.Linq.JObject.Parse(A("config/shipdesigns/carrack.json"));
             designJson["game"]["pieces"] = new Newtonsoft.Json.Linq.JArray();
@@ -79,7 +79,7 @@ namespace HansaTests
         static void GridShip(string root)
         {
             Console.WriteLine("grid carrack (construction core + carrack-m's rig)");
-            string A(string p) => File.ReadAllText(Path.Combine(root, "assets", "hansa", p));
+            string A(string p) => File.ReadAllText(Path.Combine(root, "assets", "ships", p));
             var kinds = BlockKinds.Read(A("config/construction/kinds.json"));
             var design = ShipDesign.Read(A("config/shipdesigns/carrack.json"));
             var watch = System.Diagnostics.Stopwatch.StartNew();

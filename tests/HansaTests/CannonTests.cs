@@ -36,7 +36,7 @@ namespace HansaTests
                 for (int v = 1; v <= Math.Max(1, d.ReportVariants); v++)
                 {
                     string name = path + (d.ReportVariants > 0 ? v.ToString() : "") + ".ogg";
-                    string file = (dom == "hansa" ? new[] { System.IO.Path.Combine(assets, name) } :
+                    string file = (dom == "ships" ? new[] { System.IO.Path.Combine(assets, name) } :
                         new[] { "survival", "game" }.Select(x => System.IO.Path.Combine(vs, "assets", x, name))).FirstOrDefault(System.IO.File.Exists);
                     int channels = -1;
                     long bytes = 0;
@@ -287,7 +287,7 @@ namespace HansaTests
                 var tex = shape?["textures"] as JObject;
                 bool texOk = tex != null && tex.Properties().All(p => File.Exists(Path.Combine(vs, ((string)p.Value).Replace("game:", "") + ".png")));
                 int els = (shape?["elements"] as JArray)?.Count ?? 0;
-                Check(els > 30 && texOk && File.Exists(blockPath), $"the gun as a block: {els} boxes in its shape (the same gun, octagons for the round parts), its vanilla textures there, its block type (hansa:gun-bronze-*)");
+                Check(els > 30 && texOk && File.Exists(blockPath), $"the gun as a block: {els} boxes in its shape (the same gun, octagons for the round parts), its vanilla textures there, its block type (ships:gun-bronze-*)");
             }
 
             // ---- sinking her: hits below the waterline, and how long she takes

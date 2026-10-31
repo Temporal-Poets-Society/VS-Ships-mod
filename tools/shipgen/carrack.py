@@ -35,7 +35,7 @@ from planking import BANDS, flat_between, raised_strip, reveal, skin, sweep_cap,
 from shipgen import Design, Material, interp  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-ASSETS = os.path.join(ROOT, "assets", "hansa")
+ASSETS = os.path.join(ROOT, "assets", "ships")
 DOCS = os.path.join(ROOT, "docs")
 
 # ---------------------------------------------------------------- which carrack
@@ -2082,7 +2082,7 @@ def modular_layout(d):
     # ladder-stairs (their codes kept: a ship laid with ladders keeps them); the companion and the hold's ladder-stairs
     # explicit `ladder` entries in their 2-cell wells
     # (0.3.23, note 173 and the new stair contract, docs/modular-pieces.md: "length" 3 or 2, the ship's stairs
-    # hansa:shipstair-long / -steep with their handrails built in) the castle stairs stay 3 long (45°, up to their
+    # ships:shipstair-long / -steep with their handrails built in) the castle stairs stay 3 long (45°, up to their
     # decks' edges, no well); the companion and the hold's ladder-stairs ("they don't work well") become walked steep
     # stairs, 2 long (rise 3 over 2, ~56°), each through a 3 x 1 well over the cell before its foot and its two cells
     # (COMPANION, HOLD_STAIR): the companion's foot cell -6..-5 on the lower deck climbing forward to the landing inside
@@ -3679,9 +3679,9 @@ def build():
                KEEL_BOTTOM if GRID else -3.0, 36.0, -ZW, ZW)
     d.hull_thickness = HULL_T
 
-    d.material(Material("tarred", plank_textures("oak", "++3~hansa:block/tar"), (42, 30, 22), grain=True))
+    d.material(Material("tarred", plank_textures("oak", "++3~ships:block/tar"), (42, 30, 22), grain=True))
     d.material(Material("oak", plank_textures("oak"), (150, 112, 70), grain=True))
-    d.material(Material("deck", plank_textures("oak", "++0~hansa:block/caulk"), (160, 122, 80), grain=True))
+    d.material(Material("deck", plank_textures("oak", "++0~ships:block/caulk"), (160, 122, 80), grain=True))
     d.material(Material("timber", ["game:block/wood/debarked/oak"], (160, 124, 84), grain=True))
     d.material(Material("pine", ["game:block/wood/debarked/pine"], (196, 160, 112), grain=True))   # masts, yards, bowsprit
     d.material(Material("gold", ["game:block/metal/plate/gold"], (222, 176, 60)))
@@ -3693,7 +3693,7 @@ def build():
     d.material(Material("hidden", ["game:block/wood/planks/oak1"], (0, 0, 0), render=False, opaque=False))
     # (0.3.12, the user's note 109: the sea not recognisable through the windows) the clear panes in our own clearer glass
     # (textures.py glass_clear: alpha 0.08, vanilla's plain 0.2); the stained top lights stay vanilla's
-    d.material(Material("glass", ["hansa:block/glass-clear" if GRID else "game:block/glass/plain"], (185, 212, 228),
+    d.material(Material("glass", ["ships:block/glass-clear" if GRID else "game:block/glass/plain"], (185, 212, 228),
                         solid=False, opaque=False))
     d.material(Material("glass-red", ["game:block/glass/red"], (190, 60, 60), solid=False, opaque=False))
     d.material(Material("glass-blue", ["game:block/glass/blue"], (70, 95, 190), solid=False, opaque=False))

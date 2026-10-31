@@ -19,7 +19,7 @@ namespace Hansa
         readonly InventoryGeneric inventory;
 
         public ShipStorageDialog(InventoryGeneric inv, EntityShip ship, ICoreClientAPI capi, FixtureDef fixture)
-            : base(inv, ship, capi, "hansa-storage-" + fixture.Code, ShipHud.FixtureName(ship, fixture))
+            : base(inv, ship, capi, "ships-storage-" + fixture.Code, ShipHud.FixtureName(ship, fixture))
         {
             this.ship = ship;
             this.fixture = fixture;
@@ -48,7 +48,7 @@ namespace Hansa
         public override void OnFinalizeFrame(float dt)
         {
             foreach (var comp in Composers) comp.Value.PostRender(dt);
-            if (TooFar(capi, ship, fixture)) capi.Event.EnqueueMainThreadTask(() => TryClose(), "hansa-closestorage");
+            if (TooFar(capi, ship, fixture)) capi.Event.EnqueueMainThreadTask(() => TryClose(), "ships-closestorage");
         }
 
         /// <summary>The player walked away from the storage (or the ship is gone).</summary>
@@ -100,9 +100,9 @@ namespace Hansa
             var inset = clip.ForkBoundingParent(6, 3, 0, 3);
             var dialog = inset.ForkBoundingParent(dpad, dpad + 30, dpad + 20, dpad).WithAlignment(EnumDialogArea.CenterMiddle);
             var scrollbar = ElementStdBounds.VerticalScrollbar(inset).WithParent(dialog);
-            string title = ShipHud.FixtureName(ship, fixture) + " — " + Lang.Get("hansa:storage-slots", inv.Count);
+            string title = ShipHud.FixtureName(ship, fixture) + " — " + Lang.Get("ships:storage-slots", inv.Count);
 
-            SingleComposer = capi.Gui.CreateCompo("hansa-hold-" + ship.EntityId + "-" + fixture.Code, dialog)
+            SingleComposer = capi.Gui.CreateCompo("ships-hold-" + ship.EntityId + "-" + fixture.Code, dialog)
                 .AddShadedDialogBG(ElementBounds.Fill)
                 .AddDialogTitleBar(title, () => TryClose())
                 .AddInset(inset, 3)
@@ -139,7 +139,7 @@ namespace Hansa
         public override void OnFinalizeFrame(float dt)
         {
             base.OnFinalizeFrame(dt);
-            if (ShipStorageDialog.TooFar(capi, ship, fixture)) capi.Event.EnqueueMainThreadTask(() => TryClose(), "hansa-closestorage");
+            if (ShipStorageDialog.TooFar(capi, ship, fixture)) capi.Event.EnqueueMainThreadTask(() => TryClose(), "ships-closestorage");
         }
     }
 }

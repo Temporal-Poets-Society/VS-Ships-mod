@@ -145,7 +145,7 @@ namespace Hansa
             }
             catch (Exception e)
             {
-                sapi.Logger.Warning("[hansa] Could not read the ship spawns, starting afresh: {0}", e.Message);
+                sapi.Logger.Warning("[ships] Could not read the ship spawns, starting afresh: {0}", e.Message);
                 Registry = new ShipSpawnRegistry();
             }
             Registry.Players ??= new();
@@ -165,13 +165,13 @@ namespace Hansa
 
         public void Toggle(ISpawnHolder who, EntityShip ship, FixtureDef plate)
         {
-            if (!mod.Config.ShipSpawn) { who.Tell("hansa:spawn-off"); return; }
+            if (!mod.Config.ShipSpawn) { who.Tell("ships:spawn-off"); return; }
             if (plate?.Spawn == null || ship?.Def == null) return;
             Registry.Players.TryGetValue(who.Uid, out var b);
             if (b != null && b.Ended == null && b.ShipId == ship.EntityId)
             {
                 End(who, b, null);
-                who.Tell("hansa:spawn-unbound", ship.GetName());
+                who.Tell("ships:spawn-unbound", ship.GetName());
                 return;
             }
             if (b != null && b.Ended != null)
@@ -187,7 +187,7 @@ namespace Hansa
             Registry.Players[who.Uid] = b;
             ship.SetSpawnBound(who.Uid, who.Name, true);
             Give(who, b, NoteShip(ship, true));
-            who.Tell("hansa:spawn-bound", ship.GetName());
+            who.Tell("ships:spawn-bound", ship.GetName());
         }
 
         /// <summary>
@@ -235,7 +235,7 @@ namespace Hansa
             Restore(who, b);
             Registry.Players.Remove(who.Uid);
             FindShip(b.ShipId)?.SetSpawnBound(who.Uid, null, false);
-            if (why != null) who.Tell("hansa:spawn-ended-" + why);
+            if (why != null) who.Tell("ships:spawn-ended-" + why);
         }
 
         /// <summary>Give back the spawn they had before, if the one they have now is still hers.</summary>
@@ -254,7 +254,7 @@ namespace Hansa
             if (!b.HasSet || !who.TryReadSpawn(out var now) || IsOurs(now, b)) return false;
             Registry.Players.Remove(who.Uid);
             FindShip(b.ShipId)?.SetSpawnBound(who.Uid, null, false);
-            who.Tell("hansa:spawn-ended-" + EndReplaced);
+            who.Tell("ships:spawn-ended-" + EndReplaced);
             return true;
         }
 
@@ -321,7 +321,7 @@ namespace Hansa
                 string why = b.Ended;
                 Restore(who, b);
                 Registry.Players.Remove(who.Uid);
-                who.Tell("hansa:spawn-ended-" + why);
+                who.Tell("ships:spawn-ended-" + why);
                 return;
             }
             // she may have sailed on while they were away (someone else at the helm)
@@ -381,7 +381,7 @@ namespace Hansa
             }
             if (waitedMs < BoardWaitMs) return false;
             // she didn't turn up where she was last seen (gone without our knowing): their own spawn back, and there
-            sapi.Logger.Notification("[hansa] {0}'s ship #{1} didn't turn up at their spawn: giving them their own back", player.PlayerName, b.ShipId);
+            sapi.Logger.Notification("[ships] {0}'s ship #{1} didn't turn up at their spawn: giving them their own back", player.PlayerName, b.ShipId);
             End(who, b, EndMissing);
             var pos = player.GetSpawnPosition(false);
             if (pos != null) ep.TeleportToDouble(pos.X, pos.Y, pos.Z);

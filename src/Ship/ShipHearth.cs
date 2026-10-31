@@ -368,19 +368,19 @@ namespace Hansa
         /// </summary>
         public string TryIgniteHearth(EntityAgent by, ItemSlot slot, float seconds, double roll)
         {
-            if (HearthInv == null) return "hansa:hearth-none";
-            if (!HearthOn) return "hansa:hearth-off";
-            if (GoneDown) return "hansa:gone-down";
+            if (HearthInv == null) return "ships:hearth-none";
+            if (!HearthOn) return "ships:hearth-off";
+            if (GoneDown) return "ships:gone-down";
             // (0.3.18, note 165) a hearth put aboard draws only with a flue up to open air
-            if (!HearthFlued) return "hansa:hearth-no-flue";
+            if (!HearthFlued) return "ships:hearth-no-flue";
             int kind = Igniter(slot?.Itemstack);
-            if (kind == 0) return "hansa:hearth-needs-igniter";
+            if (kind == 0) return "ships:hearth-needs-igniter";
             var state = Fire.IgnitableState(seconds, HearthFuelEmpty);
-            if (state == HearthFire.IgniteState.NotIgnitablePreventDefault) return Fire.IsBurning ? "hansa:hearth-burning" : "hansa:hearth-no-fuel";
-            if (state != HearthFire.IgniteState.IgniteNow) return "hansa:hearth-not-yet";
+            if (state == HearthFire.IgniteState.NotIgnitablePreventDefault) return Fire.IsBurning ? "ships:hearth-burning" : "ships:hearth-no-fuel";
+            if (state != HearthFire.IgniteState.IgniteNow) return "ships:hearth-not-yet";
             if (kind == 1)
             {
-                if (roll > HearthFire.FirestarterChance) return "hansa:hearth-no-catch";
+                if (roll > HearthFire.FirestarterChance) return "ships:hearth-no-catch";
                 slot.Itemstack.Collectible.DamageItem(World, by, slot, 1);
             }
             Fire.Ignited(World.Calendar.TotalHours);
@@ -421,7 +421,7 @@ namespace Hansa
             if (hearthTries.TryGetValue(player.PlayerUID, out long last) && now - last < 2500) return;
             hearthTries[player.PlayerUID] = now;
             string err = TryIgniteHearth(player.Entity, player.InventoryManager.ActiveHotbarSlot, seconds, World.Rand.NextDouble());
-            if (err != null) player.SendIngameError("hansa-hearth", Lang.GetL(player.LanguageCode, err));
+            if (err != null) player.SendIngameError("ships-hearth", Lang.GetL(player.LanguageCode, err));
         }
 
         /// <summary>The sea in her (she's going down): the fire's out and cold, as water puts out vanilla's firepit.</summary>
@@ -544,11 +544,11 @@ namespace Hansa
         public string HearthStateText()
         {
             if (HearthInv == null) return "";
-            if (!HearthOn) return Lang.Get("hansa:hearth-state-off");
-            if (Fire.IsBurning) return Lang.Get("hansa:hearth-state-burning", (int)Fire.FurnaceTemperature);
-            if (Fire.BurnState == "extinct" && Fire.CanIgniteFuel) return Lang.Get("hansa:hearth-state-embers");
+            if (!HearthOn) return Lang.Get("ships:hearth-state-off");
+            if (Fire.IsBurning) return Lang.Get("ships:hearth-state-burning", (int)Fire.FurnaceTemperature);
+            if (Fire.BurnState == "extinct" && Fire.CanIgniteFuel) return Lang.Get("ships:hearth-state-embers");
             return Fire.FurnaceTemperature > HearthFire.EnvironmentTemperature + 1
-                ? Lang.Get("hansa:hearth-state-cooling", (int)Fire.FurnaceTemperature) : Lang.Get("hansa:hearth-state-cold");
+                ? Lang.Get("ships:hearth-state-cooling", (int)Fire.FurnaceTemperature) : Lang.Get("ships:hearth-state-cold");
         }
 
         /// <summary>The look-at box on the hearth: how it stands, and what's cooking (its temperature).</summary>
@@ -558,9 +558,9 @@ namespace Hansa
             string state = HearthStateText();
             sb.AppendLine(state.Length > 0 ? char.ToUpperInvariant(state[0]) + state.Substring(1) : state);
             var input = HearthInv[1].Itemstack;
-            if (input != null) sb.AppendLine(Lang.Get("hansa:hearth-info-input", input.GetName(), (int)HearthInputTemp()));
+            if (input != null) sb.AppendLine(Lang.Get("ships:hearth-info-input", input.GetName(), (int)HearthInputTemp()));
             var output = HearthInv[2].Itemstack;
-            if (output != null) sb.AppendLine(Lang.Get("hansa:hearth-info-output", output.StackSize, output.GetName()));
+            if (output != null) sb.AppendLine(Lang.Get("ships:hearth-info-output", output.StackSize, output.GetName()));
         }
     }
 }

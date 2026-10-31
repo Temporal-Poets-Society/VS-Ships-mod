@@ -51,8 +51,8 @@ base = sys.argv[1]
 cur = {"fingerprint.json": os.path.join(ROOT, "models", "caravel", "model-fingerprint.json"),
        "models_caravel_cells.json": os.path.join(ROOT, "models", "caravel", "cells.json"),
        "models_caravel_caravel-report.json": os.path.join(ROOT, "models", "caravel", "caravel-report.json"),
-       "assets_hansa_config_ships_caravel.json": os.path.join(ROOT, "assets", "hansa", "config", "ships", "caravel.json"),
-       "assets_hansa_config_shipmeshes_caravel.json": os.path.join(ROOT, "assets", "hansa", "config", "shipmeshes", "caravel.json")}
+       "assets_hansa_config_ships_caravel.json": os.path.join(ROOT, "assets", "ships", "config", "ships", "caravel.json"),
+       "assets_hansa_config_shipmeshes_caravel.json": os.path.join(ROOT, "assets", "ships", "config", "shipmeshes", "caravel.json")}
 for k, p in cur.items():
     a = json.load(open(os.path.join(base, k), encoding="utf-8"))
     b = json.load(open(p, encoding="utf-8"))

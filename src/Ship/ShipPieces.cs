@@ -249,23 +249,23 @@ namespace Hansa
             // ((25 October 2026, caravel note 89: "door can be placed only with hinges on one side") HingeHigh in toward: a
             // door's hinge at its border's +x/+z end, where the crosshair was nearer it)
             p.Toward = p.Dir | (toward >= 0 && (toward & HingeHigh) != 0 ? HingeHigh : 0);
-            if (m == null || b == null) { p.Error = "hansa:piece-nowhere"; return p; }
+            if (m == null || b == null) { p.Error = "ships:piece-nowhere"; return p; }
             // (0.3.23) a ship's stair is put aboard in building mode only
-            if (b.NeedsBuilding) { p.Error = "hansa:shipstair-build-mode"; return p; }
+            if (b.NeedsBuilding) { p.Error = "ships:shipstair-build-mode"; return p; }
             int look = (p.Dir + 2) % 4;
             p.Role = b.Container ? PieceRole.Storage : b.Orient == PieceOrient.Bed ? PieceRole.Bed : b.Seat ? PieceRole.Seat : b.Light ? PieceRole.Light : PieceRole.Deco;
             p.Slots = b.Slots;
             p.Efficiency = b.SleepEfficiency;
-            if (b.Overlay && m.Kind != MountKind.Wall) { p.Error = "hansa:piece-needs-wall"; return p; }
-            if (b.Door && m.Kind != MountKind.Border) { p.Error = "hansa:door-needs-border"; return p; }
+            if (b.Overlay && m.Kind != MountKind.Wall) { p.Error = "ships:piece-needs-wall"; return p; }
+            if (b.Door && m.Kind != MountKind.Border) { p.Error = "ships:door-needs-border"; return p; }
             // (0.3.16, notes 154-159) a pane is a window, a fence a railing: on a border; stairs on the floor; a slab is a
             // horizontal panel and nothing but a slab goes on a horizontal place
-            if ((b.Pane || b.Fence) && m.Kind != MountKind.Border) { p.Error = "hansa:piece-needs-border"; return p; }
-            if ((b.Stairs || b.Ladder) && m.Kind != MountKind.Floor) { p.Error = "hansa:stair-needs-floor"; return p; }
-            if (m.Kind == MountKind.Horizontal && !b.Slab) { p.Error = "hansa:shelf-needs-slab"; return p; }
+            if ((b.Pane || b.Fence) && m.Kind != MountKind.Border) { p.Error = "ships:piece-needs-border"; return p; }
+            if ((b.Stairs || b.Ladder) && m.Kind != MountKind.Floor) { p.Error = "ships:stair-needs-floor"; return p; }
+            if (m.Kind == MountKind.Horizontal && !b.Slab) { p.Error = "ships:shelf-needs-slab"; return p; }
             // (0.3.18, note 165) the hearth and the oven on a floor place, a flue segment on a flue place and nothing else there
-            if ((b.Hearth || b.Oven) && m.Kind != MountKind.Floor) { p.Error = "hansa:hearth-needs-floor"; return p; }
-            if (b.Flue != (m.Kind == MountKind.Flue)) { p.Error = b.Flue ? "hansa:flue-needs-place" : "hansa:piece-nowhere"; return p; }
+            if ((b.Hearth || b.Oven) && m.Kind != MountKind.Floor) { p.Error = "ships:hearth-needs-floor"; return p; }
+            if (b.Flue != (m.Kind == MountKind.Flue)) { p.Error = b.Flue ? "ships:flue-needs-place" : "ships:piece-nowhere"; return p; }
             switch (m.Kind)
             {
                 case MountKind.Flue: return FluePlan(m, b, p);
@@ -286,7 +286,7 @@ namespace Hansa
         /// </summary>
         static PiecePlan Partition(MountPoint m, PieceBlock b, PiecePlan p)
         {
-            if (!b.Planks) { p.Error = "hansa:partition-needs-planks"; return p; }
+            if (!b.Planks) { p.Error = "ships:partition-needs-planks"; return p; }
             p.Role = PieceRole.Partition;
             p.Dir = m.In;
             p.Mounts.Add(m.Id);
@@ -305,7 +305,7 @@ namespace Hansa
         {
             // (0.3.17) a railing goes on a place only partly free of her too (a castle front's corner by her side), cut to it
             // ((25 October 2026, caravel note 90) and a window, cut to it as a partition is: not on a sliver)
-            if (m.Clip != null && role == PieceRole.Window && ClipArea(m) < 0.25) { p.Error = "hansa:window-no-room"; return p; }
+            if (m.Clip != null && role == PieceRole.Window && ClipArea(m) < 0.25) { p.Error = "ships:window-no-room"; return p; }
             p.Role = role;
             p.Dir = m.In;
             p.Mounts.Add(m.Id);
@@ -599,14 +599,14 @@ namespace Hansa
         /// <summary>
         /// (0.3.19, the user: "maybe two versions: stairs and ladders; stairs can take more space, longer"; 0.3.23, the user:
         /// "can we make stairs for 2 blocks also? ladder animation is kind of bad"; "for ships stairs better to have a
-        /// special block") A ship's stair (hansa:shipstair-long or -steep, building mode) on a floor place: a walked stair 1
+        /// special block") A ship's stair (ships:shipstair-long or -steep, building mode) on a floor place: a walked stair 1
         /// wide over 3 cells (about 45°) or 2 (about 56°) climbing away from whoever puts it (its foot the place, then the next
         /// cells), from its deck to the deck above (<see cref="FlightRise"/>): twelve treads a quarter block high on two
         /// stringers, open underneath, walked by the deck mover over her collision's columns (<see cref="FlightColumns"/>). Its
         /// top is flush with the deck above at the head cell's far edge: on an open deck up to a castle's front no well is
         /// needed (the deck above may reach back over the head cell's last <see cref="FlightOverhang"/>); through a deck, a
         /// well over its cells (the steep one also a quarter block before its foot: docs/modular-pieces.md §10; 0.1.0-dev.6,
-        /// note 36: the short one, hansa:shipstair-short, 1 cell at about 72°, a 2 × 1 well over its cell and the one before it,
+        /// note 36: the short one, ships:shipstair-short, 1 cell at about 72°, a 2 × 1 well over its cell and the one before it,
         /// docs/legacy/modular-pieces.md §15). Its own
         /// handrails (<see cref="FlightGuards"/>: solid beside its treads, drawn rails 0.9 over its nosings), so no railing goes
         /// beside it. It takes the foot's place and the places over its cells; the others' own places stay free (a chest under
@@ -614,7 +614,7 @@ namespace Hansa
         /// </summary>
         static PiecePlan Flight(MountLayout layout, MountPoint m, PieceBlock b, PiecePlan p, int look)
         {
-            if (m.Level != 0) { p.Error = "hansa:stair-needs-floor"; return p; }
+            if (m.Level != 0) { p.Error = "ships:stair-needs-floor"; return p; }
             int n = b.StairCells is ShortCells or SteepCells or FlightCells ? b.StairCells : FlightCells;
             double run = n;
             var cells = new List<MountPoint> { m };
@@ -626,7 +626,7 @@ namespace Hansa
                 if (cell != null) cells.Add(cell);
             }
             double rise = b.Rise > 0 ? b.Rise : FlightRise(layout, m, look, run);
-            if (rise < 1 || rise > 4.5) { p.Error = "hansa:stair-no-deck"; return p; }
+            if (rise < 1 || rise > 4.5) { p.Error = "ships:stair-no-deck"; return p; }
             // (where one steps on and off it: her floor there)
             // ((25 October 2026, caravel note 99: "cannot place stairs in this direction up") her decks laid: her openings as
             // they are (a hatchway with its hatch shut, cells laid since) are the ship's to say, PlaceProblem)
@@ -636,7 +636,7 @@ namespace Hansa
             if (grid != null && (!DeckMover.HasFloor(grid, on[0], on[1] + 0.01, on[2]) || !DeckMover.HasFloor(grid, off[0], off[1] + 0.01, off[2]) ||
                                  // ((0.3.29) past its head her deck itself, not a beam's top a quarter under it (a well's edge))
                                  !grid.Collides(off[0] - 0.3, off[1] - 0.12, off[2] - 0.3, off[0] + 0.3, off[1] + 0.01, off[2] + 0.3)))
-            { p.Error = "hansa:stair-no-landing"; return p; }
+            { p.Error = "ships:stair-no-landing"; return p; }
             p.Role = PieceRole.Stair;
             p.Dir = look;
             p.Rise = rise;
@@ -836,17 +836,17 @@ namespace Hansa
         /// </summary>
         static PiecePlan LadderStair(MountLayout layout, MountPoint m, PieceBlock b, PiecePlan p, int look)
         {
-            if (m.Level != 0) { p.Error = "hansa:stair-needs-floor"; return p; }
+            if (m.Level != 0) { p.Error = "ships:stair-needs-floor"; return p; }
             var head = layout.FloorAt(m.Deck, m.I + MountLayout.DX[look], m.K + MountLayout.DZ[look]);
-            if (head == null) { p.Error = "hansa:stair-no-room"; return p; }
+            if (head == null) { p.Error = "ships:stair-no-room"; return p; }
             double rise = b.Rise > 0 ? b.Rise : StairRise(layout, m, look);
-            if (rise < 1 || rise > 4.5) { p.Error = "hansa:stair-no-deck"; return p; }
+            if (rise < 1 || rise > 4.5) { p.Error = "ships:stair-no-deck"; return p; }
             // (where one steps on and off it: her floor there; ((25 October 2026, note 99) her decks laid, as a flight's)
             var grid = layout.LaidGrid ?? layout.Def?.Grid;
             var lad = StairLadder(m, look, rise, null);
             if (grid != null && (!DeckMover.HasFloor(grid, lad.ExitBottom[0], lad.ExitBottom[1] + 0.01, lad.ExitBottom[2]) ||
                                  !DeckMover.HasFloor(grid, lad.ExitTop[0], lad.ExitTop[1] + 0.01, lad.ExitTop[2])))
-            { p.Error = "hansa:stair-no-landing"; return p; }
+            { p.Error = "ships:stair-no-landing"; return p; }
             p.Role = PieceRole.Ladder;
             p.Dir = look;
             p.Rise = rise;
@@ -986,7 +986,7 @@ namespace Hansa
         {
             // ((24 October 2026, caravel note 74: "cannot place oven on top of these blocks, i can place on floor") the oven on
             // a block put aboard too, as on her deck; the hearth on her deck only (its flue's places rise from there)
-            if (m.Level != 0 && !b.Oven) { p.Error = "hansa:hearth-needs-floor"; return p; }
+            if (m.Level != 0 && !b.Oven) { p.Error = "ships:hearth-needs-floor"; return p; }
             p.Role = b.Oven ? PieceRole.Oven : PieceRole.Hearth;
             p.Mounts.Add(m.Id);
             for (int level = m.Level + 1; level <= MountLayout.MaxStack; level++)
@@ -1076,10 +1076,10 @@ namespace Hansa
         /// </summary>
         static PiecePlan Door(MountLayout layout, MountPoint m, PieceBlock b, PiecePlan p)
         {
-            if (m.Row != 0) { p.Error = "hansa:door-needs-floor"; return p; }
+            if (m.Row != 0) { p.Error = "ships:door-needs-floor"; return p; }
             var up = layout?.BorderAbove(m);
             // (0.3.13: a place only partly free of her takes a partition cut to it, not a door)
-            if (up == null || m.Clip != null || up.Clip != null) { p.Error = "hansa:door-no-room"; return p; }
+            if (up == null || m.Clip != null || up.Clip != null) { p.Error = "ships:door-no-room"; return p; }
             p.Role = PieceRole.Door;
             p.Dir = m.In;
             // (0.3.17) a design's door may swing the other way (into the landing, out onto the deck)
@@ -1153,7 +1153,7 @@ namespace Hansa
         /// </summary>
         static PiecePlan Panel(MountPoint m, PieceBlock b, PiecePlan p)
         {
-            if (!b.Planks) { p.Error = "hansa:panel-needs-planks"; return p; }
+            if (!b.Planks) { p.Error = "ships:panel-needs-planks"; return p; }
             p.Role = PieceRole.Panel;
             p.Dir = m.In;
             p.Mounts.Add(m.Id);
@@ -1178,7 +1178,7 @@ namespace Hansa
 
         static PiecePlan Floor(MountLayout layout, MountPoint m, PieceBlock b, PiecePlan p, int look)
         {
-            if (b.Orient == PieceOrient.Attachable) { p.Error = "hansa:piece-needs-wall"; return p; }
+            if (b.Orient == PieceOrient.Attachable) { p.Error = "ships:piece-needs-wall"; return p; }
             if (b.Orient == PieceOrient.Bed) return Bed(layout, m, b, p, look);
             string variant = b.Orient switch
             {
@@ -1194,9 +1194,9 @@ namespace Hansa
             {
                 // (a block with no variant of its own takes its cells turned with it)
                 var (dx, dz) = b.Orient == PieceOrient.None ? TurnCell(c[0], c[2], q) : (c[0], c[2]);
-                if (c[1] < 0) { p.Error = "hansa:piece-no-room"; return p; }
+                if (c[1] < 0) { p.Error = "ships:piece-no-room"; return p; }
                 var at = layout.FloorAt(m.Deck, m.I + dx, m.K + dz, m.Level);
-                if (at == null) { p.Error = "hansa:piece-no-room"; return p; }
+                if (at == null) { p.Error = "ships:piece-no-room"; return p; }
                 if (!p.Mounts.Contains(at.Id)) p.Mounts.Add(at.Id);
                 var cell = new[] { origin[0] + dx, origin[1] + c[1], origin[2] + dz };
                 if (c[1] > 0) p.Room.Add(new[] { cell[0], cell[1], cell[2], cell[0] + 1, cell[1] + 1, cell[2] + 1 });
@@ -1227,7 +1227,7 @@ namespace Hansa
         static PiecePlan Bed(MountLayout layout, MountPoint m, PieceBlock b, PiecePlan p, int look)
         {
             var head = layout.FloorAt(m.Deck, m.I + MountLayout.DX[look], m.K + MountLayout.DZ[look], m.Level);
-            if (head == null) { p.Error = "hansa:piece-bed-room"; return p; }
+            if (head == null) { p.Error = "ships:piece-bed-room"; return p; }
             string side = MountLayout.DirCode[p.Dir];
             string feetCode = b.BedPart("feet", side) ?? b.Code, headCode = b.BedPart("head", side) ?? b.Code;
             p.Mounts.Add(m.Id);
@@ -1259,7 +1259,7 @@ namespace Hansa
                 _ => null
             };
             int q = b.Orient == PieceOrient.None ? QuarterFor(m.In) : 0;
-            if (variant == null) { p.Error = "hansa:piece-not-wall"; return p; }
+            if (variant == null) { p.Error = "ships:piece-not-wall"; return p; }
             // the block against the wall: its wall side on the wall's face
             double[] origin = m.In switch
             {
@@ -1276,9 +1276,9 @@ namespace Hansa
                 var (tx, tz) = b.Orient == PieceOrient.None ? TurnCell(c0[0], c0[2], q) : (c0[0], c0[2]);
                 var c = new[] { tx, c0[1], tz };
                 int along = alongX ? c[0] : c[2], depth = alongX ? c[2] : c[0];
-                if (depth != 0 || c[1] < 0) { p.Error = "hansa:piece-no-room"; return p; }
+                if (depth != 0 || c[1] < 0) { p.Error = "ships:piece-no-room"; return p; }
                 var at = layout.WallAt(m.Wall, m.I + along, m.Row + c[1]);
-                if (at == null) { p.Error = "hansa:piece-wall-room"; return p; }
+                if (at == null) { p.Error = "ships:piece-wall-room"; return p; }
                 if (!p.Mounts.Contains(at.Id)) p.Mounts.Add(at.Id);
                 AddBoxes(p, b, variant, q, new[] { origin[0] + c[0], origin[1] + c[1], origin[2] + c[2] });
             }
@@ -1299,8 +1299,8 @@ namespace Hansa
             // ((0.1.0-dev.9, caravel note 78: "we could have option to add vanilla figure heads") a figurehead's place at her stem
             // head: a figurehead only, standing in its block in front of the hook, facing the hook's way (the bow), its back at it
             if (m.Kinds != null && Array.IndexOf(m.Kinds, FigureheadKind) >= 0) return FigureheadPlan(m, b, p);
-            if (m.Kinds != null && Array.IndexOf(m.Kinds, "light") >= 0 && m.Kinds.Length == 1 && !b.Light) { p.Error = "hansa:piece-hook-light"; return p; }
-            if (b.Orient is PieceOrient.Attachable or PieceOrient.Bed || b.Container) { p.Error = "hansa:piece-hook-light"; return p; }
+            if (m.Kinds != null && Array.IndexOf(m.Kinds, "light") >= 0 && m.Kinds.Length == 1 && !b.Light) { p.Error = "ships:piece-hook-light"; return p; }
+            if (b.Orient is PieceOrient.Attachable or PieceOrient.Bed || b.Container) { p.Error = "ships:piece-hook-light"; return p; }
             bool down = m.Hang != "up";
             if (m.Yaw.HasValue) p.Dir = ShipMounts.DirOfYaw(m.Yaw.Value);
             string variant = b.Orient == PieceOrient.Omni ? b.Variant(down ? "down" : "up") ?? b.Code : b.Code;
@@ -1331,7 +1331,7 @@ namespace Hansa
         /// </summary>
         static PiecePlan FigureheadPlan(MountPoint m, PieceBlock b, PiecePlan p)
         {
-            if (!b.Figurehead) { p.Error = "hansa:piece-hook-figurehead"; return p; }
+            if (!b.Figurehead) { p.Error = "ships:piece-hook-figurehead"; return p; }
             double nx = m.Normal?.Length >= 3 ? m.Normal[0] : 1, nz = m.Normal?.Length >= 3 ? m.Normal[2] : 0;
             // the quarter turn that takes the shape's +z nearest the normal (Turn: 1 → +x, 2 → -z, 3 → -x)
             int q = Math.Abs(nx) >= Math.Abs(nz) ? (nx >= 0 ? 1 : 3) : (nz >= 0 ? 0 : 2);

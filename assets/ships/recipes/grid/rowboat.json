@@ -1,0 +1,24 @@
+{
+	"ingredientPattern": "P_P,PPP,O_O",
+	"ingredients": {
+		"P": {
+			"type": "item",
+			"code": "game:plank-*",
+			"name": "wood",
+			"quantity": 2,
+			"skipVariants": [
+				"veryaged"
+			]
+		},
+		"O": {
+			"type": "item",
+			"code": "game:oar-crude-*"
+		}
+	},
+	"width": 3,
+	"height": 3,
+	"output": {
+		"type": "item",
+		"code": "ships:rowboat-{wood}"
+	}
+}

@@ -9,7 +9,7 @@ namespace Hansa
     /// The wind panel (0.3.10, the user: "no indicator of wind speed and direction"): whenever you're aboard a ship, a
     /// small compass at the right edge of the screen with her outline pointing up (her bow), the true wind (a pale arrow,
     /// from where it comes toward her) and the apparent wind (an orange one, what her sails feel), north marked on the
-    /// rim. Toggled with Ctrl+U or .hansa wind (HansaClientConfig.WindPanel).
+    /// rim. Toggled with Ctrl+U or .ships wind (HansaClientConfig.WindPanel).
     /// (0.3.12, the user found it confusing: units mixed, lines unlabelled, the helm's line saying it all again, the orange
     /// arrow taken for the no-go angle.) Each line names what it measures. Ship speed keeps blocks per second in brackets;
     /// true and apparent wind use knots only. At the helm: "Beam reach, port tack", "Best she can make here: …". The
@@ -48,7 +48,7 @@ namespace Hansa
             var warnRed = CairoFont.WhiteDetailText().WithFontSize(14).WithWeight(FontWeight.Bold).WithOrientation(EnumTextOrientation.Center)
                 .WithColor(new double[] { 1, 0.25, 0.2, 1 }).WithStroke(new double[] { 0, 0, 0, 0.9 }, 2);
             double y = Card + Legend;
-            SingleComposer = capi.Gui.CreateCompo("hansa-windpanel", bounds)
+            SingleComposer = capi.Gui.CreateCompo("ships-windpanel", bounds)
                 .AddDynamicCustomDraw(ElementBounds.Fixed(0, 0, Width, Card + Legend + TextH + WarnH), Draw, "card")
                 .AddDynamicText("", font, ElementBounds.Fixed(4, y + 2, Width - 8, TextH - 2), "text")
                 .AddDynamicText("", warnOrange, ElementBounds.Fixed(4, y + TextH, Width - 8, WarnH - 2), "warnA")
@@ -133,14 +133,14 @@ namespace Hansa
 
         /// <summary>A speed (blocks a second) as the panel and the helm say the ship's own speed: "9.0 kn (4.6 b/s)" (0.3.24, the user: "b/s hides the fake speed better").</summary>
         public static string Speed(double ms, bool tenths = true) =>
-            Lang.Get(tenths ? "hansa:speed" : "hansa:speed-whole", ms * HelmMath.KnotsPerMetreSecond, ms);
+            Lang.Get(tenths ? "ships:speed" : "ships:speed-whole", ms * HelmMath.KnotsPerMetreSecond, ms);
 
         /// <summary>"Wind: force 8 gale, 36 kn from the SW", or "Wind: calm".</summary>
         public static string WindLine(Sea.Wind w)
         {
             double strength = w.Strength;
-            if (strength < 0.02) return Lang.Get("hansa:windpanel-calm");
-            return Lang.Get("hansa:windpanel-true", Sea.Beaufort.Force(strength), Sea.Beaufort.Name(strength),
+            if (strength < 0.02) return Lang.Get("ships:windpanel-calm");
+            return Lang.Get("ships:windpanel-true", Sea.Beaufort.Force(strength), Sea.Beaufort.Name(strength),
                 HelmMath.WindSpeed(HelmMath.MetresPerSecond(strength)), Sea.Compass.Name(w.FromDegrees));
         }
 
@@ -149,17 +149,17 @@ namespace Hansa
         {
             double from = Math.Abs(Math.IEEERemainder(rel + Math.PI, 2 * Math.PI)) * 180 / Math.PI;
             int side = Math.IEEERemainder(rel + Math.PI, 2 * Math.PI) >= 0 ? 1 : -1;
-            string sideName = Lang.Get(side > 0 ? "hansa:side-starboard" : "hansa:side-port");
-            return from < 15 ? Lang.Get("hansa:wind-ahead") : from < 60 ? Lang.Get("hansa:wind-bow", sideName)
-                : from < 120 ? Lang.Get("hansa:wind-beam", sideName) : from < 165 ? Lang.Get("hansa:wind-quarter", sideName)
-                : Lang.Get("hansa:wind-astern");
+            string sideName = Lang.Get(side > 0 ? "ships:side-starboard" : "ships:side-port");
+            return from < 15 ? Lang.Get("ships:wind-ahead") : from < 60 ? Lang.Get("ships:wind-bow", sideName)
+                : from < 120 ? Lang.Get("ships:wind-beam", sideName) : from < 165 ? Lang.Get("ships:wind-quarter", sideName)
+                : Lang.Get("ships:wind-astern");
         }
 
         /// <summary>"On her sails: 38 kn, on the port beam" (the apparent wind).</summary>
         public static string OnSailsLine(EntityShip ship, Sea.Wind w)
         {
             Sailing.Apparent(w.X, w.Z, ship.Pos.Yaw, ship.Speed, out double ax, out double az);
-            return Lang.Get("hansa:windpanel-apparent", HelmMath.WindSpeed(HelmMath.MetresPerSecond(Math.Sqrt(ax * ax + az * az))),
+            return Lang.Get("ships:windpanel-apparent", HelmMath.WindSpeed(HelmMath.MetresPerSecond(Math.Sqrt(ax * ax + az * az))),
                 Where(HelmMath.Relative(ax, az, ship.Pos.Yaw)));
         }
 
@@ -172,12 +172,12 @@ namespace Hansa
             if (!ship.SailByWind || !ship.MastUp || w.Strength < 0.02 || ship.Def?.Sailing == null) return null;
             float sail = ship.SailSet >= 2 ? 1f : ship.SailSet == 1 ? 0.55f : 0f;
             string point = HelmMath.PointOfSail(w.X, w.Z, ship.Pos.Yaw, Math.Max(sail, ship.SailFraction), ship.Speed, ship.SailingNow, out int tack);
-            string text = Lang.Get("hansa:windpanel-pos-" + point);
+            string text = Lang.Get("ships:windpanel-pos-" + point);
             if (point != "inirons" && point != "aback" && point != "running")
-                text = Lang.Get("hansa:windpanel-tack", text, Lang.Get(tack > 0 ? "hansa:side-starboard" : "hansa:side-port"));
-            if (point is "inirons" or "aback") return text + (sail > 0 ? join + Lang.Get("hansa:windpanel-bearaway") : "");
+                text = Lang.Get("ships:windpanel-tack", text, Lang.Get(tack > 0 ? "ships:side-starboard" : "ships:side-port"));
+            if (point is "inirons" or "aback") return text + (sail > 0 ? join + Lang.Get("ships:windpanel-bearaway") : "");
             double best = Sailing.TargetSpeed(w.X, w.Z, ship.Pos.Yaw, sail > 0 ? sail : 1, ship.MaxSpeedNow, ship.SailingNow);
-            return text + join + Lang.Get(sail > 0 ? "hansa:windpanel-best" : "hansa:windpanel-best-full", Speed(best));
+            return text + join + Lang.Get(sail > 0 ? "ships:windpanel-best" : "ships:windpanel-best-full", Speed(best));
         }
 
         static string Text(EntityShip ship, ShipSeat seat, Sea.Wind w)
@@ -186,7 +186,7 @@ namespace Hansa
             if (w.Strength >= 0.02) text += "\n" + OnSailsLine(ship, w);
             if (seat is HelmSeat && HelmLines(ship, w) is string helm) text += "\n" + helm;
             // ((0.3.25) under the sweeps A/D turn her directly: the helm doesn't work the other way going astern)
-            if (seat is HelmSeat && ship.Speed < -0.05f && !ship.Crawl) text += "\n" + Lang.Get("hansa:windpanel-astern");
+            if (seat is HelmSeat && ship.Speed < -0.05f && !ship.Crawl) text += "\n" + Lang.Get("ships:windpanel-astern");
             return text;
         }
 
@@ -206,8 +206,8 @@ namespace Hansa
             bool aback = Sailing.Aback(w.X, w.Z, ship.Pos.Yaw, ship.SailingNow);
             int level = SailWear.Warning(d, ship.SailFraction, Math.Sqrt(ax * ax + az * az), aback, ship.SailStrain);
             if (level == 0) return 0;
-            text = Lang.Get(level == 3 ? (ship.SailStrain >= 1 ? "hansa:windpanel-warn-tearing" : "hansa:windpanel-warn-close")
-                : level == 2 ? "hansa:windpanel-warn-storm" : "hansa:windpanel-warn-gale");
+            text = Lang.Get(level == 3 ? (ship.SailStrain >= 1 ? "ships:windpanel-warn-tearing" : "ships:windpanel-warn-close")
+                : level == 2 ? "ships:windpanel-warn-storm" : "ships:windpanel-warn-gale");
             return level;
         }
 
@@ -221,12 +221,12 @@ namespace Hansa
             string word = HelmMath.Motion(ship.Speed, ship.Leeway, out double over, out _);
             string text = word switch
             {
-                "stopped" => Lang.Get("hansa:motion-stopped"),
-                "sideways" => Lang.Get("hansa:motion-sideways", Lang.Get(ship.Leeway > 0 ? "hansa:side-starboard" : "hansa:side-port"), Speed(over)),
-                _ => Lang.Get("hansa:motion-" + word, Speed(over))
+                "stopped" => Lang.Get("ships:motion-stopped"),
+                "sideways" => Lang.Get("ships:motion-sideways", Lang.Get(ship.Leeway > 0 ? "ships:side-starboard" : "ships:side-port"), Speed(over)),
+                _ => Lang.Get("ships:motion-" + word, Speed(over))
             };
-            if (sweeps && ship.Crawl) text += " · " + Lang.Get("hansa:motion-sweeps");
-            if (ship.Rowing != 0) text += " · " + Lang.Get(ship.Rowing > 0 ? "hansa:motion-oars-ahead" : "hansa:motion-oars-astern");
+            if (sweeps && ship.Crawl) text += " · " + Lang.Get("ships:motion-sweeps");
+            if (ship.Rowing != 0) text += " · " + Lang.Get(ship.Rowing > 0 ? "ships:motion-oars-ahead" : "ships:motion-oars-astern");
             return text;
         }
 
@@ -296,8 +296,8 @@ namespace Hansa
 
             // the legend under the card: a swatch and a word for each colour
             {
-                string[] words = { Lang.Get("hansa:windpanel-legend-true"), Lang.Get("hansa:windpanel-legend-app"),
-                    Lang.Get("hansa:windpanel-legend-course"), Lang.Get("hansa:windpanel-legend-nogo") };
+                string[] words = { Lang.Get("ships:windpanel-legend-true"), Lang.Get("ships:windpanel-legend-app"),
+                    Lang.Get("ships:windpanel-legend-course"), Lang.Get("ships:windpanel-legend-nogo") };
                 double[][] colours = { new[] { 0.85, 0.93, 1.0 }, new[] { 1.0, 0.6, 0.15 }, new[] { 0.3, 0.9, 0.35 }, new[] { 0.95, 0.15, 0.1 } };
                 ctx.SelectFontFace("Sans", FontSlant.Normal, FontWeight.Normal);
                 ctx.SetFontSize(10 * s);

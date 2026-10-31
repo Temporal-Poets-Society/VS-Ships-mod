@@ -1,0 +1,36 @@
+{
+	code: "wreck",
+	class: "ships.BlockWreck",
+	entityClass: "ships.Wreck",
+	attributes: {
+		canChisel: false,
+		handbook: { exclude: true }
+	},
+	shape: { base: "game:block/basic/cube" },
+	textures: {
+		all: { base: "game:block/wood/planks/aged/veryaged1" },
+		oak: { base: "game:block/wood/planks/aged/aged1" },
+		tarred: { base: "game:block/wood/planks/aged/veryaged1" },
+		pine: { base: "game:block/wood/debarked/aged" },
+		copper: { base: "game:block/metal/tarnished/tarnished-copper" },
+		iron: { base: "game:block/metal/tarnished/rusty-iron" }
+	},
+	blockmaterial: "Wood",
+	drops: [],
+	maxstacksize: 64,
+	sidesolid: { all: false },
+	sideopaque: { all: false },
+	sideao: { all: false },
+	emitsideao: { all: false },
+	lightAbsorption: 0,
+	resistance: 2.5,
+	replaceable: 100,
+	collisionbox: { x1: 0, y1: 0, z1: 0, x2: 1, y2: 1, z2: 1 },
+	selectionbox: { x1: 0, y1: 0, z1: 0, x2: 1, y2: 1, z2: 1 },
+	sounds: {
+		walk: "walk/wood",
+		hit: "block/planks",
+		break: "block/planks",
+		place: "block/planks"
+	}
+}

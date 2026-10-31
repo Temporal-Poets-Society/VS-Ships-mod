@@ -161,7 +161,7 @@ namespace Hansa
                         int had = codes.Count(c => ShipPart.Decode(c).Kind == ShipPartKind.Deck);
                         int moved;
                         (codes, hurt, wear, moved) = CellMigration.Map(Def, codes, hurt, wear);
-                        if (had > 0) World.Logger.Audit("[hansa] {0} #{1}: her decks' damage of {2} frame spaces dropped for her deck cells (0.3.28), {3} cells cracked by it", GetName(), EntityId, had, moved);
+                        if (had > 0) World.Logger.Audit("[ships] {0} #{1}: her decks' damage of {2} frame spaces dropped for her deck cells (0.3.28), {3} cells cracked by it", GetName(), EntityId, had, moved);
                     }
                     // ((0.3.28, D2.1) saved before her hull panels were halves (v under 4): a whole frame space's panel
                     // (its code the after half's now) onto its fore half too
@@ -187,7 +187,7 @@ namespace Hansa
                         if (!HullPanels.Filled(n) && PartDamage.Hurt[n] < l.D.Holed) PartDamage.Hurt[n] = 1f;
                 // ((0.3.26) her hull panels as their hurt has them)
                 if (SyncSlotsFromHurt()) { SaveSlots(); RebuildGrid(); }
-                if (migrated) World.Logger.Audit("[hansa] {0} #{1}: her hull's damage moved onto her hull panels (0.3.26): {2}", GetName(), EntityId, HullText());
+                if (migrated) World.Logger.Audit("[ships] {0} #{1}: her hull's damage moved onto her hull panels (0.3.26): {2}", GetName(), EntityId, HullText());
                 SaveDamage(true);
             }
             else
@@ -379,10 +379,10 @@ namespace Hansa
                 lastDamageNoticeMs = World.ElapsedMilliseconds;
                 var hit = res.Hits.First(h => h.After == worst);
                 // ((0.3.28) a deck cell stove in)
-                if (worst == PartState.Holed && DamageParts.Parts[hit.Part].Cell >= 0) NotifyAboard("hansa:damage-cell-stove", PartName(hit.Part));
-                else NotifyAboard("hansa:damage-notice", "hansa:state-" + worst.ToString().ToLowerInvariant(), PartName(hit.Part));
+                if (worst == PartState.Holed && DamageParts.Parts[hit.Part].Cell >= 0) NotifyAboard("ships:damage-cell-stove", PartName(hit.Part));
+                else NotifyAboard("ships:damage-notice", "ships:state-" + worst.ToString().ToLowerInvariant(), PartName(hit.Part));
             }
-            World.Logger.Audit("[hansa] {0} #{1}: {2} damage, worst {3}", GetName(), EntityId, cause, worst);
+            World.Logger.Audit("[ships] {0} #{1}: {2} damage, worst {3}", GetName(), EntityId, cause, worst);
         }
 
         /// <summary>Mend every part, pump her dry, scrape her bottom (the test command; a ship gone down stays down).</summary>
@@ -420,9 +420,9 @@ namespace Hansa
             var p = l.Parts[index];
             switch (p.Kind)
             {
-                case DamageKind.Rudder: return Lang.Get("hansa:part-rudder");
-                case DamageKind.Sail: return Lang.Get("hansa:sail-" + Def.Sails[p.Sail].Code);
-                case DamageKind.Rigging: return Lang.Get("hansa:part-rigging", Lang.Get("hansa:mast-" + Def.Masts[p.Mast].Code));
+                case DamageKind.Rudder: return Lang.Get("ships:part-rudder");
+                case DamageKind.Sail: return Lang.Get("ships:sail-" + Def.Sails[p.Sail].Code);
+                case DamageKind.Rigging: return Lang.Get("ships:part-rigging", Lang.Get("ships:mast-" + Def.Masts[p.Mast].Code));
                 default: return PartText(p.Part);
             }
         }
@@ -770,7 +770,7 @@ namespace Hansa
             if (s == SinkStage.Foundering && was == SinkStage.Afloat && World.ElapsedMilliseconds - founderNoticeMs > 60000)
             {
                 founderNoticeMs = World.ElapsedMilliseconds;
-                NotifyAboard("hansa:foundering-notice");
+                NotifyAboard("ships:foundering-notice");
             }
             SaveState(true);
         }
@@ -897,12 +897,12 @@ namespace Hansa
             double now = World.ElapsedMilliseconds / 1000.0;
             if (strainNotice.Due(SailStrain > 0, now))
             {
-                NotifyAboard("hansa:sails-strain-notice", SailWear.Warning(d, set, apparent, aback, 0) >= 2
-                    ? "hansa:sails-strain-storm" : "hansa:sails-strain-gale");
+                NotifyAboard("ships:sails-strain-notice", SailWear.Warning(d, set, apparent, aback, 0) >= 2
+                    ? "ships:sails-strain-storm" : "ships:sails-strain-gale");
             }
             // ((0.3.24) a tear close only where they'd tear: from SailTearWind)
             bool tears = SailWear.Tears(d, gale, back);
-            if (strainCloseNotice.Due(tears && (SailStrain >= 0.7f || SailStrain >= 0.4f && strainCloseOn), now)) NotifyAboard("hansa:sails-strain-close");
+            if (strainCloseNotice.Due(tears && (SailStrain >= 0.7f || SailStrain >= 0.4f && strainCloseOn), now)) NotifyAboard("ships:sails-strain-close");
             strainCloseOn = tears && (SailStrain >= 0.7f || SailStrain >= 0.4f && strainCloseOn);
 
             if (SailStrain < 1 || load <= 1) return;
@@ -924,7 +924,7 @@ namespace Hansa
             {
                 // a sail torn or blown out: sent at once, and said
                 SaveDamage(true);
-                NotifyAboard("hansa:damage-notice", "hansa:state-" + worst.ToString().ToLowerInvariant(), PartName(worstPart));
+                NotifyAboard("ships:damage-notice", "ships:state-" + worst.ToString().ToLowerInvariant(), PartName(worstPart));
             }
         }
 
@@ -1010,7 +1010,7 @@ namespace Hansa
             var ep = player?.Entity;
             if (ep == null || !ep.Alive || PartDamage == null) return;
             string err = RepairReach(ep, part);
-            if (err != null) { player.SendIngameError("hansa-repair", Lang.GetL(player.LanguageCode, err)); return; }
+            if (err != null) { player.SendIngameError("ships-repair", Lang.GetL(player.LanguageCode, err)); return; }
             var inv = player.InventoryManager;
             var slots = new List<ItemSlot>();
             if (inv.ActiveHotbarSlot != null) slots.Add(inv.ActiveHotbarSlot);
@@ -1019,7 +1019,7 @@ namespace Hansa
                     foreach (var s in own) if (s != null && !slots.Contains(s)) slots.Add(s);
             bool free = player.WorldData.CurrentGameMode == EnumGameMode.Creative;
             string msg = Repair(part, slots, held, free, out var job, out object[] args);
-            if (job == null) { player.SendIngameError("hansa-repair", Lang.GetL(player.LanguageCode, msg, args)); return; }
+            if (job == null) { player.SendIngameError("ships-repair", Lang.GetL(player.LanguageCode, msg, args)); return; }
             player.SendMessage(GlobalConstants.InfoLogChatGroup, Lang.GetL(player.LanguageCode, msg, args), EnumChatType.Notification);
         }
 
@@ -1027,15 +1027,15 @@ namespace Hansa
         public string RepairReach(EntityAgent ep, int part)
         {
             var l = DamageParts;
-            if (l == null || part < 0 || part >= l.Count) return "hansa:repair-nothing";
-            if (GoneDown) return "hansa:repair-gone-down";
+            if (l == null || part < 0 || part >= l.Count) return "ships:repair-nothing";
+            if (GoneDown) return "ships:repair-gone-down";
             var p = l.Parts[part];
             var local = WorldToLocal(ep.Pos.X, ep.Pos.Y + 1, ep.Pos.Z);
-            if (p.DistanceTo(local) > 7 && p.Kind != DamageKind.Sail && p.Kind != DamageKind.Rigging && p.Kind != DamageKind.Rudder) return "hansa:repair-too-far";
+            if (p.DistanceTo(local) > 7 && p.Kind != DamageKind.Sail && p.Kind != DamageKind.Rigging && p.Kind != DamageKind.Rudder) return "ships:repair-too-far";
             bool aboard = ep.MountedOn is ShipSeat seat && seat.Ship == this;
             // below the water a panel is mended from inside her, or by a diver outside
-            if (p.Kind == DamageKind.Hull && p.Center.Y < Sinkage + Def.Waterline && !aboard && !ep.IsEyesSubmerged()) return "hansa:repair-below";
-            if ((p.Kind == DamageKind.Sail || p.Kind == DamageKind.Rigging || p.Kind == DamageKind.Rudder || p.Kind == DamageKind.Mast) && !aboard) return "hansa:repair-aboard";
+            if (p.Kind == DamageKind.Hull && p.Center.Y < Sinkage + Def.Waterline && !aboard && !ep.IsEyesSubmerged()) return "ships:repair-below";
+            if ((p.Kind == DamageKind.Sail || p.Kind == DamageKind.Rigging || p.Kind == DamageKind.Rudder || p.Kind == DamageKind.Mast) && !aboard) return "ships:repair-aboard";
             return null;
         }
 
@@ -1070,19 +1070,19 @@ namespace Hansa
             job = null;
             args = Array.Empty<object>();
             var l = DamageParts;
-            if (l == null || PartDamage == null || part < 0 || part >= l.Count) return "hansa:repair-nothing";
+            if (l == null || PartDamage == null || part < 0 || part >= l.Count) return "ships:repair-nothing";
             var needs = ShipRepairs.Needs(l, PartDamage, part, held);
-            if (needs.Count == 0) return "hansa:repair-nothing";
+            if (needs.Count == 0) return "ships:repair-nothing";
             var want = (held != null ? ShipRepairs.For(l, PartDamage, part, held) : null) ?? needs[0];
             args = new object[] { PartName(want.Part) };
-            if (!want.AtSea) return "hansa:repair-port";
+            if (!want.AtSea) return "ships:repair-port";
             // ((0.3.27) a hull panel that's out is laid again (the repair tool's way too): nothing in its space, nobody in it)
             int laySlot = want.What == "lay" ? l.Parts[want.Part].Slot : -1;
             // ((0.3.28) a deck cell stove in: laid again as a cell is)
             int layCell = want.What == "lay" ? l.Parts[want.Part].Cell : -1;
             if (want.What == "lay")
             {
-                string lp = layCell >= 0 ? LayProblem(layCell, true) : laySlot < 0 ? "hansa:hull-fixed" : HullLayProblem(laySlot, true);
+                string lp = layCell >= 0 ? LayProblem(layCell, true) : laySlot < 0 ? "ships:hull-fixed" : HullLayProblem(laySlot, true);
                 if (lp != null) return lp;
             }
             if (!free)
@@ -1091,7 +1091,7 @@ namespace Hansa
                 if (!ShipRepairs.Plan(want, have, out int[] take, out _))
                 {
                     args = new object[] { PartName(want.Part), KitsText(want) };
-                    return "hansa:repair-needs";
+                    return "ships:repair-needs";
                 }
                 for (int i = 0; i < slots.Count; i++)
                 {
@@ -1117,7 +1117,7 @@ namespace Hansa
             LocalToWorld(c.X, c.Y, c.Z, out double x, out double y, out double z);
             World.PlaySoundAt(new AssetLocation(want.What is "sail" ? "sounds/block/cloth" : want.What is "rigging" ? "sounds/effect/ropestretch" : "sounds/block/planks"),
                 x, y, z, null, true, 16);
-            return "hansa:repair-done-" + want.What;
+            return "ships:repair-done-" + want.What;
         }
 
         /// <summary>(0.3.26) How many planks laying a hull panel takes.</summary>
@@ -1126,11 +1126,11 @@ namespace Hansa
 
         /// <summary>"4 planks, 2 nails and strips".</summary>
         public static string KitText(RepairKit kit) =>
-            kit == null ? "" : string.Join(", ", kit.Items.Select(it => Lang.Get("hansa:item-" + ShipRepairs.ItemKey(it.Code), it.Count)));
+            kit == null ? "" : string.Join(", ", kit.Items.Select(it => Lang.Get("ships:item-" + ShipRepairs.ItemKey(it.Code), it.Count)));
 
         /// <summary>Every way a job can be done: "1 sail, or 4 cloth or linen (any colour)".</summary>
         public static string KitsText(RepairJob job) =>
-            job == null ? "" : string.Join(Lang.Get("hansa:repair-or"), job.Kits.Select(KitText));
+            job == null ? "" : string.Join(Lang.Get("ships:repair-or"), job.Kits.Select(KitText));
 
         // ------------------------------------------------------------------ going down (server)
 
@@ -1151,7 +1151,7 @@ namespace Hansa
             YawRate = 0;
             Rowing = 0;
             if (Math.Abs(leakSide) < 1e-6) leakSide = listSide;
-            NotifyAboard("hansa:sinking-notice");
+            NotifyAboard("ships:sinking-notice");
             // everyone off (they swim), and not back aboard when they log in again
             foreach (var s in seatArray.ToArray())
                 if (s.Passenger is EntityAgent a) a.TryUnmount();
@@ -1164,7 +1164,7 @@ namespace Hansa
             LocalToWorld(0, Def.DeckY, 0, out double x, out double y, out double z);
             World.PlaySoundAt(new AssetLocation("sounds/effect/woodgrind"), x, y, z, null, true, 48);
             World.PlaySoundAt(new AssetLocation("sounds/effect/water-pour"), x, y, z, null, true, 48);
-            World.Logger.Audit("[hansa] {0} #{1} is going down at {2}", GetName(), EntityId, Pos.AsBlockPos);
+            World.Logger.Audit("[ships] {0} #{1} is going down at {2}", GetName(), EntityId, Pos.AsBlockPos);
             SaveState(true);
         }
 
@@ -1200,7 +1200,7 @@ namespace Hansa
             Heave = 0;
             Pos.Y = BaseY - Sinkage;
             writtenY = Pos.Y;
-            World.Logger.Audit("[hansa] {0} #{1} sank at {2}", GetName(), EntityId, Pos.AsBlockPos);
+            World.Logger.Audit("[ships] {0} #{1} sank at {2}", GetName(), EntityId, Pos.AsBlockPos);
             SaveState(true);
             ShipWreck.OnSunk(this);
         }
@@ -1243,7 +1243,7 @@ namespace Hansa
             {
                 if (s.Passenger is EntityPlayer ep && ep.Player is IServerPlayer sp)
                 {
-                    var a = args.Select(o => o is string str && str.StartsWith("hansa:") ? Lang.GetL(sp.LanguageCode, str) : o).ToArray();
+                    var a = args.Select(o => o is string str && str.StartsWith("ships:") ? Lang.GetL(sp.LanguageCode, str) : o).ToArray();
                     sp.SendMessage(GlobalConstants.InfoLogChatGroup, Lang.GetL(sp.LanguageCode, langCode, a), EnumChatType.Notification);
                 }
             }
@@ -1280,7 +1280,7 @@ namespace Hansa
                     // ((0.3.30) a ceiling: her planking behind it, if that's hurt (it leaks there though the ceiling's whole))
                     if (i >= 0 && l.Parts[i].Inner && l.Parts[i].Partner is int q && q >= 0 && q < PartDamage.Count && StateOfPart(q) != PartState.Sound)
                     {
-                        behindLine = StateOfPart(q) is PartState.Holed ? "hansa:damage-behind-out" : "hansa:damage-behind-cracked";
+                        behindLine = StateOfPart(q) is PartState.Holed ? "ships:damage-behind-out" : "ships:damage-behind-cracked";
                         parts.Add(q);
                     }
                     break;
@@ -1315,13 +1315,13 @@ namespace Hansa
                 var st = StateOfPart(i);
                 // round a mast: the mast itself, and what of its rigging and sails isn't sound
                 if (parts.Count > 1 && p.Kind != DamageKind.Mast && st == PartState.Sound) continue;
-                string state = Lang.Get("hansa:state-" + st.ToString().ToLowerInvariant());
+                string state = Lang.Get("ships:state-" + st.ToString().ToLowerInvariant());
                 string who = parts.Count > 1 ? PartName(i) + ": " : "";
                 double leak = LeakEstimate(i);
-                string line = leak >= 0.05 ? Lang.Get("hansa:damage-line-leak", who + state, leak) : who + state;
+                string line = leak >= 0.05 ? Lang.Get("ships:damage-line-leak", who + state, leak) : who + state;
                 sb.AppendLine(line.Length > 0 ? char.ToUpperInvariant(line[0]) + line.Substring(1) : line);
                 if (p.Kind == DamageKind.Hull && Fouling > 0.2f && p.Center.Y < Def.Waterline && !Clad && parts.Count == 1)
-                    sb.AppendLine(Lang.Get("hansa:damage-foul", (int)Math.Round(Fouling * 100)));
+                    sb.AppendLine(Lang.Get("ships:damage-foul", (int)Math.Round(Fouling * 100)));
             }
             if (behindLine != null) sb.AppendLine(Lang.Get(behindLine));
             // what mends it: the repair for what's in hand, else what it needs
@@ -1332,8 +1332,8 @@ namespace Hansa
                 {
                     var needs = ShipRepairs.Needs(l, PartDamage, i, held);
                     foreach (var job in needs.Take(part.Kind == ShipPartKind.Mast ? 3 : 2))
-                        sb.AppendLine(!job.AtSea ? Lang.Get("hansa:repair-hint-port") : job.What == "lay" ? Lang.Get("hansa:repair-hint-lay", LayCount(job.Part), LayCount(job.Part) * BoardsPerPlanks)
-                            : Lang.Get("hansa:repair-hint-" + job.What, KitsText(job)));
+                        sb.AppendLine(!job.AtSea ? Lang.Get("ships:repair-hint-port") : job.What == "lay" ? Lang.Get("ships:repair-hint-lay", LayCount(job.Part), LayCount(job.Part) * BoardsPerPlanks)
+                            : Lang.Get("ships:repair-hint-" + job.What, KitsText(job)));
                 }
             }
         }
@@ -1341,11 +1341,11 @@ namespace Hansa
         /// <summary>"Water in the hold: 12 t, rising (4 l/s)", or dry.</summary>
         public string WaterText()
         {
-            if (Water < 0.05) return Lang.Get("hansa:water-dry");
-            string trend = WaterRate > 0.002 ? Lang.Get("hansa:water-rising", WaterRate * 1000)
-                : WaterRate < -0.002 ? Lang.Get("hansa:water-falling", -WaterRate * 1000) : Lang.Get("hansa:water-steady");
+            if (Water < 0.05) return Lang.Get("ships:water-dry");
+            string trend = WaterRate > 0.002 ? Lang.Get("ships:water-rising", WaterRate * 1000)
+                : WaterRate < -0.002 ? Lang.Get("ships:water-falling", -WaterRate * 1000) : Lang.Get("ships:water-steady");
             double deep = FloodLevel - (DamageParts?.HoldBottom ?? 0);
-            return Lang.Get("hansa:water-in-hold", Water, deep, trend) + (Pumpers > 0 ? " · " + Lang.Get("hansa:water-pumpers", Pumpers) : "");
+            return Lang.Get("ships:water-in-hold", Water, deep, trend) + (Pumpers > 0 ? " · " + Lang.Get("ships:water-pumpers", Pumpers) : "");
         }
 
         /// <summary>Client: this frame's drawn sinkage, list and trim, eased toward the synced ones.</summary>
@@ -1375,7 +1375,7 @@ namespace Hansa
         public static void OnSunk(EntityShip ship)
         {
             SunkCount++;
-            ship.Api?.Logger.Notification("[hansa] {0} #{1} lies on the bottom at {2}", ship.GetName(), ship.EntityId, ship.Pos.AsBlockPos);
+            ship.Api?.Logger.Notification("[ships] {0} #{1} lies on the bottom at {2}", ship.GetName(), ship.EntityId, ship.Pos.AsBlockPos);
             Sunk?.Invoke(ship);
         }
     }

@@ -29,7 +29,7 @@ try {
         New-Item -ItemType Directory -Force ([IO.Path]::GetDirectoryName($target)) | Out-Null
         Copy-Item -LiteralPath (Join-Path $SeaSourceRoot $file) -Destination $target
     }
-    & dotnet build tests/Issue30Tests @common "-p:HansaAssembly=$root/bin/issue30-build/Hansa.dll" "-p:SeaAssembly=$snapshot/bin/Debug/mod/Sea.dll" --nologo -v:minimal
+    & dotnet build tests/Issue30Tests @common "-p:HansaAssembly=$root/bin/issue30-build/Ships.dll" "-p:SeaAssembly=$snapshot/bin/Debug/mod/Sea.dll" --nologo -v:minimal
     if ($LASTEXITCODE -ne 0) { throw 'Issue30Tests build failed' }
     & dotnet tests/Issue30Tests/bin/Debug/net8.0/Issue30Tests.dll $root $snapshot | Tee-Object -FilePath (Join-Path $work 'test.log')
     if ($LASTEXITCODE -ne 0) { throw 'Issue30Tests failed' }

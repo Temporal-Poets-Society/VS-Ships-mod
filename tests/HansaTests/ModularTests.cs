@@ -43,7 +43,7 @@ namespace HansaTests
                   pw.Solids.Count == 1 && pw.Solids[0].SequenceEqual(pp.Solids[0]) && pr.Box.SequenceEqual(pp.Box),
                 "a pane on a border is a window, a fence a railing: the partition's thickness, picked and solid as one");
             var floor = l.Floors.First(m => m.Room == "lowerdeck");
-            Check(PiecePlanner.Plan(l, floor, pane, 1).Error == "hansa:piece-needs-border" && PiecePlanner.Plan(l, whole, slab, 1).Error != null,
+            Check(PiecePlanner.Plan(l, floor, pane, 1).Error == "ships:piece-needs-border" && PiecePlanner.Plan(l, whole, slab, 1).Error != null,
                 "a pane or a fence goes nowhere but a border; a slab nowhere but a horizontal place");
 
             // (note 160) a top partition with nothing under it; the bottom one taken from under it
@@ -292,7 +292,7 @@ namespace HansaTests
             StepA(def);
             foreach (string code in new[] { "carrack-m" })
             {
-                string path = Path.Combine(root, "assets", "hansa", "config", "ships", code + ".json");
+                string path = Path.Combine(root, "assets", "ships", "config", "ships", code + ".json");
                 if (!File.Exists(path)) { Console.WriteLine($"         ({code}.json not there yet: its modular entries aren't checked)"); continue; }
                 var md = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
                 md.Init();

@@ -53,7 +53,7 @@ namespace Hansa
         /// <summary>Chunks built at most a frame (a ship coming into view builds hers over a few frames).</summary>
         const int SlotChunksPerFrame = 8;
 
-        /// <summary>(0.3.20) The last chunk builds' times (ms), for <c>.hansa slots</c> and the reports.</summary>
+        /// <summary>(0.3.20) The last chunk builds' times (ms), for <c>.ships slots</c> and the reports.</summary>
         public double SlotBuildMs, SlotBuildMaxMs;
         public int SlotBuilds;
 
@@ -69,7 +69,7 @@ namespace Hansa
             sd.Tex.AddRange(m.Tex);
             for (int i = 0; i < sd.TexNames.Count; i++) sd.TexIndex[sd.TexNames[i]] = i;
             sd.TexArray = sd.Tex.ToArray();
-            foreach (var p in sd.Plan.Problems) capi.Logger.Warning("[hansa] {0}'s {1}: {2}", ship.Def.Code, fam == SlotFamily.Deck ? "deck cells" : "hull panels", p);
+            foreach (var p in sd.Plan.Problems) capi.Logger.Warning("[ships] {0}'s {1}: {2}", ship.Def.Code, fam == SlotFamily.Deck ? "deck cells" : "hull panels", p);
             slotDesigns[(ship.Def.Code, fam)] = sd;
             return sd;
         }
@@ -146,7 +146,7 @@ namespace Hansa
             catch (Exception e)
             {
                 slotsFailed = true;
-                capi.Logger.Error("[hansa] Drawing her slots (deck cells, hull panels) failed; they're off until the game is restarted: {0}", e);
+                capi.Logger.Error("[ships] Drawing her slots (deck cells, hull panels) failed; they're off until the game is restarted: {0}", e);
             }
         }
 
@@ -214,7 +214,7 @@ namespace Hansa
                     if (sc.Looks != null && owners[q] >= 0 && facings[q] < 0 && owners[q] < sc.Looks.Length && sc.Looks[owners[q]] != 0)
                     {
                         string overlay = HullLook.Overlay(HullLook.Look(sc.Looks[owners[q]]), inside, (q + owners[q]) & 1);
-                        if (overlay != null) name = (name ?? sd.TexNames[(int)quads[q][0]]) + "++0~hansa:block/" + overlay;
+                        if (overlay != null) name = (name ?? sd.TexNames[(int)quads[q][0]]) + "++0~ships:block/" + overlay;
                     }
                     if (name != null)
                     {
@@ -258,7 +258,7 @@ namespace Hansa
             slotDesigns.Clear();
         }
 
-        /// <summary>(0.3.20) What's drawn of a ship's deck cells and (0.3.26) hull panels (<c>.hansa slots</c>, <c>.hansa hull</c>).</summary>
+        /// <summary>(0.3.20) What's drawn of a ship's deck cells and (0.3.26) hull panels (<c>.ships slots</c>, <c>.ships hull</c>).</summary>
         public string SlotReport(EntityShip ship)
         {
             if (ship?.Slots == null && ship?.HullPanels == null) return "no slots";

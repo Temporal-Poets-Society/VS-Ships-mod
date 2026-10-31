@@ -220,7 +220,7 @@ namespace HansaTests
                     for (int b = 0; b < 64; b++) cells[b] = (byte)r2.Next(WreckMat.Count);
                     never &= WreckDrops.Roll(WreckCells.FromCells(cells), r2).All(d => codes.Contains(d.Code) && d.Count > 0);
                 }
-                Check(never && codes.All(c => c.StartsWith("game:")) && !codes.Contains("hansa:wreck"), "it gives only vanilla raw materials from the table, never the block (or a chiselled one)");
+                Check(never && codes.All(c => c.StartsWith("game:")) && !codes.Contains("ships:wreck"), "it gives only vanilla raw materials from the table, never the block (or a chiselled one)");
             }
 
             // ---- broken up on a seabed: the same wreck from the same seed
@@ -383,7 +383,7 @@ namespace HansaTests
         /// <summary>
         /// A wreck as the client draws it, for python tools/shipgen/texview.py wreck: every face of every block (its corners
         /// as AddFace makes them, the texture's place, the vanilla texture), the seabed round her, her guns, chests and sand
-        /// as boxes. Written to the temp folder (hansa-wreck-views/carrack-wreck.json).
+        /// as boxes. Written to the temp folder (ships-wreck-views/carrack-wreck.json).
         /// </summary>
         static void WreckViews(ShipDefinition def)
         {
@@ -442,7 +442,7 @@ namespace HansaTests
                 boxes.Add(new { what = "chest", lo = new[] { s.X + 0.06, s.Y + 0.0, s.Z + 0.06 }, hi = new[] { s.X + 0.94, s.Y + 0.875, s.Z + 0.94 }, tex = "game:block/wood/chest/sides" });
             foreach (var s in plan.Sediment)
                 boxes.Add(new { what = "sand", lo = new[] { s.X + 0.0, s.Y, s.Z }, hi = new[] { s.X + 1.0, s.Y + 1, s.Z + 1 }, tex = "game:block/stone/sand/granite" });
-            string dir = Path.Combine(Path.GetTempPath(), "hansa-wreck-views");
+            string dir = Path.Combine(Path.GetTempPath(), "ships-wreck-views");
             Directory.CreateDirectory(dir);
             string path = Path.Combine(dir, $"{def.Code}-wreck.json");
             File.WriteAllText(path, JsonConvert.SerializeObject(new

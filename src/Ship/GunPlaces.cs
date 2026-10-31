@@ -107,28 +107,28 @@ namespace Hansa
             IEnumerable<double[]> railings = null)
         {
             var f = p == null ? null : def?.Fixture(p.Gun);
-            if (f?.Type != "gun") return "hansa:gunplace-none";
-            if (states.Laid(p)) return "hansa:gunplace-taken";
+            if (f?.Type != "gun") return "ships:gunplace-none";
+            if (states.Laid(p)) return "ships:gunplace-taken";
             // ((0.3.28, D2.4) its port planked over: take the planking out first (an axe in building mode))
-            if (p.Port != null && slots != null && def.Slots?.IndexOf(p.Port) is int pn && pn >= 0 && slots.Filled(pn)) return "hansa:gunplace-port-covered";
+            if (p.Port != null && slots != null && def.Slots?.IndexOf(p.Port) is int pn && pn >= 0 && slots.Filled(pn)) return "ships:gunplace-port-covered";
             // ((0.3.29) the port itself in her side)
-            if (p.GunPort != null && slots != null && def.Slots?.IndexOf(p.GunPort) is int gn && gn >= 0 && !slots.Filled(gn)) return "hansa:gunplace-no-port";
+            if (p.GunPort != null && slots != null && def.Slots?.IndexOf(p.GunPort) is int gn && gn >= 0 && !slots.Filled(gn)) return "ships:gunplace-no-port";
             if (slots != null)
                 foreach (int n in Cells(def, p))
-                    if (!slots.Filled(n)) return "hansa:gunplace-cell-empty";
+                    if (!slots.Filled(n)) return "ships:gunplace-cell-empty";
             var room = MountLayout.GunRoom(f);
             if (things != null)
                 foreach (var t in things)
                     if (t?.Length >= 6)
                         foreach (var b in room)
-                            if (PiecePlanner.Overlap(t, b)) return "hansa:gunplace-blocked";
+                            if (PiecePlanner.Overlap(t, b)) return "ships:gunplace-blocked";
             if (railings != null)
                 foreach (var t in railings)
                     if (t?.Length >= 6)
                         for (int i = 0; i < room.Count; i++)
-                            if ((i < CarriageSlices || i >= MountLayout.GunRoomSlices) && PiecePlanner.Overlap(t, room[i])) return "hansa:gunplace-blocked";
+                            if ((i < CarriageSlices || i >= MountLayout.GunRoomSlices) && PiecePlanner.Overlap(t, room[i])) return "ships:gunplace-blocked";
             // (0.3.25) another gun mounted where this one's carriage would stand in its room, or in this one's room
-            if (GunInTheWay(def, p, states) != null) return "hansa:gunplace-gun-room";
+            if (GunInTheWay(def, p, states) != null) return "ships:gunplace-gun-room";
             return null;
         }
 
@@ -173,12 +173,12 @@ namespace Hansa
         public static string TakeProblem(ShipDefinition def, GunPlaceDef p, GunPlaceStates states, double reloading, bool runOut, bool beingLaid, bool manned)
         {
             var f = p == null ? null : def?.Fixture(p.Gun);
-            if (f?.Type != "gun") return "hansa:gunplace-none";
-            if (!states.Laid(p)) return "hansa:gunplace-no-gun";
-            if (f.Lid != null && runOut) return "hansa:gun-take-run-out";
-            if (reloading > 0) return "hansa:gun-take-hot";
-            if (beingLaid) return "hansa:gun-taken";
-            if (manned) return "hansa:gun-seat-taken";
+            if (f?.Type != "gun") return "ships:gunplace-none";
+            if (!states.Laid(p)) return "ships:gunplace-no-gun";
+            if (f.Lid != null && runOut) return "ships:gun-take-run-out";
+            if (reloading > 0) return "ships:gun-take-hot";
+            if (beingLaid) return "ships:gun-taken";
+            if (manned) return "ships:gun-seat-taken";
             return null;
         }
 

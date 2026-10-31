@@ -19,8 +19,8 @@ namespace Hansa
         /// <summary>Her gun places' states (never null once she has a design).</summary>
         public GunPlaceStates GunPlaceStates => gunPlaceStates ??= new GunPlaceStates(Def);
 
-        /// <summary>A gun item's block (any hansa:gun-* block: the bronze gun on its carriage, any side).</summary>
-        public static bool IsGunBlock(CollectibleObject c) => c?.Code != null && c.Code.Domain == "hansa" && c.Code.Path.StartsWith("gun-");
+        /// <summary>A gun item's block (any ships:gun-* block: the bronze gun on its carriage, any side).</summary>
+        public static bool IsGunBlock(CollectibleObject c) => c?.Code != null && c.Code.Domain == "ships" && c.Code.Path.StartsWith("gun-");
 
         public GunPlaceDef GunPlaceOf(FixtureDef f) => Def == null ? null : GunPlaceStates.PlaceOf(f);
         public GunPlaceDef GunPlace(string id) => Def == null ? null : GunPlaceStates.Place(id);
@@ -77,7 +77,7 @@ namespace Hansa
                 // ((0.3.29) and the port itself in)
                 if (p.GunPort != null && Def.Slots.IndexOf(p.GunPort) is int g && g >= 0) Slots.Set(g, SlotState.Filled);
                 any = true;
-                World.Logger.Audit("[hansa] {0} #{1}: the port of her gun {2} opened (a gun was mounted there with no port in her side).", GetName(), EntityId, p.Id);
+                World.Logger.Audit("[ships] {0} #{1}: the port of her gun {2} opened (a gun was mounted there with no port in her side).", GetName(), EntityId, p.Id);
             }
             if (any) SaveSlots();
         }
@@ -96,7 +96,7 @@ namespace Hansa
             {
                 t.RemoveAttribute(k);
                 if (block != null && block.Id != 0) StowInHold(new ItemStack(block));
-                World.Logger.Notification("[hansa] {0} #{1}: the gun on {2} (a place her design no longer has) is in her hold.", GetName(), EntityId, k);
+                World.Logger.Notification("[ships] {0} #{1}: the gun on {2} (a place her design no longer has) is in her hold.", GetName(), EntityId, k);
             }
             WatchedAttributes.MarkPathDirty("hansaGunPlaces");
         }
@@ -167,12 +167,12 @@ namespace Hansa
         public string MountGunProblem(GunPlaceDef p, bool checkPeople)
         {
             var f = GunOf(p);
-            if (f == null) return "hansa:gunplace-none";
-            if (GoneDown) return "hansa:gone-down";
+            if (f == null) return "ships:gunplace-none";
+            if (GoneDown) return "ships:gone-down";
             string err = GunPlaces.MountProblem(Def, p, GunPlaceStates, Slots, ThingsAboard(), RailingsAboard());
             if (err != null) return err;
             // (someone standing where the carriage goes)
-            if (checkPeople && (f.Box ?? f.Sel) is double[] cb && BoxOccupied(cb)) return "hansa:piece-someone";
+            if (checkPeople && (f.Box ?? f.Sel) is double[] cb && BoxOccupied(cb)) return "ships:piece-someone";
             return null;
         }
 
@@ -189,10 +189,10 @@ namespace Hansa
         public string TakeGunProblem(GunPlaceDef p)
         {
             var f = GunOf(p);
-            if (f == null) return "hansa:gunplace-none";
-            if (GoneDown) return "hansa:gone-down";
+            if (f == null) return "ships:gunplace-none";
+            if (GoneDown) return "ships:gone-down";
             bool laying = Api?.Side == EnumAppSide.Server ? GunLayer(f) != null : LayingHere == f;
-            if (Gun(f.Code).Charge != 0) return "hansa:gun-take-charged";
+            if (Gun(f.Code).Charge != 0) return "ships:gun-take-charged";
             bool manned = GunSeatOf(f) is GunSeat gs && gs.Passenger != null && gs.Passenger.Alive;
             return GunPlaces.TakeProblem(Def, p, GunPlaceStates, GunPlaceLaid(p) ? GunReloading(f) : 0, GunOpen(f), laying, manned);
         }
@@ -211,12 +211,12 @@ namespace Hansa
         {
             var p = GunPlace(placeId);
             var f = GunOf(p);
-            if (f == null) return "hansa:gunplace-none";
-            if (!VanillaPieceBlock.BuildingMode(player.Entity)) return "hansa:cell-build-mode";
+            if (f == null) return "ships:gunplace-none";
+            if (!VanillaPieceBlock.BuildingMode(player.Entity)) return "ships:cell-build-mode";
             var slot = player.InventoryManager.ActiveHotbarSlot;
             var held = slot?.Itemstack;
-            if (!IsGunBlock(held?.Collectible)) return "hansa:gunplace-needs-gun";
-            if (!InReach(player, f.Pos[0], f.Pos[1], f.Pos[2])) return "hansa:piece-too-far";
+            if (!IsGunBlock(held?.Collectible)) return "ships:gunplace-needs-gun";
+            if (!InReach(player, f.Pos[0], f.Pos[1], f.Pos[2])) return "ships:piece-too-far";
             string err = MountGun(p, true);
             if (err != null) return err;
             if (!Creative(player))
@@ -234,10 +234,10 @@ namespace Hansa
         {
             var p = GunPlace(placeId);
             var f = GunOf(p);
-            if (f == null) return "hansa:gunplace-fixed";
-            if (!VanillaPieceBlock.BuildingMode(player.Entity)) return "hansa:cell-build-mode";
-            if (player.InventoryManager.ActiveHotbarSlot?.Itemstack != null) return "hansa:gun-take-empty-hand";
-            if (!InReach(player, f.Pos[0], f.Pos[1], f.Pos[2])) return "hansa:piece-too-far";
+            if (f == null) return "ships:gunplace-fixed";
+            if (!VanillaPieceBlock.BuildingMode(player.Entity)) return "ships:cell-build-mode";
+            if (player.InventoryManager.ActiveHotbarSlot?.Itemstack != null) return "ships:gun-take-empty-hand";
+            if (!InReach(player, f.Pos[0], f.Pos[1], f.Pos[2])) return "ships:piece-too-far";
             string err = TakeGunProblem(p);
             if (err != null) return err;
             if (!Creative(player))
@@ -262,7 +262,7 @@ namespace Hansa
             World.PlaySoundAt(new AssetLocation("sounds/block/anvil"), x, y, z, null, true, 16, 0.6f);
         }
 
-        /// <summary>`/hansa gunplaces`: her gun places and what's on them.</summary>
+        /// <summary>`/ships gunplaces`: her gun places and what's on them.</summary>
         public string GunPlacesText()
         {
             if (Def?.GunPlaces == null || Def.GunPlaces.Length == 0) return $"{GetName()} has no gun places (her guns are fixed).";

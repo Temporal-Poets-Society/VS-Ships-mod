@@ -19,7 +19,7 @@ namespace HansaTests
         /// </summary>
         static void CaravelSteerage(string root)
         {
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "caravel.json");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", "caravel.json");
             if (!File.Exists(path)) { Console.WriteLine("  --   no caravel"); return; }
             foreach (bool closed in new[] { false, true })
             {
@@ -56,7 +56,7 @@ namespace HansaTests
                 // drawn out to her surfaces (DrawnClip), each third-row partition's top meets the quarterdeck's beam or planking
                 // across the middle of its block, on one side of the line or the other (its ends: her side, the hatch's gap;
                 // HANSA_STEERAGE=1 draws them)
-                var surf = SurfacesOf(def, Path.Combine(root, "assets", "hansa"));
+                var surf = SurfacesOf(def, Path.Combine(root, "assets", "ships"));
                 var unmet = new List<string>();
                 foreach (var t in line.Where(b => b.Row == 2))
                 {
@@ -110,7 +110,7 @@ namespace HansaTests
         /// </summary>
         static void CaravelNote49(string root)
         {
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "caravel.json");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", "caravel.json");
             if (!File.Exists(path)) return;
             var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
             def.Init();
@@ -158,12 +158,12 @@ namespace HansaTests
         /// </summary>
         static void CaravelNote48(string root)
         {
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "caravel.json");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", "caravel.json");
             if (!File.Exists(path)) return;
             var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
             def.Init();
             var l = def.Mounts;
-            var surf = SurfacesOf(def, Path.Combine(root, "assets", "hansa"));
+            var surf = SurfacesOf(def, Path.Combine(root, "assets", "ships"));
             if (surf == null) { Console.WriteLine("  --   caravel: no surfaces (note 48)"); return; }
             const double h = MountLayout.PartitionThickness / 2 * 0.9, step = 1.0 / 8;
             var through = new List<string>();

@@ -124,7 +124,7 @@ namespace Hansa
 
     public partial class HansaMod : ModSystem
     {
-        public const string ChannelName = "hansa";
+        public const string ChannelName = "ships";
 
         ICoreAPI api;
         ICoreServerAPI sapi;
@@ -153,14 +153,14 @@ namespace Hansa
         public override void Start(ICoreAPI api)
         {
             this.api = api;
-            api.RegisterEntity("hansa.EntityShip", typeof(EntityShip));
-            api.RegisterItemClass("hansa.ItemShipDeed", typeof(ItemShipDeed));
-            api.RegisterEntity("hansa.EntityRowBoat", typeof(EntityRowBoat));
-            api.RegisterItemClass("hansa.ItemRowBoat", typeof(ItemRowBoat));
-            api.RegisterItemClass("hansa.ItemSurveyorsChalk", typeof(ItemSurveyorsChalk));
-            api.RegisterBlockClass("hansa.BlockWreck", typeof(BlockWreck));
+            api.RegisterEntity("ships.EntityShip", typeof(EntityShip));
+            api.RegisterItemClass("ships.ItemShipDeed", typeof(ItemShipDeed));
+            api.RegisterEntity("ships.EntityRowBoat", typeof(EntityRowBoat));
+            api.RegisterItemClass("ships.ItemRowBoat", typeof(ItemRowBoat));
+            api.RegisterItemClass("ships.ItemSurveyorsChalk", typeof(ItemSurveyorsChalk));
+            api.RegisterBlockClass("ships.BlockWreck", typeof(BlockWreck));
             // (0.3.23) the ship's stairs (placed aboard in building mode only)
-            api.RegisterBlockClass("hansa.BlockShipStair", typeof(BlockShipStair));
+            api.RegisterBlockClass("ships.BlockShipStair", typeof(BlockShipStair));
             api.RegisterBlockEntityClass(BlockEntityWreck.ClassName, typeof(BlockEntityWreck));
             api.RegisterMountable(ShipSeat.ClassName, ShipSeat.GetMountable);
             api.Network.RegisterChannel(ChannelName)
@@ -184,7 +184,7 @@ namespace Hansa
         public override void AssetsLoaded(ICoreAPI api)
         {
             ships.Clear();
-            foreach (var kv in api.Assets.GetMany<ShipDefinition>(Mod.Logger, "config/ships/", "hansa"))
+            foreach (var kv in api.Assets.GetMany<ShipDefinition>(Mod.Logger, "config/ships/", "ships"))
             {
                 try
                 {
@@ -229,12 +229,12 @@ namespace Hansa
             LaunchGuard.Clear();
             try
             {
-                Config = api.LoadModConfig<HansaConfig>("hansa.json") ?? new HansaConfig();
-                api.StoreModConfig(Config, "hansa.json");
+                Config = api.LoadModConfig<HansaConfig>("ships.json") ?? new HansaConfig();
+                api.StoreModConfig(Config, "ships.json");
             }
             catch (Exception e)
             {
-                Mod.Logger.Error("Bad ModConfig/hansa.json, using defaults: {0}", e.Message);
+                Mod.Logger.Error("Bad ModConfig/ships.json, using defaults: {0}", e.Message);
             }
             Patches.Cozy = Config.CozyCabins;
 
@@ -315,7 +315,7 @@ namespace Hansa
         public static bool CrewOnly(IServerPlayer player, EntityShip ship, bool refused = false)
         {
             if (!refused && ship.MayUse(player)) return false;
-            player.SendIngameError("hansa-crew", Lang.GetL(player.LanguageCode, ship.LaidUp ? "hansa:laidup-closed" : "hansa:crew-only", ship.GetName()));
+            player.SendIngameError("ships-crew", Lang.GetL(player.LanguageCode, ship.LaidUp ? "ships:laidup-closed" : "ships:crew-only", ship.GetName()));
             return true;
         }
 
@@ -327,7 +327,7 @@ namespace Hansa
             if (ship?.Def == null || ep == null || !ep.Alive || p.Action == null) return;
             if (ep.Pos.SquareDistanceTo(ship.Pos.X, ship.Pos.Y, ship.Pos.Z) > Math.Pow(ship.Def.Length / 2 + 8, 2)) return;
             string err = ship.ChangeCrew(player, p.Action, p.Name);
-            if (err != null) player.SendIngameError("hansa-crew", Lang.GetL(player.LanguageCode, err, p.Name ?? ""));
+            if (err != null) player.SendIngameError("ships-crew", Lang.GetL(player.LanguageCode, err, p.Name ?? ""));
         }
 
         void OnDeckState(IServerPlayer player, DeckStatePacket p)
@@ -488,7 +488,7 @@ namespace Hansa
             // laid up, she's closed to all but her crew (ShipCrew)
             if (!ship.MayBoard(player))
             {
-                player.SendIngameError("hansa-crew", Lang.GetL(player.LanguageCode, "hansa:laidup-closed"));
+                player.SendIngameError("ships-crew", Lang.GetL(player.LanguageCode, "ships:laidup-closed"));
                 RefuseBoard(player, p);
                 return;
             }
@@ -546,7 +546,7 @@ namespace Hansa
                 // Shift + right-click a boat: from the water, a dock, or a ship's deck or ladder beside her
                 if (ep.Pos.SquareDistanceTo(ship.Pos.X, ship.Pos.Y, ship.Pos.Z) > Math.Pow(ship.Def.Length / 2 + 7, 2)) return;
                 string perr = ship.TryPickUp(player);
-                if (perr != null) player.SendIngameError("hansa-pickup", Lang.GetL(player.LanguageCode, perr));
+                if (perr != null) player.SendIngameError("ships-pickup", Lang.GetL(player.LanguageCode, perr));
                 return;
             }
             // (0.3.18, note 165) a hearth or an oven put aboard is used through its stand-in fixture (a piece's index)
@@ -567,7 +567,7 @@ namespace Hansa
             if (ep == null || !ep.Alive || !boat.Alive || ep.Pos.SquareDistanceTo(boat.Pos.X, boat.Pos.Y, boat.Pos.Z) > 9 * 9) return;
             if (!boat.IsEmptyForPickup())
             {
-                player.SendIngameError("hansa-pickup", Lang.GetL(player.LanguageCode, "hansa:pickup-cargo"));
+                player.SendIngameError("ships-pickup", Lang.GetL(player.LanguageCode, "ships:pickup-cargo"));
                 return;
             }
             var item = sapi.World.GetItem(boat.Code);
@@ -588,7 +588,7 @@ namespace Hansa
             if (CrewOnly(player, ship)) return;
             var style = p.TextColour == null ? null : new NameStyle { Text = p.TextColour, Back = string.IsNullOrEmpty(p.BackColour) ? null : p.BackColour, Size = p.Size, Italic = p.Italic };
             string err = ship.SetName(p.Name, style);
-            if (err != null) player.SendIngameError("hansa-name", Lang.GetL(player.LanguageCode, err, EntityShip.MaxNameLength));
+            if (err != null) player.SendIngameError("ships-name", Lang.GetL(player.LanguageCode, err, EntityShip.MaxNameLength));
         }
 
         /// <summary>A part mended (held right-click with the items): the ship checks the reach and takes the items.</summary>
@@ -618,13 +618,13 @@ namespace Hansa
             {
                 if(CrewOnly(player,ship)) return;
                 string loadError=ship.TryLoadGun(gun,player);
-                if(loadError!=null) player.SendIngameError("hansa-gun",Lang.GetL(player.LanguageCode,loadError));
+                if(loadError!=null) player.SendIngameError("ships-gun",Lang.GetL(player.LanguageCode,loadError));
                 return;
             }
             if (!p.On) { ship.StopLaying(gun, ep); return; }
             if (CrewOnly(player, ship)) return;
             string err = ship.StartLaying(gun, ep, p.Begin);
-            if (err != null) player.SendIngameError("hansa-gun", Lang.GetL(player.LanguageCode, err));
+            if (err != null) player.SendIngameError("ships-gun", Lang.GetL(player.LanguageCode, err));
             else if (p.HasAim) ship.LayerAim(gun, ep, new GunLay(p.Train, p.Elevation));
         }
 
@@ -653,7 +653,7 @@ namespace Hansa
         {
             claimant = null;
             if (!Config.ProtectHulls || blockSel?.Position == null || MayPlaceOrBreak(blockSel.Position)) return true;
-            claimant = Lang.GetL(byPlayer.LanguageCode, "hansa:ship-in-the-way");
+            claimant = Lang.GetL(byPlayer.LanguageCode, "ships:ship-in-the-way");
             return false;
         }
 
@@ -696,10 +696,10 @@ namespace Hansa
         {
             spawned = null;
             var def = GetShip(code);
-            if (def == null) return "hansa:no-such-ship";
+            if (def == null) return "ships:no-such-ship";
             var ep = player.Entity;
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", code));
-            if (type == null) return "hansa:no-such-ship";
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", code));
+            if (type == null) return "ships:no-such-ship";
 
             double yaw = ep.Pos.Yaw;
             double dx = Math.Sin(yaw), dz = Math.Cos(yaw);
@@ -726,7 +726,7 @@ namespace Hansa
                 spawned = entity;
                 return null;
             }
-            return "hansa:no-open-water";
+            return "ships:no-open-water";
         }
 
         /// <summary>(0.3.19) Ships launched in the last few seconds: where (x, z, yaw, dimension), her design, when (ms).</summary>
@@ -784,17 +784,17 @@ namespace Hansa
         {
             spawned = null;
             var def = GetShip(code);
-            var type = def == null ? null : sapi.World.GetEntityType(new AssetLocation("hansa", "boat-" + code));
-            if (def == null || type == null) return "hansa:no-such-ship";
+            var type = def == null ? null : sapi.World.GetEntityType(new AssetLocation("ships", "boat-" + code));
+            if (def == null || type == null) return "ships:no-such-ship";
             var ep = player.Entity;
-            if (at == null) return "hansa:launch-needs-water";
+            if (at == null) return "ships:launch-needs-water";
             double wy = EntityShip.FindWaterSurface(sapi.World, at, 2, 4);
-            if (double.IsNaN(wy)) return "hansa:launch-needs-water";
+            if (double.IsNaN(wy)) return "ships:launch-needs-water";
             double yaw = ep.Pos.Yaw;
             double x = at.X + 0.5, z = at.Z + 0.5;
             if (EntityShip.PoseBlocked(sapi.World, def, x, wy, z, yaw, ep.Pos.Dimension) || !KeelInWater(def, x, wy, z, yaw, ep.Pos.Dimension) ||
                 OverlapsShip(def, x, z, yaw, ep.Pos.Dimension))
-                return "hansa:launch-no-room";
+                return "ships:launch-no-room";
             var entity = (EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
             entity.Pos.SetPos(x, wy, z);
             entity.Pos.Dimension = ep.Pos.Dimension;
@@ -817,8 +817,8 @@ namespace Hansa
             spawned = null;
             string code = DefaultShipCode;
             var def = GetShip(code);
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", code));
-            if (def == null || type == null) return "hansa:no-such-ship";
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", code));
+            if (def == null || type == null) return "ships:no-such-ship";
             var ep = player.Entity;
             double yaw, cx, cz, y0, ux, uz;
             int dim = ep.Pos.Dimension;
@@ -858,7 +858,7 @@ namespace Hansa
                 spawned = entity;
                 return null;
             }
-            return "hansa:no-open-water";
+            return "ships:no-open-water";
         }
 
         static double HullMiddle(ShipDefinition d)
@@ -888,8 +888,8 @@ namespace Hansa
         void RegisterCommands(ICoreServerAPI api)
         {
             var parsers = api.ChatCommands.Parsers;
-            api.ChatCommands.Create("hansa")
-                .WithDescription("Hansa ships")
+            api.ChatCommands.Create("ships")
+                .WithDescription("Ships: commands for your ships")
                 .RequiresPrivilege(Privilege.chat)
                 .RequiresPlayer()
                 .BeginSubCommand("spawn")
@@ -971,7 +971,7 @@ namespace Hansa
                         var ship = ShipFor(args.Caller.Player.Entity);
                         if (ship == null) return TextCommandResult.Error("No ship within 64 blocks.");
                         if (!double.TryParse(args[0] as string ?? "50", System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double t))
-                            return TextCommandResult.Error("/hansa flood <tonnes>");
+                            return TextCommandResult.Error("/ships flood <tonnes>");
                         ship.Flood(t);
                         return TextCommandResult.Success(DamageSummary(ship));
                     })
@@ -1007,7 +1007,7 @@ namespace Hansa
                 .EndSubCommand();
         }
 
-        /// <summary>/hansa wreck: the nearest sunk ship's wreck now; /hansa wreck here [seed]: a made-up carrack's wreck ahead (no ship needed).</summary>
+        /// <summary>/ships wreck: the nearest sunk ship's wreck now; /ships wreck here [seed]: a made-up carrack's wreck ahead (no ship needed).</summary>
         TextCommandResult WreckCommand(IServerPlayer player, string what, string seedArg)
         {
             if (Wrecks == null) return TextCommandResult.Error("No wrecks on this side.");
@@ -1016,7 +1016,7 @@ namespace Hansa
                 var ship = ShipFor(player.Entity);
                 if (ship == null) return TextCommandResult.Error("No ship within 64 blocks.");
                 string why = Wrecks.Convert(ship);
-                return why != null ? TextCommandResult.Error($"{ship.GetName()}: {why}" + (ship.Stage == SinkStage.Sunk ? "." : " (sink her first: /hansa flood 2000 in deep water)."))
+                return why != null ? TextCommandResult.Error($"{ship.GetName()}: {why}" + (ship.Stage == SinkStage.Sunk ? "." : " (sink her first: /ships flood 2000 in deep water)."))
                     : TextCommandResult.Success($"{ship.GetName()} #{ship.EntityId} is being made a wreck.");
             }
             var def = GetShip(DefaultShipCode);
@@ -1053,18 +1053,18 @@ namespace Hansa
         }
 
         /// <summary>
-        /// /hansa fire: a gun, a side's or all her guns, laid first at once if an elevation or a train is given (as far
+        /// /ships fire: a gun, a side's or all her guns, laid first at once if an elevation or a train is given (as far
         /// as each goes); what fired, how they were laid, and what didn't.
         /// </summary>
         TextCommandResult FireCommand(IServerPlayer player, string which, string elevation, string train) =>
             FireCommand(ShipFor(player.Entity), player?.Entity, player, which, elevation, train);
 
-        /// <summary>/hansa fire on a ship (the command, and the self-test with no player).</summary>
+        /// <summary>/ships fire on a ship (the command, and the self-test with no player).</summary>
         public TextCommandResult FireCommand(EntityShip ship, Entity firer, IServerPlayer player, string which, string elevation, string train)
         {
             if (ship?.Def == null) return TextCommandResult.Error("No ship within 64 blocks.");
-            if (!Config.Cannons) return TextCommandResult.Error("Cannons are switched off (Cannons in hansa.json).");
-            const string usage = "/hansa fire [gun|port|starboard|stern|all] [elevation, -45..45 degrees] [train, -45..45 degrees toward the bow (a stern chaser: toward starboard)]";
+            if (!Config.Cannons) return TextCommandResult.Error("Cannons are switched off (Cannons in ships.json).");
+            const string usage = "/ships fire [gun|port|starboard|stern|all] [elevation, -45..45 degrees] [train, -45..45 degrees toward the bow (a stern chaser: toward starboard)]";
             double? Degrees(string s, out bool bad)
             {
                 bad = false;
@@ -1134,7 +1134,7 @@ namespace Hansa
             var ep = player.Entity;
             var ship = ShipFor(ep);
             if (ship?.DamageParts == null) return TextCommandResult.Error("No ship within 64 blocks.");
-            if (!Config.Damage) return TextCommandResult.Error("Damage is switched off (Damage in hansa.json).");
+            if (!Config.Damage) return TextCommandResult.Error("Damage is switched off (Damage in ships.json).");
             var w = (what ?? "look").Split(' ', StringSplitOptions.RemoveEmptyEntries);
             var inv = System.Globalization.CultureInfo.InvariantCulture;
             double Num(int i, double dflt) => w.Length > i && double.TryParse(w[i], System.Globalization.NumberStyles.Float, inv, out double v) ? v : dflt;
@@ -1164,7 +1164,7 @@ namespace Hansa
                 }
                 case "at":
                 {
-                    if (w.Length < 4) return TextCommandResult.Error("/hansa damage at <x> <y> <z> [energy] [radius]");
+                    if (w.Length < 4) return TextCommandResult.Error("/ships damage at <x> <y> <z> [energy] [radius]");
                     var p = new Vec3d(Num(1, 0), Num(2, 0), Num(3, 0));
                     // inward: toward her middle (up, from under her bottom)
                     var dir = p.Y < ship.Def.KeelY + 1 ? new Vec3d(0, 1, 0) : new Vec3d(0, 0, -Math.Sign(p.Z == 0 ? 1 : p.Z));
@@ -1182,7 +1182,7 @@ namespace Hansa
                     return TextCommandResult.Success(DamageSummary(ship) + "\n" + string.Join("\n", lines));
                 }
                 default:
-                    return TextCommandResult.Error("/hansa damage look|part|at|age|list");
+                    return TextCommandResult.Error("/ships damage look|part|at|age|list");
             }
             if (res == null || res.Hits.Count == 0) return TextCommandResult.Success("Nothing was hurt. " + DamageSummary(ship));
             var worst = res.Hits.OrderByDescending(h => h.After).First();

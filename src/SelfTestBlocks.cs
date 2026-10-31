@@ -38,7 +38,7 @@ namespace Hansa
             var bloomery = B("bloomerybase-north");
             var chimney = B("bloomerychimney");
             var support = sapi.World.GetBlock(ShipBlocksSystem.SupportCode);
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship));
             Check(bsys != null && forge != null && bellows != null && anvil != null && bloomery != null && chimney != null && support != null && type != null,
                 $"working blocks: the system, vanilla's forge, bellows, anvil, bloomery and chimney, and the support block ({forge?.Code}, {bellows?.Code}, {anvil?.Code}, {bloomery?.Code}, {chimney?.Code}, {support?.Code})");
             Check(mod.Config.WorkingBlocks && ShipBlockMath.Matches(mod.Config.WorkingBlockCodes, "anvil-iron") && ShipBlockMath.Matches(mod.Config.WorkingBlockCodes, "bloomerychimney") &&
@@ -339,7 +339,7 @@ namespace Hansa
             string removed = ship.RemovePiece(ship.Pieces.Get(bellowsCell.Piece), null);
             sapi.Event.RegisterCallback(_ => Safe(() =>
             {
-                Check(refused == "hansa:piece-not-empty" && removed == null && ba.GetBlock(bpos).Id == 0 && ba.GetBlock(bpos.DownCopy()).Id == 0 &&
+                Check(refused == "ships:piece-not-empty" && removed == null && ba.GetBlock(bpos).Id == 0 && ba.GetBlock(bpos.DownCopy()).Id == 0 &&
                       ship.BlockRecord.ByPiece(bellowsCell.Piece) == null && ship.Pieces.Get(bellowsCell.Piece) == null,
                     $"a working block with something in it isn't taken up ({refused}); the bellows is, its block and support gone ({removed})");
                 Mechanisms(bsys, ship, speedWas, blp, then);

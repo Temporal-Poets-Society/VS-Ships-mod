@@ -18,7 +18,7 @@ namespace HansaTests
         /// </summary>
         static void CaravelBuildPlace(string root)
         {
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "caravel.json");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", "caravel.json");
             if (!File.Exists(path)) return;
             Console.WriteLine("caravel: building aboard (notes 57-83)");
             var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
@@ -44,7 +44,7 @@ namespace HansaTests
             }
             if (Environment.GetEnvironmentVariable("HANSA_BP_DRAWN") is string ids)
             {
-                var surf = SurfacesOf(def, Path.Combine(root, "assets", "hansa"));
+                var surf = SurfacesOf(def, Path.Combine(root, "assets", "ships"));
                 foreach (var id in ids.Split(','))
                     if (l.Get(id) is MountPoint b)
                         Console.WriteLine($"  {b.Id} twin {l.TwinOf(b)?.Id ?? "-"} clip {(b.Clip == null ? "whole" : string.Join(" ", b.Clip.Select(c => "[" + string.Join(",", c.Select(v => v.ToString("0.###"))) + "]")))} drawn {string.Join(" ", (l.DrawnClip(b, surf) ?? new List<double[]>()).Select(c => "[" + string.Join(",", c.Select(v => v.ToString("0.###"))) + "]"))}");
@@ -172,12 +172,12 @@ namespace HansaTests
                 Check(p != null && Fits(p) && p.Role == PieceRole.Oven && set.Supports(l, up) && !p.Mounts.Contains(floor.Id),
                     $"note 74: an oven on top of a planks block on the steerage's deck ({(p == null ? "no place over it" : p.Error ?? string.Join(", ", p.Mounts))})");
                 var hearth = new FakePiece { Code = "game:firepit", Hearth = true };
-                Check(up != null && Put(up, hearth, 1).Error == "hansa:hearth-needs-floor", "note 74: the hearth still on her deck only (its flue rises from there)");
+                Check(up != null && Put(up, hearth, 1).Error == "ships:hearth-needs-floor", "note 74: the hearth still on her deck only (its flue rises from there)");
             }
 
             // ---- note 72: a partition on the quarterdeck's front is drawn up to the deck's top from either side of the line
             {
-                var surf = SurfacesOf(def, Path.Combine(root, "assets", "hansa"));
+                var surf = SurfacesOf(def, Path.Combine(root, "assets", "ships"));
                 var waist = l.Get("b:main:-7:-2:w:2");   // (the quarterdeck's front, 2 aft since note 73; the outer cell's top row is her wider cap rail's, note 69)
                 var steerage = l.TwinOf(waist);
                 double Top(MountPoint m) => (l.DrawnClip(m, surf) ?? m.Clip ?? new List<double[]> { new[] { 0, m.Y, 0, m.Y + 1 } }).Select(c => c[3]).DefaultIfEmpty(double.NaN).Max();
@@ -369,7 +369,7 @@ namespace HansaTests
             // outer cell (the outer cell's own places close it: open, it hung there as a fin); the outer cell's partition is drawn
             // up to the quarterdeck's planking itself (no slit between the two when both are up)
             {
-                var surf = SurfacesOf(def, Path.Combine(root, "assets", "hansa"));
+                var surf = SurfacesOf(def, Path.Combine(root, "assets", "ships"));
                 var unlike = new List<string>();
                 foreach (int side in new[] { 1, -1 })
                 {

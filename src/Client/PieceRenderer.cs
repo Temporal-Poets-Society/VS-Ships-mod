@@ -44,7 +44,7 @@ namespace Hansa
                 }
                 catch (Exception e)
                 {
-                    if (!pieceWarned) capi.Logger.Warning("[hansa] Could not draw the piece {0} ({1}) on the {2}: {3}", pc.Id, pc.Stack?.Collectible?.Code, ship.Def.Code, e);
+                    if (!pieceWarned) capi.Logger.Warning("[ships] Could not draw the piece {0} ({1}) on the {2}: {3}", pc.Id, pc.Stack?.Collectible?.Code, ship.Def.Code, e);
                     pieceWarned = true;
                 }
             }

@@ -291,7 +291,7 @@ namespace HansaTests
         static void SecondDesign(string path, string root)
         {
             Console.WriteLine("======== carrack-a (general checks)");
-            string assets = Path.Combine(root, "assets", "hansa");
+            string assets = Path.Combine(root, "assets", "ships");
             ShipDefinition def = null;
             try
             {

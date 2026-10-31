@@ -12,9 +12,9 @@ namespace Hansa
         /// <summary>Pull back without shutting the port. Loading and housing are separate operations.</summary>
         public string RunGunIn(FixtureDef gun, bool instant = false)
         {
-            if(gun?.Type!="gun" || gun.Swivel) return "hansa:gun-cannot";
-            if(GunAbsent(gun)) return "hansa:gunplace-no-gun";
-            if(GoneDown) return "hansa:gone-down";
+            if(gun?.Type!="gun" || gun.Swivel) return "ships:gun-cannot";
+            if(GunAbsent(gun)) return "ships:gunplace-no-gun";
+            if(GoneDown) return "ships:gone-down";
             Gun(gun.Code).RunIn=true;
             gunOpenedMs[gun.Code]=World.ElapsedMilliseconds-(instant?RunOutMs:0);
             gunLayers.Remove(gun.Code);
@@ -24,10 +24,10 @@ namespace Hansa
 
         public string TryLoadGun(FixtureDef gun,IServerPlayer player)
         {
-            if(gun?.Type!="gun" || player?.Entity==null || !player.Entity.Alive || GunAbsent(gun)) return "hansa:gun-cannot";
-            if(GoneDown) return "hansa:gone-down";
-            if(!CannonsOn) return "hansa:gun-off";
-            if(!ByGun(gun,player.Entity,LayReach)) return "hansa:gun-far";
+            if(gun?.Type!="gun" || player?.Entity==null || !player.Entity.Alive || GunAbsent(gun)) return "ships:gun-cannot";
+            if(GoneDown) return "ships:gone-down";
+            if(!CannonsOn) return "ships:gun-off";
+            if(!ByGun(gun,player.Entity,LayReach)) return "ships:gun-far";
             var slot=player.InventoryManager.ActiveHotbarSlot;
             return LoadGunCharge(gun,slot,Creative(player));
         }
@@ -35,7 +35,7 @@ namespace Hansa
         /// <summary>Server inventory transaction, shared with the dedicated-server tests.</summary>
         public string LoadGunCharge(FixtureDef gun,ItemSlot slot,bool creative)
         {
-            if(Api.Side!=EnumAppSide.Server || gun?.Type!="gun" || GunAbsent(gun) || GoneDown || !CannonsOn) return "hansa:gun-cannot";
+            if(Api.Side!=EnumAppSide.Server || gun?.Type!="gun" || GunAbsent(gun) || GoneDown || !CannonsOn) return "ships:gun-cannot";
             var held=slot?.Itemstack;
             var st=Gun(gun.Code);
             int need=held?.Collectible?.Code?.ToString()==GunLoading.Shot && !gun.Swivel?4:1;

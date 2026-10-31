@@ -58,7 +58,7 @@ namespace HansaTests
             // ((0.3.29) and the port itself put in)
             if (poop.GunPort != null) slots.Set(l.IndexOf(poop.GunPort), SlotState.Filled);
             string open = GunPlaces.MountProblem(md, poop, states, slots, null);
-            Check(covered == "hansa:gunplace-port-covered" && open == null,
+            Check(covered == "ships:gunplace-port-covered" && open == null,
                 $"D2.4: a gun on the planked-over port refused ({covered}); its planking out, it's mounted ({open ?? "ok"})");
             // the cover's voxels: solid while it's in, her side open when it's out
             var g = md.Grid.Clone();

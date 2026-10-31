@@ -513,11 +513,11 @@ namespace Hansa
         public static PiecePlan Plan(DeckSlotLayout l, List<int> cells, bool glazed = false, string hinge = null, double coaming = 0, bool doubleLeaf = false)
         {
             var plan = new PiecePlan { Role = PieceRole.Hatch, Kind = MountKind.Horizontal };
-            if (l == null || cells == null || cells.Count == 0) { plan.Error = "hansa:hatch-no-opening"; return plan; }
+            if (l == null || cells == null || cells.Count == 0) { plan.Error = "ships:hatch-no-opening"; return plan; }
             var r = Bounds(l, cells, out double top);
             int nx = (int)Math.Round(r[2] - r[0]), nz = (int)Math.Round(r[3] - r[1]);
-            if (nx > MaxCells || nz > MaxCells) { plan.Error = "hansa:hatch-too-big"; return plan; }
-            if (nx * nz != cells.Count || cells.Any(n => Math.Abs(l.Slots[n].Top - top) > 0.01)) { plan.Error = "hansa:hatch-not-rect"; return plan; }
+            if (nx > MaxCells || nz > MaxCells) { plan.Error = "ships:hatch-too-big"; return plan; }
+            if (nx * nz != cells.Count || cells.Any(n => Math.Abs(l.Slots[n].Top - top) > 0.01)) { plan.Error = "ships:hatch-not-rect"; return plan; }
             plan.Box = new[] { r[0], top - Thick, r[1], r[2], top, r[3] };
             plan.Coaming = Math.Clamp(coaming,0,0.5);
             plan.DoubleLeaf = doubleLeaf;
@@ -785,16 +785,16 @@ namespace Hansa
         public static string TakeProblem(DeckSlotLayout l, SlotStates st, int n)
         {
             var d = l.Slots[n];
-            if (!st.Filled(n)) return "hansa:beam-already-out";
+            if (!st.Filled(n)) return "ships:beam-already-out";
             var beside = l.BesideOf[n];
-            if (beside == null || beside.Length == 0 || beside.Any(b => b < 0 || st.Filled(b))) return "hansa:beam-deck-in";
+            if (beside == null || beside.Length == 0 || beside.Any(b => b < 0 || st.Filled(b))) return "ships:beam-deck-in";
             var mine = l.Beams.TryGetValue(d.Beam ?? d.Id, out var list) ? list : new List<int>();
             var outNow = mine.Where(i => i != n && !st.Filled(i)).ToList();
-            if (outNow.Count >= MaxOut) return "hansa:beam-too-many";
+            if (outNow.Count >= MaxOut) return "ships:beam-too-many";
             if (outNow.Count == 1)
             {
                 var (minus, plus) = l.BeamNeighbours(n);
-                if (outNow[0] != minus && outNow[0] != plus) return "hansa:beam-too-many";
+                if (outNow[0] != minus && outNow[0] != plus) return "ships:beam-too-many";
             }
             return null;
         }
@@ -826,7 +826,7 @@ namespace Hansa
                 if (PiecePlanner.GridClash(layout, plan, grid, cells) is double[] fixedClash) past = fixedClash;
             }
             if (beamAt(past) is not int bn) return null;
-            return bn >= 0 ? "hansa:flight-beam" : "hansa:flight-beam-fixed";
+            return bn >= 0 ? "ships:flight-beam" : "ships:flight-beam-fixed";
         }
 
         /// <summary>

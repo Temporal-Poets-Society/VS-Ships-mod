@@ -1,12 +1,13 @@
 {
   "type": "code",
-  "modid": "hansa",
-  "name": "Hansa: The Last Voyage",
-  "version": "0.1.0-dev.17",
-  "description": "Ships to live aboard. A caravel built from a block-grid master model, with sailing and onboard life preserved from Magelan.",
+  "modid": "ships",
+  "name": "Ships",
+  "version": "0.1.0-dev.18",
+  "description": "Build, sail and live aboard your own ships. A caravel built from a block-grid master model: sailing, building aboard, cargo, guns, damage and repairs.",
   "authors": [
-    "Your Name"
+    "Andris"
   ],
+  "website": "https://mods.vintagestory.at/ships",
   "side": "Universal",
   "requiredOnClient": true,
   "requiredOnServer": true,

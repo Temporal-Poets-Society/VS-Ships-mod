@@ -16,7 +16,7 @@ mkdir -p "$TS/Mods" "$TS/ModConfig"
 # the release zip of a mod folder, named with the version in its modinfo.json (release/<modid>-<version>.zip)
 modzip() { echo "$1/release/$2-$(sed -n 's/.*"version"[^"]*"\([^"]*\)".*/\1/p' "$1/modinfo.json" | head -1).zip"; }
 rm -f "$TS/Mods/"*.zip
-cp "$(modzip "$ROOT" hansa)" "$(modzip "$SEA" sea)" "$TS/Mods/"
+cp "$(modzip "$ROOT" ships)" "$(modzip "$SEA" sea)" "$TS/Mods/"
 if [ "$WITH_EARTH" = 1 ]; then
   cp "$(modzip "$ROOT/../Cworld" cylinderworld)" "$(modzip "$ROOT/../Earth" earthmap)" "$TS/Mods/"
 fi
@@ -37,10 +37,10 @@ wc["WorldName"] = "Hansa test"
 wc["MapSizeY"] = 256
 wc["WorldConfiguration"] = {"worldWidth": "4096", "worldLength": "4096", "worldEdge": "blocked", "gameMode": "creative"}
 json.dump(d, open(p, "w", encoding="utf-8"), indent=2)
-json.dump({"Enabled": True, "Shutdown": True, "Only": os.environ.get("HANSA_SELFTEST_ONLY")}, open(ts + "/ModConfig/hansa-selftest.json", "w"))
+json.dump({"Enabled": True, "Shutdown": True, "Only": os.environ.get("HANSA_SELFTEST_ONLY")}, open(ts + "/ModConfig/ships-selftest.json", "w"))
 EOF
 
 cd "$VS"
 ./VintagestoryServer.exe --dataPath "$(cygpath -w "$TS")" > "$TS/server-console.log" 2>&1 || true
 echo "server exited"
-grep -h "SELFTEST\|\[hansa\]\|\[sea\]\|Hansa\|hansa.*rror\|sea.*rror\|Exception" "$TS/Logs/server-main.log" | head -80 || true
+grep -h "SELFTEST\|\[ships\]\|\[sea\]\|Hansa\|ships.*rror\|sea.*rror\|Exception" "$TS/Logs/server-main.log" | head -80 || true

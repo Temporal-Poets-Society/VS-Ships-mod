@@ -16,12 +16,12 @@ namespace Hansa
     /// item 9). With it in hand:
     /// - right-click: what the crosshair is on (a part of a ship and where on her, a block, a creature) and the state of
     ///   the ship there are captured at once, and a window asks for a comment; Save writes the note to
-    ///   ModData/hansa-notes.json (every number) and hansa-notes.md (a readable list), and a screenshot is taken
+    ///   ModData/ships-notes.json (every number) and ships-notes.md (a readable list), and a screenshot is taken
     ///   with the game's own F12 code once the window has gone (its file name goes into the note);
     /// - each note's spot shows a small chalk X with its number (on a ship at her ship-local point, moving and tilting with
     ///   her; else where it was in the world);
     /// - left-click a mark: its note in chat; Shift + left-click: the note is rubbed out.
-    /// .hansa notes lists them (delete, clear). The notes are this player's, on their own disk; nothing goes to the
+    /// .ships notes lists them (delete, clear). The notes are this player's, on their own disk; nothing goes to the
     /// server. Nothing here has been seen in the game yet: drawing the marks stops (logged once) if it ever fails.
     /// </summary>
     public class SurveyorsChalk : IRenderer
@@ -57,8 +57,8 @@ namespace Hansa
             catch (Exception) { dir = Path.Combine(GamePaths.DataPath, "ModData"); }
             var list = SurveyNoteFile.Load(JsonPath, out string err);
             if (list != null) notes = list;
-            else capi.Logger.Warning("[hansa] {0} can't be read ({1}); it's set aside when the next note is written", JsonPath, err);
-            capi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "hansa-chalk");
+            else capi.Logger.Warning("[ships] {0} can't be read ({1}); it's set aside when the next note is written", JsonPath, err);
+            capi.Event.RegisterRenderer(this, EnumRenderStage.Opaque, "ships-chalk");
         }
 
         public string JsonPath => Path.Combine(dir, SurveyNoteFile.JsonName);
@@ -78,11 +78,11 @@ namespace Hansa
             try
             {
                 File.Move(JsonPath, aside);
-                capi.ShowChatMessage(Lang.Get("hansa:chalk-file-aside", aside, err));
+                capi.ShowChatMessage(Lang.Get("ships:chalk-file-aside", aside, err));
             }
             catch (Exception e)
             {
-                capi.Logger.Error("[hansa] Couldn't set {0} aside: {1}", JsonPath, e.Message);
+                capi.Logger.Error("[ships] Couldn't set {0} aside: {1}", JsonPath, e.Message);
             }
             return new List<SurveyNote>();
         }
@@ -97,8 +97,8 @@ namespace Hansa
             }
             catch (Exception e)
             {
-                capi.Logger.Error("[hansa] Writing the notes to {0} failed: {1}", dir, e);
-                capi.ShowChatMessage(Lang.Get("hansa:chalk-write-failed", JsonPath, e.Message));
+                capi.Logger.Error("[ships] Writing the notes to {0} failed: {1}", dir, e);
+                capi.ShowChatMessage(Lang.Get("ships:chalk-write-failed", JsonPath, e.Message));
                 return false;
             }
         }
@@ -133,8 +133,8 @@ namespace Hansa
             }
             catch (Exception e)
             {
-                capi.Logger.Error("[hansa] The surveyor's chalk failed: {0}", e);
-                capi.ShowChatMessage(Lang.Get("hansa:chalk-failed", e.Message));
+                capi.Logger.Error("[ships] The surveyor's chalk failed: {0}", e);
+                capi.ShowChatMessage(Lang.Get("ships:chalk-failed", e.Message));
             }
             return true;
         }
@@ -151,7 +151,7 @@ namespace Hansa
             var note = Capture(ep);
             var list = SurveyNoteFile.Load(JsonPath, out _) ?? notes;
             dialog?.Dispose();
-            dialog = new GuiDialogChalkNote(capi, SurveyNoteFile.NextNumber(list), SurveyNoteFile.Lines(note) + "\n" + Lang.Get("hansa:chalk-shot-after"),
+            dialog = new GuiDialogChalkNote(capi, SurveyNoteFile.NextNumber(list), SurveyNoteFile.Lines(note) + "\n" + Lang.Get("ships:chalk-shot-after"),
                 comment => Save(note, comment));
             dialog.OnClosed += () => rightHeld = false;
             dialog.TryOpen();
@@ -166,13 +166,13 @@ namespace Hansa
                 note.Comment = (comment ?? "").Trim();
                 list.Add(note);
                 if (!Write(list)) return;
-                capi.ShowChatMessage(Lang.Get("hansa:chalk-saved", note.Number, JsonPath));
+                capi.ShowChatMessage(Lang.Get("ships:chalk-saved", note.Number, JsonPath));
                 TakeScreenshot(note.Number, note.TimeUtc);
             }
             catch (Exception e)
             {
-                capi.Logger.Error("[hansa] Saving a note failed: {0}", e);
-                capi.ShowChatMessage(Lang.Get("hansa:chalk-failed", e.Message));
+                capi.Logger.Error("[ships] Saving a note failed: {0}", e);
+                capi.ShowChatMessage(Lang.Get("ships:chalk-failed", e.Message));
             }
         }
 
@@ -181,7 +181,7 @@ namespace Hansa
             var n = MarkInSight(ep);
             if (n == null)
             {
-                capi.TriggerIngameError(this, "hansa-chalk", Lang.Get("hansa:chalk-no-mark"));
+                capi.TriggerIngameError(this, "ships-chalk", Lang.Get("ships:chalk-no-mark"));
                 return;
             }
             if (shift) capi.ShowChatMessage(Delete(n.Number));
@@ -192,9 +192,9 @@ namespace Hansa
         {
             var list = ReadForWrite();
             int i = list.FindIndex(x => x.Number == number);
-            if (i < 0) return Lang.Get("hansa:chalk-no-such", number);
+            if (i < 0) return Lang.Get("ships:chalk-no-such", number);
             list.RemoveAt(i);
-            return Write(list) ? Lang.Get("hansa:chalk-deleted", number) : Lang.Get("hansa:chalk-write-failed", JsonPath, "");
+            return Write(list) ? Lang.Get("ships:chalk-deleted", number) : Lang.Get("ships:chalk-write-failed", JsonPath, "");
         }
 
         // ------------------------------------------------------------------ the screenshot
@@ -260,9 +260,9 @@ namespace Hansa
             Write(list);
         }
 
-        // ------------------------------------------------------------------ .hansa notes
+        // ------------------------------------------------------------------ .ships notes
 
-        /// <summary>.hansa notes [list | show n | delete n | clear [yes]].</summary>
+        /// <summary>.ships notes [list | show n | delete n | clear [yes]].</summary>
         public TextCommandResult Command(string what, string arg)
         {
             what = (what ?? "list").ToLowerInvariant();
@@ -272,32 +272,32 @@ namespace Hansa
                 case "list":
                 {
                     var list = SurveyNoteFile.Load(JsonPath, out string err);
-                    if (list == null) return TextCommandResult.Error(Lang.Get("hansa:chalk-unreadable", JsonPath, err));
+                    if (list == null) return TextCommandResult.Error(Lang.Get("ships:chalk-unreadable", JsonPath, err));
                     notes = list;
-                    if (list.Count == 0) return TextCommandResult.Success(Lang.Get("hansa:chalk-none", JsonPath));
+                    if (list.Count == 0) return TextCommandResult.Success(Lang.Get("ships:chalk-none", JsonPath));
                     var shown = list.OrderBy(n => n.Number).ToList();
                     int skip = Math.Max(0, shown.Count - 25);
-                    string head = Lang.Get("hansa:chalk-list", list.Count, JsonPath) + (skip > 0 ? " " + Lang.Get("hansa:chalk-list-more", skip) : "");
+                    string head = Lang.Get("ships:chalk-list", list.Count, JsonPath) + (skip > 0 ? " " + Lang.Get("ships:chalk-list-more", skip) : "");
                     return TextCommandResult.Success(head + "\n" + string.Join("\n", shown.Skip(skip).Select(SurveyNoteFile.ListLine)));
                 }
                 case "show":
                 {
                     var n = (SurveyNoteFile.Load(JsonPath, out _) ?? notes).Find(x => x.Number == number);
-                    return n == null ? TextCommandResult.Error(Lang.Get("hansa:chalk-no-such", arg ?? "?")) : TextCommandResult.Success(SurveyNoteFile.ChatText(n));
+                    return n == null ? TextCommandResult.Error(Lang.Get("ships:chalk-no-such", arg ?? "?")) : TextCommandResult.Success(SurveyNoteFile.ChatText(n));
                 }
                 case "delete":
-                    if (number <= 0) return TextCommandResult.Error(Lang.Get("hansa:cmd-notes"));
+                    if (number <= 0) return TextCommandResult.Error(Lang.Get("ships:cmd-notes"));
                     return TextCommandResult.Success(Delete(number));
                 case "clear":
                 {
                     var list = SurveyNoteFile.Load(JsonPath, out _) ?? notes;
-                    if (arg?.ToLowerInvariant() != "yes") return TextCommandResult.Success(Lang.Get("hansa:chalk-clear-ask", list.Count));
+                    if (arg?.ToLowerInvariant() != "yes") return TextCommandResult.Success(Lang.Get("ships:chalk-clear-ask", list.Count));
                     ReadForWrite();
-                    return Write(new List<SurveyNote>()) ? TextCommandResult.Success(Lang.Get("hansa:chalk-cleared", list.Count))
-                        : TextCommandResult.Error(Lang.Get("hansa:chalk-write-failed", JsonPath, ""));
+                    return Write(new List<SurveyNote>()) ? TextCommandResult.Success(Lang.Get("ships:chalk-cleared", list.Count))
+                        : TextCommandResult.Error(Lang.Get("ships:chalk-write-failed", JsonPath, ""));
                 }
                 default:
-                    return TextCommandResult.Error(Lang.Get("hansa:cmd-notes"));
+                    return TextCommandResult.Error(Lang.Get("ships:cmd-notes"));
             }
         }
 
@@ -342,7 +342,7 @@ namespace Hansa
                 TimeUtc = now.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", Inv),
                 GameDate = Try(() => capi.World.Calendar?.PrettyDate()),
                 GameHours = R(capi.World.Calendar?.TotalHours ?? 0, 2),
-                Hansa = sys.Mod?.Info?.Version,
+                ShipsVersion = sys.Mod?.Info?.Version,
                 Sea = capi.ModLoader.GetMod("sea")?.Info?.Version,
                 Game = GameVersion.LongGameVersion,
                 World = Try(() => capi.World.SavegameIdentifier),
@@ -660,7 +660,7 @@ namespace Hansa
                 if (m != null)
                 {
                     string words = SurveyNoteFile.FirstWords(m.Comment, 6);
-                    return Lang.Get("hansa:chalk-hud-mark", m.Number, words.Length > 0 ? words : m.Target?.Summary ?? "");
+                    return Lang.Get("ships:chalk-hud-mark", m.Number, words.Length > 0 ? words : m.Target?.Summary ?? "");
                 }
                 var plr = capi.World.Player;
                 string what;
@@ -668,8 +668,8 @@ namespace Hansa
                     what = ShipLabel(ship) + ": " + ship.PartText(ShipPart.Decode(plr.CurrentEntitySelection.SelectionBoxIndex));
                 else if (plr.CurrentEntitySelection?.Entity is Entity e) what = e.GetName();
                 else if (plr.CurrentBlockSelection?.Position is BlockPos bp) what = capi.World.BlockAccessor.GetBlock(bp)?.GetPlacedBlockName(capi.World, bp);
-                else what = Lang.Get("hansa:chalk-hud-here");
-                return Lang.Get("hansa:chalk-hud", what);
+                else what = Lang.Get("ships:chalk-hud-here");
+                return Lang.Get("ships:chalk-hud", what);
             }
             catch (Exception)
             {
@@ -735,7 +735,7 @@ namespace Hansa
             catch (Exception ex)
             {
                 drawFailed = true;
-                capi.Logger.Error("[hansa] Drawing the chalk marks failed; they're not drawn until the game is restarted: {0}", ex);
+                capi.Logger.Error("[ships] Drawing the chalk marks failed; they're not drawn until the game is restarted: {0}", ex);
                 try { prog?.Stop(); } catch (Exception) { }
                 try { rapi.GlToggleBlend(false); rapi.GlEnableCullFace(); } catch (Exception) { }
             }

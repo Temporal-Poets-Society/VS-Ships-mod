@@ -17,7 +17,7 @@ namespace Hansa
     /// </summary>
     public abstract class ShipSeat : IMountableSeat
     {
-        public const string ClassName = "hansa";
+        public const string ClassName = "ships";
 
         public readonly EntityShip Ship;
         protected readonly EntityPos seatPos = new EntityPos();
@@ -275,7 +275,7 @@ namespace Hansa
             if (action == EnumEntityAction.Sneak && on && Ship.Api.Side == EnumAppSide.Server && Passenger is EntityAgent agent)
             {
                 var ea = agent;
-                Ship.Api.Event.EnqueueMainThreadTask(() => Ship.StandUp(ea, Fixture), "hansa-standup");
+                Ship.Api.Event.EnqueueMainThreadTask(() => Ship.StandUp(ea, Fixture), "ships-standup");
             }
         }
     }
@@ -374,7 +374,7 @@ namespace Hansa
             entityAgent.Api.Event.EnqueueMainThreadTask(() =>
             {
                 if (Passenger == entityAgent && entityAgent.GetBehavior("tiredness") is EntityBehaviorTiredness t) t.IsSleeping = true;
-            }, "hansa-issleeping");
+            }, "ships-issleeping");
         }
 
         public override void DidUnmount(EntityAgent entityAgent)
@@ -390,7 +390,7 @@ namespace Hansa
             // Woken by the game (e.g. a temporal storm): get up onto the deck instead of dropping through the hull
             if (realUnmount && entityAgent.Alive && entityAgent.Api.Side == EnumAppSide.Server)
             {
-                entityAgent.Api.Event.EnqueueMainThreadTask(() => { if (entityAgent.MountedOn == null) Ship.StandUp(entityAgent, Fixture); }, "hansa-wake");
+                entityAgent.Api.Event.EnqueueMainThreadTask(() => { if (entityAgent.MountedOn == null) Ship.StandUp(entityAgent, Fixture); }, "ships-wake");
             }
         }
 

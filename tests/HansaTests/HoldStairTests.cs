@@ -21,7 +21,7 @@ namespace HansaTests
         /// </summary>
         static void CaravelHoldStair(string root)
         {
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "caravel.json");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", "caravel.json");
             if (!File.Exists(path)) { Console.WriteLine("  --   no caravel"); return; }
             Console.WriteLine("22 October 2026: caravel notes 51, 52 (stairs from her hold between her beams)");
             var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
@@ -56,12 +56,12 @@ namespace HansaTests
                     var lg = def.Grid.Clone();
                     laid.Apply(lg);
                     var laidClash = PiecePlanner.GridClash(def.Mounts, plan, lg);
-                    string laidSays = laidClash == null ? "fits" : BeamRules.ClashSays(def.Mounts, def.Slots, laid, plan, lg, b => BeamAtOffline(def, laid, b)) ?? "hansa:flight-no-well";
+                    string laidSays = laidClash == null ? "fits" : BeamRules.ClashSays(def.Mounts, def.Slots, laid, plan, lg, b => BeamAtOffline(def, laid, b)) ?? "ships:flight-no-well";
                     bool walked = clash == null && WalkWith(g, plan, foot, cells);
                     if (across && !(clash == null && walked)) said.Add($"{cells} long across ({toward}): {(clash == null ? "not walked" : beam ?? "no well")}");
-                    if (!across && !segmented && beam != "hansa:flight-beam-fixed") said.Add($"{cells} long along ({toward}): {beam ?? (clash == null ? "fits" : "no well")}, not a fixed beam");
+                    if (!across && !segmented && beam != "ships:flight-beam-fixed") said.Add($"{cells} long along ({toward}): {beam ?? (clash == null ? "fits" : "no well")}, not a fixed beam");
                     // ((along her the beam is in the way under her laid deck too))
-                    if (across && laidSays != "hansa:flight-no-well") said.Add($"{cells} long across ({toward}) under her laid deck: {laidSays}");
+                    if (across && laidSays != "ships:flight-no-well") said.Add($"{cells} long across ({toward}) under her laid deck: {laidSays}");
                 }
             Check(said.Count == 0, $"caravel{(segmented ? "" : " (fixed beams)")}: the short and steep stairs from the hold cell {foot.Id} across her through the main deck's cells over them walked; " +
                                    $"{(segmented ? "" : "along her refused for the fixed beam over the cell before the foot; ")}under her laid deck \"open the deck\" (flight-no-well), not a beam{(said.Count > 0 ? ": " + string.Join("; ", said) : "")}");
@@ -82,7 +82,7 @@ namespace HansaTests
                 var need = BeamRules.InTheWay(sdef.Mounts, sdef.Slots, st, plan, g, null);
                 if (need == null || need.Count == 0)
                     return PiecePlanner.GridClash(sdef.Mounts, plan, g) == null ? (WalkWith(g, plan, f, cells) ? "walked" : "not walked")
-                         : BeamRules.ClashSays(sdef.Mounts, sdef.Slots, st, plan, g, b => BeamAtOffline(sdef, st, b)) ?? (StairLanding.At(plan, g) ? "hansa:flight-no-landing" : "hansa:flight-no-well");
+                         : BeamRules.ClashSays(sdef.Mounts, sdef.Slots, st, plan, g, b => BeamAtOffline(sdef, st, b)) ?? (StairLanding.At(plan, g) ? "ships:flight-no-landing" : "ships:flight-no-well");
                 foreach (int n in need) st.Set(n, SlotState.Empty);
                 var go = sdef.Grid.Clone();
                 st.Apply(go);
@@ -116,7 +116,7 @@ namespace HansaTests
                 string before = BeamRules.TakeProblem(sdef.Slots, st0, seg);
                 st0.Set(sdef.Slots.BesideOf[seg][0], SlotState.Empty);
                 string after = BeamRules.TakeProblem(sdef.Slots, st0, seg);
-                Check(before == "hansa:beam-deck-in" && after == null, $"a one-cell beam length ({sdef.Slots.Slots[seg].Id}) comes out only with the cell over it open ({before ?? "ok"}, then {after ?? "ok"})");
+                Check(before == "ships:beam-deck-in" && after == null, $"a one-cell beam length ({sdef.Slots.Slots[seg].Id}) comes out only with the cell over it open ({before ?? "ok"}, then {after ?? "ok"})");
             }
         }
 

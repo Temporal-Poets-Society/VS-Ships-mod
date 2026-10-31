@@ -13,7 +13,7 @@ namespace HansaTests
     {
         static GridShips.Built BuildGrid(string root)
         {
-            string A(string p) => File.ReadAllText(Path.Combine(root, "assets", "hansa", p));
+            string A(string p) => File.ReadAllText(Path.Combine(root, "assets", "ships", p));
             var kinds = BlockKinds.Read(A("config/construction/kinds.json"));
             var design = ShipDesign.Read(A("config/shipdesigns/carrack.json"));
             return GridShips.Build(design, kinds, A("config/ships/carrack-m.json"), A("config/shipmeshes/carrack-m.json"));

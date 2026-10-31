@@ -43,7 +43,7 @@ namespace Hansa
                 string under = Put(floor, B("planks-oak-ud"), 1, out var planks);
                 string onTop = Put(l.Above(floor), B("clayoven-north"), 1, out var ovenP);
                 string planksOut = planks == null ? "none" : ship.RemovePiece(planks, null);
-                Check(under == null && onTop == null && ovenP?.Role == PieceRole.Oven && planksOut == "hansa:piece-under",
+                Check(under == null && onTop == null && ovenP?.Role == PieceRole.Oven && planksOut == "ships:piece-under",
                     $"note 74: an oven on top of a planks block on her deck ({under ?? "planks put"}, {onTop ?? "oven put"}); the planks not taken from under it ({planksOut})");
                 string ovenOut = ovenP == null ? "none" : ship.RemovePiece(ovenP, null);
                 planksOut = planks == null ? "none" : ship.RemovePiece(planks, null);
@@ -114,7 +114,7 @@ namespace Hansa
                     string vesselPut = Put(l.FloorAt("hold", -3, -2, 1), vesselBlock, 0, out var vesselP);
                     var shelfPiece = shelfAt == null ? null : ship.Pieces.At(shelfAt.Id);
                     string fromUnder = shelfPiece == null ? "no shelf" : ship.RemovePiece(shelfPiece, null);
-                    Check(shelfAt?.Id == "hb:hold:-3:-2:1" && chestPut == null && shelfPut == null && vesselPut == null && fromUnder == "hansa:piece-under",
+                    Check(shelfAt?.Id == "hb:hold:-3:-2:1" && chestPut == null && shelfPut == null && vesselPut == null && fromUnder == "ships:piece-under",
                         $"note 83: a shelf a block up in her hold, aimed at from a step away ({shelfAt?.Id ?? "nothing"}), over a chest ({chestPut ?? "ok"}, {shelfPut ?? "ok"}), a vessel on it ({vesselPut ?? "ok"}), not taken up from under it ({fromUnder})");
                     string outs = string.Join(", ", new[] { vesselP, shelfPiece, chestP }.Select(p => p == null ? "none" : ship.RemovePiece(p, null) ?? "ok"));
                     Check(outs == "ok, ok, ok", $"note 83: the vessel, the shelf and the chest taken up ({outs})");
@@ -165,10 +165,10 @@ namespace Hansa
                                 // (at a corner of her side the next cell's shelf is as good)
                                 string why = got == null ? "nothing" : got != want && (what != "her side" || got.Kind != MountKind.Horizontal) ? got.Id : plan?.Error ?? ship.PlaceProblem(plan, true);
                                 // ((27 October 2026, dev.11) a shelf a piece aboard is in the way of (the galley's tables): occupied, not a miss)
-                                if (why == "hansa:piece-taken" && plan != null && ship.Pieces.Blocking(plan) != null) { looks--; continue; }
+                                if (why == "ships:piece-taken" && plan != null && ship.Pieces.Blocking(plan) != null) { looks--; continue; }
                                 // A tiller, rigging or other visible fitting is an obstruction even without walking voxels.
                                 // The transom shelf crosses the moving tiller: it must now be refused.
-                                if(why=="hansa:piece-blocked" && ship.VisibleObstructed(plan)) { blocked++; continue; }
+                                if(why=="ships:piece-blocked" && ship.VisibleObstructed(plan)) { blocked++; continue; }
                                 if (why != null) missed.Add($"{slabB.Code.Path} on {f.Id} ({what}): {why}");
                             }
                         }
@@ -224,7 +224,7 @@ namespace Hansa
                     string laid = hw < 0 ? "no cell" : wasOpen ? ship.LayCell(hw, false) : null;
                     string then = stairPlan == null ? "no foot or stair" : ship.PlaceProblem(stairPlan, false) ?? "fits";
                     if (wasOpen && laid == null) ship.TakeCell(hw, null);
-                    Check(stairPlan?.Error == null && (!wasOpen || open == "hansa:stair-no-landing") && laid == null && then != "hansa:stair-no-landing",
+                    Check(stairPlan?.Error == null && (!wasOpen || open == "ships:stair-no-landing") && laid == null && then != "ships:stair-no-landing",
                         $"note 99: the short stair from {foot?.Id} up {(stairPlan == null ? "-" : MountLayout.DirCode[stairPlan.Dir])}, its top on the hatchway {(hw >= 0 ? sl.Slots[hw].Id : "-")} (planned: {stairPlan?.Error ?? "ok"}): with the hatchway past its top open {open}; laid ({laid ?? "ok"}), not refused for its landing ({then})");
                 }
                     }

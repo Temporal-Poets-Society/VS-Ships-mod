@@ -17,7 +17,7 @@ namespace Hansa
         /// </summary>
         void DryParticleChecks(HansaMod mod, EntityShip ship, ShipDefinition def)
         {
-            var h = new Harmony("hansa-verify-particles");
+            var h = new Harmony("ships-verify-particles");
             var before = ShipDryParticles.Dry;
             try
             {

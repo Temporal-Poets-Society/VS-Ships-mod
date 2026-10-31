@@ -1771,7 +1771,7 @@ namespace Hansa
             // decor block linen-<pattern>-<side>, what a sail is made of)
             Sail = "game:sail|game:sail-large-*", Cloth = "game:cloth-*|game:linen-*";
 
-        /// <summary>The lang key of an item pattern (hansa:item-&lt;key&gt;).</summary>
+        /// <summary>The lang key of an item pattern (ships:item-&lt;key&gt;).</summary>
         public static string ItemKey(string pattern) => pattern switch
         {
             Plank => "plank",

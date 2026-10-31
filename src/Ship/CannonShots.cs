@@ -111,7 +111,7 @@ namespace Hansa
                 catch (Exception e)
                 {
                     b.Done = true;
-                    if (!failedOnce) sapi.Logger.Error("[hansa] A cannon ball's flight failed (it's dropped): {0}", e);
+                    if (!failedOnce) sapi.Logger.Error("[ships] A cannon ball's flight failed (it's dropped): {0}", e);
                     failedOnce = true;
                 }
                 if (b.Done) flying.RemoveAt(i);

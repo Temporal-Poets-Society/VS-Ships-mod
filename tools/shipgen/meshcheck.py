@@ -37,7 +37,7 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
-ASSETS = os.path.join(ROOT, "assets", "hansa")
+ASSETS = os.path.join(ROOT, "assets", "ships")
 OUT_DIR = os.path.join(ROOT, "docs", "views", "meshcheck")
 
 # tolerances (blocks)
@@ -335,7 +335,7 @@ def load(ship, clad=False, slots="design", hull="filled", seed=1):
 
 
 def short_tex(path):
-    p = path.replace("game:block/", "").replace("game:item/", "").replace("hansa:block/", "")
+    p = path.replace("game:block/", "").replace("game:item/", "").replace("ships:block/", "")
     return p.replace("wood/planks/", "").replace("metal/", "")
 
 

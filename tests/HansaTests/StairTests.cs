@@ -232,7 +232,7 @@ namespace HansaTests
                     $"the {name} stair drawn: {beams} handrails {PiecePlanner.RailHeight} over its nosings, {posts} balusters clear of the treads, no two faces in one plane ({coplanar}){(bad.Count > 0 ? ": " + string.Join("; ", bad.Distinct().Take(4)) : "")}");
                 // out of building mode refused; put back by hand (aimed at its foot from before it) through a 3 × 1 well
                 var offMode = new FakePiece { Code = block.Code, Family = "x", StairCells = cells, NeedsBuilding = true };
-                Check(PiecePlanner.Plan(l, foot, offMode, 2).Error == "hansa:shipstair-build-mode", $"the {name} stair out of building mode: refused (shipstair-build-mode)");
+                Check(PiecePlanner.Plan(l, foot, offMode, 2).Error == "ships:shipstair-build-mode", $"the {name} stair out of building mode: refused (shipstair-build-mode)");
                 HandPutBack(def, l, new ShipPieceSet(), whole, foot, 0, block, $"the {name} ship's stair");
             }
             StairBeamsUnderDeck(l);
@@ -349,7 +349,7 @@ namespace HansaTests
         /// </summary>
         static void CastleGunPorts(string root)
         {
-            var md = Newtonsoft.Json.JsonConvert.DeserializeObject<ShipDefinition>(System.IO.File.ReadAllText(System.IO.Path.Combine(root, "assets", "hansa", "config", "ships", "carrack-m.json")));
+            var md = Newtonsoft.Json.JsonConvert.DeserializeObject<ShipDefinition>(System.IO.File.ReadAllText(System.IO.Path.Combine(root, "assets", "ships", "config", "ships", "carrack-m.json")));
             md.Init();
             var cabin = ShipCompartments.LiddedPorts(md).Where(f => ShipCompartments.PortRoom(md, f) != null).ToList();
             if (cabin.Count == 0) { Console.WriteLine("  --   carrack-m has no lidded ports in a room: the castle-deck port check needs one to move (the generator's castle guns are checked by -- gunplaces)"); return; }

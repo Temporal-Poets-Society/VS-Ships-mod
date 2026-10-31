@@ -34,7 +34,7 @@ namespace Hansa
             }
             catch (Exception e)
             {
-                capi.Logger.Warning("[hansa] Drawing a brow failed: {0}", e.Message);
+                capi.Logger.Warning("[ships] Drawing a brow failed: {0}", e.Message);
             }
             browMeshes[ship.EntityId] = bm;
         }

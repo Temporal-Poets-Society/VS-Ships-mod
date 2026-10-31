@@ -182,7 +182,7 @@ namespace Hansa
         {
             if (failed) return;
             failed = true;
-            capi.Logger.Error("[hansa] Cannon balls failed on this client; they're not drawn until the game is restarted: {0}", e);
+            capi.Logger.Error("[ships] Cannon balls failed on this client; they're not drawn until the game is restarted: {0}", e);
             foreach (var fl in flashes) capi.Render.RemovePointLight(fl);
             flashes.Clear();
             Balls.Clear();

@@ -14,7 +14,7 @@ namespace Hansa
             if (sea?.Spectrum == null) { Check(false, "storm flooding: Sea is ready"); Finish(); return; }
             sea.SetOverride(new Sea.WindOverride { FromDegrees = 90, Strength = 1.5, StartHours = sea.Hours - 24 });
             double wy = EntityShip.FindWaterSurface(sapi.World, new BlockPos(spawn.X, y0 + 5, spawn.Z, 0), 2, 6);
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", def.Code));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", def.Code));
             var ship = (EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
             ship.Pos.SetPos(spawn.X + .5, wy, spawn.Z + .5);
             ship.Pos.Yaw = 0;
@@ -73,7 +73,7 @@ namespace Hansa
                     ship.DeckWater = 2;
                     ship.Flood(5); // writes both stored water volumes to the same synced/saved state
                     var copy = (EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
-                    copy.WatchedAttributes["hansa"] = ship.WatchedAttributes.GetTreeAttribute("hansa").Clone();
+                    copy.WatchedAttributes["ships"] = ship.WatchedAttributes.GetTreeAttribute("ships").Clone();
                     copy.Pos.SetPos(ship.Pos.X + 32, wy, ship.Pos.Z);
                     sapi.World.SpawnEntity(copy);
                     Check(Math.Abs(copy.DeckWater - 2) < .01 && Math.Abs(copy.Water - ship.Water) < .02,

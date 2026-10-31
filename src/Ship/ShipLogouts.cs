@@ -29,7 +29,7 @@ namespace Hansa
     /// </summary>
     public class ShipLogouts
     {
-        const string SaveKey = "hansa-logouts";
+        const string SaveKey = "ships-logouts";
         /// <summary>How long to wait for her to load where she was last seen.</summary>
         const long WaitMs = 30000;
 
@@ -58,7 +58,7 @@ namespace Hansa
             }
             catch (Exception e)
             {
-                sapi.Logger.Warning("[hansa] Could not read who logged out aboard, starting afresh: {0}", e.Message);
+                sapi.Logger.Warning("[ships] Could not read who logged out aboard, starting afresh: {0}", e.Message);
                 Records = new();
             }
         }
@@ -107,7 +107,7 @@ namespace Hansa
                     var spawn = player.GetSpawnPosition(false);
                     if (spawn != null) ep.TeleportToDouble(spawn.X, spawn.Y, spawn.Z);
                     player.SendMessage(Vintagestory.API.Config.GlobalConstants.GeneralChatGroup,
-                        Vintagestory.API.Config.Lang.GetL(player.LanguageCode, "hansa:rejoin-gone"), EnumChatType.Notification);
+                        Vintagestory.API.Config.Lang.GetL(player.LanguageCode, "ships:rejoin-gone"), EnumChatType.Notification);
                     return;
                 }
                 x = seen.X; z = seen.Z;

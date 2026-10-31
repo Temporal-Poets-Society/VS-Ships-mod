@@ -181,7 +181,7 @@ namespace Hansa
         public static readonly string[] HullGroups = { "exterior", "bottom", "bottomclad", "interior" };
         /// <summary>Frame spaces a chunk runs along her.</summary>
         public const int StationsPerChunk = 3;
-        const string OverlayDomain = "++0~hansa:block/";
+        const string OverlayDomain = "++0~ships:block/";
         const string RawOak = "game:block/wood/planks/oak1";
 
         public readonly ShipSkinFile File;

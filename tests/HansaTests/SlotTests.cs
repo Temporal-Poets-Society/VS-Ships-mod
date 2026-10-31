@@ -21,7 +21,7 @@ namespace HansaTests
         static void Slots(string root)
         {
             // (the generator's carrack-m with her own deck cells, once she has them; else the test's own)
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "carrack-m.json");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", "carrack-m.json");
             var real = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
             ShipDefinition def;
             ShipSkinFile file;
@@ -30,7 +30,7 @@ namespace HansaTests
                 Console.WriteLine("deck cells (0.3.20, step B) on the generator's carrack-m");
                 real.Init();
                 def = real;
-                file = JsonConvert.DeserializeObject<ShipSkinFile>(File.ReadAllText(Path.Combine(root, "assets", "hansa", def.Shapes.Skin.Replace("hansa:", "").Replace('/', Path.DirectorySeparatorChar))));
+                file = JsonConvert.DeserializeObject<ShipSkinFile>(File.ReadAllText(Path.Combine(root, "assets", "ships", def.Shapes.Skin.Replace("ships:", "").Replace('/', Path.DirectorySeparatorChar))));
             }
             else
             {
@@ -52,7 +52,7 @@ namespace HansaTests
         /// </summary>
         static (ShipDefinition, ShipSkinFile) SynthSlots(string root)
         {
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "carrack-m.json");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", "carrack-m.json");
             var jo = JObject.Parse(File.ReadAllText(path));
             var probe = jo.ToObject<ShipDefinition>();
             probe.Init();
@@ -486,12 +486,12 @@ namespace HansaTests
             var corner = opening.OrderBy(n => l.Slots[n].CX + l.Slots[n].CZ).First();
             st.Set(corner, SlotState.Filled);
             var lshape = HatchPlanner.Plan(l, HatchPlanner.Opening(l, hc == corner ? opening.Last() : hc, n => !st.Filled(n)));
-            Check(lshape.Error == "hansa:hatch-not-rect", $"with a corner laid the opening isn't a rectangle: {lshape.Error ?? "planned"}");
+            Check(lshape.Error == "ships:hatch-not-rect", $"with a corner laid the opening isn't a rectangle: {lshape.Error ?? "planned"}");
             st.Set(corner, SlotState.Empty);
             var row = Enumerable.Range(0, l.Count).Where(n => l.Slots[n].Deck == "main" && Math.Abs(l.Slots[n].CZ - 3.0) < 0.01 && l.Slots[n].CX > -2 && l.Slots[n].CX < 5).Take(5).ToList();
             if (row.Count == 5)
             {
-                Check(HatchPlanner.Plan(l, row).Error == "hansa:hatch-too-big", "five cells in a row are too long for a hatch");
+                Check(HatchPlanner.Plan(l, row).Error == "ships:hatch-too-big", "five cells in a row are too long for a hatch");
             }
             // shut, its solids are the deck's: walked over
             grid.CopyFrom(def.Grid);

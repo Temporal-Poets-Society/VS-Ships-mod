@@ -27,16 +27,16 @@ namespace Hansa
         public override void GetHeldItemInfo(ItemSlot inSlot, StringBuilder dsc, IWorldAccessor world, bool withDebugInfo)
         {
             base.GetHeldItemInfo(inSlot, dsc, world, withDebugInfo);
-            dsc.AppendLine(Lang.Get("hansa:chalk-help"));
+            dsc.AppendLine(Lang.Get("ships:chalk-help"));
         }
 
         public override WorldInteraction[] GetHeldInteractionHelp(ItemSlot inSlot)
         {
             return new[]
             {
-                new WorldInteraction { ActionLangCode = "hansa:chalk-hint-write", MouseButton = EnumMouseButton.Right },
-                new WorldInteraction { ActionLangCode = "hansa:chalk-hint-read", MouseButton = EnumMouseButton.Left },
-                new WorldInteraction { ActionLangCode = "hansa:chalk-hint-rub", HotKeyCode = "shift", MouseButton = EnumMouseButton.Left },
+                new WorldInteraction { ActionLangCode = "ships:chalk-hint-write", MouseButton = EnumMouseButton.Right },
+                new WorldInteraction { ActionLangCode = "ships:chalk-hint-read", MouseButton = EnumMouseButton.Left },
+                new WorldInteraction { ActionLangCode = "ships:chalk-hint-rub", HotKeyCode = "shift", MouseButton = EnumMouseButton.Left },
             };
         }
     }

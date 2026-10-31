@@ -60,7 +60,7 @@ namespace Hansa
                     foreach (var kv in chunks.ToArray()) { d.ReceiveChunkQuiet(kv.Key, kv.Value, capi.World); taken++; }
             }
             dims[sub] = d;
-            capi.Logger.Notification("[hansa] working blocks: dimension {0} of {1} #{2} registered on this client ({3}; {4} chunk(s) taken over from the engine's own)",
+            capi.Logger.Notification("[ships] working blocks: dimension {0} of {1} #{2} registered on this client ({3}; {4} chunk(s) taken over from the engine's own)",
                 sub, ship.GetName(), ship.EntityId, had == null ? "before any of its chunks came" : "the engine had made a plain one: " + had.GetType().Name, taken);
             return d;
         }
@@ -75,7 +75,7 @@ namespace Hansa
         {
             bool fresh = Received.Add(cindex);
             base.ReceiveClientChunk(cindex, chunk, world);
-            capi?.Logger.Notification("[hansa] working blocks: a chunk of dimension {0} arrived ({1}; {2} chunk(s) now){3}", sub,
+            capi?.Logger.Notification("[ships] working blocks: a chunk of dimension {0} arrived ({1}; {2} chunk(s) now){3}", sub,
                 fresh ? "new" : "again", Received.Count, Ship != null ? $", {ShipBlocksClient.Resolved(capi, Ship)}/{Ship.BlockRecord.Cells.Count} working block(s) of {Ship.GetName()} #{Ship.EntityId} seen" : ", no ship for it yet");
         }
 
@@ -133,7 +133,7 @@ namespace Hansa
     /// <summary>(0.3.14) Picking a ship's working blocks: the crosshair on one hands vanilla the block (its selection box, face and hit point).</summary>
     public static class ShipBlocksClient
     {
-        /// <summary>(0.3.16) Why the last pick on a ship with working blocks didn't give one of them (null: it did), for the log and .hansa blocks.</summary>
+        /// <summary>(0.3.16) Why the last pick on a ship with working blocks didn't give one of them (null: it did), for the log and .ships blocks.</summary>
         public static string LastWhy;
         public static long LastShip;
 
@@ -263,7 +263,7 @@ namespace Hansa
         public static int ChunksHere(ICoreClientAPI capi, ShipBlockRecord rec) =>
             rec.Sub <= 0 ? 0 : ChunkKeys(rec).Count(k => capi.World.BlockAccessor.GetChunk(k.Item1, k.Item2, k.Item3) != null);
 
-        /// <summary>.hansa blocks: what this client knows of a ship's working blocks.</summary>
+        /// <summary>.ships blocks: what this client knows of a ship's working blocks.</summary>
         public static string Report(ICoreClientAPI capi, EntityShip ship)
         {
             var sb = new StringBuilder();

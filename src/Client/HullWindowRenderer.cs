@@ -20,7 +20,7 @@ namespace Hansa
                     foreach(var q in ModularMesh.Quads(parts,keepShared:false))
                     {
                         var mat=(PartMat)(int)q[0];if((mat==PartMat.Glass)!=glass) continue;
-                        var tex=AtlasTex(mat==PartMat.Glass?"hansa:block/glass-clear":mat==PartMat.Lead?"game:block/metal/plate/lead":"game:block/wood/debarked/oak",null);
+                        var tex=AtlasTex(mat==PartMat.Glass?"ships:block/glass-clear":mat==PartMat.Lead?"game:block/metal/plate/lead":"game:block/wood/debarked/oak",null);
                         int first=data.VerticesCount,flags=VertexFlags.PackNormal(q[6],q[7],q[8]);
                         for(int k=0;k<4;k++) data.AddWithFlagsVertex(q[1+8*k],q[2+8*k],q[3+8*k],tex.x1+(tex.x2-tex.x1)*q[4+8*k]/16,tex.y1+(tex.y2-tex.y1)*q[5+8*k]/16,-1,flags);
                         data.AddIndices(first,first+1,first+2,first,first+2,first+3);data.AddTextureId(tex.atlasTextureId);

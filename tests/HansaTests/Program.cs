@@ -72,7 +72,7 @@ namespace HansaTests
             {
                 // a table of how she moves in each wind (not checks): dotnet run -c Release -- motion [code]
                 string mcode = args.Length > 1 && args[^1] != "motion" ? args[^1] : "carrack";
-                var mdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", mcode + ".json")));
+                var mdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", mcode + ".json")));
                 mdef.Init();
                 MotionReport(mdef);
                 return 0;
@@ -81,7 +81,7 @@ namespace HansaTests
             {
                 // her damage parts, hydrostatics and how the water in her acts, and the damage checks alone:
                 // dotnet run -c Release -- damage
-                var ddef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var ddef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 ddef.Init();
                 DamageReport(ddef);
                 Damage(ddef);
@@ -91,7 +91,7 @@ namespace HansaTests
             if (Array.IndexOf(args, "sailflood") >= 0)
             {
                 // a sound carrack at sea in each wind for ten minutes: how much water she takes over her side (not checks)
-                var sdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var sdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 sdef.Init();
                 SailFloodReport(sdef);
                 return 0;
@@ -99,9 +99,9 @@ namespace HansaTests
             if (Array.IndexOf(args, "damage-views") >= 0)
             {
                 // her hull with panels in each state, as the client draws it, for python tools/shipgen/texview.py damage
-                var vdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var vdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 vdef.Init();
-                DamageViews(vdef, Path.Combine(root, "assets", "hansa"));
+                DamageViews(vdef, Path.Combine(root, "assets", "ships"));
                 return 0;
             }
             if (Array.IndexOf(args, "dry") >= 0)
@@ -134,7 +134,7 @@ namespace HansaTests
             {
                 // a design's start pieces and whether her layout has each one's place: dotnet run -- startpieces <code>
                 string code = args[Array.IndexOf(args, "startpieces") + 1];
-                var sd = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", code + ".json")));
+                var sd = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", code + ".json")));
                 sd.Init();
                 foreach (var sp in sd.StartPieces ?? Array.Empty<StartPieceDef>())
                     Console.WriteLine($"  {sp.Mount}: {(sd.Mounts.Get(sp.Mount) is MountPoint m ? $"place at {m.X:0.##} {m.Y:0.##} {m.Z:0.##}" : "NO PLACE")} ({sp.Block})");
@@ -165,17 +165,17 @@ namespace HansaTests
             {
                 // the sails' wear table and the sail checks alone (looking at them, mending them, the lateen's trim):
                 // dotnet run -c Release -- sails
-                var sdef2 = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var sdef2 = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 sdef2.Init();
-                Sails(sdef2, Path.Combine(root, "assets", "hansa"));
-                SailsPressed(sdef2, Path.Combine(root, "assets", "hansa"));
+                Sails(sdef2, Path.Combine(root, "assets", "ships"));
+                SailsPressed(sdef2, Path.Combine(root, "assets", "ships"));
                 Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
                 return failures == 0 ? 0 : 1;
             }
             if (Array.IndexOf(args, "parts") >= 0)
             {
                 // what the crosshair says from a few places aboard and round her (not checks): dotnet run -c Release -- parts
-                var pdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var pdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 pdef.Init();
                 PartsReport(pdef);
                 return 0;
@@ -183,17 +183,17 @@ namespace HansaTests
             if (Array.IndexOf(args, "cannons") >= 0)
             {
                 // the guns' checks alone, with the range table: dotnet run -c Release -- cannons
-                var cdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var cdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 cdef.Init();
                 CannonReport(cdef);
-                Cannons(cdef, Path.Combine(root, "assets", "hansa"));
+                Cannons(cdef, Path.Combine(root, "assets", "ships"));
                 Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
                 return failures == 0 ? 0 : 1;
             }
             if (Array.IndexOf(args, "notes") >= 0)
             {
                 // the surveyor's chalk's checks alone: dotnet run -c Release -- notes
-                var ndef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var ndef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 ndef.Init();
                 SurveyNotes(ndef, root);
                 Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
@@ -209,9 +209,9 @@ namespace HansaTests
             if (Array.IndexOf(args, "helm") >= 0)
             {
                 // the helm's sign and the wind UI's frames alone: dotnet run -c Release -- helm
-                var hdef2 = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var hdef2 = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 hdef2.Init();
-                var hboat = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "skiff.json")));
+                var hboat = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "skiff.json")));
                 hboat.Init();
                 Helm(hdef2, hboat);
                 Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
@@ -220,7 +220,7 @@ namespace HansaTests
             if (Array.IndexOf(args, "rain") >= 0)
             {
                 // the rain under her decks and the water specks swept into her hold alone (0.3.13): dotnet run -c Debug -- rain
-                var rdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var rdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 rdef.Init();
                 Rain(rdef);
                 SweptSpecks(rdef);
@@ -235,7 +235,7 @@ namespace HansaTests
                 string dcode = args[^1];
                 Console.WriteLine($"======== {dcode}");
                 // (0.3.17) a modular design (carrack-m: no door fixtures, her doors are pieces) has checks of its own
-                string dpath = Path.Combine(root, "assets", "hansa", "config", "ships", dcode + ".json");
+                string dpath = Path.Combine(root, "assets", "ships", "config", "ships", dcode + ".json");
                 var dprobe = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(dpath));
                 if (dprobe.ModularPieces?.Length > 0) { dprobe.Init(); ModularDesign(dprobe); }
                 else CheckCarrack(dpath);
@@ -243,7 +243,7 @@ namespace HansaTests
                 if (dprobe.DeckSlots?.Length > 0)
                 {
                     if (dprobe.Grid == null) dprobe.Init();
-                    var skinPath = Path.Combine(root, "assets", "hansa", dprobe.Shapes.Skin.Replace("hansa:", "").Replace('/', Path.DirectorySeparatorChar));
+                    var skinPath = Path.Combine(root, "assets", "ships", dprobe.Shapes.Skin.Replace("ships:", "").Replace('/', Path.DirectorySeparatorChar));
                     DesignSlots(dprobe, JsonConvert.DeserializeObject<ShipSkinFile>(File.ReadAllText(skinPath)));
                 }
                 else Console.WriteLine($"  --   {dcode}: no deck slots (docs/slots.md){(dcode == "carrack-m" ? ": waits on the generator" : "")}");
@@ -290,7 +290,7 @@ namespace HansaTests
             if (Array.IndexOf(args, "stairs") >= 0)
             {
                 // (0.3.23) the ship's stairs (steep and long) and a hatch from below: dotnet run -c Debug -- stairs
-                var sdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var sdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 sdef.Init();
                 ShipStairs(sdef);
                 CastleGunPorts(root);
@@ -318,17 +318,17 @@ namespace HansaTests
             }
             if (Array.IndexOf(args, "partitions") >= 0)
             {
-                var pdef2 = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var pdef2 = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 pdef2.Init();
                 PartitionsToHer(pdef2);
-                PartitionsMeetHer(pdef2, Path.Combine(root, "assets", "hansa"));
+                PartitionsMeetHer(pdef2, Path.Combine(root, "assets", "ships"));
                 Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
                 return failures == 0 ? 0 : 1;
             }
             if (Array.IndexOf(args, "modular") >= 0)
             {
                 // (0.3.16) the modular pieces alone: dotnet run -c Debug -- modular
-                var mdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var mdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 mdef.Init();
                 Modular(mdef, root);
                 // (0.3.23) the ship's stairs and the hatch from below
@@ -349,7 +349,7 @@ namespace HansaTests
             if (Array.IndexOf(args, "decor") >= 0)
             {
                 // decorating's checks alone (mount points, pieces, paint): dotnet run -c Release -- decor
-                var ddef2 = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var ddef2 = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 ddef2.Init();
                 Decor(ddef2, root);
                 Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
@@ -358,7 +358,7 @@ namespace HansaTests
             if (Array.IndexOf(args, "hearth") >= 0)
             {
                 // the firehearth's checks alone, with its cooking times: dotnet run -c Release -- hearth
-                var hdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var hdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 hdef.Init();
                 Hearth(hdef);
                 Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
@@ -368,7 +368,7 @@ namespace HansaTests
             {
                 // the wreck's checks alone (dotnet run -c Release -- wreck), or a wreck as the client draws it for
                 // python tools/shipgen/texview.py wreck (-- wreck-views)
-                var wdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack.json")));
+                var wdef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack.json")));
                 wdef.Init();
                 if (Array.IndexOf(args, "wreck-views") >= 0) { WreckViews(wdef); return 0; }
                 Wrecks(wdef);
@@ -380,19 +380,19 @@ namespace HansaTests
             // beside it: the same checks, where things are read from each one's own doors and decks
             foreach (var code in new[] { "carrack", "carrack2", "carrack3" })
             {
-                string path = Path.Combine(root, "assets", "hansa", "config", "ships", code + ".json");
+                string path = Path.Combine(root, "assets", "ships", "config", "ships", code + ".json");
                 if (!File.Exists(path)) { Check(code != "carrack", $"{code}.json is there"); continue; }
                 Console.WriteLine($"======== {code}");
                 var d = CheckCarrack(path);
                 if (code == "carrack") def = d;
             }
 
-            var boatDef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "skiff.json")));
+            var boatDef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "skiff.json")));
             boatDef.Init();
             Boat(boatDef, def);
             RuntimeNotes(root);
             IntegrationNotes(root);
-            Shadows(boatDef, Path.Combine(root, "assets", "hansa"));
+            Shadows(boatDef, Path.Combine(root, "assets", "ships"));
             SurveyNotes(def, root);
             Hearth(def);
             Decor(def, root);
@@ -405,8 +405,8 @@ namespace HansaTests
             foreach (var dcode in new[] { "caravel", "hansa-carrack", "carrack" }) DryHold(root, dcode);
             StrainNotice();
             PartitionsToHer(def);
-            PartitionsMeetHer(def, Path.Combine(root, "assets", "hansa"));
-            SailsPressed(def, Path.Combine(root, "assets", "hansa"));
+            PartitionsMeetHer(def, Path.Combine(root, "assets", "ships"));
+            SailsPressed(def, Path.Combine(root, "assets", "ships"));
             // (note 64) the caravel's lateens dip round their masts
             CaravelLateenDip(root);
             WorkingBlocks(def);
@@ -441,7 +441,7 @@ namespace HansaTests
             // (0.3.30) chalk notes 234-243: run alone (-- notes0330) until carrack-m is generated again with the swept arcs
 
             // (0.3.14) the second design, companion option A: its general checks (all of them: dotnet run -- design carrack-a)
-            string pathA = Path.Combine(root, "assets", "hansa", "config", "ships", "carrack-a.json");
+            string pathA = Path.Combine(root, "assets", "ships", "config", "ships", "carrack-a.json");
             if (File.Exists(pathA)) SecondDesign(pathA, root);
             else Console.WriteLine("(carrack-a.json not there: the second design isn't checked)");
 
@@ -955,7 +955,7 @@ namespace HansaTests
         {
             Console.WriteLine("the ship's boat");
             var g = boat.Grid;
-            Check(g.CountSolid() > 100 && boat.MaxAboard == 4 && boat.BoardFromWater && boat.PickUpItem == "hansa:boat-skiff" && boat.RowSpeed > 1,
+            Check(g.CountSolid() > 100 && boat.MaxAboard == 4 && boat.BoardFromWater && boat.PickUpItem == "ships:boat-skiff" && boat.RowSpeed > 1,
                 $"a launch for four, climbed into from the water, picked up as the ship's boat item, rowed ({g.CountSolid()} voxels)");
             foreach (var b in boat.BoardPoints)
                 Check(!g.Collides(b[0] - 0.3, b[1], b[2] - 0.3, b[0] + 0.3, b[1] + 1.85, b[2] + 0.3) && DeckMover.HasFloor(g, b[0], b[1], b[2]),
@@ -1871,7 +1871,7 @@ namespace HansaTests
 
             {
                 // every name the look-at box can show is in the language file (the client isn't tested here)
-                var lang = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(Path.Combine(FindRoot(), "assets", "hansa", "lang", "en.json")));
+                var lang = Newtonsoft.Json.Linq.JObject.Parse(File.ReadAllText(Path.Combine(FindRoot(), "assets", "ships", "lang", "en.json")));
                 var missing = new System.Collections.Generic.List<string>();
                 void Need(string key) { if (lang[key] == null && !missing.Contains(key)) missing.Add(key); }
                 foreach (var f in def.Fixtures)

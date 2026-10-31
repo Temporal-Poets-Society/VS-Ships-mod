@@ -15,7 +15,7 @@ namespace Hansa
         /// </summary>
         void LoadedUnmanned(HansaMod mod, BlockPos spawn, double wy, Action then)
         {
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship));
             bool stopWas = mod.Config.StopWhenUnmanned;
             mod.Config.StopWhenUnmanned = true;
             var ship = (EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
@@ -33,7 +33,7 @@ namespace Hansa
             var at = ship.Pos.XYZ;
             WaitFor(() => false, 0.5, _ =>
             {
-                var t = ship.WatchedAttributes.GetTreeAttribute("hansa");
+                var t = ship.WatchedAttributes.GetTreeAttribute("ships");
                 double moved = ship.Pos.XYZ.HorizontalSquareDistanceTo(at);
                 Check(ship.Anchored && ship.SailSet == 0 && ship.Speed == 0 && ship.YawRate == 0 && Math.Sqrt(moved) < 0.05 &&
                       t?.GetBool("anchored") == true && t.GetInt("sailSet") == 0 && t.GetFloat("speed") == 0,

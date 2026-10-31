@@ -40,12 +40,12 @@ namespace Hansa
             var near = new[] { d.Box[0] - 0.05, d.Box[1] - 0.05, d.Box[2] + 0.02, d.Box[3] + 0.05, d.Box[4] + 0.02, d.Box[5] - 0.02 };
             foreach (var p in Pieces.All)
                 foreach (var b in p.Solids.Concat(p.Sel))
-                    if (PiecePlanner.Overlap(b, near, 0.005)) return "hansa:beam-under-piece";
+                    if (PiecePlanner.Overlap(b, near, 0.005)) return "ships:beam-under-piece";
             foreach (var f in Def.Fixtures.Concat(PlacedFixtures))
             {
                 if (GunAbsent(f)) continue;
                 foreach (var b in new[] { f.Box, f.Sel })
-                    if (b != null && b.Length == 6 && PiecePlanner.Overlap(b, near, 0.005)) return "hansa:beam-under-fixture";
+                    if (b != null && b.Length == 6 && PiecePlanner.Overlap(b, near, 0.005)) return "ships:beam-under-fixture";
             }
             return null;
         }
@@ -96,7 +96,7 @@ namespace Hansa
             {
                 int count = beams.Sum(n => Math.Max(1, SlotLayout.Slots[n].Mat.Count));
                 var stack = MaterialStack(new SlotMaterialDef { Block = SlotLayout.Slots[beams[0]].Mat.Block, Count = count });
-                if (stack != null && !player.InventoryManager.TryGiveItemstack(stack, true)) return "hansa:piece-inventory-full";
+                if (stack != null && !player.InventoryManager.TryGiveItemstack(stack, true)) return "ships:piece-inventory-full";
             }
             foreach (int n in beams) Slots.Set(n, SlotState.Empty);
             SlotsChanged();

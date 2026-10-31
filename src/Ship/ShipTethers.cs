@@ -56,7 +56,7 @@ namespace Hansa
                 if(animal?.GetBehavior<EntityBehaviorOwnable>() is EntityBehaviorOwnable owner && !owner.IsOwner(player.Entity)) return;
                 var stack=new ItemStack(ship.World.GetItem(new AssetLocation("game:rope")));
                 stack.Attributes.SetInt("clothId",id);stack.Attributes.SetLong("ropeHeldByEntityId",player.Entity.EntityId);
-                if(!player.InventoryManager.TryGiveItemstack(stack,true)) {ship.Notify(player,"hansa:piece-inventory-full");return;}
+                if(!player.InventoryManager.TryGiveItemstack(stack,true)) {ship.Notify(player,"ships:piece-inventory-full");return;}
                 point.PinTo(player.Entity,new Vec3f(0,(float)player.Entity.LocalEyePos.Y-.25f,0));point.NoAttachTransform=false;
                 links.RemoveAttribute(entry.Key);ship.WatchedAttributes.MarkPathDirty("hansaTethers");return;
             }

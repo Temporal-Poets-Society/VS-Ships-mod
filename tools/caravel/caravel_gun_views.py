@@ -86,8 +86,8 @@ def sheet(D, M, gun, title, path, size=(520, 400)):
 
 def main():
     base = os.environ.get("CARAVEL_LAYOUT_OUT")
-    dpath = os.path.join(base, "caravel.json") if base else os.path.join(ROOT, "assets", "hansa", "config", "ships", "caravel.json")
-    mpath = os.path.join(base, "caravel-mesh.json") if base else os.path.join(ROOT, "assets", "hansa", "config", "shipmeshes", "caravel.json")
+    dpath = os.path.join(base, "caravel.json") if base else os.path.join(ROOT, "assets", "ships", "config", "ships", "caravel.json")
+    mpath = os.path.join(base, "caravel-mesh.json") if base else os.path.join(ROOT, "assets", "ships", "config", "shipmeshes", "caravel.json")
     D, M = json.load(open(dpath)), json.load(open(mpath))
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "models", "caravel", "views")
     os.makedirs(out, exist_ok=True)

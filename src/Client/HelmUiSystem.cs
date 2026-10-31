@@ -12,15 +12,15 @@ using Vintagestory.GameContent;
 namespace Hansa
 {
     /// <summary>
-    /// The helm and wind UI (0.3.10): the wind panel aboard (<see cref="WindPanel"/>, Ctrl+U or .hansa wind), the
-    /// masthead pennants (<see cref="PennantRenderer"/>, .hansa pennants), and the ships on the map
+    /// The helm and wind UI (0.3.10): the wind panel aboard (<see cref="WindPanel"/>, Ctrl+U or .ships wind), the
+    /// masthead pennants (<see cref="PennantRenderer"/>, .ships pennants), and the ships on the map
     /// (<see cref="ShipMapLayer"/>). The server keeps where every ship was last seen and who has sailed in her (in the
     /// save game) and, while a player's map is open, tells them every few seconds where their own ships are and the
     /// loaded ones near them.
     /// </summary>
     public class HelmUiSystem : ModSystem, IRenderer
     {
-        const string SaveKey = "hansa-shipmap", HotKeyCode = "hansawindpanel";
+        const string SaveKey = "ships-shipmap", HotKeyCode = "hansawindpanel";
         /// <summary>Loaded ships within this many blocks of a player are on their map (their own ones anywhere).</summary>
         const double NearRange = 2000;
 
@@ -61,16 +61,16 @@ namespace Hansa
             clientChannel = api.Network.GetChannel(HansaMod.ChannelName).SetMessageHandler<ShipMapPacket>(OnShipMap);
             panel = new WindPanel(api, Hansa.Client);
             pennants = new PennantRenderer(api, this);
-            api.Event.RegisterRenderer(this, EnumRenderStage.Before, "hansa-helmui");
-            api.Event.RegisterRenderer(pennants, EnumRenderStage.Opaque, "hansa-pennants");
+            api.Event.RegisterRenderer(this, EnumRenderStage.Before, "ships-helmui");
+            api.Event.RegisterRenderer(pennants, EnumRenderStage.Opaque, "ships-pennants");
             api.Event.RegisterGameTickListener(_ => RequestShips(), 1000);
 
-            api.Input.RegisterHotKey(HotKeyCode, Lang.Get("hansa:hotkey-windpanel"), GlKeys.U, HotkeyType.GUIOrOtherControls, ctrlPressed: true);
+            api.Input.RegisterHotKey(HotKeyCode, Lang.Get("ships:hotkey-windpanel"), GlKeys.U, HotkeyType.GUIOrOtherControls, ctrlPressed: true);
             api.Input.SetHotKeyHandler(HotKeyCode, _ => { SetWindPanel(!Hansa.Client.Comfort.WindPanel); return true; });
 
-            var cmd = api.ChatCommands.Get("hansa");
+            var cmd = api.ChatCommands.Get("ships");
             cmd?.BeginSubCommand("wind")
-                    .WithDescription(Lang.Get("hansa:cmd-wind"))
+                    .WithDescription(Lang.Get("ships:cmd-wind"))
                     .WithArgs(api.ChatCommands.Parsers.OptionalWordRange("state", "on", "off"))
                     .HandleWith(args =>
                     {
@@ -79,14 +79,14 @@ namespace Hansa
                     })
                 .EndSubCommand()
                 .BeginSubCommand("pennants")
-                    .WithDescription(Lang.Get("hansa:cmd-pennants"))
+                    .WithDescription(Lang.Get("ships:cmd-pennants"))
                     .WithArgs(api.ChatCommands.Parsers.OptionalWordRange("state", "on", "off"))
                     .HandleWith(args =>
                     {
                         var cf = Hansa.Client.Comfort;
                         cf.Pennants = args[0] is string st ? st == "on" : !cf.Pennants;
-                        api.StoreModConfig(cf, "hansa-client.json");
-                        return TextCommandResult.Success(Lang.Get(cf.Pennants ? "hansa:pennants-on" : "hansa:pennants-off"));
+                        api.StoreModConfig(cf, "ships-client.json");
+                        return TextCommandResult.Success(Lang.Get(cf.Pennants ? "ships:pennants-on" : "ships:pennants-off"));
                     })
                 .EndSubCommand();
 
@@ -121,8 +121,8 @@ namespace Hansa
         {
             var cf = Hansa.Client.Comfort;
             cf.WindPanel = on;
-            capi.StoreModConfig(cf, "hansa-client.json");
-            capi.ShowChatMessage(Lang.Get(on ? "hansa:windpanel-on" : "hansa:windpanel-off"));
+            capi.StoreModConfig(cf, "ships-client.json");
+            capi.ShowChatMessage(Lang.Get(on ? "ships:windpanel-on" : "ships:windpanel-off"));
         }
 
         public void OnRenderFrame(float dt, EnumRenderStage stage)

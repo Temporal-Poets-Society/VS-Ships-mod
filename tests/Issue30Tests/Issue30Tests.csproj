@@ -8,7 +8,7 @@
     <NoWarn>$(NoWarn);CA1416</NoWarn>
     <VintageStoryPath Condition="'$(VintageStoryPath)' == ''">$(APPDATA)\Vintagestory</VintageStoryPath>
     <SeaRoot Condition="'$(SeaRoot)' == ''">C:\VS mods\Sea</SeaRoot>
-    <HansaAssembly Condition="'$(HansaAssembly)' == ''">$(MSBuildProjectDirectory)\..\..\bin\Debug\mod\Hansa.dll</HansaAssembly>
+    <HansaAssembly Condition="'$(HansaAssembly)' == ''">$(MSBuildProjectDirectory)\..\..\bin\Debug\mod\Ships.dll</HansaAssembly>
     <SeaAssembly Condition="'$(SeaAssembly)' == ''">$(SeaRoot)\bin\Debug\mod\Sea.dll</SeaAssembly>
     <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
     <NetCoreRuntimeDir>$([System.IO.Directory]::GetDirectories('$(NetCoreRoot)shared\Microsoft.NETCore.App', '10.*')[0])</NetCoreRuntimeDir>

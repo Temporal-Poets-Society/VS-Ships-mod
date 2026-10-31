@@ -32,7 +32,7 @@ namespace Hansa
                 if (built == null)
                 {
                     if (def.Shapes?.Skin == null) continue;
-                    var skin = api.Assets.TryGet(AssetLocation.Create(def.Shapes.Skin, "hansa"));
+                    var skin = api.Assets.TryGet(AssetLocation.Create(def.Shapes.Skin, "ships"));
                     if (skin == null) continue;
                     data = skin.Data;
                 }
@@ -40,7 +40,7 @@ namespace Hansa
                 foreach (var (role, loc) in new[] { ("exterior", def.Shapes?.Exterior), ("interior", def.Shapes?.Interior) })
                 {
                     if (loc == null) continue;
-                    var a = api.Assets.TryGet(AssetLocation.Create(loc, "hansa").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json"));
+                    var a = api.Assets.TryGet(AssetLocation.Create(loc, "ships").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json"));
                     if (a != null) shapes[role] = a.ToText();
                 }
                 var logger = Mod.Logger;
@@ -83,7 +83,7 @@ namespace Hansa
                 if (player.Entity == null) return;
                 bool on = p.Dir == 2 ? !VanillaPieceBlock.BuildingMode(player.Entity) : p.Dir == 1;
                 VanillaPieceBlock.SetBuilding(player.Entity, on);
-                player.SendMessage(GlobalConstants.GeneralChatGroup, Lang.GetL(player.LanguageCode, on ? "hansa:build-now-on" : "hansa:build-now-off"), EnumChatType.Notification);
+                player.SendMessage(GlobalConstants.GeneralChatGroup, Lang.GetL(player.LanguageCode, on ? "ships:build-now-on" : "ships:build-now-off"), EnumChatType.Notification);
                 return;
             }
             var ship = ShipById(p.ShipId);
@@ -136,7 +136,7 @@ namespace Hansa
                     err = p.Zone == null && p.Piece > 0 ? ship.TryPaintPiece(player, p.Piece, out args) : ship.TryPaint(player, p.Zone, new Vec3d(p.X, p.Y, p.Z), out args);
                     break;
             }
-            if (err != null) player.SendIngameError("hansa-decor", Lang.GetL(player.LanguageCode, err, args));
+            if (err != null) player.SendIngameError("ships-decor", Lang.GetL(player.LanguageCode, err, args));
         }
 
         // ------------------------------------------------------------------ commands
@@ -144,7 +144,7 @@ namespace Hansa
         void RegisterDecorCommands(ICoreServerAPI api)
         {
             var parsers = api.ChatCommands.Parsers;
-            api.ChatCommands.GetOrCreate("hansa")
+            api.ChatCommands.GetOrCreate("ships")
                 .BeginSubCommand("pieces")
                     .WithDescription("The pieces (vanilla blocks put aboard) on the ship you're on (else the nearest): 'list' (default), 'clear' takes them all away (their items and what's in them dropped by you)")
                     .RequiresPrivilege(Privilege.gamemode)
@@ -152,7 +152,7 @@ namespace Hansa
                     .HandleWith(args => PiecesCommand((IServerPlayer)args.Caller.Player, args[0] as string))
                 .EndSubCommand()
                 .BeginSubCommand("place")
-                    .WithDescription("Put a vanilla block on a mount point of the ship you're on (else the nearest), no item needed: <block code> <mount id> [facing: bow|starboard|stern|port, default starboard]. /hansa mounts lists the ids.")
+                    .WithDescription("Put a vanilla block on a mount point of the ship you're on (else the nearest), no item needed: <block code> <mount id> [facing: bow|starboard|stern|port, default starboard]. /ships mounts lists the ids.")
                     .RequiresPrivilege(Privilege.gamemode)
                     .WithArgs(parsers.Word("block"), parsers.Word("mount"), parsers.OptionalWord("facing"))
                     .HandleWith(args => PlaceCommand((IServerPlayer)args.Caller.Player, args[0] as string, args[1] as string, args[2] as string))
@@ -192,7 +192,7 @@ namespace Hansa
                 .EndSubCommand();
         }
 
-        /// <summary>(0.3.20, step B) <c>/hansa slots [take|lay|reset] [id]</c>: her deck cells.</summary>
+        /// <summary>(0.3.20, step B) <c>/ships slots [take|lay|reset] [id]</c>: her deck cells.</summary>
         TextCommandResult GunPlacesCommand(IServerPlayer player, string what, string id)
         {
             var ship = ShipFor(player.Entity);
@@ -241,7 +241,7 @@ namespace Hansa
             return TextCommandResult.Success(ship.SlotsText());
         }
 
-        /// <summary>(0.3.26, step D1) <c>/hansa hull [take|lay|crack|reset] [id]</c>: her hull panels.</summary>
+        /// <summary>(0.3.26, step D1) <c>/ships hull [take|lay|crack|reset] [id]</c>: her hull panels.</summary>
         TextCommandResult HullCommand(IServerPlayer player, string what, string id)
         {
             var ship = ShipFor(player.Entity);
@@ -317,7 +317,7 @@ namespace Hansa
             var block = sapi.World.GetBlock(new AssetLocation(blockCode ?? ""));
             if (block == null || block.Id == 0) return TextCommandResult.Error($"No block '{blockCode}'.");
             var m = ship.Mounts.Get(mountId);
-            if (m == null) return TextCommandResult.Error($"{ship.GetName()} has no mount point '{mountId}' (/hansa mounts ids lists them).");
+            if (m == null) return TextCommandResult.Error($"{ship.GetName()} has no mount point '{mountId}' (/ships mounts ids lists them).");
             int dir = DirArg(facing);
             if (dir < 0) return TextCommandResult.Error("Facing: bow, starboard, stern or port.");
             var stack = new ItemStack(block);
@@ -339,7 +339,7 @@ namespace Hansa
             if (paint != null && !ShipPaint.Known(paint)) return TextCommandResult.Error($"No dye '{colour}' (blue, red, yellow, purple, woad, green, orange, black, gray, pink, white; gold; none).");
             // (0.3.17) "all": not a zone with nothing of hers in it on this design
             var zones = zone == "all" ? plan.Zones.Where((z, i) => plan.Area[i] > 0).ToList() : plan.Zone(zone) is PaintZoneDef one ? new List<PaintZoneDef> { one } : null;
-            if (zones == null) return TextCommandResult.Error($"No zone '{zone}' (/hansa zones lists them).");
+            if (zones == null) return TextCommandResult.Error($"No zone '{zone}' (/ships zones lists them).");
             int n = 0;
             foreach (var z in zones)
             {

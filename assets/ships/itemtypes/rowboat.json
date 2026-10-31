@@ -1,0 +1,145 @@
+{
+	"code": "rowboat",
+	"class": "ships.ItemRowBoat",
+	"variantgroups": [
+		{
+			"code": "material",
+			"states": [
+				"aged"
+			],
+			"loadFromProperties": "block/wood"
+		}
+	],
+	"shape": {
+		"base": "ships:entity/rowboat-stowed",
+		"ignoreElements": [
+			"hideWater"
+		]
+	},
+	"texturesByType": {
+		"*-aged": {
+			"material": {
+				"base": "game:block/wood/debarked/{material}"
+			},
+			"oak": {
+				"base": "game:block/wood/debarked/{material}"
+			},
+			"oak1": {
+				"base": "game:block/wood/planks/aged/aged*"
+			},
+			"birch1": {
+				"base": "game:block/wood/planks/aged/aged*"
+			},
+			"plainoak": {
+				"base": "game:block/wood/debarked/{material}"
+			},
+			"plain": {
+				"base": "game:block/cloth/linen/plain"
+			},
+			"iron1": {
+				"base": "game:block/metal/sheet-plain/iron1"
+			},
+			"rope": {
+				"base": "game:item/resource/rope"
+			},
+			"transparent": {
+				"base": "game:block/transparent"
+			}
+		},
+		"*": {
+			"material": {
+				"base": "game:block/wood/debarked/{material}"
+			},
+			"oak": {
+				"base": "game:block/wood/debarked/{material}"
+			},
+			"oak1": {
+				"base": "game:block/wood/planks/{material}*"
+			},
+			"birch1": {
+				"base": "game:block/wood/planks/{material}*"
+			},
+			"plainoak": {
+				"base": "game:block/wood/debarked/{material}"
+			},
+			"plain": {
+				"base": "game:block/cloth/linen/plain"
+			},
+			"iron1": {
+				"base": "game:block/metal/sheet-plain/iron1"
+			},
+			"rope": {
+				"base": "game:item/resource/rope"
+			},
+			"transparent": {
+				"base": "game:block/transparent"
+			}
+		}
+	},
+	"heldTpIdleAnimation": "holdunderarm",
+	"maxstacksize": 1,
+	"materialDensity": 1,
+	"liquidSelectable": 1,
+	"creativeinventory": {
+		"general": [
+			"*"
+		],
+		"items": [
+			"*"
+		]
+	},
+	"guiTransform": {
+		"translation": {
+			"x": 3.0,
+			"y": 6.0,
+			"z": 0.0
+		},
+		"rotation": {
+			"x": -32.0,
+			"y": -35.0,
+			"z": -180.0
+		},
+		"origin": {
+			"x": 0.5,
+			"y": 0.0,
+			"z": 0.5
+		},
+		"scale": 0.68
+	},
+	"groundTransform": {
+		"translation": {
+			"x": 0,
+			"y": 0,
+			"z": 0
+		},
+		"rotation": {
+			"x": 0,
+			"y": 0,
+			"z": 0
+		},
+		"origin": {
+			"x": 0,
+			"y": 0,
+			"z": 0
+		},
+		"scale": 1
+	},
+	"tpHandTransform": {
+		"translation": {
+			"x": -0.78,
+			"y": 0.48,
+			"z": -0.85
+		},
+		"rotation": {
+			"x": -8,
+			"y": 143,
+			"z": 2
+		},
+		"origin": {
+			"x": 0.5,
+			"y": 0,
+			"z": 0.5
+		},
+		"scale": 0.28
+	}
+}

@@ -4,9 +4,9 @@ and slice_caravel.py:
     C:/AstoCAD/bin/AstoCADCmd.exe -c "exec(open(r'C:/VS mods/Hansa/tools/caravel/export_caravel.py').read())"
 
 Writes, for ship code "caravel":
-  assets/hansa/config/ships/caravel.json        the definition: voxel grid (collision), dimensions, sails, rudder...
-  assets/hansa/config/shipmeshes/caravel.json   the mesh: quads by group, 16 texels a block, cut at cell borders
-The entity, the charter (ship deed) and the lang lines are kept by hand (assets/hansa/entities/ship/caravel.json,
+  assets/ships/config/ships/caravel.json        the definition: voxel grid (collision), dimensions, sails, rudder...
+  assets/ships/config/shipmeshes/caravel.json   the mesh: quads by group, 16 texels a block, cut at cell borders
+The entity, the charter (ship deed) and the lang lines are kept by hand (assets/ships/entities/ship/caravel.json,
 itemtypes/shipdeed.json, lang/en.json).
 
 Frames: the model is in mm, X fore, Y port, Z up from the bottom cell border. The game's ship-local frame is in blocks,
@@ -27,7 +27,7 @@ import MeshPart
 V = App.Vector
 ROOT = os.environ.get("CARAVEL_ROOT", r"C:/VS mods/Hansa")     # (a worktree's own checkout: set CARAVEL_ROOT)
 MOD = os.path.join(ROOT, "models", "caravel")
-ASSETS = os.path.join(ROOT, "assets", "hansa")
+ASSETS = os.path.join(ROOT, "assets", "ships")
 CODE = "caravel"
 T0 = time.time()
 
@@ -58,7 +58,7 @@ def r4(v):
 
 
 # ---------------------------------------------------------------- textures
-TEX = ["game:block/wood/planks/oak1++3~hansa:block/tar", "game:block/wood/planks/oak4++3~hansa:block/tar",
+TEX = ["game:block/wood/planks/oak1++3~ships:block/tar", "game:block/wood/planks/oak4++3~ships:block/tar",
        "game:block/wood/planks/oak1", "game:block/wood/planks/oak3", "game:block/wood/debarked/oak",
        "game:block/wood/debarked/pine", "game:block/linen", "game:block/metal/sheet/copper2",
        "game:block/cloth/reedrope", "game:block/metal/plate/tinbronze", "game:block/metal/tarnished/iron"]
@@ -1578,7 +1578,7 @@ gate_hb = half_breadth(gate_x * 1000, LV["mainDeck"] + 300) or 3.2
 definition = {
     "code": CODE, "name": "Caravel",
     "voxelSize": VOX, "gridOrigin": [r4(ox), r4(oy), r4(oz)], "gridSize": [nx, ny, nz], "solid": solid_b64,
-    "shapes": {"skin": f"hansa:config/shipmeshes/{CODE}.json"},
+    "shapes": {"skin": f"ships:config/shipmeshes/{CODE}.json"},
     "length": round(REP["lengthOverall_mm"] / 1000, 2), "beam": round(REP["beam_mm"] / 1000, 2),
     "draft": round(REP["draft_mm"] / 1000, 3), "waterline": 0.0, "keelY": r4(keel_y), "deckY": r4(deck_y),
     "hullHalfWidthAtDeck": r4(half_breadth(0, LV["mainDeck"]) or 3.27),

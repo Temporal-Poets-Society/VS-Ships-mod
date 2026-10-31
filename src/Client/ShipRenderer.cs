@@ -245,16 +245,16 @@ namespace Hansa
         {
             md = null;
             if (shapeLoc == null) return null;
-            var loc = AssetLocation.Create(shapeLoc, "hansa").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json");
+            var loc = AssetLocation.Create(shapeLoc, "ships").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json");
             var shape = Shape.TryGet(capi, loc);
             if (shape == null)
             {
-                capi.Logger.Error("[hansa] Ship shape {0} not found", loc);
+                capi.Logger.Error("[ships] Ship shape {0} not found", loc);
                 return null;
             }
             PrepareShape(capi, shape, loc.ToString());
             var texSource = new ShapeTextureSource(capi, shape, loc.ToString());
-            capi.Tesselator.TesselateShape("hansa ship", shape, out md, texSource);
+            capi.Tesselator.TesselateShape("ships ship", shape, out md, texSource);
             // a design drawn all from its mesh (the ship's boat) has nothing here
             if (md == null || md.VerticesCount == 0) return null;
             if (offset != null) md.Translate((float)offset[0], (float)offset[1], (float)offset[2]);
@@ -273,9 +273,9 @@ namespace Hansa
             var (moved, squashed) = ShapeUvs.FitShape(shape);
             if (!shapesChecked.Add(loc)) return;
             if (moved > 0)
-                capi.Logger.Warning("[hansa] Shape {0}: {1} faces had uvs outside their texture (moved inside it; {2} squashed): the atlas would draw its neighbours there", loc, moved, squashed);
+                capi.Logger.Warning("[ships] Shape {0}: {1} faces had uvs outside their texture (moved inside it; {2} squashed): the atlas would draw its neighbours there", loc, moved, squashed);
             foreach (var m in ShapeUvs.MissingTextures(shape, a => capi.Assets.Exists(a)))
-                capi.Logger.Warning("[hansa] Shape {0}: texture {1} not found, drawn as unknown", loc, m);
+                capi.Logger.Warning("[ships] Shape {0}: texture {1} not found, drawn as unknown", loc, m);
         }
 
         /// <summary>
@@ -287,10 +287,10 @@ namespace Hansa
         System.Threading.Tasks.Task<(ShipSkinFile, HullDamageSkin)> LoadSkin(string path, DamageLayout layout, ShipDefinition def)
         {
             if (path == null) return null;
-            var asset = capi.Assets.TryGet(AssetLocation.Create(path, "hansa"));
+            var asset = capi.Assets.TryGet(AssetLocation.Create(path, "ships"));
             if (asset == null)
             {
-                capi.Logger.Error("[hansa] Ship mesh {0} not found", path);
+                capi.Logger.Error("[ships] Ship mesh {0} not found", path);
                 return null;
             }
             byte[] data = asset.Data;
@@ -308,7 +308,7 @@ namespace Hansa
                             if (ShapeUvs.FitQuad(q, ref s)) moved++;
                             if (s) squashed++;
                         }
-                if (moved > 0) logger.Warning("[hansa] Ship mesh {0}: {1} quads had uvs outside their texture (moved inside it; {2} squashed)", path, moved, squashed);
+                if (moved > 0) logger.Warning("[ships] Ship mesh {0}: {1} quads had uvs outside their texture (moved inside it; {2} squashed)", path, moved, squashed);
                 // ((note 104) her dipping lateens' shrouds, a group each: the windward set up, the lee set cast off)
                 try
                 {
@@ -316,7 +316,7 @@ namespace Hansa
                 }
                 catch (Exception e)
                 {
-                    logger.Error("[hansa] Couldn't take {0}'s lateen shrouds apart; they're drawn as made: {1}", path, e);
+                    logger.Error("[ships] Couldn't take {0}'s lateen shrouds apart; they're drawn as made: {1}", path, e);
                 }
                 HullDamageSkin hull = null;
                 try
@@ -326,7 +326,7 @@ namespace Hansa
                 catch (Exception e)
                 {
                     // the ship is still drawn, only her damage isn't
-                    logger.Error("[hansa] Couldn't sort the planking of {0} into panels, damage won't be drawn on it: {1}", path, e);
+                    logger.Error("[ships] Couldn't sort the planking of {0} into panels, damage won't be drawn on it: {1}", path, e);
                 }
                 return (file, hull);
             });
@@ -339,7 +339,7 @@ namespace Hansa
             m.SkinLoad = null;
             if (load.IsFaulted)
             {
-                capi.Logger.Error("[hansa] Ship mesh failed to load: {0}", load.Exception?.InnerException);
+                capi.Logger.Error("[ships] Ship mesh failed to load: {0}", load.Exception?.InnerException);
                 return;
             }
             var (file, hull) = load.Result;
@@ -349,7 +349,7 @@ namespace Hansa
                 // "base++3~overlay" paths are composited by the atlas (tarred and caulked oak)
                 capi.BlockTextureAtlas.GetOrInsertTexture(AssetLocation.Create(file.Textures[i]), out _, out var pos);
                 if (pos == null || ShapeUvs.MissingImage(file.Textures[i], a => capi.Assets.Exists(a)) != null)
-                    capi.Logger.Warning("[hansa] Ship mesh texture {0} not found, drawn as unknown", file.Textures[i]);
+                    capi.Logger.Warning("[ships] Ship mesh texture {0} not found, drawn as unknown", file.Textures[i]);
                 tex[i] = pos ?? capi.BlockTextureAtlas.UnknownTexturePosition;
             }
             LogHullTextures(file.Textures, tex);
@@ -380,7 +380,7 @@ namespace Hansa
             foreach (var loc in new[] { def.Shapes?.Interior, def.Shapes?.Exterior })
             {
                 if (loc == null) continue;
-                var shape = Shape.TryGet(capi, AssetLocation.Create(loc, "hansa").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json"));
+                var shape = Shape.TryGet(capi, AssetLocation.Create(loc, "ships").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json"));
                 if (shape != null) shapes.Add(shape);
             }
             var logger = capi.Logger;
@@ -394,7 +394,7 @@ namespace Hansa
                 }
                 catch (Exception e)
                 {
-                    logger.Warning("[hansa] Couldn't sort out {0}'s surfaces; partitions are drawn to her cells only: {1}", def.Code, e.Message);
+                    logger.Warning("[ships] Couldn't sort out {0}'s surfaces; partitions are drawn to her cells only: {1}", def.Code, e.Message);
                 }
             });
         }
@@ -410,12 +410,12 @@ namespace Hansa
         {
             if (texturesLogged) return;
             texturesLogged = true;
-            var sb = new System.Text.StringBuilder("[hansa] Hull textures in the atlas (mean of the atlas' colour samples):");
+            var sb = new System.Text.StringBuilder("[ships] Hull textures in the atlas (mean of the atlas' colour samples):");
             for (int i = 0; i < paths.Length; i++)
             {
                 if (paths[i].Contains("++") || paths[i].EndsWith("planks/oak1") || paths[i].Contains("copper1")) sb.Append($" {paths[i]} {MeanColour(tex[i])};");
             }
-            const string caulked = "game:block/wood/planks/oak1++0~hansa:block/caulk";
+            const string caulked = "game:block/wood/planks/oak1++0~ships:block/caulk";
             capi.BlockTextureAtlas.GetOrInsertTexture(new AssetLocation(caulked), out _, out var caulk);
             sb.Append($" {caulked} {MeanColour(caulk)}");
             capi.Logger.Notification(sb.ToString());
@@ -503,7 +503,7 @@ namespace Hansa
             catch (Exception e)
             {
                 damageFailed = true;
-                capi.Logger.Error("[hansa] Drawing ship damage failed; it's off until the game is restarted: {0}", e);
+                capi.Logger.Error("[ships] Drawing ship damage failed; it's off until the game is restarted: {0}", e);
             }
         }
 
@@ -545,7 +545,7 @@ namespace Hansa
         }
 
         /// <summary>
-        /// The damage textures in the atlas, as many as the hull's builds have asked for so far: "base++0~hansa:block/dmg-…"
+        /// The damage textures in the atlas, as many as the hull's builds have asked for so far: "base++0~ships:block/dmg-…"
         /// composited like the tar (inserted as they're first needed).
         /// </summary>
         TextureAtlasPosition[] SplitTextures(Meshes m, HullSplit s = null)
@@ -613,7 +613,7 @@ namespace Hansa
         }
 
         /// <summary>
-        /// What the damage drawing has for a ship (<c>.hansa damagecheck</c>, 0.3.7: the user found a holed panel drawn
+        /// What the damage drawing has for a ship (<c>.ships damagecheck</c>, 0.3.7: the user found a holed panel drawn
         /// as plain planking): her mesh file loaded and her hull's planking sorted into panels (its chunks), whether drawing
         /// damage has failed this session, her damage state against the design's parts, how many panels have a look that
         /// isn't sound, the chunks built and still to build, her sails as drawn. One line each.
@@ -670,8 +670,8 @@ namespace Hansa
 
         /// <summary>The three torn and two shredded holes (textures/block/sail-*.png), each with its frayed edge.</summary>
         static string TornLinen(string linen, int level, int pick) => level >= 2
-            ? $"{linen}++0~hansa:block/sail-shredfray-{(char)('a' + pick % 2)}++8~hansa:block/sail-shred-{(char)('a' + pick % 2)}"
-            : $"{linen}++0~hansa:block/sail-fray-{(char)('a' + pick % 3)}++8~hansa:block/sail-hole-{(char)('a' + pick % 3)}";
+            ? $"{linen}++0~ships:block/sail-shredfray-{(char)('a' + pick % 2)}++8~ships:block/sail-shred-{(char)('a' + pick % 2)}"
+            : $"{linen}++0~ships:block/sail-fray-{(char)('a' + pick % 3)}++8~ships:block/sail-hole-{(char)('a' + pick % 3)}";
 
         /// <summary>
         /// Which piece of a sail is torn: a fixed pick by the sail and the piece, so its holes stay where they are. Torn: about
@@ -700,7 +700,7 @@ namespace Hansa
             {
                 if (sail.Shape != null)
                 {
-                    var loc = AssetLocation.Create(sail.Shape, "hansa").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json");
+                    var loc = AssetLocation.Create(sail.Shape, "ships").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json");
                     var shape = Shape.TryGet(capi, loc);
                     if (shape?.Elements == null || shape.Textures == null) return null;
                     PrepareShape(capi, shape, loc.ToString());
@@ -723,7 +723,7 @@ namespace Hansa
                         if (e.Children != null) foreach (var ch in e.Children) Tear(ch);
                     }
                     foreach (var e in shape.Elements) Tear(e);
-                    capi.Tesselator.TesselateShape("hansa torn sail", shape, out MeshData md, new ShapeTextureSource(capi, shape, loc + " (torn)"));
+                    capi.Tesselator.TesselateShape("ships torn sail", shape, out MeshData md, new ShapeTextureSource(capi, shape, loc + " (torn)"));
                     if (md != null && sail.Offset != null) md.Translate((float)sail.Offset[0], (float)sail.Offset[1], (float)sail.Offset[2]);
                     if (md != null && md.VerticesCount > 0) m.SailData[mesh = capi.Render.UploadMultiTextureMesh(md)] = md;
                 }
@@ -760,7 +760,7 @@ namespace Hansa
             }
             catch (Exception e)
             {
-                capi.Logger.Warning("[hansa] Couldn't make the torn sail {0}; it's drawn whole: {1}", sail.Code, e.Message);
+                capi.Logger.Warning("[ships] Couldn't make the torn sail {0}; it's drawn whole: {1}", sail.Code, e.Message);
                 mesh = null;
             }
             m.TornSails[(index, level)] = mesh;
@@ -883,7 +883,7 @@ namespace Hansa
             catch (Exception e)
             {
                 floodFailed = true;
-                capi.Logger.Error("[hansa] Drawing the water in a ship's hold failed; it's off until the game is restarted: {0}", e);
+                capi.Logger.Error("[ships] Drawing the water in a ship's hold failed; it's off until the game is restarted: {0}", e);
             }
         }
 
@@ -915,7 +915,7 @@ namespace Hansa
                 }
                 catch (Exception e)
                 {
-                    capi.Logger.Warning("[hansa] Could not draw {0} on the {1}: {2}", f.Code, ship.Def.Code, e.Message);
+                    capi.Logger.Warning("[ships] Could not draw {0} on the {1}: {2}", f.Code, ship.Def.Code, e.Message);
                 }
             }
             // the pieces put aboard (PieceRenderer)
@@ -963,7 +963,7 @@ namespace Hansa
                     {
                         // never an invisible door: plain planks if the vanilla block can't be drawn
                         if (f.Type == "window") return null;
-                        capi.Logger.Warning("[hansa] No mesh for {0}, drawing plain planks", f.Block);
+                        capi.Logger.Warning("[ships] No mesh for {0}, drawing plain planks", f.Block);
                         md = PlankSlab(1, f.Type == "door" ? 2 : 1, 0.15f);
                     }
                     var p = new Piece { Fixture = f, Glass = f.Type == "window" };
@@ -1040,7 +1040,7 @@ namespace Hansa
             }
             catch (Exception e)
             {
-                if (!hearthWarned) capi.Logger.Warning("[hansa] Could not draw the hearth on the {0}: {1}", ship.Def.Code, e.Message);
+                if (!hearthWarned) capi.Logger.Warning("[ships] Could not draw the hearth on the {0}: {1}", ship.Def.Code, e.Message);
                 hearthWarned = true;
             }
         }
@@ -1061,7 +1061,7 @@ namespace Hansa
             if (md == null || md.VerticesCount == 0) md = BlockMesh(block, null);
             if (md == null || md.VerticesCount == 0)
             {
-                capi.Logger.Warning("[hansa] No mesh for the hearth's firepit ({0}-{1})", burn, model);
+                capi.Logger.Warning("[ships] No mesh for the hearth's firepit ({0}-{1})", burn, model);
                 return null;
             }
             var mat = new Matrixf().Identity()
@@ -1073,7 +1073,7 @@ namespace Hansa
             try { HearthContent(ship, p, content, isOutput); }
             catch (Exception e)
             {
-                if (!hearthWarned) capi.Logger.Warning("[hansa] Could not draw what's cooking in the hearth: {0}", e.Message);
+                if (!hearthWarned) capi.Logger.Warning("[ships] Could not draw what's cooking in the hearth: {0}", e.Message);
                 hearthWarned = true;
             }
             return p;
@@ -1199,7 +1199,7 @@ namespace Hansa
             }
             catch (Exception e)
             {
-                if (!ovenWarned) capi.Logger.Warning("[hansa] Could not draw the oven on the {0}: {1}", ship.Def.Code, e.Message);
+                if (!ovenWarned) capi.Logger.Warning("[ships] Could not draw the oven on the {0}: {1}", ship.Def.Code, e.Message);
                 ovenWarned = true;
             }
         }
@@ -1216,7 +1216,7 @@ namespace Hansa
             var md = BlockMesh(block, null);
             if (md == null || md.VerticesCount == 0)
             {
-                if (!ovenWarned) capi.Logger.Warning("[hansa] No mesh for the oven ({0})", f.Block);
+                if (!ovenWarned) capi.Logger.Warning("[ships] No mesh for the oven ({0})", f.Block);
                 ovenWarned = true;
                 return null;
             }
@@ -1227,7 +1227,7 @@ namespace Hansa
             try { OvenContent(ship, block, p); }
             catch (Exception e)
             {
-                if (!ovenWarned) capi.Logger.Warning("[hansa] Could not draw what's in the oven: {0}", e.Message);
+                if (!ovenWarned) capi.Logger.Warning("[ships] Could not draw what's in the oven: {0}", e.Message);
                 ovenWarned = true;
             }
             return p;
@@ -1322,7 +1322,7 @@ namespace Hansa
                 // turning and moving it into place would wreck for every later draw: note 100)
                 MeshData md = null;
                 try { md = cms.GenMesh(new DummySlot(stack), capi.BlockTextureAtlas, null)?.Clone(); }
-                catch (Exception e) { capi.Logger.Warning("[hansa] {0} has no mesh for {1}: {2}", block.Code, stack.Attributes?.GetString("type"), e.Message); }
+                catch (Exception e) { capi.Logger.Warning("[ships] {0} has no mesh for {1}: {2}", block.Code, stack.Attributes?.GetString("type"), e.Message); }
                 if (md != null && md.VerticesCount > 0) return md;
             }
             return capi.TesselatorManager.GetDefaultBlockMesh(block)?.Clone();
@@ -1593,7 +1593,7 @@ namespace Hansa
             var md = BlockMesh(capi.World.GetBlock(new AssetLocation(f.Block)), null);
             if (md == null || md.VerticesCount == 0)
             {
-                capi.Logger.Warning("[hansa] No mesh for {0} ({1})", f.Block, f.Code);
+                capi.Logger.Warning("[ships] No mesh for {0} ({1})", f.Block, f.Code);
                 return null;
             }
             float s = f.Scale > 0 ? f.Scale : 1;
@@ -2130,7 +2130,7 @@ namespace Hansa
             catch (Exception e)
             {
                 shotsFailed = true;
-                capi.Logger.Error("[hansa] Drawing cannon balls failed; they're not drawn until the game is restarted: {0}", e);
+                capi.Logger.Error("[ships] Drawing cannon balls failed; they're not drawn until the game is restarted: {0}", e);
                 try { prog?.Stop(); } catch { }
             }
         }
@@ -2268,7 +2268,7 @@ namespace Hansa
             catch (Exception e)
             {
                 pressFailed = true;
-                capi.Logger.Error("[hansa] Pressing the sails against the rigging failed; they're drawn as made until the game is restarted: {0}", e);
+                capi.Logger.Error("[ships] Pressing the sails against the rigging failed; they're drawn as made until the game is restarted: {0}", e);
                 return mesh;
             }
         }
@@ -2685,7 +2685,7 @@ namespace Hansa
             {
                 // never break the frame: no ship shadows for the rest of the session instead
                 shadowsFailed = true;
-                capi.Logger.Error("[hansa] Ship shadows failed; they're off until the game is restarted: {0}", e);
+                capi.Logger.Error("[ships] Ship shadows failed; they're off until the game is restarted: {0}", e);
             }
             finally
             {
@@ -2702,7 +2702,7 @@ namespace Hansa
                 catch (Exception e)
                 {
                     shadowsFailed = true;
-                    capi.Logger.Error("[hansa] Ship shadows couldn't give the shadow shader back; they're off until the game is restarted: {0}", e);
+                    capi.Logger.Error("[ships] Ship shadows couldn't give the shadow shader back; they're off until the game is restarted: {0}", e);
                 }
                 shadowProg = null;
             }

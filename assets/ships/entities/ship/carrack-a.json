@@ -1,0 +1,18 @@
+{
+	code: "carrack-a",
+	class: "ships.EntityShip",
+	tags: ["inanimate", "vehicle"],
+	weight: 200000,
+	hitboxSize: { x: 6, y: 4 },
+	attributes: {
+		ship: "carrack-a"
+	},
+	client: {
+		renderer: "Dummy",
+		behaviors: []
+	},
+	server: {
+		behaviors: []
+	},
+	sounds: {}
+}

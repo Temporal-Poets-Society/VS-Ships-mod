@@ -51,21 +51,21 @@ namespace Hansa
             string me = capi.World.Player.PlayerUID;
             bool captain = ViewerCaptain();
 
-            var c = capi.Gui.CreateCompo("hansa-crew", dialog)
+            var c = capi.Gui.CreateCompo("ships-crew", dialog)
                 .AddShadedDialogBG(bg)
-                .AddDialogTitleBar(Lang.Get("hansa:crew-title", ship.GetName()), () => TryClose())
+                .AddDialogTitleBar(Lang.Get("ships:crew-title", ship.GetName()), () => TryClose())
                 .BeginChildElements(bg);
             int y = 40;
             if (!ship.HasCrewList)
             {
-                c.AddStaticText(Lang.Get("hansa:crew-none"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y, W, 50));
+                c.AddStaticText(Lang.Get("ships:crew-none"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y, W, 50));
                 y += 56;
-                c.AddSmallButton(Lang.Get("hansa:crew-claim"), () => { send("claim", null); return true; }, ElementBounds.Fixed(0, y, 200, 28));
+                c.AddSmallButton(Lang.Get("ships:crew-claim"), () => { send("claim", null); return true; }, ElementBounds.Fixed(0, y, 200, 28));
                 y += 40;
             }
             else
             {
-                c.AddStaticText(Lang.Get(ship.LaidUp ? "hansa:crew-laidup" : "hansa:crew-incommission"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, W, 22));
+                c.AddStaticText(Lang.Get(ship.LaidUp ? "ships:crew-laidup" : "ships:crew-incommission"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y, W, 22));
                 y += 28;
                 int i = 0;
                 foreach (var m in ship.Crew.ToArray())
@@ -73,31 +73,31 @@ namespace Hansa
                     string name = m.Name;
                     var font = m.Uid == me ? CairoFont.WhiteSmallText().WithWeight(Cairo.FontWeight.Bold) : CairoFont.WhiteSmallText();
                     c.AddStaticText(name, font, ElementBounds.Fixed(0, y + 4, 170, 24), "n" + i);
-                    c.AddStaticText(Lang.Get(m.Captain ? "hansa:crew-role-captain" : "hansa:crew-role-crew"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(175, y + 6, 70, 22), "r" + i);
+                    c.AddStaticText(Lang.Get(m.Captain ? "ships:crew-role-captain" : "ships:crew-role-crew"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(175, y + 6, 70, 22), "r" + i);
                     if (captain)
                     {
-                        c.AddSmallButton(Lang.Get(m.Captain ? "hansa:crew-make-crew" : "hansa:crew-make-captain"),
+                        c.AddSmallButton(Lang.Get(m.Captain ? "ships:crew-make-crew" : "ships:crew-make-captain"),
                             () => { send(m.Captain ? "crew" : "captain", name); return true; }, ElementBounds.Fixed(250, y, 95, 26), EnumButtonStyle.Small, "p" + i);
                         if (m.Uid != me)
-                            c.AddSmallButton(Lang.Get("hansa:crew-remove"), () => { send("remove", name); return true; }, ElementBounds.Fixed(350, y, 70, 26), EnumButtonStyle.Small, "x" + i);
+                            c.AddSmallButton(Lang.Get("ships:crew-remove"), () => { send("remove", name); return true; }, ElementBounds.Fixed(350, y, 70, 26), EnumButtonStyle.Small, "x" + i);
                     }
                     if (m.Uid == me)
-                        c.AddSmallButton(Lang.Get("hansa:crew-leave"), () => { send("leave", null); return true; }, ElementBounds.Fixed(350, y, 70, 26), EnumButtonStyle.Small, "l" + i);
+                        c.AddSmallButton(Lang.Get("ships:crew-leave"), () => { send("leave", null); return true; }, ElementBounds.Fixed(350, y, 70, 26), EnumButtonStyle.Small, "l" + i);
                     y += Row;
                     i++;
                 }
                 if (captain)
                 {
                     y += 10;
-                    c.AddStaticText(Lang.Get("hansa:crew-add-label"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y, W, 22));
+                    c.AddStaticText(Lang.Get("ships:crew-add-label"), CairoFont.WhiteSmallText(), ElementBounds.Fixed(0, y, W, 22));
                     y += 24;
                     c.AddTextInput(ElementBounds.Fixed(0, y, 300, 30), null, CairoFont.TextInput(), "name");
-                    c.AddSmallButton(Lang.Get("hansa:crew-add"), Add, ElementBounds.Fixed(310, y, 110, 30));
+                    c.AddSmallButton(Lang.Get("ships:crew-add"), Add, ElementBounds.Fixed(310, y, 110, 30));
                     y += 40;
                 }
                 else if (!ship.IsCrew(me))
                 {
-                    c.AddStaticText(Lang.Get("hansa:crew-ask"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y + 6, W, 40));
+                    c.AddStaticText(Lang.Get("ships:crew-ask"), CairoFont.WhiteDetailText(), ElementBounds.Fixed(0, y + 6, W, 40));
                     y += 46;
                 }
             }

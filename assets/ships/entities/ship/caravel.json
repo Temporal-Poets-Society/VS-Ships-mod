@@ -1,0 +1,18 @@
+{
+	code: "caravel",
+	class: "ships.EntityShip",
+	tags: ["inanimate", "vehicle"],
+	weight: 90000,
+	hitboxSize: { x: 6, y: 4 },
+	attributes: {
+		ship: "caravel"
+	},
+	client: {
+		renderer: "Dummy",
+		behaviors: []
+	},
+	server: {
+		behaviors: []
+	},
+	sounds: {}
+}

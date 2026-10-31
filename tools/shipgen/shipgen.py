@@ -1075,7 +1075,7 @@ class Design:
             os.makedirs(src_dir, exist_ok=True)
             with open(os.path.join(src_dir, self.code + ".src.json"), "w", encoding="utf-8") as fh:
                 json.dump(srcs, fh)
-        return f"hansa:config/shipmeshes/{self.code}.json"
+        return f"ships:config/shipmeshes/{self.code}.json"
 
     def _face_zone(self, b, face):
         """A voxel box's face's paint zone: the one most of its cells' faces were given (paint_voxel_cells), or None."""
@@ -1153,7 +1153,7 @@ class Design:
         sail_files = {}
         for grp, els in groups.items():
             dump(grp, els)
-            sail_files[grp] = f"hansa:entity/ship/{self.code}/{grp}"
+            sail_files[grp] = f"ships:entity/ship/{self.code}/{grp}"
 
         # collision voxels
         solid_lut = np.array([False] + [m.solid for m in self.materials[1:]])
@@ -1175,8 +1175,8 @@ class Design:
             "gridOrigin": [float(x) for x in self.o],
             "gridSize": list(self.n),
             "solid": solid_b64,
-            "shapes": {"exterior": f"hansa:entity/ship/{self.code}/exterior",
-                       "interior": f"hansa:entity/ship/{self.code}/interior",
+            "shapes": {"exterior": f"ships:entity/ship/{self.code}/exterior",
+                       "interior": f"ships:entity/ship/{self.code}/interior",
                        "skin": skin_path},
             "ladders": self.ladders,
             "rooms": rooms,

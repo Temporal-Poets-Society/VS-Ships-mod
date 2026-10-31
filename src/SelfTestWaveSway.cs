@@ -63,7 +63,7 @@ namespace Hansa
             bool storm = n >= 4, way = n % 4 >= 2, beam = n % 2 == 0;
             string name = $"{(storm ? "storm" : "moderate")}-{(way ? "way" : "rest")}-{(beam ? "beam" : "head")}";
             sea.SetOverride(new Sea.WindOverride { FromDegrees = 0, Strength = storm ? 1.5 : 0.5, StartHours = sea.Hours - 24 });
-            var ship = (EntityShip)sapi.World.ClassRegistry.CreateEntity(sapi.World.GetEntityType(new AssetLocation("hansa", def.Code)));
+            var ship = (EntityShip)sapi.World.ClassRegistry.CreateEntity(sapi.World.GetEntityType(new AssetLocation("ships", def.Code)));
             double yaw0 = beam ? Math.PI / 2 : Math.PI;
             ship.Pos.SetPos(x, y, z); ship.Pos.Yaw = (float)yaw0;
             sapi.World.SpawnEntity(ship);

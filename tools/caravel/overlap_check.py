@@ -2,7 +2,7 @@
 (22 October 2026, the user: "For ANY visible elements - check 3D model overlaps at ends ... visible surface overlaps
 create texture flickers ... This is also rule for any new or modified models"). Plain Python and numpy:
 
-    python tools/caravel/overlap_check.py [assets/hansa/config/shipmeshes/caravel.json] [--all]
+    python tools/caravel/overlap_check.py [assets/ships/config/shipmeshes/caravel.json] [--all]
 
 --clad checks the copper alternative. --state <json> takes emptyDeck/emptyHull slot ID lists, as game_view.py does.
 
@@ -197,7 +197,7 @@ def find_clashes(mesh, empty):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("path", nargs="?", default=os.path.join(ROOT, "assets", "hansa", "config", "shipmeshes", "caravel.json"))
+    parser.add_argument("path", nargs="?", default=os.path.join(ROOT, "assets", "ships", "config", "shipmeshes", "caravel.json"))
     parser.add_argument("--clad", action="store_true")
     parser.add_argument("--state")
     parser.add_argument("--all", action="store_true", help="accepted for compatibility; all non-sail groups are checked")

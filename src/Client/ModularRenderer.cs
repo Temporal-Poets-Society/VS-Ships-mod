@@ -98,13 +98,13 @@ namespace Hansa
             }
             // (painted: any wood's planks take oak's plank grain under the dye, as her zones and the partitions do)
             // ((0.3.28, step D2) cracked by a shot: the damage overlay over its wood)
-            string dmg = PieceOverlay(ship, pc) is string ov ? "++0~hansa:block/" + ov : "";
+            string dmg = PieceOverlay(ship, pc) is string ov ? "++0~ships:block/" + ov : "";
             var planks = AtlasTex((pc.Paint != null ? ShipPaint.Painted("game:block/wood/planks/oak1", pc.Paint) : $"game:block/wood/planks/{wood}1") + dmg, "game:block/wood/planks/oak1");
             var timber = AtlasTex((pc.Paint != null ? ShipPaint.Painted("game:block/wood/debarked/oak", pc.Paint) : $"game:block/wood/debarked/{wood}") + dmg, "game:block/wood/debarked/oak");
             TextureAtlasPosition Tex(PartMat mat) => mat switch
             {
                 PartMat.Planks => planks,
-                PartMat.Glass => AtlasTex("hansa:block/glass-clear", "game:block/glass/plain"),
+                PartMat.Glass => AtlasTex("ships:block/glass-clear", "game:block/glass/plain"),
                 PartMat.Lead => AtlasTex("game:block/metal/plate/lead", "game:block/metal/plate/iron"),
                 PartMat.Iron => AtlasTex("game:block/metal/plate/iron", null),
                 PartMat.Brick => AtlasTex(BrickTexture(code), "game:block/clay/brick/four/running/red1"),
@@ -155,7 +155,7 @@ namespace Hansa
             TextureAtlasPosition Tex(PartMat mat) => mat switch
             {
                 PartMat.Planks => planks,
-                PartMat.Glass => AtlasTex("hansa:block/glass-clear", "game:block/glass/plain"),
+                PartMat.Glass => AtlasTex("ships:block/glass-clear", "game:block/glass/plain"),
                 PartMat.Lead => AtlasTex("game:block/metal/plate/lead", "game:block/metal/plate/iron"),
                 PartMat.Iron => AtlasTex("game:block/metal/plate/iron", null),
                 _ => timber

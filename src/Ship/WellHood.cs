@@ -181,7 +181,7 @@ namespace Hansa
                 {
                     var d = l.Slots[n];
                     if (!open(n)) continue;
-                    if (b[1] >= d.Top - 0.02 && b[1] <= d.Top + 0.3) return "hansa:cell-empty-under";
+                    if (b[1] >= d.Top - 0.02 && b[1] <= d.Top + 0.3) return "ships:cell-empty-under";
                 }
             return null;
         }

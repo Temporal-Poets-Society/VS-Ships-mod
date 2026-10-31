@@ -29,7 +29,7 @@ namespace Hansa
         {
             var l = SlotLayout;
             if (Slots == null || n < 0 || n >= l.Count || !l.Slots[n].IsCell || !Slots.Filled(n)) return false;
-            return TakeProblem(n) is "hansa:cell-under-gun" or "hansa:cell-under-piece" or "hansa:cell-under-fixture";
+            return TakeProblem(n) is "ships:cell-under-gun" or "ships:cell-under-piece" or "ships:cell-under-fixture";
         }
 
         /// <summary>
@@ -91,15 +91,15 @@ namespace Hansa
                 PieceSound(p, new AssetLocation("sounds/effect/woodgrind"));
                 notice = "gone";
                 noticeArg = PieceName(p);
-                World.Logger.Audit("[hansa] {0} #{1}: the {2} (piece {3}) shot away", GetName(), EntityId, p.Stack?.Collectible?.Code, p.Id);
+                World.Logger.Audit("[ships] {0} #{1}: the {2} (piece {3}) shot away", GetName(), EntityId, p.Stack?.Collectible?.Code, p.Id);
                 Pieces.Remove(p.Id);
             }
             if (gone.Count > 0 || look) Changed(); else SavePieces();
             if (notice != null && World.ElapsedMilliseconds - lastDamageNoticeMs > 5000)
             {
                 lastDamageNoticeMs = World.ElapsedMilliseconds;
-                if (notice == "gone") NotifyAboard("hansa:damage-piece-gone", noticeArg);
-                else NotifyAboard("hansa:damage-notice", "hansa:state-cracked", noticeArg);
+                if (notice == "gone") NotifyAboard("ships:damage-piece-gone", noticeArg);
+                else NotifyAboard("ships:damage-notice", "ships:state-cracked", noticeArg);
             }
         }
 
@@ -114,13 +114,13 @@ namespace Hansa
             if (ep == null || !ep.Alive || DamageParts == null) return;
             var p = Pieces.Get(id);
             if (p == null) return;
-            if (GoneDown) { player.SendIngameError("hansa-repair", Lang.GetL(player.LanguageCode, "hansa:repair-gone-down")); return; }
+            if (GoneDown) { player.SendIngameError("ships-repair", Lang.GetL(player.LanguageCode, "ships:repair-gone-down")); return; }
             var c = p.Center;
-            if (!InReach(player, c[0], c[1], c[2])) { player.SendIngameError("hansa-repair", Lang.GetL(player.LanguageCode, "hansa:repair-too-far")); return; }
+            if (!InReach(player, c[0], c[1], c[2])) { player.SendIngameError("ships-repair", Lang.GetL(player.LanguageCode, "ships:repair-too-far")); return; }
             var jobs = PieceDamage.Needs(DamageParts.D, p.Hurt);
             var job = PieceDamage.For(DamageParts.D, p.Hurt, held) ?? jobs.FirstOrDefault();
             string name = PieceName(p);
-            if (job == null) { player.SendIngameError("hansa-repair", Lang.GetL(player.LanguageCode, "hansa:repair-nothing")); return; }
+            if (job == null) { player.SendIngameError("ships-repair", Lang.GetL(player.LanguageCode, "ships:repair-nothing")); return; }
             if (!Creative(player))
             {
                 var inv = player.InventoryManager;
@@ -132,7 +132,7 @@ namespace Hansa
                 var have = slots.Select(s => (s?.Itemstack?.Collectible?.Code?.ToString(), s?.Itemstack?.StackSize ?? 0)).ToList();
                 if (!ShipRepairs.Plan(job, have, out int[] take, out _))
                 {
-                    player.SendIngameError("hansa-repair", Lang.GetL(player.LanguageCode, "hansa:repair-needs", name, KitsText(job)));
+                    player.SendIngameError("ships-repair", Lang.GetL(player.LanguageCode, "ships:repair-needs", name, KitsText(job)));
                     return;
                 }
                 for (int i = 0; i < slots.Count; i++)
@@ -145,7 +145,7 @@ namespace Hansa
             p.Hurt = Math.Min(p.Hurt, Math.Max(0, job.HurtAfter));
             Changed();
             PieceSound(p, new AssetLocation("sounds/block/planks"));
-            player.SendMessage(GlobalConstants.InfoLogChatGroup, Lang.GetL(player.LanguageCode, "hansa:repair-done-planks", name), EnumChatType.Notification);
+            player.SendMessage(GlobalConstants.InfoLogChatGroup, Lang.GetL(player.LanguageCode, "ships:repair-done-planks", name), EnumChatType.Notification);
         }
 
         /// <summary>A piece's damage for the look-at text: its state, and what mends it.</summary>
@@ -155,9 +155,9 @@ namespace Hansa
             var d = DamageParts.D;
             var st = PieceDamage.StateOf(d, p.Hurt);
             if (st == PartState.Sound) return;
-            string state = Lang.Get("hansa:state-" + st.ToString().ToLowerInvariant());
+            string state = Lang.Get("ships:state-" + st.ToString().ToLowerInvariant());
             sb.AppendLine(char.ToUpperInvariant(state[0]) + state.Substring(1));
-            foreach (var job in PieceDamage.Needs(d, p.Hurt).Take(1)) sb.AppendLine(Lang.Get("hansa:repair-hint-planks", KitsText(job)));
+            foreach (var job in PieceDamage.Needs(d, p.Hurt).Take(1)) sb.AppendLine(Lang.Get("ships:repair-hint-planks", KitsText(job)));
         }
 
         /// <summary>What a deck cell is called: "Main deck planking, amidships" (its underside from below).</summary>
@@ -166,13 +166,13 @@ namespace Hansa
             var map = Def?.PartMap;
             var l = SlotLayout;
             if (map == null || l == null || part.CellDeck >= Def.Decks.Length) return null;
-            string deck = Lang.Get("hansa:deck-" + Def.Decks[part.CellDeck].Code);
+            string deck = Lang.Get("ships:deck-" + Def.Decks[part.CellDeck].Code);
             double x = l.GX + part.CellI + 0.5;
-            string at = Lang.Get("hansa:part-at-" + map.LengthZone(map.StationAt(x)));
-            return Lang.Get(part.CellUnder ? "hansa:part-cell-under" : "hansa:part-cell", deck, at);
+            string at = Lang.Get("ships:part-at-" + map.LengthZone(map.StationAt(x)));
+            return Lang.Get(part.CellUnder ? "ships:part-cell-under" : "ships:part-cell", deck, at);
         }
 
-        /// <summary>A deck cell's damage part by its slot id ("cell-main:5:-2" in <c>.hansa damage part</c>), or -1.</summary>
+        /// <summary>A deck cell's damage part by its slot id ("cell-main:5:-2" in <c>.ships damage part</c>), or -1.</summary>
         int CellPartByName(string id) => SlotLayout?.IndexOf(id) is int n && n >= 0 ? DamageParts?.CellPart(n) ?? -1 : -1;
     }
 }

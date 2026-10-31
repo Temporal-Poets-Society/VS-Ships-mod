@@ -19,7 +19,7 @@ namespace HansaTests
         static void Notes0324(string root)
         {
             Console.WriteLine("0.3.24: chalk notes 176-193 (carrack-m)");
-            var md = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "carrack-m.json")));
+            var md = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "ships", "carrack-m.json")));
             md.Init();
             var l = md.Mounts;
             FakePiece Stair(int cells) => new FakePiece { Code = cells == 2 ? ModularPieceDef.SteepStair : ModularPieceDef.LongStair, Family = "x", Stairs = true, StairCells = cells, StairRails = true };
@@ -101,7 +101,7 @@ namespace HansaTests
 
             // ---- 197: the boats on the gallows rest on its beams (found in her mesh file)
             {
-                var skinPath = Path.Combine(root, "assets", "hansa", md.Shapes.Skin.Replace("hansa:", "").Replace('/', Path.DirectorySeparatorChar));
+                var skinPath = Path.Combine(root, "assets", "ships", md.Shapes.Skin.Replace("ships:", "").Replace('/', Path.DirectorySeparatorChar));
                 var skin = JsonConvert.DeserializeObject<ShipSkinFile>(File.ReadAllText(skinPath));
                 var boats = md.Fixtures.Where(f => f.Kind == "boat").ToList();
                 var rests = boats.Select(f => ShipFittings.BoatRests(skin, f)).ToList();

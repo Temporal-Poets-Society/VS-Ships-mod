@@ -150,7 +150,7 @@ namespace Hansa
 
     public static class Patches
     {
-        const string HarmonyId = "hansa";
+        const string HarmonyId = "ships";
         static Harmony harmony;
         static int users;
         static ILogger log;

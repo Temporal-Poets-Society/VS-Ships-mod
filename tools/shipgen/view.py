@@ -5,7 +5,7 @@ a corner pokes through the hull). Slow (pure numpy), but only a few views are ne
 
   python view.py                     # the standard set of close-ups, into docs/views/
   python view.py stern-water bow     # only these
-  python view.py notes [path]        # the surveyor's chalk's notes (default: VintagestoryData/ModData/hansa-notes.json):
+  python view.py notes [path]        # the surveyor's chalk's notes (default: VintagestoryData/ModData/ships-notes.json):
                                      # each one's spot on the carrack marked and numbered, into docs/views/notes/
 """
 import math
@@ -962,9 +962,9 @@ NOTE_COLOUR = (255, 0, 200)        # the marker drawn in the views: nothing of t
 
 
 def default_notes_path():
-    """Where the game writes them: VintagestoryData/ModData/hansa-notes.json."""
+    """Where the game writes them: VintagestoryData/ModData/ships-notes.json."""
     base = os.environ.get("APPDATA") or os.path.expanduser("~")
-    return os.path.join(base, "VintagestoryData", "ModData", "hansa-notes.json")
+    return os.path.join(base, "VintagestoryData", "ModData", "ships-notes.json")
 
 
 def _to_local(yaw, pitch, roll, d):

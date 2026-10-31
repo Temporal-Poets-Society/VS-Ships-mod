@@ -34,21 +34,21 @@ namespace HansaTests
         static string Problem0328(MountLayout ml, DeckSlotLayout l, SlotStates st, ShipPieceSet set, VoxelGrid grid, PiecePlan plan)
         {
             if (plan.Error != null) return plan.Error;
-            foreach (string mid in plan.Mounts) if (set.Taken(mid)) return "hansa:piece-taken";
-            foreach (string mid in plan.Mounts) if (!DeckCells.MountOpen(ml.Get(mid), st)) return "hansa:cell-empty-under";
+            foreach (string mid in plan.Mounts) if (set.Taken(mid)) return "ships:piece-taken";
+            foreach (string mid in plan.Mounts) if (!DeckCells.MountOpen(ml.Get(mid), st)) return "ships:cell-empty-under";
             if (plan.Role is not (PieceRole.Stair or PieceRole.Ladder))
                 foreach (string mid in plan.Mounts)
                 {
                     var mm = ml.Get(mid);
                     if (mm?.Under != null && plan.Mounts.Contains(mm.Under)) continue;
-                    if (!set.Supports(ml, mm)) return "hansa:piece-no-support";
+                    if (!set.Supports(ml, mm)) return "ships:piece-no-support";
                 }
-            if (set.Blocking(plan) != null) return "hansa:piece-taken";
+            if (set.Blocking(plan) != null) return "ships:piece-taken";
             if (OpeningRules.OverOpening(l, n => !st.Filled(n), plan) is string open) return open;
-            if (plan.Role == PieceRole.Railing && PiecePlanner.BesideRailed(ml, set.All, plan.Mount) != null) return "hansa:railing-by-stair";
+            if (plan.Role == PieceRole.Railing && PiecePlanner.BesideRailed(ml, set.All, plan.Mount) != null) return "ships:railing-by-stair";
             if (plan.Role is PieceRole.Partition or PieceRole.Window or PieceRole.Railing or PieceRole.Shelf or PieceRole.Door) return null;
             if (PiecePlanner.GridClash(ml, plan, grid) is double[] clash)
-                return plan.Role == PieceRole.Stair && StairLanding.At(plan, grid) ? "hansa:flight-no-landing" : "hansa:flight-no-well";
+                return plan.Role == PieceRole.Stair && StairLanding.At(plan, grid) ? "ships:flight-no-landing" : "ships:flight-no-well";
             return null;
         }
 
@@ -282,9 +282,9 @@ namespace HansaTests
             if (need != null) { foreach (int n in need) st.Set(n, SlotState.Empty); g = md.Grid.Clone(); st.Apply(g); }
             // ((25 October 2026, caravel note 99) as the ship asks it: its foot and top on her deck as it is (the planner asks it of
             // her decks laid)
-            if (PiecePlanner.LandingMissing(sp, g)) return ("hansa:stair-no-landing", false, null);
+            if (PiecePlanner.LandingMissing(sp, g)) return ("ships:stair-no-landing", false, null);
             var clash = PiecePlanner.GridClash(ml, sp, g);
-            if (clash != null) return (StairLanding.At(sp, g) ? "hansa:flight-no-landing" : "hansa:flight-no-well", false, null);
+            if (clash != null) return (StairLanding.At(sp, g) ? "ships:flight-no-landing" : "ships:flight-no-well", false, null);
             var gs = g.Clone();
             foreach (var b in sp.Solids) gs.Fill(b);
             bool walked = PiecePlanner.WalkFlight(gs, foot, sp.Dir, sp.Rise, out double top, out double back, cells);

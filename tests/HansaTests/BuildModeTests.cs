@@ -29,7 +29,7 @@ namespace HansaTests
             var structure = new[]
             {
                 B("game:planks-oak-ud", EnumDrawType.Cube), B("game:glasspane-leaded-oak-ew"), B("game:woodenfence-oak-ew-free"),
-                B("hansa:shipstair-short-north"), B("game:plankslab-oak-down-free"), B("game:ladder-wood-oak-north"),
+                B("ships:shipstair-short-north"), B("game:plankslab-oak-down-free"), B("game:ladder-wood-oak-north"),
                 B("game:trapdoor-wood-oak-1-north"), door
             };
             var decor = new[] { B("game:chest-east"), B("game:lantern-small-up"), B("game:claybricks-red-fire", EnumDrawType.Cube), B("game:plankstairs-oak-up-north-free") };
@@ -38,11 +38,11 @@ namespace HansaTests
                 if (!VanillaPieceBlock.IsStructureBlock(b) || VanillaPieceBlock.BuildingRefusal(b, true) != null || VanillaPieceBlock.BuildingRefusal(b, false) != null)
                     wrong.Add(b.Code + " (structure)");
             foreach (var b in decor)
-                if (VanillaPieceBlock.IsStructureBlock(b) || VanillaPieceBlock.BuildingRefusal(b, true) != "hansa:piece-build-decor" || VanillaPieceBlock.BuildingRefusal(b, false) != null)
+                if (VanillaPieceBlock.IsStructureBlock(b) || VanillaPieceBlock.BuildingRefusal(b, true) != "ships:piece-build-decor" || VanillaPieceBlock.BuildingRefusal(b, false) != null)
                     wrong.Add(b.Code + " (decoration)");
             Check(wrong.Count == 0, "building mode puts ship structure only (partitions, windows, railings, stairs, panels, ladders, hatches, doors); " +
                                     "a chest, a lantern, the hearth's bricks and plank stairs are put aboard with it off" + (wrong.Count > 0 ? ": " + string.Join(", ", wrong) : ""));
-            var lang = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "lang", "en.json")));
+            var lang = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(Path.Combine(root, "assets", "ships", "lang", "en.json")));
             Check(lang.TryGetValue("hint-build-decor", out var hint) && hint.Contains("{0}") && lang.ContainsKey("piece-build-decor"),
                 "building mode's hint and refusal for decoration in hand have their lines (the hint names the key that turns it off)");
         }

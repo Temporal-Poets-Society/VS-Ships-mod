@@ -131,8 +131,8 @@ namespace Hansa
             try
             {
                 var ix = QuadIndex(ship.Def, m);
-                var texA = ScarTex("hansa:block/dmg-shot-a");
-                var texB = ScarTex("hansa:block/dmg-shot-b");
+                var texA = ScarTex("ships:block/dmg-shot-a");
+                var texB = ScarTex("ships:block/dmg-shot-b");
                 MeshData outside = null, inside = null;
                 foreach (var s in ship.Scars)
                 {
@@ -148,7 +148,7 @@ namespace Hansa
             catch (Exception e)
             {
                 scarsFailed = true;
-                capi.Logger.Error("[hansa] Drawing shot scars failed; they're off until the game is restarted: {0}", e);
+                capi.Logger.Error("[ships] Drawing shot scars failed; they're off until the game is restarted: {0}", e);
             }
         }
 

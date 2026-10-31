@@ -24,7 +24,7 @@ namespace HansaTests
             const double range = 4.5, reach = 2.5, eyeHeight = 1.62;
             foreach (var code in new[] { "caravel", "carrack", "hansa-carrack" })
             {
-                string path = Path.Combine(root, "assets", "hansa", "config", "ships", code + ".json");
+                string path = Path.Combine(root, "assets", "ships", "config", "ships", code + ".json");
                 if (!File.Exists(path)) { Console.WriteLine($"  ({code}.json not there)"); continue; }
                 var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
                 def.Init();
@@ -85,7 +85,7 @@ namespace HansaTests
             var plain = new Item { Code = new AssetLocation("game", "stick") };
             var food = new Item { Code = new AssetLocation("game", "bread-spelt"), NutritionProps = new FoodNutritionProperties() };
             var priority = new Item { Code = new AssetLocation("other", "thing"), HeldPriorityInteract = true };
-            var ours = new TestScope { Code = new AssetLocation("hansa", "surveyorschalk") };
+            var ours = new TestScope { Code = new AssetLocation("ships", "surveyorschalk") };
             Check(HeldUse.OwnRightClick(scope) && HeldUse.OwnRightClick(food) && HeldUse.OwnRightClick(priority) &&
                   !HeldUse.OwnRightClick(plain) && !HeldUse.OwnRightClick(ours) && !HeldUse.OwnRightClick(new Block()) && !HeldUse.OwnRightClick(null),
                   "an item with its own right-click (a telescope's class, food, heldPriorityInteract) keeps it; a stick, a block, Hansa's own don't");

@@ -17,7 +17,7 @@ namespace HansaTests
             Console.WriteLine("things dropped aboard");
             foreach (var code in new[] { "caravel", "carrack", "hansa-carrack" })
             {
-                string path = Path.Combine(root, "assets", "hansa", "config", "ships", code + ".json");
+                string path = Path.Combine(root, "assets", "ships", "config", "ships", code + ".json");
                 if (!File.Exists(path)) { Console.WriteLine($"  ({code}.json not there)"); continue; }
                 var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
                 def.Init();

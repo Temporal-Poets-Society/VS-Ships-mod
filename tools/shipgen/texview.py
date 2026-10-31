@@ -20,14 +20,14 @@ sys.path.insert(0, os.path.dirname(__file__))
 import view  # noqa: E402
 
 GAME = os.path.join(os.environ.get("APPDATA", ""), "Vintagestory", "assets")
-MOD = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "assets", "hansa"))
+MOD = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "assets", "ships"))
 _cache = {}
 
 
 def _png(domain, path):
     """A texture's pixels (RGBA float 0..1), from the game's assets (game, survival, creative) or Hansa's."""
     rel = os.path.join("textures", *path.split("/")) + ".png"
-    roots = [MOD] if domain == "hansa" else [os.path.join(GAME, d) for d in ("survival", "game", "creative")]
+    roots = [MOD] if domain == "ships" else [os.path.join(GAME, d) for d in ("survival", "game", "creative")]
     for r in roots:
         p = os.path.join(r, rel)
         if os.path.exists(p):
@@ -36,7 +36,7 @@ def _png(domain, path):
 
 
 def texture(code):
-    """'game:block/wood/planks/oak1++3~hansa:block/tar': the base with its overlays blended as the game does
+    """'game:block/wood/planks/oak1++3~ships:block/tar': the base with its overlays blended as the game does
     (3 multiply, 0 normal)."""
     if code in _cache:
         return _cache[code]
@@ -284,7 +284,7 @@ def damage_quads(scenario, lift):
     """The hull groups as the mod draws them for a scenario (from the offline tests' JSON), lifted into design heights."""
     import json
     import tempfile
-    path = os.path.join(tempfile.gettempdir(), "hansa-damage-views", f"carrack-damage-{scenario}.json")
+    path = os.path.join(tempfile.gettempdir(), "ships-damage-views", f"carrack-damage-{scenario}.json")
     with open(path, encoding="utf-8") as fh:
         data = json.load(fh)
     out = []
@@ -321,7 +321,7 @@ def wreck_quads():
     to her origin."""
     import json
     import tempfile
-    path = os.path.join(tempfile.gettempdir(), "hansa-wreck-views", "carrack-wreck.json")
+    path = os.path.join(tempfile.gettempdir(), "ships-wreck-views", "carrack-wreck.json")
     with open(path, encoding="utf-8") as fh:
         data = json.load(fh)
     o = np.asarray(data["origin"], float)

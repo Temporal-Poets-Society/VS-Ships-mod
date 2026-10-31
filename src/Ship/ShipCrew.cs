@@ -86,21 +86,21 @@ namespace Hansa
         /// <summary>The same, by a player's uid and name (the self-test's stand-ins).</summary>
         public string ChangeCrew(string byUid, string byName, bool admin, string action, string name)
         {
-            if (!CrewCanHave) return "hansa:crew-boat";
+            if (!CrewCanHave) return "ships:crew-boat";
             bool captain = IsCaptain(byUid) || admin;
             switch (action)
             {
                 case "claim":
-                    if (HasCrewList) return "hansa:crew-claimed";
+                    if (HasCrewList) return "ships:crew-claimed";
                     Crew.Add(new CrewMember { Uid = byUid, Name = byName, Captain = true });
                     break;
                 case "add":
                 {
-                    if (!captain) return "hansa:crew-not-captain";
+                    if (!captain) return "ships:crew-not-captain";
                     var who = FindPlayer(name, out string err);
                     if (who.uid == null) return err;
-                    if (IsCrew(who.uid)) return "hansa:crew-already";
-                    if (Crew.Count >= MaxCrew) return "hansa:crew-full";
+                    if (IsCrew(who.uid)) return "ships:crew-already";
+                    if (Crew.Count >= MaxCrew) return "ships:crew-full";
                     Crew.Add(new CrewMember { Uid = who.uid, Name = who.name, Captain = false });
                     break;
                 }
@@ -108,10 +108,10 @@ namespace Hansa
                 case "leave":
                 {
                     var m = action == "leave" ? CrewEntry(byUid) : Crew.FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
-                    if (m == null) return "hansa:crew-unknown";
-                    if (action == "remove" && m.Uid != byUid && !captain) return "hansa:crew-not-captain";
+                    if (m == null) return "ships:crew-unknown";
+                    if (action == "remove" && m.Uid != byUid && !captain) return "ships:crew-not-captain";
                     // (her last captain can't go while others are on the list: someone must be able to keep it)
-                    if (m.Captain && Crew.Count(c => c.Captain) == 1 && Crew.Count > 1) return "hansa:crew-last-captain";
+                    if (m.Captain && Crew.Count(c => c.Captain) == 1 && Crew.Count > 1) return "ships:crew-last-captain";
                     Crew.Remove(m);
                     Mod?.Spawns?.EndPlayerOnShip(m.Uid, EntityId, ShipSpawns.EndCrew);
                     break;
@@ -119,10 +119,10 @@ namespace Hansa
                 case "captain":
                 case "crew":
                 {
-                    if (!captain) return "hansa:crew-not-captain";
+                    if (!captain) return "ships:crew-not-captain";
                     var m = Crew.FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
-                    if (m == null) return "hansa:crew-unknown";
-                    if (action == "crew" && m.Captain && Crew.Count(c => c.Captain) == 1) return "hansa:crew-last-captain";
+                    if (m == null) return "ships:crew-unknown";
+                    if (action == "crew" && m.Captain && Crew.Count(c => c.Captain) == 1) return "ships:crew-last-captain";
                     m.Captain = action == "captain";
                     break;
                 }
@@ -130,7 +130,7 @@ namespace Hansa
                     return null;
             }
             SaveCrew();
-            World.Logger.Audit("[hansa] {0}: crew {1} {2} on {3} #{4}", byName, action, name ?? "", GetName(), EntityId);
+            World.Logger.Audit("[ships] {0}: crew {1} {2} on {3} #{4}", byName, action, name ?? "", GetName(), EntityId);
             UpdateLaidUp();
             return null;
         }
@@ -145,14 +145,14 @@ namespace Hansa
         {
             err = null;
             name = name?.Trim();
-            if (string.IsNullOrEmpty(name)) { err = "hansa:crew-noname"; return (null, null); }
+            if (string.IsNullOrEmpty(name)) { err = "ships:crew-noname"; return (null, null); }
             var sapi = (ICoreServerAPI)Api;
             if (KnownPlayers?.Invoke(name) is (string tu, string tn)) return (tu, tn);
             foreach (var p in sapi.World.AllPlayers)
                 if (string.Equals(p.PlayerName, name, StringComparison.OrdinalIgnoreCase)) return (p.PlayerUID, p.PlayerName);
             var data = sapi.PlayerData.GetPlayerDataByLastKnownName(name);
             if (data != null) return (data.PlayerUID, data.LastKnownPlayername ?? name);
-            err = "hansa:crew-nosuch";
+            err = "ships:crew-nosuch";
             return (null, null);
         }
 
@@ -217,7 +217,7 @@ namespace Hansa
                     if (s.Passenger is EntityPlayer ep && ep.Player is IServerPlayer guest && !MayUse(guest))
                     {
                         ep.TryUnmount();
-                        Notify(guest, "hansa:laidup-put-off");
+                        Notify(guest, "ships:laidup-put-off");
                     }
             }
             if (want == LaidUp) return;
@@ -225,7 +225,7 @@ namespace Hansa
             wearHours = double.NaN;
             WatchedAttributes.SetBool("hansaLaidUp", LaidUp);
             WatchedAttributes.MarkPathDirty("hansaLaidUp");
-            World.Logger.Notification("[hansa] {0} #{1} {2}", GetName(), EntityId, LaidUp ? "laid up: her crew is offline" : "back in commission");
+            World.Logger.Notification("[ships] {0} #{1} {2}", GetName(), EntityId, LaidUp ? "laid up: her crew is offline" : "back in commission");
         }
 
         void LaidUpTick(float dt)

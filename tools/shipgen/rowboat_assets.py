@@ -1,5 +1,5 @@
 """
-The rowing boat's entity, item and recipe (assets/hansa/entities/rowboat.json, itemtypes/rowboat.json,
+The rowing boat's entity, item and recipe (assets/ships/entities/rowboat.json, itemtypes/rowboat.json,
 recipes/grid/rowboat.json), from vanilla's sailboat entity with the model rowboat.py writes. Its places (vanilla's
 rideable accessories: chests, baskets, vessels, crates, boat seats, the anchor, the figurehead, plaques, shields) are
 vanilla's, less the ones on the parts taken out; the rower's thwart is the one seat, and steers.
@@ -10,7 +10,7 @@ import json
 import os
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-ASSETS = os.path.join(ROOT, "assets", "hansa")
+ASSETS = os.path.join(ROOT, "assets", "ships")
 
 MATERIAL = {"code": "material", "states": ["aged"], "loadFromProperties": "block/wood"}
 TEXTURES = {
@@ -77,7 +77,7 @@ def entity():
     sl = slots()
     return {
         "code": "rowboat",
-        "class": "hansa.EntityRowBoat",
+        "class": "ships.EntityRowBoat",
         "tags": ["inanimate", "vehicle"],
         "weight": 700,
         "variantgroups": [MATERIAL],
@@ -112,7 +112,7 @@ def entity():
         "client": {
             "size": 1,
             "renderer": "Shape",
-            "shape": {"base": "hansa:entity/rowboat", "ignoreElements": ["hideWater"]},
+            "shape": {"base": "ships:entity/rowboat", "ignoreElements": ["hideWater"]},
             "animations": [{"code": "row", "animation": "row", "animationSpeed": 1, "easeInSpeed": 4, "easeOutSpeed": 2}],
             "texturesByType": TEXTURES,
             "behaviors": [
@@ -134,9 +134,9 @@ def entity():
 def item():
     return {
         "code": "rowboat",
-        "class": "hansa.ItemRowBoat",
+        "class": "ships.ItemRowBoat",
         "variantgroups": [MATERIAL],
-        "shape": {"base": "hansa:entity/rowboat-stowed", "ignoreElements": ["hideWater"]},
+        "shape": {"base": "ships:entity/rowboat-stowed", "ignoreElements": ["hideWater"]},
         "texturesByType": TEXTURES,
         "heldTpIdleAnimation": "holdunderarm",
         "maxstacksize": 1,
@@ -162,7 +162,7 @@ def recipe():
             "O": {"type": "item", "code": "game:oar-crude-*"},
         },
         "width": 3, "height": 3,
-        "output": {"type": "item", "code": "hansa:rowboat-{wood}"},
+        "output": {"type": "item", "code": "ships:rowboat-{wood}"},
     }
 
 

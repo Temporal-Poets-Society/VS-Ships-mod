@@ -21,7 +21,7 @@ static class Program
     }
 
     static string root;
-    static string Asset(string path) => File.ReadAllText(Path.Combine(root, "assets/hansa/config", path));
+    static string Asset(string path) => File.ReadAllText(Path.Combine(root, "assets/ships/config", path));
     static BlockKinds kinds;
     static ShipConstruction Fresh(string designJson = null) =>
         new(new ShipLattice(ShipDesign.Read(designJson ?? Asset("shipdesigns/two-bay.json"))), kinds);

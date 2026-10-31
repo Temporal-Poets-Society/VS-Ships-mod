@@ -24,7 +24,7 @@ namespace Hansa
         public ShipDefinition Def;
         public HansaMod Mod;
 
-        // ---- sailing state (server-authoritative, synced in WatchedAttributes "hansa")
+        // ---- sailing state (server-authoritative, synced in WatchedAttributes "ships")
         public int SailSet;           // 0 furled, 1 half, 2 full ((0.3.25) the sweeps astern, -1 till 0.3.24, are Crawl now)
         /// <summary>
         /// (0.3.25) Under the sweeps (<see cref="Hansa.Crawl"/>): the sails furled, she creeps ahead or astern at a walk while
@@ -195,7 +195,7 @@ namespace Hansa
             Def = Mod.GetShip(code);
             if (Def == null)
             {
-                api.Logger.Error("[hansa] Entity {0}: no ship definition '{1}'", Code, code);
+                api.Logger.Error("[ships] Entity {0}: no ship definition '{1}'", Code, code);
                 return;
             }
 
@@ -242,7 +242,7 @@ namespace Hansa
                         seats[ss.SeatId] = ss;
                         break;
                     case "storage":
-                        var inv = new InventoryGeneric(f.Slots, "hansa-" + f.Code, EntityId.ToString(), api);
+                        var inv = new InventoryGeneric(f.Slots, "ships-" + f.Code, EntityId.ToString(), api);
                         Storages[f.Code] = inv;
                         if (api.Side == EnumAppSide.Server)
                         {
@@ -289,7 +289,7 @@ namespace Hansa
             }
             else
             {
-                WatchedAttributes.RegisterModifiedListener("hansa", LoadState);
+                WatchedAttributes.RegisterModifiedListener("ships", LoadState);
                 WatchedAttributes.RegisterModifiedListener("hansaInv", LoadInventories);
                 WatchedAttributes.RegisterModifiedListener("hansaFit", () => { LoadFittings(); LoadInventories(); });
                 WatchedAttributes.RegisterModifiedListener("hansaSpawn", LoadSpawnBound);
@@ -487,7 +487,7 @@ namespace Hansa
             {
                 if (ShipName != null) sb.AppendLine(Def.Name);
                 // her crew offline: laid up (ShipCrew)
-                if (LaidUp) sb.AppendLine(Lang.Get("hansa:info-laidup"));
+                if (LaidUp) sb.AppendLine(Lang.Get("ships:info-laidup"));
                 var sel = capi.World.Player?.CurrentEntitySelection;
                 if (sel?.Entity == this)
                 {
@@ -512,7 +512,7 @@ namespace Hansa
                     {
                         int bound = SpawnBound.Count;
                         bool mine = capi.World.Player != null && SpawnBound.Contains(capi.World.Player.PlayerUID);
-                        sb.AppendLine(mine ? Lang.Get("hansa:plate-info-yours", bound) : Lang.Get("hansa:plate-info", bound));
+                        sb.AppendLine(mine ? Lang.Get("ships:plate-info-yours", bound) : Lang.Get("ships:plate-info", bound));
                     }
                 }
             }
@@ -531,31 +531,31 @@ namespace Hansa
                 case ShipPartKind.Hull:
                 {
                     var panel=Def.Hull?.Slots.FirstOrDefault(s=>s.Side==part.Side && s.Station==part.Station && s.Band==part.Band && s.HalfIndex==(part.Index&1));
-                    if(panel?.Cell!=null) {text=Lang.Get(HullPanels?[panel.Index]==SlotState.Glazed?"hansa:part-hull-window-cell":"hansa:part-hull-cell",panel.Cell[0],panel.Cell[1],panel.Cell[2]);break;}
+                    if(panel?.Cell!=null) {text=Lang.Get(HullPanels?[panel.Index]==SlotState.Glazed?"ships:part-hull-window-cell":"ships:part-hull-cell",panel.Cell[0],panel.Cell[1],panel.Cell[2]);break;}
                     // ((0.3.26) a hull panel's height from its middle, not a whole block's band)
                     string height = Def.Hull?.Get($"hull:{(part.Side > 0 ? "s" : "p")}:{part.Station}:{part.Band}") is HullSlotDef hs
                         ? map.HeightZoneAt(part.Station, hs.Centre.Y) : map.HeightZone(part.Station, part.Band);
-                    text = Lang.Get(part.InnerLayer ? "hansa:part-ceiling" : "hansa:part-hull", Lang.Get(part.Side > 0 ? "hansa:part-side-starboard" : "hansa:part-side-port"),
-                        Lang.Get("hansa:part-at-" + map.LengthZone(part.Station)), Lang.Get("hansa:part-height-" + height),
+                    text = Lang.Get(part.InnerLayer ? "ships:part-ceiling" : "ships:part-hull", Lang.Get(part.Side > 0 ? "ships:part-side-starboard" : "ships:part-side-port"),
+                        Lang.Get("ships:part-at-" + map.LengthZone(part.Station)), Lang.Get("ships:part-height-" + height),
                         part.Station + 1, part.Station + 2);
                     break;
                 }
                 case ShipPartKind.Deck when part.Index < Def.Decks.Length:
                 {
-                    string deck = Lang.Get("hansa:deck-" + Def.Decks[part.Index].Code);
-                    text = Lang.Get(part.Band != 0 ? "hansa:part-deck-under" : "hansa:part-deck", deck);
+                    string deck = Lang.Get("ships:deck-" + Def.Decks[part.Index].Code);
+                    text = Lang.Get(part.Band != 0 ? "ships:part-deck-under" : "ships:part-deck", deck);
                     // in a cabin (the rooms below the main deck are the decks' own)
                     if (map.RoomOf(part) is RoomDef room && room.Min[1] >= Def.DeckY - 0.01)
-                        text = Lang.Get("hansa:part-in", text, Lang.Get("hansa:room-" + room.Code));
+                        text = Lang.Get("ships:part-in", text, Lang.Get("ships:room-" + room.Code));
                     break;
                 }
                 case ShipPartKind.Mast when part.Index < Def.Masts.Length:
-                    text = Lang.Get("hansa:mast-" + Def.Masts[part.Index].Code);
+                    text = Lang.Get("ships:mast-" + Def.Masts[part.Index].Code);
                     break;
                 case ShipPartKind.Structure:
                     text = map.RoomOf(part) is RoomDef r
-                        ? Lang.Get("hansa:part-structure", Lang.Get("hansa:room-" + r.Code))
-                        : Lang.Get("hansa:part-structure", Lang.Get("hansa:part-at-" + map.LengthZone(part.Station)));
+                        ? Lang.Get("ships:part-structure", Lang.Get("ships:room-" + r.Code))
+                        : Lang.Get("ships:part-structure", Lang.Get("ships:part-at-" + map.LengthZone(part.Station)));
                     break;
                 case ShipPartKind.Fixture when part.Index < Def.Fixtures.Length:
                     text = ShipHud.FixtureName(this, Def.Fixtures[part.Index]);
@@ -752,14 +752,14 @@ namespace Hansa
         /// </summary>
         public string TryPickUp(IServerPlayer player)
         {
-            if (Def?.PickUpItem == null) return "hansa:pickup-cannot";
-            if (AnyMounted()) return "hansa:pickup-aboard";
-            if (Attached.Count > 0 || Pieces.Count > 0) return "hansa:pickup-cargo";
-            foreach (var inv in Storages.Values) if (!inv.Empty) return "hansa:pickup-cargo";
-            if (HearthInv != null && !HearthInv.Empty) return "hansa:pickup-cargo";
-            if (OvenInv != null && !OvenInv.Empty) return "hansa:pickup-cargo";
+            if (Def?.PickUpItem == null) return "ships:pickup-cannot";
+            if (AnyMounted()) return "ships:pickup-aboard";
+            if (Attached.Count > 0 || Pieces.Count > 0) return "ships:pickup-cargo";
+            foreach (var inv in Storages.Values) if (!inv.Empty) return "ships:pickup-cargo";
+            if (HearthInv != null && !HearthInv.Empty) return "ships:pickup-cargo";
+            if (OvenInv != null && !OvenInv.Empty) return "ships:pickup-cargo";
             var item = World.GetItem(new AssetLocation(Def.PickUpItem));
-            if (item == null) return "hansa:pickup-cannot";
+            if (item == null) return "ships:pickup-cannot";
             var stack = new ItemStack(item);
             if (ShipName != null)
             {
@@ -909,7 +909,7 @@ namespace Hansa
             // gone down: a diver can still open what's stowed in her (the hearth too), nothing else
             if (GoneDown && !(f.Type == "storage" || f.Type == "hearth" || f.Type == "attach" && (f.Kind == "chest" || f.Kind == "cargo") && !sneak))
             {
-                Notify(player, "hansa:gone-down");
+                Notify(player, "ships:gone-down");
                 return;
             }
             switch (f.Type)
@@ -935,7 +935,7 @@ namespace Hansa
                 case "gun":
                 {
                     // (0.3.21, step C) a gun place without its gun: nothing to work
-                    if (GunAbsent(f)) { Notify(player, "hansa:gunplace-no-gun"); return; }
+                    if (GunAbsent(f)) { Notify(player, "ships:gunplace-no-gun"); return; }
                     // fire it along its lay (it's laid by holding right mouse by it: ShipGuns; the client sends this on a left-click); Ctrl: stand to it instead,
                     // at the gun captain's place behind its breech. (Loading comes later: for now it's ready again when
                     // it has cooled down.)
@@ -944,21 +944,21 @@ namespace Hansa
                     if (sneak && !ctrl && f.Lid != null)
                     {
                         string herr = ToggleGunRun(f);
-                        if (herr != null) player.SendIngameError("hansa-gun", Lang.GetL(player.LanguageCode, herr));
+                        if (herr != null) player.SendIngameError("ships-gun", Lang.GetL(player.LanguageCode, herr));
                         break;
                     }
                     if (ctrl && gs != null && ep.MountedOn != gs)
                     {
-                        if (gs.Passenger != null && gs.Passenger != ep && gs.Passenger.Alive) { Notify(player, "hansa:gun-seat-taken"); return; }
-                        if (!Mod.Config.Cannons) { player.SendIngameError("hansa-gun", Lang.GetL(player.LanguageCode, "hansa:gun-off")); return; }
+                        if (gs.Passenger != null && gs.Passenger != ep && gs.Passenger.Alive) { Notify(player, "ships:gun-seat-taken"); return; }
+                        if (!Mod.Config.Cannons) { player.SendIngameError("ships-gun", Lang.GetL(player.LanguageCode, "ships:gun-off")); return; }
                         ep.TryMount(gs);
                         break;
                     }
                     // ((0.1.0-dev.7) by it: within reach of its breech, or its gun captain)
-                    if (!ByGun(f, ep, LayReach)) { player.SendIngameError("hansa-gun", Lang.GetL(player.LanguageCode, "hansa:gun-far")); break; }
+                    if (!ByGun(f, ep, LayReach)) { player.SendIngameError("ships-gun", Lang.GetL(player.LanguageCode, "ships:gun-far")); break; }
                     string err = FireGun(f, ep, player);
-                    if (err == "hansa:gun-reloading") player.SendIngameError("hansa-gun", Lang.GetL(player.LanguageCode, err, Math.Ceiling(GunReloading(f))));
-                    else if (err != null) player.SendIngameError("hansa-gun", Lang.GetL(player.LanguageCode, err));
+                    if (err == "ships:gun-reloading") player.SendIngameError("ships-gun", Lang.GetL(player.LanguageCode, err, Math.Ceiling(GunReloading(f))));
+                    else if (err != null) player.SendIngameError("ships-gun", Lang.GetL(player.LanguageCode, err));
                     break;
                 }
                 case "hatch":
@@ -982,15 +982,15 @@ namespace Hansa
                     InteractAttach(player, f, sneak);
                     break;
                 case "helm":
-                    if (Helm.Passenger != null && Helm.Passenger != ep) { Notify(player, "hansa:helm-taken"); return; }
-                    if (!HasRoomFor(ep)) { Notify(player, "hansa:boat-full"); return; }
+                    if (Helm.Passenger != null && Helm.Passenger != ep) { Notify(player, "ships:helm-taken"); return; }
+                    if (!HasRoomFor(ep)) { Notify(player, "ships:boat-full"); return; }
                     ep.TryMount(Helm);
                     break;
                 case "oars":
                     // sit down at the oars: they come out while you're there
                     if (GetSeat("row:" + f.Code) is not RowSeat row) return;
-                    if (row.Passenger != null && row.Passenger != ep) { Notify(player, "hansa:oars-taken"); return; }
-                    if (!HasRoomFor(ep)) { Notify(player, "hansa:boat-full"); return; }
+                    if (row.Passenger != null && row.Passenger != ep) { Notify(player, "ships:oars-taken"); return; }
+                    if (!HasRoomFor(ep)) { Notify(player, "ships:boat-full"); return; }
                     ep.TryMount(row);
                     break;
                 case "mast":
@@ -1004,7 +1004,7 @@ namespace Hansa
                 case "seat":
                     // the heads: sit down (Shift, or a step away, gets up)
                     if (GoneDown || GetSeat("sit:" + f.Code) is not PieceSeat sit) return;
-                    if (sit.Passenger != null && sit.Passenger != ep) { Notify(player, "hansa:piece-seat-taken"); return; }
+                    if (sit.Passenger != null && sit.Passenger != ep) { Notify(player, "ships:piece-seat-taken"); return; }
                     ep.TryMount(sit);
                     break;
                 case "storage":
@@ -1024,12 +1024,12 @@ namespace Hansa
                 {
                     // vanilla's clay oven: firewood in, something to bake in, take out, light it (ShipOven)
                     string oerr = UseOven(player, f);
-                    if (oerr != null) player.SendIngameError("hansa-oven", Lang.GetL(player.LanguageCode, oerr));
+                    if (oerr != null) player.SendIngameError("ships-oven", Lang.GetL(player.LanguageCode, oerr));
                     break;
                 }
                 case "anchor":
                     Anchored = !Anchored;
-                    Notify(player, Anchored ? "hansa:anchor-dropped" : "hansa:anchor-weighed");
+                    Notify(player, Anchored ? "ships:anchor-dropped" : "ships:anchor-weighed");
                     SaveState(true);
                     break;
                 case "pinrail":
@@ -1037,7 +1037,7 @@ namespace Hansa
                     // (0.3.13, note 131) the pin rails by the main shrouds: the crew belays or casts off the sheets and
                     // halyards there, as W/S at the helm (right-click more sail, Shift less)
                     string serr = WorkSails(!sneak);
-                    if (serr != null) player.SendIngameError("hansa-sails", Lang.GetL(player.LanguageCode, serr));
+                    if (serr != null) player.SendIngameError("ships-sails", Lang.GetL(player.LanguageCode, serr));
                     break;
                 }
             }
@@ -1065,10 +1065,10 @@ namespace Hansa
 
         public string WorkSails(bool more)
         {
-            if (LaidUp) return "hansa:laidup-closed";
-            if (!MastUp) return "hansa:pinrail-mast-down";
+            if (LaidUp) return "ships:laidup-closed";
+            if (!MastUp) return "ships:pinrail-mast-down";
             int to = PinRailStep(SailSet, more);
-            if (to == SailSet) return more ? "hansa:pinrail-full" : "hansa:pinrail-furled";
+            if (to == SailSet) return more ? "ships:pinrail-full" : "ships:pinrail-furled";
             SailSet = to;
             SaveState(true);
             LocalToWorld(0, Def.DeckY + 1, 0, out double x, out double y, out double z);
@@ -1084,7 +1084,7 @@ namespace Hansa
         {
             var ep = player.Entity;
             if (GetSeat("bunk:" + f.Code) is not BunkSeat bunk) return;
-            if (bunk.Passenger != null && bunk.Passenger != ep) { Notify(player, "hansa:bunk-taken"); return; }
+            if (bunk.Passenger != null && bunk.Passenger != ep) { Notify(player, "ships:bunk-taken"); return; }
             if (ep.GetBehavior("tiredness") is Vintagestory.GameContent.EntityBehaviorTiredness t && t.Tiredness <= 8)
             {
                 player.SendIngameError("not-tired-enough", Lang.GetL(player.LanguageCode, "not-tired-enough"));
@@ -1166,13 +1166,13 @@ namespace Hansa
             bool open = OpenFittings.Contains(f.Code);
             if (open && f.Box != null && BoxOccupied(f.Box))
             {
-                if (player != null) Notify(player, "hansa:doorway-blocked");
+                if (player != null) Notify(player, "ships:doorway-blocked");
                 return false;
             }
             // an entry port's gate swings in where the gun next to it would be, trained that way (ShipGuns)
             if (!open && GunInGateway(f) != null)
             {
-                if (player != null) Notify(player, "hansa:gate-gun");
+                if (player != null) Notify(player, "ships:gate-gun");
                 return false;
             }
             if (open) OpenFittings.Remove(f.Code);
@@ -1193,7 +1193,7 @@ namespace Hansa
             {
                 if (slot?.Itemstack == null || !ShipFittings.Accepts(f, slot.Itemstack))
                 {
-                    Notify(player, "hansa:attach-needs-" + f.Kind);
+                    Notify(player, "ships:attach-needs-" + f.Kind);
                     return;
                 }
                 string err = TryAttach(f, slot.Itemstack);
@@ -1227,7 +1227,7 @@ namespace Hansa
                     // right-click with an empty hand: bind your spawn to her, or unbind it; Shift: take the plate back
                     // (every spawn bound to her ends)
                     if (sneak) TakeBack(player, f);
-                    else if (slot?.Itemstack != null) Notify(player, "hansa:plate-empty-hand");
+                    else if (slot?.Itemstack != null) Notify(player, "ships:plate-empty-hand");
                     else Mod.Spawns?.Toggle(player, this, f);
                     break;
             }
@@ -1236,15 +1236,15 @@ namespace Hansa
         /// <summary>Put a copy of one of these items on the attachment point; returns an error lang code or null.</summary>
         public string TryAttach(FixtureDef f, ItemStack from)
         {
-            if (Attached.ContainsKey(f.Code) || CoveredBy(f) != null) return "hansa:attach-taken";
-            if (!ShipFittings.Accepts(f, from)) return "hansa:attach-needs-" + f.Kind;
+            if (Attached.ContainsKey(f.Code) || CoveredBy(f) != null) return "ships:attach-taken";
+            if (!ShipFittings.Accepts(f, from)) return "ships:attach-needs-" + f.Kind;
             if (ShipFittings.IsTrunk(from))
             {
                 // a trunk lies across this spot and the next: that one must be free too
                 var pair = f.Pair != null ? Def.Fixture(f.Pair) : null;
-                if (pair == null || Attached.ContainsKey(pair.Code) || CoveredBy(pair) != null) return "hansa:attach-trunk-room";
+                if (pair == null || Attached.ContainsKey(pair.Code) || CoveredBy(pair) != null) return "ships:attach-trunk-room";
             }
-            if (ShipFittings.AttachBox(f, from, Def) is double[] box && BoxOccupied(box)) return "hansa:attach-blocked";
+            if (ShipFittings.AttachBox(f, from, Def) is double[] box && BoxOccupied(box)) return "ships:attach-blocked";
             var one = from.Clone();
             one.StackSize = 1;
             Attached[f.Code] = one;
@@ -1258,12 +1258,12 @@ namespace Hansa
             if (!Attached.TryGetValue(f.Code, out var stack)) return false;
             if ((f.Kind == "chest" || f.Kind == "cargo") && Storages.TryGetValue(f.Code, out var inv) && !inv.Empty)
             {
-                if (player != null) Notify(player, "hansa:chest-not-empty");
+                if (player != null) Notify(player, "ships:chest-not-empty");
                 return false;
             }
             if (f.Kind == "bed" && GetSeat("bunk:" + f.Code)?.Passenger != null)
             {
-                if (player != null) Notify(player, "hansa:bunk-taken");
+                if (player != null) Notify(player, "ships:bunk-taken");
                 return false;
             }
             Attached.Remove(f.Code);
@@ -1322,7 +1322,7 @@ namespace Hansa
         public string SetName(string name, NameStyle style = null)
         {
             name = new string((name ?? "").Where(c => !char.IsControl(c)).ToArray()).Trim();
-            if (name.Length > MaxNameLength) return "hansa:name-too-long";
+            if (name.Length > MaxNameLength) return "ships:name-too-long";
             ShipName = name.Length == 0 ? null : name;
             if (style != null) NameStyle = style.Clean();
             FittingsChanged();
@@ -1341,13 +1341,13 @@ namespace Hansa
             int per = ShipFittings.CladdingItemsPerPlate(slot.Itemstack);
             if (per == 0)
             {
-                Notify(player, "hansa:cladding-needs-copper");
+                Notify(player, "ships:cladding-needs-copper");
                 return 0;
             }
             bool creative = player.WorldData?.CurrentGameMode == EnumGameMode.Creative;
             if (!creative && slot.Itemstack.StackSize < per)
             {
-                Notify(player, "hansa:cladding-sheets-pair");
+                Notify(player, "ships:cladding-sheets-pair");
                 return 0;
             }
             int take = AddCladdingPlates(creative ? Def.CladdingPlates : slot.Itemstack.StackSize / per);
@@ -1357,8 +1357,8 @@ namespace Hansa
                 slot.MarkDirty();
             }
             player.SendMessage(GlobalConstants.InfoLogChatGroup, Clad
-                ? Lang.GetL(player.LanguageCode, "hansa:cladding-done")
-                : Lang.GetL(player.LanguageCode, "hansa:cladding-progress", CladPlates, Def.CladdingPlates), EnumChatType.Notification);
+                ? Lang.GetL(player.LanguageCode, "ships:cladding-done")
+                : Lang.GetL(player.LanguageCode, "ships:cladding-progress", CladPlates, Def.CladdingPlates), EnumChatType.Notification);
             return take;
         }
 
@@ -1431,7 +1431,7 @@ namespace Hansa
                 {
                     int slots = ShipFittings.ContainerSlots(stack);
                     if (Storages.TryGetValue(f.Code, out var existing) && existing.Count == slots) continue;
-                    var inv = new InventoryGeneric(slots, "hansa-" + f.Code, EntityId.ToString(), Api);
+                    var inv = new InventoryGeneric(slots, "ships-" + f.Code, EntityId.ToString(), Api);
                     if (Api.Side == EnumAppSide.Server)
                     {
                         string fcode = f.Code;
@@ -1615,14 +1615,14 @@ namespace Hansa
             {
                 if (tree.GetTreeAttribute(code) is ITreeAttribute t)
                 {
-                    var old = new InventoryGeneric(Math.Max(1, t.GetInt("qslots", 64)), "hansa-old-" + code, EntityId.ToString(), Api);
+                    var old = new InventoryGeneric(Math.Max(1, t.GetInt("qslots", 64)), "ships-old-" + code, EntityId.ToString(), Api);
                     old.FromTreeAttributes(t);
                     old.AfterBlocksLoaded(World);
                     foreach (var slot in old)
                     {
                         if (!slot.Empty) Stow(slot.Itemstack);
                     }
-                    Api.Logger.Notification("[hansa] Moved the contents of the old {0} into the hold", code);
+                    Api.Logger.Notification("[ships] Moved the contents of the old {0} into the hold", code);
                 }
                 tree.RemoveAttribute(code);
             }
@@ -1636,7 +1636,7 @@ namespace Hansa
                 var stack = attached.GetItemstack(code);
                 attached.RemoveAttribute(code);
                 if (stack == null || !stack.ResolveBlockOrItem(World)) continue;
-                Api.Logger.Notification("[hansa] Moved the {0} from the old place {1} into the hold", stack.Collectible.Code, code);
+                Api.Logger.Notification("[ships] Moved the {0} from the old place {1} into the hold", stack.Collectible.Code, code);
                 Stow(stack);
             }
 
@@ -1668,19 +1668,19 @@ namespace Hansa
             // changed (what changes smoothly, by more than a little), else every few seconds
             if (!force && syncAccum < 0.2f) return;
             syncAccum = 0;
-            var t = WatchedAttributes.GetOrAddTreeAttribute("hansa");
+            var t = WatchedAttributes.GetOrAddTreeAttribute("ships");
             long now = World.ElapsedMilliseconds;
             if (!force && now - stateSentMs < StateHeartbeatMs && now >= stateSentMs && !WriteState(t, false)) return;
             WriteState(t, true);
             stateSentMs = now;
-            WatchedAttributes.MarkPathDirty("hansa");
+            WatchedAttributes.MarkPathDirty("ships");
         }
 
         const long StateHeartbeatMs = 3000;
         long stateSentMs;
         readonly StateWriter stateWriter = new();
 
-        /// <summary>Her sailing state into her "hansa" tree (write), or only whether it differs from what's in it (review H1-14).</summary>
+        /// <summary>Her sailing state into her "ships" tree (write), or only whether it differs from what's in it (review H1-14).</summary>
         bool WriteState(ITreeAttribute t, bool write)
         {
             var w = stateWriter;
@@ -1753,15 +1753,15 @@ namespace Hansa
             if (SailSet <= 0 || Anchored || OnBottom || !SailByWind || Def == null) return null;
             var w = WindHere(Pos.X, Pos.Z);
             double angle = Sailing.WindAngle(w.X, w.Z, Pos.Yaw, out _);
-            if (angle < SailingNow.NoGo) return angle < SailingNow.NoGo / 2 ? "hansa:why-aback" : "hansa:why-irons";
-            if (SailDrive < 0.35) return "hansa:why-rig";
-            if (SpeedFactorNow < 0.5) return "hansa:why-water";
+            if (angle < SailingNow.NoGo) return angle < SailingNow.NoGo / 2 ? "ships:why-aback" : "ships:why-irons";
+            if (SailDrive < 0.35) return "ships:why-rig";
+            if (SpeedFactorNow < 0.5) return "ships:why-water";
             return null;
         }
 
         void LoadState()
         {
-            var t = WatchedAttributes.GetTreeAttribute("hansa");
+            var t = WatchedAttributes.GetTreeAttribute("ships");
             if (t == null)
             {
                 foreach (var f in Def.Fixtures) if (f.Type == "stove") LitStoves.Add(f.Code);
@@ -1907,7 +1907,7 @@ namespace Hansa
             {
                 bool ctrl = c.Sprint || c.CtrlKey;
                 if (ctrl && !prevCtrl && mayCrawl && !SetCrawl(!Crawl) && Helm.Passenger is EntityPlayer hp && hp.Player is IServerPlayer hsp)
-                    Notify(hsp, "hansa:sweeps-furl-first");
+                    Notify(hsp, "ships:sweeps-furl-first");
                 if (Crawl)
                 {
                     crawlAhead = (c.Forward ? 1 : 0) - (c.Backward ? 1 : 0);
@@ -2058,7 +2058,7 @@ namespace Hansa
                         {
                             lastAgroundNoticeMs = World.ElapsedMilliseconds;
                             foreach (var s in seatArray)
-                                if (s.Passenger is EntityPlayer ep && ep.Player is IServerPlayer sp) Notify(sp, "hansa:aground");
+                                if (s.Passenger is EntityPlayer ep && ep.Player is IServerPlayer sp) Notify(sp, "ships:aground");
                         }
                     }
                     // where she touched takes the blow (ShipFlooding)

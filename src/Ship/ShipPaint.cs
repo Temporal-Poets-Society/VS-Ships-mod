@@ -103,8 +103,8 @@ namespace Hansa
         public static bool Gildable(PaintZoneDef z) => z != null && (z.Kind == "moulding" || z.Kind == "carving");
 
         /// <summary>
-        /// A mesh texture as a zone painted thus is drawn: the paint's grain for the wood under it ("hansa:block/paint/oak1"..4
-        /// for planks, "timber" for timbers and anything else) multiplied by the dye ("++3~hansa:block/dye/red"), a caulked
+        /// A mesh texture as a zone painted thus is drawn: the paint's grain for the wood under it ("ships:block/paint/oak1"..4
+        /// for planks, "timber" for timbers and anything else) multiplied by the dye ("++3~ships:block/dye/red"), a caulked
         /// deck's seams over that; gilt: vanilla's gold plate. As built (null paint): the texture itself.
         /// </summary>
         public static string Painted(string texture, string paint)
@@ -116,11 +116,11 @@ namespace Hansa
             string baseTex = plus >= 0 ? texture.Substring(0, plus) : texture;
             string grain;
             int at = baseTex.IndexOf("planks/oak", StringComparison.Ordinal);
-            if (at >= 0 && baseTex.Length > at + 10 && char.IsDigit(baseTex[at + 10])) grain = "hansa:block/paint/oak" + baseTex[at + 10];
-            else if (at >= 0) grain = "hansa:block/paint/oak1";
-            else grain = "hansa:block/paint/timber";
-            bool caulk = texture.Contains("~hansa:block/caulk");
-            return grain + "++3~hansa:block/dye/" + paint + (caulk ? "++0~hansa:block/caulk" : "");
+            if (at >= 0 && baseTex.Length > at + 10 && char.IsDigit(baseTex[at + 10])) grain = "ships:block/paint/oak" + baseTex[at + 10];
+            else if (at >= 0) grain = "ships:block/paint/oak1";
+            else grain = "ships:block/paint/timber";
+            bool caulk = texture.Contains("~ships:block/caulk");
+            return grain + "++3~ships:block/dye/" + paint + (caulk ? "++0~ships:block/caulk" : "");
         }
 
         /// <summary>
@@ -142,7 +142,7 @@ namespace Hansa
                 if (mm.Success) name = name.Substring(0, mm.Index) + "planks/oak" + mm.Groups[1].Value;
                 name = Painted(name, paint);
             }
-            if (overlay != null) name += "++0~hansa:block/" + overlay;
+            if (overlay != null) name += "++0~ships:block/" + overlay;
             return name + tail;
         }
     }

@@ -14,7 +14,7 @@ namespace Hansa
                 if(Def.Placement!=null) return Def.Placement;
                 var file=Def.SkinFile;
                 if(file==null && Def.Shapes?.Skin!=null)
-                    file=World.Api.Assets.Get(AssetLocation.Create(Def.Shapes.Skin,"hansa").WithPathAppendixOnce(".json")).ToObject<ShipSkinFile>();
+                    file=World.Api.Assets.Get(AssetLocation.Create(Def.Shapes.Skin,"ships").WithPathAppendixOnce(".json")).ToObject<ShipSkinFile>();
                 return Def.Placement=new PlacementMesh(PlacementMesh.Prepare(Def,file));
             }
         }
@@ -114,7 +114,7 @@ namespace Hansa
             foreach(var volume in volumes)
             {
                 foreach(var frame in OpeningFrameParts)
-                    if(PieceShape.Overlap(volume,new PieceVolume {Box=frame.Box})) return "hansa:piece-blocked";
+                    if(PieceShape.Overlap(volume,new PieceVolume {Box=frame.Box})) return "ships:piece-blocked";
                 var b=(double[])volume.Box.Clone();
                 for(int axis=0;axis<3;axis++) if(b[axis+3]-b[axis]<.006) { b[axis]-=.004;b[axis+3]+=.004; }
                 var worldBox=volume.Pose==null?b:PlacementMesh.Bounds(PlacementMesh.Corners(b).Select(p=>PlacementMesh.Transform(volume.Pose,p)));
@@ -124,7 +124,7 @@ namespace Hansa
                 {
                     if(fb!=null && PiecePlanner.Overlap(worldBox,fb,.003)) {
                         LastPlacementObstacle="fixture at "+string.Join(",",worldBox);
-                        return "hansa:piece-blocked";
+                        return "ships:piece-blocked";
                     }
                 }
                 // Border mounts already cut partitions to the fixed interior timbers (PanelPiece/DrawnClip).
@@ -136,7 +136,7 @@ namespace Hansa
                 if(obstacle!=null)
                 {
                     LastPlacementObstacle=obstacle+" at "+string.Join(",",worldBox);
-                    return "hansa:piece-blocked";
+                    return "ships:piece-blocked";
                 }
             }
             return null;

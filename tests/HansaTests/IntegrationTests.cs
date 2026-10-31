@@ -62,7 +62,7 @@ namespace HansaTests
             }
             Directory.CreateDirectory(Path.Combine(root,"tmp/integrate-views"));
             File.WriteAllText(Path.Combine(root,"tmp/integrate-views/modular.json"),JsonConvert.SerializeObject(new {
-                textures=new[]{"game:block/wood/debarked/oak","game:block/wood/planks/oak1","hansa:block/glass-clear","game:block/metal/plate/lead","game:block/metal/plate/iron","game:block/clay/brick/four/running/red1","game:block/coal/bituminous"},
+                textures=new[]{"game:block/wood/debarked/oak","game:block/wood/planks/oak1","ships:block/glass-clear","game:block/metal/plate/lead","game:block/metal/plate/iron","game:block/clay/brick/four/running/red1","game:block/coal/bituminous"},
                 groups=new Dictionary<string,List<float[]>>{{"runtime-modular",quads}}}));
 
             var states=new SlotStates(def.Slots);

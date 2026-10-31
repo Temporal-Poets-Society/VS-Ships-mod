@@ -27,7 +27,7 @@ namespace Hansa
     {
         public sealed class GameSpec
         {
-            /// <summary>Her design code in the game (entity "hansa:" + this, a charter "shipdeed-" + this).</summary>
+            /// <summary>Her design code in the game (entity "ships:" + this, a charter "shipdeed-" + this).</summary>
             public string Code, Name;
             /// <summary>Built into the game's ships when it loads (false: only for the offline checks; the construction-core
             /// carrack gave way to the generated hansa-carrack, docs/carrack-m-inventory.md).</summary>
@@ -134,23 +134,23 @@ namespace Hansa
         /// </summary>
         public static void LoadAll(Vintagestory.API.Common.ICoreAPI api, Dictionary<string, ShipDefinition> ships, Vintagestory.API.Common.ILogger log)
         {
-            var kindsAsset = api.Assets.TryGet(new Vintagestory.API.Common.AssetLocation("hansa", "config/construction/kinds.json"));
+            var kindsAsset = api.Assets.TryGet(new Vintagestory.API.Common.AssetLocation("ships", "config/construction/kinds.json"));
             if (kindsAsset == null) return;
             var kinds = BlockKinds.Read(kindsAsset.ToText());
-            foreach (var asset in api.Assets.GetMany("config/shipdesigns/", "hansa"))
+            foreach (var asset in api.Assets.GetMany("config/shipdesigns/", "ships"))
             {
                 try
                 {
                     var design = ShipDesign.Read(asset.ToText());
                     var game = design.Game?.ToObject<GameSpec>();
                     if (game?.Code == null || game.Rig == null || !game.Load) continue;
-                    var donorAsset = api.Assets.TryGet(new Vintagestory.API.Common.AssetLocation("hansa", $"config/ships/{game.Rig}.json"));
+                    var donorAsset = api.Assets.TryGet(new Vintagestory.API.Common.AssetLocation("ships", $"config/ships/{game.Rig}.json"));
                     if (donorAsset == null) { log.Error("Grid ship {0}: rig donor {1} not found", design.Code, game.Rig); continue; }
                     string donorJson = donorAsset.ToText(), skinJson = null;
                     // (both sides: the server works out her paint zones, partitions and damage from her mesh too)
                     {
                         string skinPath = (string)JObject.Parse(donorJson)["shapes"]?["skin"];
-                        var skinAsset = skinPath == null ? null : api.Assets.TryGet(Vintagestory.API.Common.AssetLocation.Create(skinPath, "hansa"));
+                        var skinAsset = skinPath == null ? null : api.Assets.TryGet(Vintagestory.API.Common.AssetLocation.Create(skinPath, "ships"));
                         skinJson = skinAsset?.ToText();
                     }
                     var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -556,7 +556,7 @@ namespace Hansa
             if (code.StartsWith("planks-")) wood = code.Split('-')[1];
             return part switch
             {
-                "glass" => "hansa:block/glass-clear",
+                "glass" => "ships:block/glass-clear",
                 Parts.Rib or Parts.Beam or Parts.Keel => $"game:block/wood/debarked/{wood}",
                 "wall" => $"game:block/wood/planks/{wood}2",
                 "door" => $"game:block/wood/planks/{wood}3",

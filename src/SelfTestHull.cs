@@ -30,8 +30,8 @@ namespace Hansa
         void HullPanelsWorks(HansaMod mod, BlockPos spawn, double wy, Action then)
         {
             var def = mod.GetShip("carrack-m");
-            var mtype = sapi.World.GetEntityType(new AssetLocation("hansa", "carrack-m"));
-            var ctype = sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship));
+            var mtype = sapi.World.GetEntityType(new AssetLocation("ships", "carrack-m"));
+            var ctype = sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship));
             if (def?.Hull == null || mtype == null || ctype == null)
             {
                 Log("0.3.26: carrack-m has no hull panels: they aren't checked");
@@ -146,7 +146,7 @@ namespace Hansa
                         if (q < 0) { Check(false, "0.3.26: a panel over her waterline she can take out afloat"); Cleanup(); then(); return; }
                         string over = target.TakeHull(q, null);
                         var qb = l.Slots[q].SolidBoxes[0];
-                        Check(under == "hansa:hull-below-water" && over == null && target.HullOpen(q) && !target.Grid.SolidAt((qb[0] + qb[3]) / 2, (qb[1] + qb[4]) / 2, (qb[2] + qb[5]) / 2) && l.Slots[q].Mat.Count >= 1,
+                        Check(under == "ships:hull-below-water" && over == null && target.HullOpen(q) && !target.Grid.SolidAt((qb[0] + qb[3]) / 2, (qb[1] + qb[4]) / 2, (qb[2] + qb[5]) / 2) && l.Slots[q].Mat.Count >= 1,
                             $"0.3.26: afloat, a panel under her waterline isn't taken out ({under}); {(q >= 0 ? l.Slots[q].Id : "?")} over it is ({over ?? "out"}: {l.Slots[q].Mat.Count} planks blocks back)");
                         // 5. loaded again: that one's still out
                         var watched = target.WatchedAttributes.ToBytes();

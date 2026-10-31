@@ -35,7 +35,7 @@ def mesh_shape(d):
  for e in d['elements']:element(e,np.eye(4))
  return {'textures':[t if ':' in t else 'game:'+t for t in textures],'groups':{'exterior':qs}}
 for name in ['shipstair-short','shipstair-steep','shipstair-long','swivelgun']:
- d=mesh_shape(json.load(open('assets/hansa/shapes/block/'+name+'.json')))
+ d=mesh_shape(json.load(open('assets/ships/shapes/block/'+name+'.json')))
  p=out/(name+'-block.json');json.dump(d,open(p,'w'));found=oc.find_clashes(d,{'deck':set(),'hull':set()});print(name,len(d['groups']['exterior']),len(found))
  failures+=len(found)
  if found: print(' FIRST',[(x[0],x[1],x[2],x[3],x[4],x[5].tolist())for x in found[:5]])

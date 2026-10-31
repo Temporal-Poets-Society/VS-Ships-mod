@@ -132,7 +132,7 @@ namespace Hansa
             catch (Exception e)
             {
                 paintFailed = true;
-                capi.Logger.Error("[hansa] Drawing ship paint failed; it's off until the game is restarted: {0}", e);
+                capi.Logger.Error("[ships] Drawing ship paint failed; it's off until the game is restarted: {0}", e);
             }
         }
 
@@ -296,7 +296,7 @@ namespace Hansa
             {
                 string shapeLoc = role == "exterior" ? def.Shapes?.Exterior : def.Shapes?.Interior;
                 if (shapeLoc == null) return null;
-                var l = AssetLocation.Create(shapeLoc, "hansa").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json");
+                var l = AssetLocation.Create(shapeLoc, "ships").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json");
                 sp.Shapes[role] = loaded = (Shape.TryGet(capi, l), l.ToString());
                 if (loaded.Shape != null) ShipRenderer.PrepareShape(capi, loaded.Shape, loaded.Loc);
             }
@@ -330,7 +330,7 @@ namespace Hansa
             }
             if (keep.Count == 0) return null;
             shape.Elements = keep.ToArray();
-            capi.Tesselator.TesselateShape("hansa ship paint", shape, out MeshData md, new ShapeTextureSource(capi, shape, loc + " (paint)"));
+            capi.Tesselator.TesselateShape("ships ship paint", shape, out MeshData md, new ShapeTextureSource(capi, shape, loc + " (paint)"));
             return md != null && md.VerticesCount > 0 ? capi.Render.UploadMultiTextureMesh(md) : null;
         }
 

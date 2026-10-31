@@ -255,7 +255,7 @@ namespace HansaTests
             foreach (var gp in md.GunPlaces.Where(p => !p.StartsLaid))
             {
                 string err = GunPlaces.MountProblem(md, gp, states, st, things, rails);
-                if (err == "hansa:gunplace-blocked")
+                if (err == "ships:gunplace-blocked")
                 {
                     var room = MountLayout.GunRoom(md.Fixture(gp.Gun));
                     var who = set.All.FirstOrDefault(pc => pc.Solids.Concat(pc.Sel).Any(b => room.Any(r => PiecePlanner.Overlap(b, r))));
@@ -319,7 +319,7 @@ namespace HansaTests
             st.Set(cn, SlotState.Filled);
             st.Set(pn, SlotState.Empty);
             string boardedGun = GunPlaces.MountProblem(md, gp, new GunPlaceStates(md), st, null);
-            Check(noPort == "hansa:gunplace-no-port" && withPort == null && boardedGun == "hansa:gunplace-port-covered",
+            Check(noPort == "ships:gunplace-no-port" && withPort == null && boardedGun == "ships:gunplace-port-covered",
                 $"0.3.29: a gun on an opening with no port refused ({noPort}); with the port in, mounted ({withPort ?? "ok"}); boarded over refused ({boardedGun})");
         }
 

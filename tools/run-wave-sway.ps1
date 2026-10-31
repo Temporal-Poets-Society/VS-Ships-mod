@@ -23,7 +23,7 @@ $cfg.ModPaths = @('Mods', "$run/Mods")
 $cfg.WorldConfig.SaveFileLocation = "$run/Saves/wave-sway.vcdbs"
 $cfg.WorldConfig.WorldName = 'Hansa wave sway regression'
 $cfg | ConvertTo-Json -Depth 40 | Set-Content -LiteralPath "$run/serverconfig.json" -Encoding UTF8
-@{ Enabled = $true; Shutdown = $true; Only = 'wave-sway'; Ship = 'caravel' } | ConvertTo-Json | Set-Content -LiteralPath "$run/ModConfig/hansa-selftest.json" -Encoding UTF8
+@{ Enabled = $true; Shutdown = $true; Only = 'wave-sway'; Ship = 'caravel' } | ConvertTo-Json | Set-Content -LiteralPath "$run/ModConfig/ships-selftest.json" -Encoding UTF8
 @{ WaveScale = 1; StormHeightScale = 1; SeaWindFrom = 0; SeaWindStrength = 0.5 } | ConvertTo-Json | Set-Content -LiteralPath "$run/ModConfig/sea.json" -Encoding UTF8
 $deadline = (Get-Date).AddMinutes(15)
 while ([System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners().Port -contains 42597) {

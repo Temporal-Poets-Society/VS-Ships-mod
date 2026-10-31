@@ -37,8 +37,8 @@ namespace Hansa
         /// <summary>Why she can't be launched from here (a lang code), or null: not from aboard a ship, nor at one.</summary>
         static string Refusal(EntityAgent byEntity, EntitySelection entitySel)
         {
-            if (byEntity.MountedOn is ShipSeat) return "hansa:deed-aboard";
-            if (entitySel?.Entity is EntityShip) return "hansa:deed-at-ship";
+            if (byEntity.MountedOn is ShipSeat) return "ships:deed-aboard";
+            if (entitySel?.Entity is EntityShip) return "ships:deed-at-ship";
             return null;
         }
 
@@ -49,7 +49,7 @@ namespace Hansa
             if (!firstEvent || byEntity == null) return;
             if (Refusal(byEntity, entitySel) is string why)
             {
-                if (api.Side == EnumAppSide.Server && (byEntity as EntityPlayer)?.Player is IServerPlayer sp) sp.SendIngameError("hansa", Lang.GetL(sp.LanguageCode, why));
+                if (api.Side == EnumAppSide.Server && (byEntity as EntityPlayer)?.Player is IServerPlayer sp) sp.SendIngameError("ships", Lang.GetL(sp.LanguageCode, why));
                 return;
             }
             // (0.3.19, the launch takes long: the ship's meshes loaded while the charter is held, not after she's launched)
@@ -76,14 +76,14 @@ namespace Hansa
             if (secondsUsed < LaunchSeconds || api.Side != EnumAppSide.Server || byEntity == null) return;
             if (!LaunchGuard.TryLaunch(api, byEntity, byEntity.Controls.UsingBeginMS, out string why))
             {
-                if (why != null) api.World.Logger.Notification("[hansa] {0}: a charter's launch ignored ({1})", (byEntity as EntityPlayer)?.Player?.PlayerName ?? byEntity.Code?.ToString(), why);
+                if (why != null) api.World.Logger.Notification("[ships] {0}: a charter's launch ignored ({1})", (byEntity as EntityPlayer)?.Player?.PlayerName ?? byEntity.Code?.ToString(), why);
                 return;
             }
             if (LaunchForTest != null) { LaunchForTest(byEntity, slot); return; }
             if (!(byEntity is EntityPlayer ep) || !(ep.Player is IServerPlayer player)) return;
             if (Refusal(byEntity, entitySel) is string refused)
             {
-                player.SendIngameError("hansa", Lang.GetL(player.LanguageCode, refused));
+                player.SendIngameError("ships", Lang.GetL(player.LanguageCode, refused));
                 return;
             }
             var mod = api.ModLoader.GetModSystem<HansaMod>();
@@ -93,15 +93,15 @@ namespace Hansa
                 ship.SetName(name, slot.Itemstack.Attributes.GetTreeAttribute("shipNameStyle") is ITreeAttribute style ? NameStyle.FromTree(style) : null);
             if (err != null)
             {
-                player.SendIngameError("hansa", Lang.GetL(player.LanguageCode, err));
+                player.SendIngameError("ships", Lang.GetL(player.LanguageCode, err));
                 return;
             }
             if (ship != null)
             {
                 // whoever launches her is her first captain (ShipCrew)
                 ship.SetFirstCaptain(player);
-                api.World.Logger.Audit("[hansa] {0} launched {1} #{2} at {3}", player.PlayerName, ship.GetName(), ship.EntityId, ship.Pos.AsBlockPos);
-                player.SendMessage(GlobalConstants.GeneralChatGroup, Lang.GetL(player.LanguageCode, "hansa:deed-launched", ship.GetName(), ship.EntityId), EnumChatType.Notification);
+                api.World.Logger.Audit("[ships] {0} launched {1} #{2} at {3}", player.PlayerName, ship.GetName(), ship.EntityId, ship.Pos.AsBlockPos);
+                player.SendMessage(GlobalConstants.GeneralChatGroup, Lang.GetL(player.LanguageCode, "ships:deed-launched", ship.GetName(), ship.EntityId), EnumChatType.Notification);
             }
             if (player.WorldData.CurrentGameMode != EnumGameMode.Creative)
             {
@@ -113,8 +113,8 @@ namespace Hansa
         public override void GetHeldItemInfo(ItemSlot inSlot, StringBuilder dsc, IWorldAccessor world, bool withDebugInfo)
         {
             base.GetHeldItemInfo(inSlot, dsc, world, withDebugInfo);
-            dsc.AppendLine(Lang.Get(IsBoat ? "hansa:boat-help" : "hansa:deed-help"));
-            if (inSlot.Itemstack?.Attributes.GetString("shipName") is string name) dsc.AppendLine(Lang.Get("hansa:boat-named", name));
+            dsc.AppendLine(Lang.Get(IsBoat ? "ships:boat-help" : "ships:deed-help"));
+            if (inSlot.Itemstack?.Attributes.GetString("shipName") is string name) dsc.AppendLine(Lang.Get("ships:boat-named", name));
         }
     }
 }

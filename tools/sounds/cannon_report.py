@@ -1,5 +1,5 @@
 """
-The guns' report: assets/hansa/sounds/effect/cannon1..3.ogg (mono, 44.1 kHz Ogg Vorbis, quality 0.6), played one at
+The guns' report: assets/ships/sounds/effect/cannon1..3.ogg (mono, 44.1 kHz Ogg Vorbis, quality 0.6), played one at
 random at the muzzle by CannonClient (pitch varied a little, duller and lower with distance).
 
 History: till 0.3.24 the server played vanilla's large explosion as it is (0.29 s of silence before it, then three seconds
@@ -33,7 +33,7 @@ import numpy as np
 import soundfile as sf
 
 SR = 44100
-OUT = os.path.join(os.path.dirname(__file__), "..", "..", "assets", "hansa", "sounds", "effect")
+OUT = os.path.join(os.path.dirname(__file__), "..", "..", "assets", "ships", "sounds", "effect")
 QUALITY = 0.6          # Vorbis quality (libsndfile: compression_level = 1 - quality)
 TARGET_DB = -0.8       # peak after normalising
 MAX_DB = -0.5          # decoded peak ceiling

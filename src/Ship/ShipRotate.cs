@@ -23,10 +23,10 @@ namespace Hansa
         {
             var p = Pieces.Get(id);
             if (p == null) return null;
-            if (GoneDown) return "hansa:gone-down";
-            if (!IsWrench(player.InventoryManager.ActiveHotbarSlot?.Itemstack)) return "hansa:rotate-needs-wrench";
+            if (GoneDown) return "ships:gone-down";
+            if (!IsWrench(player.InventoryManager.ActiveHotbarSlot?.Itemstack)) return "ships:rotate-needs-wrench";
             var c = p.Center;
-            if (!InReach(player, c[0], c[1], c[2])) return "hansa:piece-too-far";
+            if (!InReach(player, c[0], c[1], c[2])) return "ships:piece-too-far";
             string err = RotatePiece(p, out var turned);
             if (err != null) return err;
             PieceSound(turned, turned.Stack?.Block?.Sounds?.Place.Location);
@@ -38,16 +38,16 @@ namespace Hansa
         public string RotatePiece(ShipPiece p, out ShipPiece turned)
         {
             turned = null;
-            if (p == null || Mounts == null) return "hansa:rotate-nothing";
-            if (GetSeat("bunk:" + p.StorageCode)?.Passenger != null) return "hansa:bunk-taken";
-            if (GetSeat("sit:" + p.StorageCode)?.Passenger != null) return "hansa:piece-seat-taken";
-            if (Pieces.StandingOn(Mounts, p) != null) return "hansa:piece-under";
+            if (p == null || Mounts == null) return "ships:rotate-nothing";
+            if (GetSeat("bunk:" + p.StorageCode)?.Passenger != null) return "ships:bunk-taken";
+            if (GetSeat("sit:" + p.StorageCode)?.Passenger != null) return "ships:piece-seat-taken";
+            if (Pieces.StandingOn(Mounts, p) != null) return "ships:piece-under";
             // (review H1-13) a working block's real block in her dimension isn't turned with it
-            if (IsWorkingPiece(p.Id)) return "hansa:rotate-nothing";
+            if (IsWorkingPiece(p.Id)) return "ships:rotate-nothing";
             if (p.Role is PieceRole.Hearth or PieceRole.Oven or PieceRole.Flue or PieceRole.Hatch or PieceRole.Shelf or PieceRole.Panel || p.Kind is MountKind.Hook or MountKind.Wall or MountKind.Horizontal or MountKind.Panel)
-                return "hansa:rotate-nothing";
+                return "ships:rotate-nothing";
             var m = Mounts.Get(p.Mount);
-            if (m == null || p.Stack == null) return "hansa:rotate-nothing";
+            if (m == null || p.Stack == null) return "ships:rotate-nothing";
             var block = new VanillaPieceBlock(World, p.Stack, true);
             var tries = new List<PiecePlan>();
             if (p.OnBorder)
@@ -57,7 +57,7 @@ namespace Hansa
                 int toward = p.IsStair ? (p.Dir + 2) % 4 : p.Dir;
                 for (int k = 1; k < 4; k++) tries.Add(PiecePlanner.Plan(Mounts, m, block, (toward + k) % 4));
             }
-            if (tries.Count == 0) return "hansa:rotate-nothing";
+            if (tries.Count == 0) return "ships:rotate-nothing";
             // (it's out of her while each way is tried: it doesn't stand in its own way)
             Pieces.Remove(p.Id);
             RebuildGrid();
@@ -77,7 +77,7 @@ namespace Hansa
             }
             Pieces.Add(p);
             Changed();
-            return first == "hansa:piece-taken" || first == null ? "hansa:rotate-no-room" : first;
+            return first == "ships:piece-taken" || first == null ? "ships:rotate-no-room" : first;
         }
 
         /// <summary>A wall piece's place's cell's other sides (the same row), the next one round first.</summary>

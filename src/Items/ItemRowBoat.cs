@@ -29,7 +29,7 @@ namespace Hansa
                 if (ships != null && EntityRowBoat.TouchesAnyShip(ships, x, y, z, byEntity.Pos.Yaw, byEntity.Pos.Dimension))
                 {
                     handling = EnumHandHandling.PreventDefault;
-                    if (api is ICoreClientAPI capi && firstEvent) capi.TriggerIngameError(this, "hansa-boat", Lang.Get("hansa:boat-no-room"));
+                    if (api is ICoreClientAPI capi && firstEvent) capi.TriggerIngameError(this, "ships-boat", Lang.Get("ships:boat-no-room"));
                     return;
                 }
             }
@@ -41,7 +41,7 @@ namespace Hansa
         public override void GetHeldItemInfo(ItemSlot inSlot, StringBuilder dsc, IWorldAccessor world, bool withDebugInfo)
         {
             base.GetHeldItemInfo(inSlot, dsc, world, withDebugInfo);
-            dsc.AppendLine(Lang.Get("hansa:rowboat-help"));
+            dsc.AppendLine(Lang.Get("ships:rowboat-help"));
         }
     }
 }

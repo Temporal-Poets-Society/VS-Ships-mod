@@ -11,7 +11,7 @@ namespace Hansa
     /// <summary>
     /// Client side of ships: smooth ship motion, walking the deck (stepped in lockstep with player physics),
     /// boarding and leaving, using fixtures, the helm HUD, what the weather patches need to know, and the view on a
-    /// deck that rides the waves (with the player's comfort settings, .hansa).
+    /// deck that rides the waves (with the player's comfort settings, .ships).
     /// </summary>
     public class ShipClientSystem : ModSystem, IRenderer
     {
@@ -26,7 +26,7 @@ namespace Hansa
         public readonly List<EntityRowBoat> RowBoats = new();
         /// <summary>The cannon balls in flight and the guns' flashes.</summary>
         public CannonClient Cannons;
-        /// <summary>The surveyor's chalk: notes for reporting, their marks, .hansa notes.</summary>
+        /// <summary>The surveyor's chalk: notes for reporting, their marks, .ships notes.</summary>
         public SurveyorsChalk Chalk;
         /// <summary>The ships' firehearths: their flames and smoke, the stovepipes' smoke, their crackle.</summary>
         public HearthClient Hearths;
@@ -57,8 +57,8 @@ namespace Hansa
         public double RenderOrder => 0.1;
         public int RenderRange => 9999;
 
-        const string ComfortFile = "hansa-client.json";
-        /// <summary>This player's comfort settings (ModConfig/hansa-client.json).</summary>
+        const string ComfortFile = "ships-client.json";
+        /// <summary>This player's comfort settings (ModConfig/ships-client.json).</summary>
         public HansaClientConfig Comfort = new();
         /// <summary>How much of the sea's motion ships are drawn with here (0..1).</summary>
         public float SeaMotion => GameMath.Clamp(Comfort.SeaMotion, 0, 1);
@@ -90,12 +90,12 @@ namespace Hansa
                 .SetMessageHandler<FixturePacket>(OnOpenStorage)
                 .SetMessageHandler<ShotPacket>(Cannons.OnShot);
 
-            api.Event.RegisterRenderer(this, EnumRenderStage.Before, "hansa-ships");
+            api.Event.RegisterRenderer(this, EnumRenderStage.Before, "ships-ships");
             renderer = new ShipRenderer(api, this);
-            api.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "hansa-ships");
+            api.Event.RegisterRenderer(renderer, EnumRenderStage.Opaque, "ships-ships");
             // her shadow, into the sun's shadow maps (the game runs these stages only with shadows on)
-            api.Event.RegisterRenderer(renderer, EnumRenderStage.ShadowFar, "hansa-ships-shadow");
-            api.Event.RegisterRenderer(renderer, EnumRenderStage.ShadowNear, "hansa-ships-shadow");
+            api.Event.RegisterRenderer(renderer, EnumRenderStage.ShadowFar, "ships-ships-shadow");
+            api.Event.RegisterRenderer(renderer, EnumRenderStage.ShadowNear, "ships-ships-shadow");
             api.Input.InWorldAction += OnInWorldAction;
             hud = new ShipHud(api, this);
             Chalk = new SurveyorsChalk(api, this);
@@ -126,7 +126,7 @@ namespace Hansa
             if (def != null) renderer.Preload(def);
         }
 
-        /// <summary>Change the comfort settings (the dialog, .hansa) and remember them.</summary>
+        /// <summary>Change the comfort settings (the dialog, .ships) and remember them.</summary>
         public void SetComfort(float seaMotion, bool steadyHorizon)
         {
             Comfort.SeaMotion = GameMath.Clamp(seaMotion, 0, 1);
@@ -137,8 +137,8 @@ namespace Hansa
         void RegisterCommands(ICoreClientAPI api)
         {
             var parsers = api.ChatCommands.Parsers;
-            api.ChatCommands.Create("hansa")
-                .WithDescription(Lang.Get("hansa:cmd-comfort"))
+            api.ChatCommands.Create("ships")
+                .WithDescription(Lang.Get("ships:cmd-comfort"))
                 .HandleWith(_ =>
                 {
                     // built fresh each time, so it shows the settings as they are now
@@ -151,7 +151,7 @@ namespace Hansa
                     return TextCommandResult.Success();
                 })
                 .BeginSubCommand("seamotion")
-                    .WithDescription(Lang.Get("hansa:cmd-seamotion"))
+                    .WithDescription(Lang.Get("ships:cmd-seamotion"))
                     .WithArgs(parsers.OptionalWord("amount"))
                     .HandleWith(args =>
                     {
@@ -159,7 +159,7 @@ namespace Hansa
                         {
                             a = a.Trim().TrimEnd('%');
                             if (!double.TryParse(a, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double v))
-                                return TextCommandResult.Error(Lang.Get("hansa:cmd-seamotion"));
+                                return TextCommandResult.Error(Lang.Get("ships:cmd-seamotion"));
                             if (v > 1) v /= 100;
                             SetComfort((float)v, Comfort.SteadyHorizon);
                         }
@@ -167,7 +167,7 @@ namespace Hansa
                     })
                 .EndSubCommand()
                 .BeginSubCommand("steadyhorizon")
-                    .WithDescription(Lang.Get("hansa:cmd-steadyhorizon"))
+                    .WithDescription(Lang.Get("ships:cmd-steadyhorizon"))
                     .WithArgs(parsers.OptionalWordRange("state", "on", "off"))
                     .HandleWith(args =>
                     {
@@ -177,18 +177,18 @@ namespace Hansa
                     })
                 .EndSubCommand()
                 .BeginSubCommand("shadows")
-                    .WithDescription(Lang.Get("hansa:cmd-shadows"))
+                    .WithDescription(Lang.Get("ships:cmd-shadows"))
                     .WithArgs(parsers.OptionalWordRange("state", "on", "off"))
                     .HandleWith(args =>
                     {
                         Comfort.ShipShadows = args[0] is string st ? st == "on" : !Comfort.ShipShadows;
                         capi.StoreModConfig(Comfort, ComfortFile);
-                        return TextCommandResult.Success(Lang.Get("hansa:shadows-now",
-                            Lang.Get(Comfort.ShipShadows ? "hansa:comfort-steady-on" : "hansa:comfort-steady-off")));
+                        return TextCommandResult.Success(Lang.Get("ships:shadows-now",
+                            Lang.Get(Comfort.ShipShadows ? "ships:comfort-steady-on" : "ships:comfort-steady-off")));
                     })
                 .EndSubCommand()
                 .BeginSubCommand("build")
-                    .WithDescription(Lang.Get("hansa:cmd-build"))
+                    .WithDescription(Lang.Get("ships:cmd-build"))
                     .WithArgs(parsers.OptionalWordRange("state", "on", "off"))
                     .HandleWith(args =>
                     {
@@ -198,19 +198,19 @@ namespace Hansa
                     })
                 .EndSubCommand()
                 .BeginSubCommand("notes")
-                    .WithDescription(Lang.Get("hansa:cmd-notes"))
+                    .WithDescription(Lang.Get("ships:cmd-notes"))
                     .WithArgs(parsers.OptionalWord("what"), parsers.OptionalWord("number"))
                     .HandleWith(args => Chalk?.Command(args[0] as string, args[1] as string) ?? TextCommandResult.Error("No chalk."))
                 .EndSubCommand()
                 .BeginSubCommand("damagecheck")
-                    .WithDescription(Lang.Get("hansa:cmd-damagecheck"))
+                    .WithDescription(Lang.Get("ships:cmd-damagecheck"))
                     .HandleWith(cmd =>
                     {
                         // the ship in the crosshair, else the nearest: what drawing her damage has (0.3.7)
                         var ep = capi.World.Player?.Entity;
-                        if (ep == null || renderer == null) return TextCommandResult.Error(Lang.Get("hansa:damagecheck-none"));
+                        if (ep == null || renderer == null) return TextCommandResult.Error(Lang.Get("ships:damagecheck-none"));
                         var ship = ShipLookedAt(ep, capi.World.Player.WorldData.PickingRange, out _) ?? NearestShip(ep.Pos.XYZ);
-                        if (ship == null) return TextCommandResult.Error(Lang.Get("hansa:damagecheck-none"));
+                        if (ship == null) return TextCommandResult.Error(Lang.Get("ships:damagecheck-none"));
                         try { return TextCommandResult.Success(renderer.DamageReport(ship)); }
                         catch (Exception e) { return TextCommandResult.Error("damagecheck failed: " + e.Message); }
                     })
@@ -229,8 +229,8 @@ namespace Hansa
                 .EndSubCommand();
         }
 
-        string ComfortText() => Lang.Get("hansa:comfort-now", (int)Math.Round(SeaMotion * 100),
-            Lang.Get(Comfort.SteadyHorizon ? "hansa:comfort-steady-on" : "hansa:comfort-steady-off"));
+        string ComfortText() => Lang.Get("ships:comfort-now", (int)Math.Round(SeaMotion * 100),
+            Lang.Get(Comfort.SteadyHorizon ? "ships:comfort-steady-on" : "ships:comfort-steady-off"));
 
         Sea.SeaSystem sea;
 
@@ -405,10 +405,10 @@ namespace Hansa
             {
                 if (cs.Mover.Climbing != null) hint = Lang.Get(cs.Mover.Climbing.KindOrDefault switch
                 {
-                    "rope" => "hansa:hud-climbing-side",
-                    "ladder" => "hansa:hud-climbing-ladder",
-                    "stair" => "hansa:hud-climbing-stair",
-                    _ => "hansa:hud-climbing"
+                    "rope" => "ships:hud-climbing-side",
+                    "ladder" => "ships:hud-climbing-ladder",
+                    "stair" => "ships:hud-climbing-stair",
+                    _ => "ships:hud-climbing"
                 });
                 else hint = LadderHint(cs);
             }
@@ -419,13 +419,13 @@ namespace Hansa
             if (hint == null && ep.MountedOn is ShipSeat && capi.World.Player.CurrentEntitySelection?.Entity is EntityRowBoat)
             {
                 // from a ship's deck or ladder, looking at a rowing boat alongside
-                hint = Lang.Get("hansa:hint-rowboat-pickup");
+                hint = Lang.Get("ships:hint-rowboat-pickup");
             }
             if (hint == null && lookedAt.Ship == null && ep.MountedOn is ShipSeat on)
             {
                 // from a ship's deck or ladder, looking at a boat alongside
                 var b = ShipLookedAt(ep, capi.World.Player.WorldData.PickingRange, out _);
-                if (b != null && b != on.Ship && b.Def.PickUpItem != null) hint = Lang.Get("hansa:hint-boat-pickup");
+                if (b != null && b != on.Ship && b.Def.PickUpItem != null) hint = Lang.Get("ships:hint-boat-pickup");
             }
             // (with the surveyor's chalk in hand a click is the chalk's: its line over a fixture's)
             hud.Update(ep, Deco?.Hint != null ? default : lookedAt, Deco?.Hint ?? hint, UpdateWork() ?? Deco?.Busy ?? (laying.Ship != null ? laying.Ship.GunHudText(laying.Gun, ep, true) : null) ?? (Deco != null ? Deco.ChalkLine(Chalk?.HudText(ep)) : Chalk?.HudText(ep)));
@@ -528,7 +528,7 @@ namespace Hansa
                 bool nearTop = ex * ex + ez * ez < 1.2 && Math.Abs(m.Y - l.ExitTop[1]) < 0.4;
                 if (l.Outside)
                 {
-                    if (nearTop) return Lang.Get(l.Kind == "brow" ? "hansa:hint-brow" : ds.Ship.LadderTopClosed(l) ? "hansa:hint-sideladder-gate" : "hansa:hint-sideladder");
+                    if (nearTop) return Lang.Get(l.Kind == "brow" ? "ships:hint-brow" : ds.Ship.LadderTopClosed(l) ? "ships:hint-sideladder-gate" : "ships:hint-sideladder");
                     continue;
                 }
                 double dx = l.Bottom[0] - m.X, dz = l.Bottom[2] - m.Z;
@@ -540,12 +540,12 @@ namespace Hansa
 
         static string LadderName(LadderDef l, bool atTop) => l.KindOrDefault switch
         {
-            "rope" => Lang.Get("hansa:hint-sideladder"),
-            "brow" => Lang.Get("hansa:hint-brow"),
-            "ladder" => Lang.Get(atTop ? "hansa:hint-companion-down" : "hansa:hint-companion-up"),
+            "rope" => Lang.Get("ships:hint-sideladder"),
+            "brow" => Lang.Get("ships:hint-brow"),
+            "ladder" => Lang.Get(atTop ? "ships:hint-companion-down" : "ships:hint-companion-up"),
             // (0.3.18, note 162) a ladder-stair put aboard
-            "stair" => Lang.Get(atTop ? "hansa:hint-stair-down" : "hansa:hint-stair-up"),
-            _ => Lang.Get("hansa:hint-ratlines")
+            "stair" => Lang.Get(atTop ? "ships:hint-stair-down" : "ships:hint-stair-up"),
+            _ => Lang.Get("ships:hint-ratlines")
         };
 
         /// <summary>Off the ship, looking at the hull: what a right-click would do.</summary>
@@ -558,15 +558,15 @@ namespace Hansa
             if (ship?.Def == null || ship.GoneDown) return null;
             if (ship.Def.BoardFromWater)
             {
-                return Lang.Get("hansa:hint-board-boat") + (ship.Def.PickUpItem != null ? " · " + Lang.Get("hansa:hint-boat-pickup") : "");
+                return Lang.Get("ships:hint-board-boat") + (ship.Def.PickUpItem != null ? " · " + Lang.Get("ships:hint-boat-pickup") : "");
             }
             var held = capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack;
             // ((0.1.0-dev.9, note 101) copper plates, or copper sheets: two a plate)
             if (ShipFittings.CladdingItemsPerPlate(held) > 0)
             {
-                return ship.Clad ? Lang.Get("hansa:hint-clad-done") : Lang.Get("hansa:hint-clad", ship.CladPlates, ship.Def.CladdingPlates);
+                return ship.Clad ? Lang.Get("ships:hint-clad-done") : Lang.Get("ships:hint-clad", ship.CladPlates, ship.Def.CladdingPlates);
             }
-            return NearestOutsideLadder(ship, ep.Pos.XYZ, 5) != null ? Lang.Get("hansa:hint-board-ladder") : Lang.Get("hansa:hint-board-where");
+            return NearestOutsideLadder(ship, ep.Pos.XYZ, 5) != null ? Lang.Get("ships:hint-board-ladder") : Lang.Get("ships:hint-board-where");
         }
 
         /// <summary>A rope ladder down the side whose bottom is within reach of this world position.</summary>
@@ -791,7 +791,7 @@ namespace Hansa
                 if (!inHer && !(near && (force || c.Forward || c.Jump))) continue;
                 if (!ship.HasRoomFor(ep))
                 {
-                    capi.TriggerIngameError(this, "hansa-full", Lang.Get("hansa:boat-full"));
+                    capi.TriggerIngameError(this, "ships-full", Lang.Get("ships:boat-full"));
                     boardCooldownUntil = capi.World.ElapsedMilliseconds + 2000;
                     continue;
                 }
@@ -853,7 +853,7 @@ namespace Hansa
             if (ship.GoneDown) return;
             if (!ship.HasRoomFor(ep))
             {
-                capi.TriggerIngameError(this, "hansa-full", Lang.Get("hansa:boat-full"));
+                capi.TriggerIngameError(this, "ships-full", Lang.Get("ships:boat-full"));
                 return;
             }
             var seat = ship.GetOrCreateDeckSeat(ep.PlayerUID, x, y, z);
@@ -1085,7 +1085,7 @@ namespace Hansa
                     capi.World.Player.CurrentEntitySelection?.Entity is EntityRowBoat rb && (hit.Ship == null || hit.Dist > ep.Pos.DistanceTo(rb.Pos.XYZ) + 0.3))
                 {
                     if (rb.IsEmptyForPickup()) channel.SendPacket(new FixturePacket { ShipId = rb.EntityId, Fixture = FixturePacket.PickUp });
-                    else capi.TriggerIngameError(this, "hansa-pickup", Lang.Get("hansa:pickup-cargo"));
+                    else capi.TriggerIngameError(this, "ships-pickup", Lang.Get("ships:pickup-cargo"));
                     handled = EnumHandling.PreventDefault;
                     return;
                 }
@@ -1157,7 +1157,7 @@ namespace Hansa
                             if (hint && capi.World.ElapsedMilliseconds - ladderHintAt > 20000)
                             {
                                 ladderHintAt = capi.World.ElapsedMilliseconds;
-                                capi.ShowChatMessage(Lang.Get("hansa:board-by-ladder"));
+                                capi.ShowChatMessage(Lang.Get("ships:board-by-ladder"));
                             }
                             if (held == null) handled = EnumHandling.PreventDefault;
                             return;
@@ -1230,7 +1230,7 @@ namespace Hansa
                     inSight.Ship.GunPlaceOf(inSight.Gun) is GunPlaceDef gp && !(inSight.Gun.Lid != null && inSight.Ship.GunOpen(inSight.Gun)))
                 {
                     string why = inSight.Ship.TakeGunProblem(gp);
-                    if (why != null) capi.TriggerIngameError(this, "hansa-gun", Lang.Get(why));
+                    if (why != null) capi.TriggerIngameError(this, "ships-gun", Lang.Get(why));
                     else channel.SendPacket(new DecorPacket { ShipId = inSight.Ship.EntityId, Action = DecorPacket.GunTake, Mount = gp.Id });
                     return true;
                 }
@@ -1250,14 +1250,14 @@ namespace Hansa
                 {
                     // aimed at one from further off: the click is still that gun's (passed on, the fixture's click fires it)
                     if (inSight.Ship == null) return false;
-                    capi.TriggerIngameError(this, "hansa-gun", Lang.Get("hansa:gun-far"));
+                    capi.TriggerIngameError(this, "ships-gun", Lang.Get("ships:gun-far"));
                     return true;
                 }
                 (EntityShip Ship, FixtureDef Gun) gun = lays == seat?.Fixture ? (seat.Ship, seat.Fixture) : inSight;
                 if (gun.Ship == null || gun.Ship.GoneDown) return false;
                 if (!gun.Ship.CannonsOn)
                 {
-                    capi.TriggerIngameError(this, "hansa-gun", Lang.Get("hansa:gun-off"));
+                    capi.TriggerIngameError(this, "ships-gun", Lang.Get("ships:gun-off"));
                     return true;
                 }
                 laying = gun;
@@ -1277,7 +1277,7 @@ namespace Hansa
                     ? lastLaid : default;
             if (fire.Ship == null && inSight.Ship != null)
             {
-                capi.TriggerIngameError(this, "hansa-gun", Lang.Get("hansa:gun-far"));
+                capi.TriggerIngameError(this, "ships-gun", Lang.Get("ships:gun-far"));
                 return true;
             }
             if (fire.Ship == null) return false;
@@ -1331,11 +1331,11 @@ namespace Hansa
             lastGunClick = (ship.EntityId, gun.Index, now);
             if (repeat) return;
             // a housed gun: its port has to be opened (and it run out) first
-            if (!ship.GunOpen(gun)) { capi.TriggerIngameError(this, "hansa-gun", Lang.Get("hansa:gun-housed")); return; }
+            if (!ship.GunOpen(gun)) { capi.TriggerIngameError(this, "ships-gun", Lang.Get("ships:gun-housed")); return; }
             double outIn = ship.GunRunningOut(gun);
-            if (outIn > 0) { capi.TriggerIngameError(this, "hansa-gun", Lang.Get("hansa:gun-running-out", Math.Ceiling(outIn))); return; }
+            if (outIn > 0) { capi.TriggerIngameError(this, "ships-gun", Lang.Get("ships:gun-running-out", Math.Ceiling(outIn))); return; }
             double left = ship.GunReloading(gun);
-            if (left > 0) capi.TriggerIngameError(this, "hansa-gun", Lang.Get("hansa:gun-reloading", Math.Ceiling(left)));
+            if (left > 0) capi.TriggerIngameError(this, "ships-gun", Lang.Get("ships:gun-reloading", Math.Ceiling(left)));
             else channel.SendPacket(new FixturePacket { ShipId = ship.EntityId, Fixture = gun.Index });
         }
 
@@ -1416,7 +1416,7 @@ namespace Hansa
                 work.Sounded = false;
                 f = 0;
             }
-            return Lang.Get("hansa:hud-lighting", work.What, (int)(f * 100));
+            return Lang.Get("ships:hud-lighting", work.What, (int)(f * 100));
         }
 
         /// <summary>Right-click on a part of a ship with what mends it in hand: start mending it (the server checks and takes the items at the end).</summary>
@@ -1444,7 +1444,7 @@ namespace Hansa
             if (job == null) return false;
             if (!job.AtSea)
             {
-                capi.TriggerIngameError(this, "hansa-repair", Lang.Get("hansa:repair-port", ship.PartName(job.Part)));
+                capi.TriggerIngameError(this, "ships-repair", Lang.Get("ships:repair-port", ship.PartName(job.Part)));
                 return true;
             }
             work = new Work
@@ -1475,7 +1475,7 @@ namespace Hansa
                     work.LastStroke = now;
                     channel.SendPacket(new FixturePacket { ShipId = work.Ship.EntityId, Fixture = work.Pump.Index });
                 }
-                return Lang.Get("hansa:hud-pumping", work.Ship.WaterText());
+                return Lang.Get("ships:hud-pumping", work.Ship.WaterText());
             }
             var sel = capi.World.Player.CurrentEntitySelection;
             if (!held || sel?.Entity != work.Ship || sel.SelectionBoxIndex != work.Part || work.Ship.GoneDown) { work = null; return null; }
@@ -1486,7 +1486,7 @@ namespace Hansa
                 work = null;
                 return null;
             }
-            return Lang.Get("hansa:hud-mending", work.What, (int)(f * 100));
+            return Lang.Get("ships:hud-mending", work.What, (int)(f * 100));
         }
 
         GuiDialogShipCrew crewDialog;

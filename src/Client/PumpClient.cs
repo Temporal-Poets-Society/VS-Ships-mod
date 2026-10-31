@@ -64,7 +64,7 @@ namespace Hansa
                 SizeEvolve = new EvolvingNatFloat(EnumTransformFunction.LINEAR, -0.6f)
             };
             capi.Event.RegisterAsyncParticleSpawner(OnParticles);
-            capi.Event.RegisterRenderer(this,EnumRenderStage.Opaque,"hansa-pump-stream");
+            capi.Event.RegisterRenderer(this,EnumRenderStage.Opaque,"ships-pump-stream");
         }
 
         /// <summary>

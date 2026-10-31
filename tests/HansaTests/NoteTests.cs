@@ -119,7 +119,7 @@ namespace HansaTests
                       json.Contains("\"local\": [3.25, -1.5, -4.85]") && !json.Contains("\"entity\""),
                     "the file is a JSON array of objects, readable: camelCase keys, a point on one line ([3.25, -1.5, -4.85]), nothing written for what isn't there");
 
-                string tmp = Path.Combine(Path.GetTempPath(), "hansa-notes-test-" + Guid.NewGuid().ToString("N"));
+                string tmp = Path.Combine(Path.GetTempPath(), "ships-notes-test-" + Guid.NewGuid().ToString("N"));
                 try
                 {
                     string jp = Path.Combine(tmp, SurveyNoteFile.JsonName);
@@ -138,7 +138,7 @@ namespace HansaTests
                           md.Contains("> the gun port's sill looks too high from outside\n> second line") && !md.Contains("## 2 ·") && md.Contains("## 3 ·") &&
                           md.Contains("(no comment)") && md.Contains("2026-10-02_21-14-12.png") && md.Contains("ship-local (3.250, -1.500, -4.850)") &&
                           md.Contains("water 12.0 t (+3.0 l/s)") && md.Contains("wind force 6 (strong breeze) from 260°") && md.Contains("looking 30° to starboard of the bow, 12° down") &&
-                          md.Contains("Cracked (hurt 0.42, wear 0.10, ~1.0 l/s)") && md.StartsWith("# Hansa notes"),
+                          md.Contains("Cracked (hurt 0.42, wear 0.10, ~1.0 l/s)") && md.StartsWith("# Ships notes"),
                         "the readable list: each note's number, time and target, the comment quoted, the screenshot, the key numbers (her frame, the water, the wind, the view, the damage)");
                     File.WriteAllText(jp, "[ { \"number\": 1, ");
                     var broken = SurveyNoteFile.Load(jp, out string e2);
@@ -151,7 +151,7 @@ namespace HansaTests
                 string line = SurveyNoteFile.ListLine(a), chat = SurveyNoteFile.ChatText(a);
                 Check(line.StartsWith("#1 · 21:14 · Carrack \"Santa Maria\" #6743: Hull") && line.EndsWith("\"the gun port's sill looks too high from …\"") &&
                       chat.Contains("Screenshot: 2026-10-02_21-14-12.png") && SurveyNoteFile.ListLine(c).EndsWith("(frames 15–16)"),
-                    $"the list line (.hansa notes) and the note in chat: {line}");
+                    $"the list line (.ships notes) and the note in chat: {line}");
             }
 
             // ---- the hand-made sample that tools/shipgen/view.py notes reads
@@ -169,7 +169,7 @@ namespace HansaTests
         {
             Number = number,
             Time = "2026-10-02 21:14:05", TimeUtc = "2026-10-02T19:14:05.123Z", GameDate = "12. May, Year 2, 14:00", GameHours = 1234.5,
-            Hansa = "0.3.6", Sea = "0.3.3", Game = "1.22.7", World = "abc", Comment = comment,
+            ShipsVersion = "0.3.6", Sea = "0.3.3", Game = "1.22.7", World = "abc", Comment = comment,
             Target = new NoteTarget
             {
                 Kind = "ship", Summary = "Carrack \"Santa Maria\" #6743: Hull, starboard side, amidships, topsides (frames 15–16)",

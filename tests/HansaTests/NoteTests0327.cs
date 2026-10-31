@@ -67,8 +67,8 @@ namespace HansaTests
             var list = l.Beams[l.Slots[s0].Beam];
             int far = list.FirstOrDefault(n => n != s0 && n != s1, -1);
             if (far >= 0) foreach (int c in l.BesideOf[far]) st.Set(c, SlotState.Empty);
-            string third = far >= 0 ? BeamRules.TakeProblem(l, st, far) : "hansa:beam-too-many";
-            Check(inDeck == "hansa:beam-deck-in" && open == null && second == null && third == "hansa:beam-too-many",
+            string third = far >= 0 ? BeamRules.TakeProblem(l, st, far) : "ships:beam-too-many";
+            Check(inDeck == "ships:beam-deck-in" && open == null && second == null && third == "ships:beam-too-many",
                 $"a length comes out only with the deck either side open ({inDeck}, then {open ?? "allowed"}), its neighbour too ({second ?? "allowed"}), a third of that beam not ({third})");
             // drawn with them out: the carlings and the cut beam, no two quads in one plane
             var plan = new SlotMeshPlan(l, file);

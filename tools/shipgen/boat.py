@@ -30,10 +30,10 @@ from planking import BANDS, flat_between, skin, sweep_cap, sweep_patch, transom 
 from shipgen import Design, Material, interp  # noqa: E402
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-ASSETS = os.path.join(ROOT, "assets", "hansa")
+ASSETS = os.path.join(ROOT, "assets", "ships")
 DOCS = os.path.join(ROOT, "docs")
 
-CODE = "skiff"                 # the design; the item and entity are hansa:boat-skiff
+CODE = "skiff"                 # the design; the item and entity are ships:boat-skiff
 ITEM = "boat-skiff"
 B2 = 0.95                      # half beam at the gunwale amidships
 KEEL = -0.6                    # bottom of the hull (the keel's underside a little lower)
@@ -110,7 +110,7 @@ def inner_hw(x, y):
 def build():
     d = Design(CODE, -3.25, 3.25, -1.0, 1.5, -1.25, 1.25)
     d.hull_thickness = HULL_T
-    d.material(Material("tarred", [f"game:block/wood/planks/oak{i}++3~hansa:block/tar" for i in range(1, 5)], (42, 30, 22), grain=True))
+    d.material(Material("tarred", [f"game:block/wood/planks/oak{i}++3~ships:block/tar" for i in range(1, 5)], (42, 30, 22), grain=True))
     d.material(Material("oak", [f"game:block/wood/planks/oak{i}" for i in range(1, 5)], (150, 112, 70), grain=True))
     d.material(Material("timber", ["game:block/wood/debarked/oak"], (160, 124, 84), grain=True))
     d.material(Material("pine", ["game:block/wood/debarked/pine"], (196, 160, 112), grain=True))
@@ -167,7 +167,7 @@ def build():
         "rowSpeed": 1.9,
         "maxAboard": 4,
         "boardFromWater": True,
-        "pickUpItem": "hansa:" + ITEM,
+        "pickUpItem": "ships:" + ITEM,
         "claddingPlates": 0,
         "hullSamples": hull_samples(),
         "waterClip": water_clip(),
@@ -465,7 +465,7 @@ def item_shape():
     """A model of boxes for the inventory and the hand (the boat itself is drawn from its mesh)."""
     m = Design("skiff-item", -3, 3, -1, 1.5, -1.2, 1.2)
     m.material(Material("planks", ["game:block/wood/planks/oak1"], (150, 112, 70)))
-    m.material(Material("tar", ["game:block/wood/planks/oak1++3~hansa:block/tar"], (60, 45, 30)))
+    m.material(Material("tar", ["game:block/wood/planks/oak1++3~ships:block/tar"], (60, 45, 30)))
     m.material(Material("timber", ["game:block/wood/debarked/oak"], (160, 124, 84)))
     n = 12
     xs = np.linspace(stern_x(0.5) + 0.02, bow_x(0.5) - 0.02, n + 1)
@@ -512,7 +512,7 @@ def item_shape():
 def entity_json():
     return {
         "code": ITEM,
-        "class": "hansa.EntityShip",
+        "class": "ships.EntityShip",
         "tags": ["inanimate", "vehicle"],
         "weight": 600,
         "hitboxSize": {"x": 2, "y": 1},
@@ -526,9 +526,9 @@ def entity_json():
 def item_json():
     return {
         "code": ITEM,
-        "class": "hansa.ItemShipDeed",
+        "class": "ships.ItemShipDeed",
         "attributes": {"ship": CODE, "boat": True},
-        "shape": {"base": "hansa:item/boat-skiff"},
+        "shape": {"base": "ships:item/boat-skiff"},
         "heldTpIdleAnimation": "holdunderarm",
         "maxstacksize": 1,
         "materialDensity": 600,
@@ -555,7 +555,7 @@ def recipe_json():
                         "R": {"type": "item", "code": "game:rope"}},
         "width": 3,
         "height": 3,
-        "output": {"type": "item", "code": "hansa:" + ITEM},
+        "output": {"type": "item", "code": "ships:" + ITEM},
     }
 
 

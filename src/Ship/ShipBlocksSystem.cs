@@ -23,7 +23,7 @@ namespace Hansa
     ///   tick; its blocks (and their block entities' state) saved as a vanilla BlockSchematic in her Attributes every 20 s, on
     ///   a world save and as she unloads, pasted into a fresh dimension when she loads (the engine doesn't keep dimensions over
     ///   a restart). Its chunks are sent to players as they come within view (the engine only sends chunks that change).
-    ///   Invisible solid support blocks (hansa:shipsupport) stand under them (her decks aren't blocks).
+    ///   Invisible solid support blocks (ships:shipsupport) stand under them (her decks aren't blocks).
     /// - The piece stays her record of it (its places, boxes and collision for walking, the item given back); it isn't drawn.
     /// - Going down: what's in them goes into her wreck's loot with the blocks' items; removed for good: dropped where she is.
     /// - Clients draw the dimension in her drawn pose (ShipDimClient), pick its blocks (ShipBlocksClient.Pick) and hand vanilla
@@ -33,8 +33,8 @@ namespace Hansa
     /// </summary>
     public class ShipBlocksSystem : ModSystem
     {
-        public const string HarmonyId = "hansa-blocks";
-        public static readonly AssetLocation SupportCode = new("hansa", "shipsupport");
+        public const string HarmonyId = "ships-blocks";
+        public static readonly AssetLocation SupportCode = new("ships", "shipsupport");
 
         static Harmony harmony;
         static int users;
@@ -141,13 +141,13 @@ namespace Hansa
             sapi = api;
             ServerInstance = this;
             api.Network.GetChannel(ChannelName).SetMessageHandler<BlocksAckPacket>(OnAck);
-            api.ChatCommands.GetOrCreate("hansa")
+            api.ChatCommands.GetOrCreate("ships")
                 .BeginSubCommand("blocks")
                     .WithDescription("Working blocks aboard (diagnostics): the ship you're on (else the nearest): her record, her dimension, the blocks at her cells, her chunks and which players they were sent to")
                     .HandleWith(args => TextCommandResult.Success(ServerReport(args.Caller.Player as IServerPlayer)))
                 .EndSubCommand();
             // (config WorkingBlocks off, the default for now: none of it runs, nothing is patched)
-            if (!Enabled) { api.Logger.Notification("[hansa] Working blocks aboard are off (config WorkingBlocks)"); return; }
+            if (!Enabled) { api.Logger.Notification("[ships] Working blocks aboard are off (config WorkingBlocks)"); return; }
             PatchShared(api.Logger);
             if (!serverPatched) { serverPatched = true; BlockPatches.ApplyServer(harmony, api.Logger); }
             api.Event.OnEntitySpawn += e => { if (e is EntityShip s) ShipUp(s); };
@@ -175,7 +175,7 @@ namespace Hansa
                 // an older ship's inert pieces of working blocks (put before 0.3.14, or with the switch off) start working
                 if (Enabled) MigratePieces(ship);
             }
-            catch (Exception e) { sapi.Logger.Error("[hansa] Working blocks of {0} #{1} could not be set up: {2}", ship.GetName(), ship.EntityId, e); }
+            catch (Exception e) { sapi.Logger.Error("[ships] Working blocks of {0} #{1} could not be set up: {2}", ship.GetName(), ship.EntityId, e); }
         }
 
         void ShipDown(EntityShip ship, EntityDespawnData d)
@@ -184,7 +184,7 @@ namespace Hansa
             bool gone = d?.Reason is EnumDespawnReason.Death or EnumDespawnReason.Combusted or EnumDespawnReason.PickedUp or EnumDespawnReason.Expire or EnumDespawnReason.Removed;
             // gone for good: what's in her working blocks dropped where she is (her pieces' items drop with her pieces);
             // unloading: saved with her
-            if (gone) { try { DropAll(ship); } catch (Exception e) { sapi.Logger.Warning("[hansa] Dropping the contents of #{0}'s working blocks: {1}", ship.EntityId, e.Message); } }
+            if (gone) { try { DropAll(ship); } catch (Exception e) { sapi.Logger.Warning("[ships] Dropping the contents of #{0}'s working blocks: {1}", ship.EntityId, e.Message); } }
             else Capture(sd);
             Release(sd);
         }
@@ -220,7 +220,7 @@ namespace Hansa
             var origin = ship.Attributes["hansaBlockSchemAt"] as IntArrayAttribute;
             if (json == null || origin?.value == null || origin.value.Length < 3)
             {
-                sapi.Logger.Warning("[hansa] {0} #{1} has working blocks but no saved schematic: placing them anew", ship.GetName(), ship.EntityId);
+                sapi.Logger.Warning("[ships] {0} #{1} has working blocks but no saved schematic: placing them anew", ship.GetName(), ship.EntityId);
                 foreach (var s in rec.Supports) SetSupport(sd, s[0], s[1], s[2]);
                 foreach (var c in rec.Cells.OrderBy(c => c.J)) SetCellBlock(sd, c, null);
                 // (review H4-5) placed anew all the same; but a schematic with no usable place to put it was never read: what
@@ -229,10 +229,10 @@ namespace Hansa
             }
             string err = null;
             var sch = BlockSchematic.LoadFromString(json, ref err);
-            if (sch == null) { sapi.Logger.Error("[hansa] {0} #{1}: working blocks' schematic unreadable: {2}", ship.GetName(), ship.EntityId, err); return false; }
+            if (sch == null) { sapi.Logger.Error("[ships] {0} #{1}: working blocks' schematic unreadable: {2}", ship.GetName(), ship.EntityId, err); return false; }
             ShipBlockMath.DimPos(sd.Sub, origin.value[0], origin.value[1], origin.value[2], out int x, out int y, out int z);
             sch.PasteToMiniDimension(sapi, sapi.World.BlockAccessor, sd.Dim, new BlockPos(x, y, z, Dimensions.MiniDimensions), false);
-            sapi.Logger.Notification("[hansa] {0} #{1}: {2} working block(s) back in her dimension {3}", ship.GetName(), ship.EntityId, rec.Cells.Count, sd.Sub);
+            sapi.Logger.Notification("[ships] {0} #{1}: {2} working block(s) back in her dimension {3}", ship.GetName(), ship.EntityId, rec.Cells.Count, sd.Sub);
             return true;
         }
 
@@ -258,7 +258,7 @@ namespace Hansa
                 // (her chunk is saved with her: make sure it is)
                 sapi.WorldManager.GetChunk(ship.Pos.AsBlockPos)?.MarkModified();
             }
-            catch (Exception e) { sapi.Logger.Error("[hansa] Could not save the working blocks of {0} #{1}: {2}", ship.GetName(), ship.EntityId, e.Message); }
+            catch (Exception e) { sapi.Logger.Error("[ships] Could not save the working blocks of {0} #{1}: {2}", ship.GetName(), ship.EntityId, e.Message); }
         }
 
         /// <summary>Her dimension emptied and let go of (she unloaded or went for good).</summary>
@@ -272,7 +272,7 @@ namespace Hansa
                 sd.Dim.ClearChunks();
                 sd.Dim.UnloadUnusedServerChunks();
             }
-            catch (Exception e) { sapi.Logger.Warning("[hansa] Clearing dimension {0}: {1}", sd.Sub, e.Message); }
+            catch (Exception e) { sapi.Logger.Warning("[ships] Clearing dimension {0}: {1}", sd.Sub, e.Message); }
             Unregister(sd.Sub);
         }
 
@@ -286,7 +286,7 @@ namespace Hansa
                 loadedDims ??= AccessTools.Field(AccessTools.TypeByName("Vintagestory.Server.ServerMain"), "LoadedMiniDimensions");
                 if (loadedDims?.GetValue(sapi.World) is ConcurrentDictionary<int, IMiniDimension> d) d.TryRemove(sub, out _);
             }
-            catch (Exception e) { sapi.Logger.Warning("[hansa] Could not unregister dimension {0}: {1}", sub, e.Message); }
+            catch (Exception e) { sapi.Logger.Warning("[ships] Could not unregister dimension {0}: {1}", sub, e.Message); }
         }
 
         void MoveAll()
@@ -315,7 +315,7 @@ namespace Hansa
                     Reconcile(sd);
                     if (now - sd.SavedAt > 20) Capture(sd);
                 }
-                catch (Exception e) { sapi.Logger.Warning("[hansa] Working blocks of #{0}: {1}", sd.Ship.EntityId, e.Message); }
+                catch (Exception e) { sapi.Logger.Warning("[ships] Working blocks of #{0}: {1}", sd.Ship.EntityId, e.Message); }
             }
         }
 
@@ -350,7 +350,7 @@ namespace Hansa
                     if (sends == MaxSends)
                     {
                         sd.Sends[uid] = sends + 1;
-                        sapi.Logger.Warning("[hansa] working blocks: {0} #{1}'s dimension {2}: {3}'s client still hasn't all of them after {4} sends; not sent again until they come within view anew",
+                        sapi.Logger.Warning("[ships] working blocks: {0} #{1}'s dimension {2}: {3}'s client still hasn't all of them after {4} sends; not sent again until they come within view anew",
                             sd.Ship.GetName(), sd.Ship.EntityId, sd.Sub, pl.PlayerName, sends);
                     }
                     continue;
@@ -375,7 +375,7 @@ namespace Hansa
             if (sends == 0) MarkAllDirty(sd);
             int forced = ForceSend(sd, pl, out string err);
             if (sends < 3 || sends % 10 == 0 || err != null)
-                sapi.Logger.Notification("[hansa] working blocks: {0} #{1}'s dimension {2} sent to {3} ({4}): {5} chunk(s) queued{6}", sd.Ship.GetName(), sd.Ship.EntityId, sd.Sub,
+                sapi.Logger.Notification("[ships] working blocks: {0} #{1}'s dimension {2} sent to {3} ({4}): {5} chunk(s) queued{6}", sd.Ship.GetName(), sd.Ship.EntityId, sd.Sub,
                     pl.PlayerName, why, forced, err != null ? "; " + err : "");
         }
 
@@ -466,14 +466,14 @@ namespace Hansa
             bool first = !sd.Acked.TryGetValue(pl.PlayerUID, out var was);
             sd.Acked[pl.PlayerUID] = p;
             if (first || was.Resolved != p.Resolved || was.Total != p.Total || was.Registered != p.Registered)
-                sapi.Logger.Notification("[hansa] working blocks: {0}'s client has {1}/{2} of {3} #{4}'s working blocks ({5} chunk(s), dimension {6} {7})", pl.PlayerName, p.Resolved, p.Total,
+                sapi.Logger.Notification("[ships] working blocks: {0}'s client has {1}/{2} of {3} #{4}'s working blocks ({5} chunk(s), dimension {6} {7})", pl.PlayerName, p.Resolved, p.Total,
                     sd.Ship.GetName(), sd.Ship.EntityId, p.Chunks, p.Sub, p.Registered ? "registered" : "NOT registered");
         }
 
-        /// <summary>/hansa blocks: the ship the player's on (else the nearest within 100 blocks).</summary>
+        /// <summary>/ships blocks: the ship the player's on (else the nearest within 100 blocks).</summary>
         string ServerReport(IServerPlayer pl)
         {
-            if (!Enabled) return "Working blocks aboard are off on this server (config WorkingBlocks in ModConfig/hansa.json)";
+            if (!Enabled) return "Working blocks aboard are off on this server (config WorkingBlocks in ModConfig/ships.json)";
             EntityShip ship = pl?.Entity?.MountedOn is ShipSeat seat ? seat.Ship : null;
             if (ship == null && pl?.Entity != null)
                 ship = mod?.ServerShips.Where(s => s.Alive && s.Pos.DistanceTo(pl.Entity.Pos.XYZ) < 100).OrderBy(s => s.Pos.SquareDistanceTo(pl.Entity.Pos.XYZ)).FirstOrDefault();
@@ -637,7 +637,7 @@ namespace Hansa
             p.Role = PieceRole.Deco;
             ship.BlocksChangedPieces();
             Capture(sd);
-            sapi.Logger.Audit("[hansa] {0} on {1} #{2} works aboard: {3} at cell {4},{5},{6} of dimension {7}", p.Stack?.Collectible?.Code, ship.GetName(), ship.EntityId, cell.Code, i, j, k, sd.Sub);
+            sapi.Logger.Audit("[ships] {0} on {1} #{2} works aboard: {3} at cell {4},{5},{6} of dimension {7}", p.Stack?.Collectible?.Code, ship.GetName(), ship.EntityId, cell.Code, i, j, k, sd.Sub);
             return true;
         }
 
@@ -650,7 +650,7 @@ namespace Hansa
                 if (ship.IsWorkingPiece(p.Id) || p.Stack?.Block == null || !IsWorking(p.Stack.Block)) continue;
                 if (TryMakeReal(ship, p, p.Stack, false)) n++;
             }
-            if (n > 0) sapi.Logger.Notification("[hansa] {0} #{1}: {2} piece(s) put before working blocks now work aboard", ship.GetName(), ship.EntityId, n);
+            if (n > 0) sapi.Logger.Notification("[ships] {0} #{1}: {2} piece(s) put before working blocks now work aboard", ship.GetName(), ship.EntityId, n);
         }
 
         /// <summary>What's in a working block's block entity (its inventory), or none.</summary>
@@ -677,17 +677,17 @@ namespace Hansa
                     if (Restore(ship) && DimOf(ship) is ShipDim borrowed)
                         empty = !Contents(sapi.World.BlockAccessor.GetBlockEntity(CellPos(borrowed, c.I, c.J, c.K))).Any();
                 }
-                catch (Exception e) { sapi.Logger.Warning("[hansa] Working block of #{0} looked into: {1}", ship.EntityId, e.Message); }
+                catch (Exception e) { sapi.Logger.Warning("[ships] Working block of #{0} looked into: {1}", ship.EntityId, e.Message); }
                 finally
                 {
                     if (DimOf(ship) is ShipDim made) Release(made);
                 }
-                return empty ? null : "hansa:piece-not-empty";
+                return empty ? null : "ships:piece-not-empty";
             }
             if (sd != null && c != null)
             {
                 var be = sapi.World.BlockAccessor.GetBlockEntity(CellPos(sd, c.I, c.J, c.K));
-                if (Contents(be).Any()) return "hansa:piece-not-empty";
+                if (Contents(be).Any()) return "ships:piece-not-empty";
                 sapi.Event.RegisterCallback(_ => { if (dims.ContainsKey(ship.EntityId)) Reconcile(sd); }, 1);
             }
             return null;
@@ -703,7 +703,7 @@ namespace Hansa
             if (sd == null && sapi != null && ship.BlockRecord.Cells.Count > 0)
             {
                 try { Restore(ship); }
-                catch (Exception e) { sapi.Logger.Warning("[hansa] Working blocks of #{0} for her loot: {1}", ship.EntityId, e.Message); }
+                catch (Exception e) { sapi.Logger.Warning("[ships] Working blocks of #{0} for her loot: {1}", ship.EntityId, e.Message); }
                 sd = DimOf(ship);
                 borrowed = sd != null;
             }
@@ -792,11 +792,11 @@ namespace Hansa
             // (review H1-11) only her crew break her working blocks up (and take what's in them)
             if (p != null && byPlayer != null && !sd.Ship.MayUse(byPlayer))
             {
-                claimant = Lang.GetL(byPlayer.LanguageCode, sd.Ship.LaidUp ? "hansa:laidup-closed" : "hansa:crew-only", sd.Ship.GetName());
+                claimant = Lang.GetL(byPlayer.LanguageCode, sd.Ship.LaidUp ? "ships:laidup-closed" : "ships:crew-only", sd.Ship.GetName());
                 return false;
             }
             if (p != null && sd.Ship.Pieces.StandingOn(sd.Ship.Mounts, p) == null && !sd.Ship.GoneDown) return true;
-            claimant = Lang.GetL(byPlayer?.LanguageCode ?? "en", p != null ? "hansa:piece-under" : "hansa:ship-in-the-way");
+            claimant = Lang.GetL(byPlayer?.LanguageCode ?? "en", p != null ? "ships:piece-under" : "ships:ship-in-the-way");
             return false;
         }
 
@@ -832,18 +832,18 @@ namespace Hansa
             api.Event.OnEntityLoaded += e => { if (e is EntityShip s) ClientShipUp(s); };
             api.Event.OnEntityDespawn += (e, d) => { if (e is EntityShip s) ClientShipDown(s); };
             api.Event.RegisterGameTickListener(_ => ClientTick(), 1000);
-            // (after every mod's StartClientSide: .hansa is ShipClientSystem's)
+            // (after every mod's StartClientSide: .ships is ShipClientSystem's)
             api.Event.LevelFinalize += () =>
             {
                 try
                 {
-                    api.ChatCommands.GetOrCreate("hansa")
+                    api.ChatCommands.GetOrCreate("ships")
                         .BeginSubCommand("blocks")
                             .WithDescription("Working blocks aboard (diagnostics): what this client has of the working blocks of the ship in the crosshair (else the nearest)")
                             .HandleWith(_ => TextCommandResult.Success(ClientReport()))
                         .EndSubCommand();
                 }
-                catch (Exception e) { api.Logger.Warning("[hansa] Could not add .hansa blocks: {0}", e.Message); }
+                catch (Exception e) { api.Logger.Warning("[ships] Could not add .ships blocks: {0}", e.Message); }
             };
         }
 
@@ -867,7 +867,7 @@ namespace Hansa
         void LogRecord(EntityShip ship, string how)
         {
             var rec = ship.BlockRecord;
-            capi.Logger.Notification("[hansa] working blocks: {0} #{1}'s record {2}: sub {3}, {4} working block(s) ({5}), {6} support(s)", ship.GetName(), ship.EntityId, how, rec.Sub,
+            capi.Logger.Notification("[ships] working blocks: {0} #{1}'s record {2}: sub {3}, {4} working block(s) ({5}), {6} support(s)", ship.GetName(), ship.EntityId, how, rec.Sub,
                 rec.Cells.Count, string.Join(", ", rec.Cells.Select(c => $"piece {c.Piece} {c.Code} at {c.I},{c.J},{c.K}")), rec.Supports.Count);
         }
 
@@ -891,7 +891,7 @@ namespace Hansa
             clientShips[ship.EntityId] = ship;
             clientSubs[sub] = ship;
             try { ShipDimClient.Register(capi, ship, sub); }
-            catch (Exception e) { capi.Logger.Warning("[hansa] working blocks: could not set up dimension {0} of {1} #{2} on this client: {3}", sub, ship.GetName(), ship.EntityId, e); }
+            catch (Exception e) { capi.Logger.Warning("[ships] working blocks: could not set up dimension {0} of {1} #{2} on this client: {3}", sub, ship.GetName(), ship.EntityId, e); }
         }
 
         /// <summary>
@@ -913,18 +913,18 @@ namespace Hansa
                     told.TryGetValue(ship.EntityId, out var was);
                     bool changed = was.At == 0 || was.Resolved != resolved || was.Total != total || was.Chunks != chunks || was.Registered != registered;
                     if (changed)
-                        capi.Logger.Notification("[hansa] working blocks: this client has {0}/{1} of {2} #{3}'s working blocks ({4} of {5} chunk(s); dimension {6} {7})", resolved, total, ship.GetName(),
+                        capi.Logger.Notification("[ships] working blocks: this client has {0}/{1} of {2} #{3}'s working blocks ({4} of {5} chunk(s); dimension {6} {7})", resolved, total, ship.GetName(),
                             ship.EntityId, chunks, ShipBlocksClient.ChunkKeys(rec).Count, rec.Sub, registered ? "registered" : "NOT registered");
                     if (!changed && (resolved >= total || now - was.At < 3)) continue;
                     if (clientChannel?.Connected == true)
                         clientChannel.SendPacket(new BlocksAckPacket { ShipId = ship.EntityId, Sub = rec.Sub, Resolved = resolved, Total = total, Chunks = chunks, Registered = registered });
                     told[ship.EntityId] = (resolved, total, chunks, registered, now);
                 }
-                catch (Exception e) { capi.Logger.Warning("[hansa] working blocks: checking #{0}: {1}", ship.EntityId, e.Message); }
+                catch (Exception e) { capi.Logger.Warning("[ships] working blocks: checking #{0}: {1}", ship.EntityId, e.Message); }
             }
         }
 
-        /// <summary>.hansa blocks: the ship in the crosshair, else the nearest (within 100 blocks).</summary>
+        /// <summary>.ships blocks: the ship in the crosshair, else the nearest (within 100 blocks).</summary>
         string ClientReport()
         {
             var ep = capi.World.Player?.Entity;
@@ -936,7 +936,7 @@ namespace Hansa
                     .OrderBy(s => s.Pos.SquareDistanceTo(ep.Pos.XYZ)).FirstOrDefault();
             if (ship == null) return "No ship near.";
             string text = ShipBlocksClient.Report(capi, ship);
-            capi.Logger.Notification("[hansa] working blocks (.hansa blocks):\n" + text);
+            capi.Logger.Notification("[ships] working blocks (.ships blocks):\n" + text);
             return text;
         }
 

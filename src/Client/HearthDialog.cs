@@ -58,7 +58,7 @@ namespace Hansa
                 ship.HearthDialogValues(Attributes);
                 SetupDialog();
                 OnAttributesModified();
-            }, "hansa-hearthdlg");
+            }, "ships-hearthdlg");
         }
 
         void SetupDialog()
@@ -105,7 +105,7 @@ namespace Hansa
             int[] cookingSlotIds = new int[cookingSlots];
             for (int i = 0; i < cookingSlots; i++) cookingSlotIds[i] = 3 + i;
 
-            SingleComposer = capi.Gui.CreateCompo("hansa-hearth-" + ship.EntityId, dialogBounds)
+            SingleComposer = capi.Gui.CreateCompo("ships-hearth-" + ship.EntityId, dialogBounds)
                 .AddShadedDialogBG(bgBounds, true, 5, 0.75f)
                 .AddDialogTitleBar(DialogTitle, () => TryClose())
                 .BeginChildElements(bgBounds)
@@ -233,7 +233,7 @@ namespace Hansa
             base.OnFinalizeFrame(dt);
             if (ShipStorageDialog.TooFar(capi, ship, fixture) || ship.HearthInv != inv)
             {
-                capi.Event.EnqueueMainThreadTask(() => TryClose(), "hansa-closehearth");
+                capi.Event.EnqueueMainThreadTask(() => TryClose(), "ships-closehearth");
                 return;
             }
             // the server sent the hearth again (twice a second while it burns): its values, and the layout if a pot came or went

@@ -23,17 +23,17 @@ namespace HansaTests
             Console.WriteLine("0.1.0-dev.8: caravel notes 68, 71, 77 (painting her)");
 
             // ---- note 71: a block's baked texture painted with its turn kept
-            Check(ShipPaint.PaintedBaked("game:block/wood/planks/pine2@90", "red") == "hansa:block/paint/oak2++3~hansa:block/dye/red@90" &&
-                  ShipPaint.PaintedBaked("game:block/wood/planks/oak1@90", null, "dmg-cracked") == "game:block/wood/planks/oak1++0~hansa:block/dmg-cracked@90" &&
-                  ShipPaint.PaintedBaked("game:block/wood/planks/oak3", "blue", "dmg-cracked") == "hansa:block/paint/oak3++3~hansa:block/dye/blue++0~hansa:block/dmg-cracked" &&
-                  ShipPaint.PaintedBaked("game:block/wood/debarked/oak@270", "white") == "hansa:block/paint/timber++3~hansa:block/dye/white@270" &&
+            Check(ShipPaint.PaintedBaked("game:block/wood/planks/pine2@90", "red") == "ships:block/paint/oak2++3~ships:block/dye/red@90" &&
+                  ShipPaint.PaintedBaked("game:block/wood/planks/oak1@90", null, "dmg-cracked") == "game:block/wood/planks/oak1++0~ships:block/dmg-cracked@90" &&
+                  ShipPaint.PaintedBaked("game:block/wood/planks/oak3", "blue", "dmg-cracked") == "ships:block/paint/oak3++3~ships:block/dye/blue++0~ships:block/dmg-cracked" &&
+                  ShipPaint.PaintedBaked("game:block/wood/debarked/oak@270", "white") == "ships:block/paint/timber++3~ships:block/dye/white@270" &&
                   ShipPaint.PaintedBaked("game:block/wood/planks/oak1@90", null) == "game:block/wood/planks/oak1@90",
                 "note 71: a vanilla block's texture as baked (planks laid up-down: \"@90\") painted and cracked with its quarter turn kept, any wood's planks oak's grain");
 
             // (HANSA_TEST_CARAVEL_ROOT: another checkout's caravel, read in place: a new export checked before it's here)
             root = Environment.GetEnvironmentVariable("HANSA_TEST_CARAVEL_ROOT") is string other && other.Length > 0 ? other : root;
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "caravel.json");
-            string meshPath = Path.Combine(root, "assets", "hansa", "config", "shipmeshes", "caravel.json");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", "caravel.json");
+            string meshPath = Path.Combine(root, "assets", "ships", "config", "shipmeshes", "caravel.json");
             if (!File.Exists(path) || !File.Exists(meshPath)) { Console.WriteLine("  --   no caravel"); return; }
             var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
             def.Init();
@@ -187,13 +187,13 @@ namespace HansaTests
             Console.WriteLine("0.1.0-dev.9: caravel note 101 (copper on her bottom; paint by rows over the waterline)");
             int Per(string code) => ShipFittings.CladdingItemsPerPlate(new ItemStack(new Item { Code = new AssetLocation(code) }));
             Check(Per("game:metalplate-copper") == 1 && Per("game:metalsheet-copper-down") == 2 && Per("game:metalsheet-copper-north") == 2 &&
-                  Per("game:metalplate-iron") == 0 && Per("game:metalsheet-iron-down") == 0 && Per("game:ingot-copper") == 0 && Per("hansa:metalplate-copper") == 0,
+                  Per("game:metalplate-iron") == 0 && Per("game:metalsheet-iron-down") == 0 && Per("game:ingot-copper") == 0 && Per("ships:metalplate-copper") == 0,
                 "note 101: her bottom sheathed with copper plates or vanilla's copper sheets (two a plate: a sheet is one ingot, a plate two), nothing else");
 
             // (HANSA_TEST_CARAVEL_ROOT: another checkout's caravel, read in place: a new export checked before it's here)
             root = Environment.GetEnvironmentVariable("HANSA_TEST_CARAVEL_ROOT") is string other && other.Length > 0 ? other : root;
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "caravel.json");
-            string meshPath = Path.Combine(root, "assets", "hansa", "config", "shipmeshes", "caravel.json");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", "caravel.json");
+            string meshPath = Path.Combine(root, "assets", "ships", "config", "shipmeshes", "caravel.json");
             if (!File.Exists(path) || !File.Exists(meshPath)) { Console.WriteLine("  --   no caravel"); return; }
             var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
             def.Init();

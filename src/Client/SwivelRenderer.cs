@@ -6,7 +6,7 @@ using Vintagestory.API.MathTools;
 namespace Hansa
 {
     /// <summary>
-    /// (25 October 2026) Her swivel guns (<see cref="SwivelGun"/>), drawn from their own small shape (hansa:shapes/block/swivelgun):
+    /// (25 October 2026) Her swivel guns (<see cref="SwivelGun"/>), drawn from their own small shape (ships:shapes/block/swivelgun):
     /// the socket in her rail cap, the yoke turned with the gun's train, the barrel with that and its elevation, as it's laid
     /// now (<see cref="SwivelGun.PartMatrices"/>, the laying's own geometry: the drawn muzzle is where its shot leaves).
     /// </summary>
@@ -20,17 +20,17 @@ namespace Hansa
         {
             if (swivelTried) return;
             swivelTried = true;
-            var loc = new AssetLocation("hansa", "shapes/block/swivelgun.json");
+            var loc = new AssetLocation("ships", "shapes/block/swivelgun.json");
             var shape = Shape.TryGet(capi, loc);
             if (shape == null)
             {
-                capi.Logger.Error("[hansa] The swivel gun's shape {0} isn't there: swivel guns aren't drawn", loc);
+                capi.Logger.Error("[ships] The swivel gun's shape {0} isn't there: swivel guns aren't drawn", loc);
                 return;
             }
             var tex = new ShapeTextureSource(capi, shape, loc.ToString());
             MultiTextureMeshRef Part(string prefix)
             {
-                capi.Tesselator.TesselateShape("hansa swivel gun", shape, out MeshData md, tex, null, 0, 0, 0, null, new[] { prefix + "*" });
+                capi.Tesselator.TesselateShape("ships swivel gun", shape, out MeshData md, tex, null, 0, 0, 0, null, new[] { prefix + "*" });
                 if (md == null || md.VerticesCount == 0) return null;
                 // (the shape's socket top at (0.5, 0, 0.5) of its block: to the origin)
                 md.Translate(-0.5f, 0, -0.5f);

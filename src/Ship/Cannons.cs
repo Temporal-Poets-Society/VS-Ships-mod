@@ -42,7 +42,7 @@ namespace Hansa
         /// client at the muzzle as the shot's packet comes (CannonClient), duller and quieter far off. Till 0.3.24 the server
         /// played vanilla's large explosion: 0.29 s of silence before it, then three seconds of rumble at nearly full loudness.
         /// </summary>
-        public string Report = "hansa:sounds/effect/cannon";
+        public string Report = "ships:sounds/effect/cannon";
         public int ReportVariants = 3;
         public float ReportRange = 200, ReportVolume = 1f;
         /// <summary>

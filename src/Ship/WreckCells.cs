@@ -33,8 +33,8 @@ namespace Hansa
             _ => "game:block/wood/planks/aged/aged1"
         };
 
-        /// <summary>Lang code of its name ("hansa:wreckmat-tarred").</summary>
-        public static string Lang(byte m) => "hansa:wreckmat-" + Texture(m);
+        /// <summary>Lang code of its name ("ships:wreckmat-tarred").</summary>
+        public static string Lang(byte m) => "ships:wreckmat-" + Texture(m);
 
         public static bool Metal(byte m) => m == Copper || m == Iron;
     }

@@ -19,12 +19,12 @@ namespace HansaTests
         /// </summary>
         static void PartitionViews(string root, string outDir, string tag)
         {
-            string path = Path.Combine(root, "assets", "hansa", "config", "ships", "caravel.json");
+            string path = Path.Combine(root, "assets", "ships", "config", "ships", "caravel.json");
             var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(path));
             def.Init();
             var l = def.Mounts;
-            var surf = SurfacesOf(def, Path.Combine(root, "assets", "hansa"));
-            var skin = JsonConvert.DeserializeObject<ShipSkinFile>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "shipmeshes", "caravel.json")));
+            var surf = SurfacesOf(def, Path.Combine(root, "assets", "ships"));
+            var skin = JsonConvert.DeserializeObject<ShipSkinFile>(File.ReadAllText(Path.Combine(root, "assets", "ships", "config", "shipmeshes", "caravel.json")));
             Directory.CreateDirectory(outDir);
             // her drawn triangles: every group but the moving parts, sails and shot; a slot group's quads as drawn with her
             // cells and panels as she starts

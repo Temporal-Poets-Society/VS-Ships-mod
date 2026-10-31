@@ -20,7 +20,7 @@ namespace Hansa
         /// </summary>
         public static bool OwnRightClick(CollectibleObject c)
         {
-            if (c == null || c is Block || c.Code?.Domain == "hansa") return false;
+            if (c == null || c is Block || c.Code?.Domain == "ships") return false;
             if (c.HeldPriorityInteract || c.NutritionProps != null) return true;
             return overrides.GetOrAdd(c.GetType(), t =>
             {

@@ -157,7 +157,7 @@ namespace Hansa
         /// <summary>Server: run a gun in and shut its port (Shift + right-click it). Returns an error lang code, or null.</summary>
         public string HouseGun(FixtureDef gun)
         {
-            if (gun?.Type != "gun" || gun.Lid == null) return "hansa:gun-no-lid";
+            if (gun?.Type != "gun" || gun.Lid == null) return "ships:gun-no-lid";
             if (!GunOpen(gun)) return null;
             if (gunLayers.ContainsKey(gun.Code)) gunLayers.Remove(gun.Code);
             OpenFittings.Remove(gun.Code);
@@ -267,13 +267,13 @@ namespace Hansa
         /// </summary>
         public string StartLaying(FixtureDef gun, EntityPlayer who, bool begin = true)
         {
-            if (gun?.Type != "gun" || who == null || !who.Alive) return "hansa:gun-cannot";
-            if (GunAbsent(gun)) return "hansa:gunplace-no-gun";
-            if (!Mod.Config.Cannons) return "hansa:gun-off";
-            if (GoneDown) return "hansa:gone-down";
-            if (!ByGun(gun, who, LayReach)) return "hansa:gun-far";
+            if (gun?.Type != "gun" || who == null || !who.Alive) return "ships:gun-cannot";
+            if (GunAbsent(gun)) return "ships:gunplace-no-gun";
+            if (!Mod.Config.Cannons) return "ships:gun-off";
+            if (GoneDown) return "ships:gone-down";
+            if (!ByGun(gun, who, LayReach)) return "ships:gun-far";
             long now = World.ElapsedMilliseconds;
-            if (gunLayers.TryGetValue(gun.Code, out var other) && other.Who != who && other.Who.Alive && other.Until > now) return "hansa:gun-taken";
+            if (gunLayers.TryGetValue(gun.Code, out var other) && other.Who != who && other.Who.Alive && other.Until > now) return "ships:gun-taken";
             // housed: its crew opens the port and runs it out first (it's laid once it's out: the client asks again
             // twice a second while the button is held)
             if (!GunOpen(gun) || GunRunIn(gun)) { if(begin) OpenGunPort(gun); return null; }
@@ -513,17 +513,17 @@ namespace Hansa
         /// </summary>
         public string FireGun(FixtureDef gun, Entity firer, IServerPlayer player, double? elevation = null, double? train = null)
         {
-            if (Api?.Side != EnumAppSide.Server || gun?.Type != "gun" || Def == null) return "hansa:gun-cannot";
-            if (GunAbsent(gun)) return "hansa:gunplace-no-gun";
-            if (!Mod.Config.Cannons) return "hansa:gun-off";
-            if (GoneDown) return "hansa:gone-down";
-            if (Mod.Shots == null) return "hansa:gun-cannot";
-            if (GunReloading(gun) > 0) return "hansa:gun-reloading";
-            if (!GunOpen(gun)) return "hansa:gun-housed";
-            if (GunRunIn(gun)) return "hansa:gun-load-run-out";
-            if (GunRunningOut(gun) > 0) return "hansa:gun-running-out";
+            if (Api?.Side != EnumAppSide.Server || gun?.Type != "gun" || Def == null) return "ships:gun-cannot";
+            if (GunAbsent(gun)) return "ships:gunplace-no-gun";
+            if (!Mod.Config.Cannons) return "ships:gun-off";
+            if (GoneDown) return "ships:gone-down";
+            if (Mod.Shots == null) return "ships:gun-cannot";
+            if (GunReloading(gun) > 0) return "ships:gun-reloading";
+            if (!GunOpen(gun)) return "ships:gun-housed";
+            if (GunRunIn(gun)) return "ships:gun-load-run-out";
+            if (GunRunningOut(gun) > 0) return "ships:gun-running-out";
             var st = Gun(gun.Code);
-            if(st.Charge!=GunLoading.Loaded) return st.Charge==0?"hansa:gun-load-powder":"hansa:gun-load-shot";
+            if(st.Charge!=GunLoading.Loaded) return st.Charge==0?"ships:gun-load-powder":"ships:gun-load-shot";
             st.FiredMs = World.ElapsedMilliseconds;
             st.Shots++;
             st.Charge=0;
@@ -590,14 +590,14 @@ namespace Hansa
         /// <summary>The look-at box and the hint's line for a gun: ready, or reloading (seconds), or guns off.</summary>
         public string GunText(FixtureDef gun)
         {
-            if (!CannonsOn) return Lang.Get("hansa:gun-state-off");
-            if (!GunOpen(gun)) return Lang.Get("hansa:gun-state-housed");
-            if (GunRunIn(gun)) return Lang.Get("hansa:gun-state-run-in")+" · "+Lang.Get(Gun(gun.Code).Charge==GunLoading.Loaded?"hansa:gun-load-full":Gun(gun.Code).Charge==0?"hansa:gun-load-powder":"hansa:gun-load-shot");
+            if (!CannonsOn) return Lang.Get("ships:gun-state-off");
+            if (!GunOpen(gun)) return Lang.Get("ships:gun-state-housed");
+            if (GunRunIn(gun)) return Lang.Get("ships:gun-state-run-in")+" · "+Lang.Get(Gun(gun.Code).Charge==GunLoading.Loaded?"ships:gun-load-full":Gun(gun.Code).Charge==0?"ships:gun-load-powder":"ships:gun-load-shot");
             double outIn = GunRunningOut(gun);
-            if (outIn > 0) return Lang.Get("hansa:gun-state-running-out", Math.Ceiling(outIn));
+            if (outIn > 0) return Lang.Get("ships:gun-state-running-out", Math.Ceiling(outIn));
             double left = GunReloading(gun);
-            return left > 0 ? Lang.Get("hansa:gun-state-reloading", Math.Ceiling(left)) : Gun(gun.Code).Charge!=GunLoading.Loaded
-                ? Lang.Get(Gun(gun.Code).Charge==0?"hansa:gun-load-powder":"hansa:gun-load-shot") : Lang.Get("hansa:gun-state-ready");
+            return left > 0 ? Lang.Get("ships:gun-state-reloading", Math.Ceiling(left)) : Gun(gun.Code).Charge!=GunLoading.Loaded
+                ? Lang.Get(Gun(gun.Code).Charge==0?"ships:gun-load-powder":"ships:gun-load-shot") : Lang.Get("ships:gun-state-ready");
         }
 
         /// <summary>
@@ -607,7 +607,7 @@ namespace Hansa
         public string GunHudText(FixtureDef gun, EntityAgent captain, bool laying)
         {
             var lay = GunLayNow(gun);
-            string text = Lang.Get("hansa:hud-gun", ShipHud.FixtureName(this, gun), GunLaying.Text(lay, gun), GunText(gun));
+            string text = Lang.Get("ships:hud-gun", ShipHud.FixtureName(this, gun), GunLaying.Text(lay, gun), GunText(gun));
             // ((0.3.27) laying relatively: at a limit while the aim is on it)
             bool mineNow = Api?.Side == EnumAppSide.Client && LayingHere == gun;
             GunLaying.Limits(gun, out float lt0, out float lt1, out float le0, out float le1, GunGateOpen(gun));
@@ -619,10 +619,10 @@ namespace Hansa
                 GunLaying.Limits(gun, out float t0, out float t1, out float e0, out float e1, GunGateOpen(gun));
                 // ((0.3.25) a stern chaser trains to port and starboard)
                 int across = GunLaying.TrainAcross(gun);
-                text += "\n" + (across == 0 ? Lang.Get("hansa:hud-gun-limit", Math.Round(-t0), Math.Round(t1), Math.Round(e0), Math.Round(e1))
-                    : Lang.Get("hansa:hud-gun-limit-across", Math.Round(across > 0 ? -t0 : t1), Math.Round(across > 0 ? t1 : -t0), Math.Round(e0), Math.Round(e1)));
+                text += "\n" + (across == 0 ? Lang.Get("ships:hud-gun-limit", Math.Round(-t0), Math.Round(t1), Math.Round(e0), Math.Round(e1))
+                    : Lang.Get("ships:hud-gun-limit-across", Math.Round(across > 0 ? -t0 : t1), Math.Round(across > 0 ? t1 : -t0), Math.Round(e0), Math.Round(e1)));
             }
-            return text + "\n" + Lang.Get(captain?.MountedOn is GunSeat ? "hansa:hud-gun-keys-seat" : "hansa:hud-gun-keys");
+            return text + "\n" + Lang.Get(captain?.MountedOn is GunSeat ? "ships:hud-gun-keys-seat" : "ships:hud-gun-keys");
         }
 
         /// <summary>The server's Cannons switch, for clients (synced with her state).</summary>

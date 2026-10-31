@@ -69,7 +69,7 @@ namespace Hansa
             var door = w.Blocks.FirstOrDefault(b => b != null && b.Id != 0 && VanillaPieceBlock.IsDoor(b));
             var hearth = B(ModularPieceDef.DefaultBlock("hearth"));
             Check(planks != null && VanillaPieceBlock.BuildingRefusal(planks, true) == null && ladder != null && VanillaPieceBlock.IsStructureBlock(ladder) &&
-                  door != null && VanillaPieceBlock.IsStructureBlock(door) && chest != null && VanillaPieceBlock.BuildingRefusal(chest, true) == "hansa:piece-build-decor" &&
+                  door != null && VanillaPieceBlock.IsStructureBlock(door) && chest != null && VanillaPieceBlock.BuildingRefusal(chest, true) == "ships:piece-build-decor" &&
                   VanillaPieceBlock.BuildingRefusal(chest, false) == null && (lantern == null || !VanillaPieceBlock.IsStructureBlock(lantern)) &&
                   hearth != null && !VanillaPieceBlock.IsStructureBlock(hearth),
                 $"after 0.1.0-dev.6: building mode puts structure only (planks, ladders, {door?.Code}); a chest, a lantern and {hearth?.Code} are put aboard with it off");
@@ -152,14 +152,14 @@ namespace Hansa
             string runOut = ship.TakeGunProblem(p3);
             ship.HouseGun(g);
             string hot = ship.TakeGunProblem(p3);
-            Check(fired == null && ship.Gun(g.Code).Shots == 1 && (g.Lid == null || runOut == "hansa:gun-take-run-out") && hot == "hansa:gun-take-hot",
+            Check(fired == null && ship.Gun(g.Code).Shots == 1 && (g.Lid == null || runOut == "ships:gun-take-run-out") && hot == "ships:gun-take-hot",
                 $"0.3.21: her {g.Code} (a gun place's) runs out and fires ({fired ?? "fired"}); it isn't taken up run out ({runOut}) nor hot ({hot})");
             ship.Gun(g.Code).FiredMs = long.MinValue / 2;
             var cb = g.Box;
             double cx = (cb[0] + cb[3]) / 2, cy = cb[1] + 0.3, cz = (cb[2] + cb[5]) / 2;
             string took = ship.TakeGun(p3);
             var saved = ship.WatchedAttributes.GetTreeAttribute("hansaGunPlaces");
-            Check(took == null && ship.GunAbsent(g) && !ship.Grid.SolidAt(cx, cy, cz) && ship.FireGun(g, null, null) == "hansa:gunplace-no-gun" &&
+            Check(took == null && ship.GunAbsent(g) && !ship.Grid.SolidAt(cx, cy, cz) && ship.FireGun(g, null, null) == "ships:gunplace-no-gun" &&
                   saved?.Count == 1,
                 $"0.3.21: cold and housed, {g.Code} is taken up ({took ?? "ok"}): gone from her collision, not fired, saved as one difference");
             // a cell under its room taken up: no gun there till it's laid again
@@ -170,7 +170,7 @@ namespace Hansa
                 string tc = ship.TakeCell(cell, null);
                 string refused = ship.MountGunProblem(p3, false);
                 string lc = ship.LayCell(cell, false);
-                Check(tc == null && refused == "hansa:gunplace-cell-empty" && lc == null, $"0.3.21: with a cell under its room taken up ({ship.SlotLayout.Slots[cell].Id}) the gun is refused ({refused}); laid again");
+                Check(tc == null && refused == "ships:gunplace-cell-empty" && lc == null, $"0.3.21: with a cell under its room taken up ({ship.SlotLayout.Slots[cell].Id}) the gun is refused ({refused}); laid again");
             }
             else Log($"0.3.21: {p3.Id} has no deck cells of its own under it (fixed strips): the empty-cell refusal is checked offline");
             string back = ship.MountGun(p3, false);
@@ -339,7 +339,7 @@ namespace Hansa
             if (reopened) ship.LayCell(bport, false);
             // ((0.3.30, note 236) the poop's broadside guns gone: none may be in its way now)
             Check(emptyAtStart && mounted == null && lidOpen && fired == null && shotsAfter == shotsBefore + 1 && aft > 0.95 && ml.X < transomOut &&
-                  across == 1 && (blocker == null || refused == "hansa:gunplace-gun-room") && took == null && then == null,
+                  across == 1 && (blocker == null || refused == "ships:gunplace-gun-room") && took == null && then == null,
                 $"0.3.25 (note 179): the stern chaser {sp.Id} starts empty ({emptyAtStart}), takes a gun ({mounted ?? "ok"}), runs out with its lid open ({lidOpen}) and fires " +
                 $"({fired ?? "fired"}) aft ({aft:0.00} along her stern), its muzzle {transomOut - ml.X:0.00} out of the transom, trained + to starboard ({across}); " +
                 $"meanwhile {blocker?.Id ?? "no broadside gun"} in its way is refused ({refused}); taken up again ({took ?? "ok"}), that one may be mounted ({then ?? "ok"})");
@@ -491,7 +491,7 @@ namespace Hansa
                 bool wasOpen = hatch.Open;
                 if (wasOpen) ship.ToggleHatch(null, hatch);
                 string why = $"shut: solid {ship.Grid.SolidAt(hx, hb[4] - 0.1, hz)}, cell {hc} open {ship.CellOpen(hc)}, take {ship.TakeProblem(hc)}, lay {ship.LayProblem(hc, false)}";
-                bool shutSolid = ship.Grid.SolidAt(hx, hb[4] - 0.1, hz) && !ship.CellOpen(hc) && ship.TakeProblem(hc) == "hansa:cell-hatch" && ship.LayProblem(hc, false) == "hansa:cell-hatch";
+                bool shutSolid = ship.Grid.SolidAt(hx, hb[4] - 0.1, hz) && !ship.CellOpen(hc) && ship.TakeProblem(hc) == "ships:cell-hatch" && ship.LayProblem(hc, false) == "ships:cell-hatch";
                 ship.ToggleHatch(null, hatch);
                 why += $"; open: solid {ship.Grid.SolidAt(hx, hb[4] - 0.1, hz)}, cell open {ship.CellOpen(hc)}";
                 bool openHole = !ship.Grid.SolidAt(hx, hb[4] - 0.1, hz) && ship.CellOpen(hc);
@@ -519,7 +519,7 @@ namespace Hansa
             StepABlocks();
             CharterOnce();
             var def = mod.GetShip("carrack-m");
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", "carrack-m"));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", "carrack-m"));
             if (def == null || type == null) { Log("0.3.17: no carrack-m (definition or entity): her launch not checked"); return; }
             int want = def.ModularPieces?.Length ?? 0;
             // (0.3.20, step B) until the generator gives her deck cells, the test's own (whole free cells, drawn nowhere): her
@@ -662,7 +662,7 @@ namespace Hansa
                         Check(lit == null, $"0.3.18: the laid hearth lights with fuel in it ({lit ?? "lit"})");
                         if (lit == null && fp != null)
                         {
-                            Check(ship.RemovePiece(fp, null) == "hansa:flue-hot" && ship.RemovePiece(hp, null) == "hansa:hearth-flue-first",
+                            Check(ship.RemovePiece(fp, null) == "ships:flue-hot" && ship.RemovePiece(hp, null) == "ships:hearth-flue-first",
                                 "0.3.18: while it burns its flue doesn't come off, nor the hearth from under its flue");
                         }
                         ship.Fire.Douse();

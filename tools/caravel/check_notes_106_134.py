@@ -7,8 +7,8 @@ import numpy as np
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-D = json.loads((ROOT / "assets/hansa/config/ships/caravel.json").read_text())
-M = json.loads((ROOT / "assets/hansa/config/shipmeshes/caravel.json").read_text())
+D = json.loads((ROOT / "assets/ships/config/ships/caravel.json").read_text())
+M = json.loads((ROOT / "assets/ships/config/shipmeshes/caravel.json").read_text())
 L = json.loads((ROOT / "models/caravel/caravel-lines.json").read_text())
 R = json.loads((ROOT / "models/caravel/caravel-report.json").read_text())
 failed = 0

@@ -37,7 +37,7 @@ namespace Hansa
         public override void StartServerSide(ICoreServerAPI api)
         {
             sapi = api;
-            try { cfg = api.LoadModConfig<SelfTestConfig>("hansa-selftest.json"); } catch { cfg = null; }
+            try { cfg = api.LoadModConfig<SelfTestConfig>("ships-selftest.json"); } catch { cfg = null; }
             if (cfg?.Enabled != true) return;
             api.Event.ServerRunPhase(EnumServerRunPhase.RunGame, () => api.Event.RegisterCallback(_ => Run(), 3000));
         }
@@ -67,11 +67,11 @@ namespace Hansa
             var def = mod.GetShip(cfg.Ship);
             if (cfg.Only == "wave-sway") { WaveSwayRun(mod, def); return; }
             Check(def != null, $"{cfg.Ship} definition loaded");
-            Check(sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship)) != null, $"{cfg.Ship} entity type registered");
-            Check(sapi.World.GetItem(new AssetLocation("hansa", "shipdeed-" + cfg.Ship)) != null, "charter item registered");
+            Check(sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship)) != null, $"{cfg.Ship} entity type registered");
+            Check(sapi.World.GetItem(new AssetLocation("ships", "shipdeed-" + cfg.Ship)) != null, "charter item registered");
             {
                 // the surveyor's chalk (its notes and marks are the client's): there, with its class, and made by no recipe
-                var chalk = sapi.World.GetItem(new AssetLocation("hansa", "surveyorschalk"));
+                var chalk = sapi.World.GetItem(new AssetLocation("ships", "surveyorschalk"));
                 bool crafted = chalk != null && sapi.World.GridRecipes.Any(r => r.Output?.Code != null && r.Output.Code.Equals(chalk.Code));
                 Check(chalk is ItemSurveyorsChalk && !crafted && chalk.CreativeInventoryTabs?.Contains("general") == true,
                     "the surveyor's chalk is registered (its own class, in the creative inventory, no recipe)");
@@ -129,7 +129,7 @@ namespace Hansa
                 if (cfg.Only == "grid") { GridLaunch(mod, spawn, y0, Finish); return; }
                 if(cfg.Only=="notes135")
                 {
-                    var type=sapi.World.GetEntityType(new AssetLocation("hansa:caravel"));
+                    var type=sapi.World.GetEntityType(new AssetLocation("ships:caravel"));
                     var ship=(EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
                     double level=EntityShip.FindWaterSurface(sapi.World,new BlockPos(spawn.X,y0+5,spawn.Z,0),2,6);
                     ship.Pos.SetPos(spawn.X,level,spawn.Z);sapi.World.SpawnEntity(ship);
@@ -161,20 +161,20 @@ namespace Hansa
             if (defA == null && mod.GetShip("carrack-m") == null)
                 Log("note the carracks' charters: not in this build (the release carries the caravel)");
             else
-            Check(defA != null && defA.Mounts?.Floors.Any() == true && sapi.World.GetEntityType(new AssetLocation("hansa", "carrack-a")) != null &&
-                  sapi.World.GetItem(new AssetLocation("hansa", "shipdeed-carrack-a")) != null,
+            Check(defA != null && defA.Mounts?.Floors.Any() == true && sapi.World.GetEntityType(new AssetLocation("ships", "carrack-a")) != null &&
+                  sapi.World.GetItem(new AssetLocation("ships", "shipdeed-carrack-a")) != null,
                 "the second design carrack-a (companion option A) is loaded, her entity and charter (shipdeed-carrack-a) registered");
             {
                 // (the user, 18 October 2026) only the caravel's charter is to be had (the creative inventory); the carracks'
                 // stay registered, and where a build carries their ships (not the release) an old deed still launches its
                 // ship (0.3.25 kept carrack-m's alone in the inventory)
-                Item Deed(string c) => sapi.World.GetItem(new AssetLocation("hansa", "shipdeed-" + c));
+                Item Deed(string c) => sapi.World.GetItem(new AssetLocation("ships", "shipdeed-" + c));
                 bool InCreative(Item it) => it?.CreativeInventoryTabs?.Contains("general") == true;
                 var dc = Deed(HansaMod.DefaultShip);
                 var carracks = new[] { "carrack", "carrack-a", "carrack-m", "hansa-carrack" };
                 Check(InCreative(dc) && dc.Attributes?["ship"].AsString() == HansaMod.DefaultShip &&
                       carracks.All(c => Deed(c) is Item it && !InCreative(it) && it.Attributes?["ship"].AsString() == c &&
-                          (mod.GetShip(c) == null || sapi.World.GetEntityType(new AssetLocation("hansa", c)) != null)),
+                          (mod.GetShip(c) == null || sapi.World.GetEntityType(new AssetLocation("ships", c)) != null)),
                     $"only the {HansaMod.DefaultShip}'s charter is in the creative inventory; the carracks' ({string.Join(", ", carracks)}) stay registered, " +
                     $"and launch their ships where this build has them ({carracks.Count(c => mod.GetShip(c) != null)} of {carracks.Length})");
             }
@@ -224,13 +224,13 @@ namespace Hansa
             if (def?.Mounts == null) return;
             try
             {
-                var asset = def.SkinFile != null || def.Shapes?.Skin == null ? null : sapi.Assets.TryGet(AssetLocation.Create(def.Shapes.Skin, "hansa"));
+                var asset = def.SkinFile != null || def.Shapes?.Skin == null ? null : sapi.Assets.TryGet(AssetLocation.Create(def.Shapes.Skin, "ships"));
                 // (a grid ship's mesh is built in memory: def.SkinFile)
                 var file = def.SkinFile ?? (asset == null ? null : Newtonsoft.Json.JsonConvert.DeserializeObject<ShipSkinFile>(System.Text.Encoding.UTF8.GetString(asset.Data)));
                 if (file == null) { Log($"{def.Code} has no mesh file here: her partitions' surfaces aren't checked"); return; }
                 var surfaces = ShipSurfaces.From(file, def.Slots);
                 foreach (var loc in new[] { def.Shapes.Interior, def.Shapes.Exterior })
-                    if (loc != null && Shape.TryGet(sapi, AssetLocation.Create(loc, "hansa").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json")) is Shape sh) surfaces.AddShape(sh);
+                    if (loc != null && Shape.TryGet(sapi, AssetLocation.Create(loc, "ships").WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json")) is Shape sh) surfaces.AddShape(sh);
                 var l = def.Mounts;
                 // (notes 148-149 are the carrack's own places: another design's beams and sides are elsewhere)
                 bool theCarrack = def.Code is "carrack" or "carrack-a";
@@ -325,13 +325,13 @@ namespace Hansa
             Check(!EntityShip.PoseBlocked(sapi.World, def, sx, wy, sz, yaw, 0), "start pose is clear water");
             Check(EntityShip.PoseBlocked(sapi.World, def, spawn.X + 40.5, wy, sz, yaw, 0), "pose straddling the far wall is blocked");
 
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship));
             var ship = (EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
             ship.Pos.SetPos(sx, wy, sz);
             ship.Pos.Yaw = (float)yaw;
             // as if saved by an older version: a chest the design no longer has, with 4 sticks in it
             var stick = sapi.World.GetItem(new AssetLocation("game", "stick"));
-            var oldChest = new InventoryGeneric(16, "hansa-old", "0", sapi);
+            var oldChest = new InventoryGeneric(16, "ships-old", "0", sapi);
             oldChest[3].Itemstack = new ItemStack(stick, 4);
             var oldTree = new Vintagestory.API.Datastructures.TreeAttribute();
             oldChest.ToTreeAttributes(oldTree);
@@ -409,7 +409,7 @@ namespace Hansa
                 Check(worstApplied < 1e-9, "her height is the still-water level plus the heave");
                 Check(worstAgain < 1e-9, $"the heave is the ship's answer to the shared waves (worst {worstAgain:e1})");
                 Check(Math.Abs(ship.BaseY - surface) < 0.05, $"the still-water level stays at the surface ({ship.BaseY - surface:0.000})");
-                Check(Math.Abs((ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetDouble("baseY") ?? double.NaN) - ship.BaseY) < 1e-9, "the still-water level is synced to clients");
+                Check(Math.Abs((ship.WatchedAttributes.GetTreeAttribute("ships")?.GetDouble("baseY") ?? double.NaN) - ship.BaseY) < 1e-9, "the still-water level is synced to clients");
                 // what riding the waves costs a ship each server tick
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 for (int i = 0; i < 2000; i++) ship.WaveMotion(ship.Pos.X, ship.Pos.Z, ship.Pos.Yaw + i * 1e-4);
@@ -430,9 +430,9 @@ namespace Hansa
             var w = ship.WindHere(ship.Pos.X, ship.Pos.Z);
             Sailing.Apparent(w.X, w.Z, ship.Pos.Yaw, ship.Speed, out double ax, out double az);
             Sailing.Trim(Sailing.WindAngle(ax, az, ship.Pos.Yaw, out int side), side, ship.SailingNow, out _, out double sheet);
-            Check(ship.Lee == 1 && Math.Abs(ship.LeeShown - 1) < 1e-3 && ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetInt("lee") == 1,
+            Check(ship.Lee == 1 && Math.Abs(ship.LeeShown - 1) < 1e-3 && ship.WatchedAttributes.GetTreeAttribute("ships")?.GetInt("lee") == 1,
                 $"note 64: with the wind on her port beam her lateens lie to starboard, the lee (lee {ship.Lee}, shown {ship.LeeShown:0.00}, synced " +
-                $"{ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetInt("lee")})");
+                $"{ship.WatchedAttributes.GetTreeAttribute("ships")?.GetInt("lee")})");
             // (note 104) only the windward shrouds set up: to port, the lee set to starboard cast off
             var shrouds = LateenShrouds.Of(def);
             Check(shrouds.Length > 0 && shrouds.All(s => LateenShrouds.SetUp(def, s, ship.LeeShown) == (s.Side < 0)),
@@ -552,7 +552,7 @@ namespace Hansa
 
                     // state round trip through the watched attributes (what is saved with the entity)
                     ship.SaveState(true);
-                    var tree = ship.WatchedAttributes.GetTreeAttribute("hansa");
+                    var tree = ship.WatchedAttributes.GetTreeAttribute("ships");
                     Check(tree != null && tree.GetInt("sailSet") == 0 && tree.GetBool("crawl") && tree.GetInt("crawlDrive") == -1, "state saved in watched attributes (under the sweeps, backing)");
                     ship.CrawlTestInput = null;
                     ship.SetCrawl(false);
@@ -602,7 +602,7 @@ namespace Hansa
                             ship.Pos.Yaw = (float)yaw;
                             if (t4 < 60) return;
                             sapi.Event.UnregisterGameTickListener(id4);
-                            var tree = ship.WatchedAttributes.GetTreeAttribute("hansa");
+                            var tree = ship.WatchedAttributes.GetTreeAttribute("ships");
                             Check(before > 1 && ship.Speed < before - 1 && ship.Speed < Math.Max(.5, before - def.Deceleration * 6) + .1, $"head to wind she loses her way ({before:0.0} → {ship.Speed:0.0} b/s in 6 s)");
                             Check(tree?.GetBool("byWind") == true && Math.Abs(tree.GetFloat("maxSpeed") - def.MaxSpeed * mod.Config.SpeedMultiplier * (1 + def.CladdingSpeedBonus) * ship.SpeedFactorNow) < .011,
                                 "clients know she sails by the wind and her top speed (sheathed)");
@@ -710,7 +710,7 @@ namespace Hansa
         void LaunchBoat(HansaMod mod, EntityShip carrack, BlockPos spawn, double wy)
         {
             var bdef = mod.GetShip("skiff");
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", "boat-skiff"));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", "boat-skiff"));
             Check(bdef != null && type != null, "the ship's boat: design and entity loaded");
             if (bdef == null || type == null) return;
             var boat = (EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
@@ -743,14 +743,14 @@ namespace Hansa
             Check(carrack.HitsShip(carrack.Pos.X, carrack.Pos.Z, carrack.Pos.Yaw) == false, "the carrack touches no boat where she lies");
             // someone away had their spawn bound to her: when she's removed for good, it ends (and comes back when they join)
             var spawns = mod.Spawns;
-            spawns?.Registry.Players.Add("hansa-selftest-away", new ShipSpawnBinding { ShipId = boat.EntityId, Plate = "plate" });
+            spawns?.Registry.Players.Add("ships-selftest-away", new ShipSpawnBinding { ShipId = boat.EntityId, Plate = "plate" });
             boat.Die(EnumDespawnReason.Removed);
             // (the game despawns her, and tells the mods, at its next tick)
             if (spawns != null) sapi.Event.RegisterCallback(_ =>
             {
-                spawns.Registry.Players.TryGetValue("hansa-selftest-away", out var away);
+                spawns.Registry.Players.TryGetValue("ships-selftest-away", out var away);
                 Check(away?.Ended == ShipSpawns.EndGone, $"a ship removed for good ends the spawns bound to her ({away?.Ended ?? "not yet"})");
-                spawns.Registry.Players.Remove("hansa-selftest-away");
+                spawns.Registry.Players.Remove("ships-selftest-away");
             }, 1000);
         }
 
@@ -763,7 +763,7 @@ namespace Hansa
         /// </summary>
         void RowBoat(HansaMod mod, EntityShip carrack)
         {
-            var loc = new AssetLocation("hansa", "rowboat-oak");
+            var loc = new AssetLocation("ships", "rowboat-oak");
             var type = sapi.World.GetEntityType(loc);
             Check(type != null && sapi.World.GetItem(loc) is ItemRowBoat, "the rowing boat: entity and item registered");
             Check(sapi.World.GridRecipes.Any(r => r.Output?.Code?.Path?.StartsWith("rowboat-") == true), "and a recipe for her");
@@ -881,10 +881,10 @@ namespace Hansa
                 bear.Attributes.SetString("material", "oak");
                 var lit = new ItemStack(B("lantern-small-up"));
                 var chiseled = B("chiseledblock") is Block cb ? new ItemStack(cb) : null;
-                Check(PlanOn(fhook, lit).Error == "hansa:piece-hook-figurehead" && (chiseled == null || PlanOn(fhook, chiseled).Error == null),
+                Check(PlanOn(fhook, lit).Error == "ships:piece-hook-figurehead" && (chiseled == null || PlanOn(fhook, chiseled).Error == null),
                     $"{fhook.Id} takes a figurehead or a chiseled block{(chiseled == null ? " (no chiseled block to try)" : "")}, not a lantern");
                 var lhook = l.Hooks.FirstOrDefault(m => m.Kinds != null && m.Kinds.Length == 1 && m.Kinds[0] == "light");
-                Check(lhook == null || PlanOn(lhook, bear).Error == "hansa:piece-hook-light", $"a lantern's hook ({lhook?.Id}) doesn't take a figurehead");
+                Check(lhook == null || PlanOn(lhook, bear).Error == "ships:piece-hook-light", $"a lantern's hook ({lhook?.Id}) doesn't take a figurehead");
                 double nx = fhook.Normal?.Length >= 3 ? fhook.Normal[0] : 1;
                 bool put = ship.PlacePiece(PlanOn(fhook, bear), bear, true, out var fig) == null && fig != null;
                 Check(put && fig.Role == PieceRole.Deco && fig.Hang == PiecePlanner.FigureheadHang && fig.Solids.Count == 0 && fig.Parts[0].Quarter == (nx >= 0 ? 1 : 3) &&
@@ -922,7 +922,7 @@ namespace Hansa
                   placed.Role == PieceRole.Storage, $"a vanilla chest put on {at.Id} is a 16-slot storage");
             if (placed == null || inv == null) return;
             var c = placed.Center;
-            Check(ship.Grid.SolidAt(c[0], at.Y + 0.3, c[2]) && ship.PlaceProblem(PlanOn(at, chest), false) == "hansa:piece-taken",
+            Check(ship.Grid.SolidAt(c[0], at.Y + 0.3, c[2]) && ship.PlaceProblem(PlanOn(at, chest), false) == "ships:piece-taken",
                 "the chest is solid, and its place taken");
             ship.LocalToWorld(c[0], at.Y + 1.7, c[2] + 0.8, out double ex, out double ey, out double ez);
             ship.LocalToWorld(c[0], at.Y + 0.6, c[2], out double tx, out double ty, out double tz);
@@ -937,21 +937,21 @@ namespace Hansa
                   ship.WatchedAttributes.GetTreeAttribute("hansaInv")?.GetTreeAttribute(placed.StorageCode) != null &&
                   ship.WatchedAttributes.GetTreeAttribute("hansaPieces")?.GetTreeAttribute("pieces")?.HasAttribute(placed.Id.ToString()) == true,
                 "three sticks put in, two taken out; saved with her: the piece, and what's in it");
-            Check(ship.RemovePiece(placed, null) == "hansa:piece-not-empty", "a container with something in it isn't taken up");
+            Check(ship.RemovePiece(placed, null) == "ships:piece-not-empty", "a container with something in it isn't taken up");
             inv[0].Itemstack = null;
             inv[0].MarkDirty();
             // ---- stacking (0.3.9): a chest on the chest, a block up; the one under it isn't taken from under it
             if (l.Above(at) is MountPoint above)
             {
                 ShipPiece onTop = null;
-                Check(ship.PlacePiece(PlanOn(above, chest), chest, true, out onTop) == null && ship.RemovePiece(placed, null) == "hansa:piece-under" &&
+                Check(ship.PlacePiece(PlanOn(above, chest), chest, true, out onTop) == null && ship.RemovePiece(placed, null) == "ships:piece-under" &&
                       ship.Grid.SolidAt(c[0], above.Y + 0.3, c[2]),
                     $"a chest on the chest ({above.Id}), solid; the one under it isn't taken up from under it");
                 Check(onTop != null && ship.RemovePiece(onTop, null) == null, "the one on top is taken up first");
             }
             Check(ship.RemovePiece(placed, null) == null && !ship.Storages.ContainsKey(placed.StorageCode) && !ship.Grid.SolidAt(c[0], at.Y + 0.3, c[2]),
                 "emptied, it's taken up: its storage gone, its place walkable again");
-            Check(l.Above(at) == null || ship.PlaceProblem(PlanOn(l.Above(at), chest), false) == "hansa:piece-no-support",
+            Check(l.Above(at) == null || ship.PlaceProblem(PlanOn(l.Above(at), chest), false) == "ships:piece-no-support",
                 "with nothing under it, the place over it holds nothing");
 
             // ---- a panel (on the block grid): a planks block in the wedge along her side; a painting on it
@@ -978,7 +978,7 @@ namespace Hansa
                         ShipPiece pic = null;
                         string perr = pplan.Error ?? ship.PlaceProblem(pplan, true);
                         if (perr == null) ship.PlacePiece(pplan, pst, true, out pic);
-                        Check(pic != null ? ship.RemovePiece(panel, null) == "hansa:piece-under" && ship.RemovePiece(pic, null) == null : true,
+                        Check(pic != null ? ship.RemovePiece(panel, null) == "ships:piece-under" && ship.RemovePiece(pic, null) == null : true,
                             pic != null ? $"a {paintingBlock.Code} hung on the panel; the panel isn't taken down from under it" : $"(a {paintingBlock.Code} didn't fit on the panel: {perr})");
                     }
                     Check(ship.RemovePiece(panel, null) == null && !ship.Pieces.Taken(panelAt.Id), "the panel taken down");
@@ -1103,8 +1103,8 @@ namespace Hansa
                     {
                         var pst = new ItemStack(picB);
                         string e3 = ship.PlacePiece(PlanOn(face, pst, face.In), pst, false, out pic);
-                        Check(e3 == null || e3 == "hansa:piece-wall-room" || e3 == "hansa:piece-no-support", $"0.3.16, note 159: a {picB.Code} on the partition's face {face.Id} ({e3 ?? "ok"})");
-                        if (pic != null) Check(ship.RemovePiece(bottom, null) == "hansa:piece-under", "the partition doesn't come down with a painting on it");
+                        Check(e3 == null || e3 == "ships:piece-wall-room" || e3 == "ships:piece-no-support", $"0.3.16, note 159: a {picB.Code} on the partition's face {face.Id} ({e3 ?? "ok"})");
+                        if (pic != null) Check(ship.RemovePiece(bottom, null) == "ships:piece-under", "the partition doesn't come down with a painting on it");
                         if (pic != null) ship.RemovePiece(pic, null);
                     }
                     if (bottom != null && upper != null)
@@ -1200,7 +1200,7 @@ namespace Hansa
                     sleeper.Pos.SetPos(sp.X, sp.Y, sp.Z);
                     sapi.World.SpawnEntity(sleeper);
                     bool lying = sleeper.TryMount(bunk) && bunk.Passenger == sleeper && Math.Abs(bunk.LocalPos.Y - (bedPlace.Y + ShipFittings.BedHeight)) < 1e-6;
-                    Check(lying && ship.RemovePiece(bp, null) == "hansa:bunk-taken",
+                    Check(lying && ship.RemovePiece(bp, null) == "ships:bunk-taken",
                         "someone lies in it, on its mattress (and it isn't taken up while they do); vanilla beds set no spawn: the plate by the helm binds it");
                     sleeper.TryUnmount();
                     sleeper.Die(EnumDespawnReason.Removed);
@@ -1232,7 +1232,7 @@ namespace Hansa
                         $"her {zone.Code} ({area:0.0} m²) painted red from a bucket of dye: {need / 100.0:0.00} L used ({(1000 - left) / 100.0:0.00}), saved with her");
                     var poor = new ItemStack(bucketBlock);
                     bucketBlock.SetContent(poor, new ItemStack(I("dye-blue") ?? dye, Math.Max(1, need / 2)));
-                    Check(ship.PaintWith(new DummySlot(poor), null, false, zone.Code, null, out _, out _, out _) == "hansa:paint-dye-short" && ship.Paint.Of(zone.Code) == "red",
+                    Check(ship.PaintWith(new DummySlot(poor), null, false, zone.Code, null, out _, out _, out _) == "ships:paint-dye-short" && ship.Paint.Of(zone.Code) == "red",
                         "with too little dye it isn't painted");
                 }
                 else Check(false, $"a wooden bucket and red dye to paint with ({bucketBlock?.Code}, {dye?.Code})");
@@ -1251,7 +1251,7 @@ namespace Hansa
                     var gslot = new DummySlot(new ItemStack(gold, plates + 2));
                     var panel = plan.Zones.FirstOrDefault(z => !ShipPaint.Gildable(z));
                     Check(ship.PaintWith(gslot, null, false, carving.Code, null, out _, out _, out _) == null && ship.Paint.Of(carving.Code) == ShipPaint.Gold && gslot.StackSize == 2 &&
-                          (panel == null || ship.PaintWith(gslot, null, false, panel.Code, null, out _, out _, out _) == "hansa:paint-gild-kind"),
+                          (panel == null || ship.PaintWith(gslot, null, false, panel.Code, null, out _, out _, out _) == "ships:paint-gild-kind"),
                         $"her {carving.Code} gilded with {plates} gold plates (a plate per 10 m²); a panel isn't gilded");
                     ship.SetPaint(carving.Code, null);
                 }
@@ -1372,7 +1372,7 @@ namespace Hansa
                 string e4 = ship.WorkSails(false); int s4 = ship.SailSet;
                 ship.WorkSails(false);
                 string e5 = ship.WorkSails(false); int s5 = ship.SailSet;
-                Check(e1 == null && s1 == 1 && e2 == null && s2 == 2 && e3 == "hansa:pinrail-full" && e4 == null && s4 == 1 && e5 == "hansa:pinrail-furled" && s5 == 0,
+                Check(e1 == null && s1 == 1 && e2 == null && s2 == 2 && e3 == "ships:pinrail-full" && e4 == null && s4 == 1 && e5 == "ships:pinrail-furled" && s5 == 0,
                     $"a pin rail sets sail furled → half → full ({s1}, {s2}, then {e3}) and takes it in ({s4}, then {e5} at {s5})");
                 ship.SailSet = keep;
                 var rails = def.Fixtures.Where(f => f.Type == "pinrail").ToList();
@@ -1464,7 +1464,7 @@ namespace Hansa
             // the ship's boats: on the gallows, vanilla rafts or our own boat
             var raft = sapi.World.Items.FirstOrDefault(it => it?.Code != null && it.Code.Domain == "game" && it.Code.Path.StartsWith("boat-raft-"));
             var sailed = sapi.World.Items.FirstOrDefault(it => it?.Code != null && it.Code.Domain == "game" && it.Code.Path.StartsWith("boat-sailed-"));
-            var skiff = sapi.World.GetItem(new AssetLocation("hansa", "boat-skiff"));
+            var skiff = sapi.World.GetItem(new AssetLocation("ships", "boat-skiff"));
             var boats = def.Fixtures.Where(f => f.Kind == "boat").ToArray();
             if (boats.Length == 0) Log($"{def.Code} carries no boats on gallows: the gallows checks are for ships with them");
             else Check(boats.Length == 2, $"two boat places on the gallows ({boats.Length})");
@@ -1739,7 +1739,7 @@ namespace Hansa
             {
                 var d = mod.GetShip(code);
                 if (d?.DamageParts == null || d.Shapes?.Skin == null) continue;
-                var asset = sapi.Assets.TryGet(AssetLocation.Create(d.Shapes.Skin, "hansa"));
+                var asset = sapi.Assets.TryGet(AssetLocation.Create(d.Shapes.Skin, "ships"));
                 var file = asset == null ? null : Newtonsoft.Json.JsonConvert.DeserializeObject<ShipSkinFile>(System.Text.Encoding.UTF8.GetString(asset.Data));
                 // ((0.3.26, step D1) a design with hull panels draws her damage on their slot groups: no hullOut, no jagged holes)
                 if (d.Hull != null)
@@ -1763,8 +1763,8 @@ namespace Hansa
                     after += hs.Build(hs.Chunks[c], looks).Count;
                     built++;
                 }
-                bool textures = hs.Textures.All(t => !t.Contains("++0~hansa:block/dmg-") ||
-                    sapi.Assets.TryGet(new AssetLocation("hansa", "textures/block/" + t.Substring(t.LastIndexOf('/') + 1) + ".png")) != null);
+                bool textures = hs.Textures.All(t => !t.Contains("++0~ships:block/dmg-") ||
+                    sapi.Assets.TryGet(new AssetLocation("ships", "textures/block/" + t.Substring(t.LastIndexOf('/') + 1) + ".png")) != null);
                 Check(built > 0 && after > before && textures,
                     $"{code}: her planking in {hs.Chunks.Count} chunks by panel; a hole in {panel.Part} rebuilds {built} of them ({before} → {after} quads: cut round, and its reveal), its overlays shipped");
             }
@@ -1803,7 +1803,7 @@ namespace Hansa
             Check(ship.WatchedAttributes.GetBytes("hansaDmg")?.Length == 2 * l.Count && ship.Attributes.GetTreeAttribute("hansaDmgF") != null,
                 "the damage is synced to clients (a byte a part) and saved");
             ship.RepairAll();
-            Check(Enumerable.Range(0, l.Count).All(i => ship.StateOfPart(i) == PartState.Sound) && ship.Water == 0, "/hansa repairall mends her and pumps her dry");
+            Check(Enumerable.Range(0, l.Count).All(i => ship.StateOfPart(i) == PartState.Sound) && ship.Water == 0, "/ships repairall mends her and pumps her dry");
         }
 
         /// <summary>
@@ -1816,7 +1816,7 @@ namespace Hansa
         {
             var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
             sea?.SetOverride(new Sea.WindOverride { FromDegrees = 0, Strength = 0.02, StartHours = sea.Hours - 24 });
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship));
             var ship = (EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
             ship.Pos.SetPos(sx, wy, sz);
             ship.Pos.Yaw = (float)(Math.PI / 2);
@@ -1841,7 +1841,7 @@ namespace Hansa
             {
                 Check(ship.Water > 1 && ship.WaterRate > 0.05, $"water comes in through the hole: {ship.Water:0.0} t in 10 s ({ship.WaterRate * 1000:0} l/s)");
                 Check(ship.Sinkage > 0.002 && Math.Abs(ship.Pos.Y - (ship.BaseY - ship.Sinkage + ship.Heave)) < 1e-9 &&
-                      ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetDouble("sink") == ship.Sinkage,
+                      ship.WatchedAttributes.GetTreeAttribute("ships")?.GetDouble("sink") == ship.Sinkage,
                     $"she floats deeper for it ({ship.Sinkage:0.000}), on the server as on clients");
                 Check(ship.ListAngle < 0, $"and lists to port, where it came in ({ship.ListAngle * GameMath.RAD2DEG:0.00}°)");
                 // (18 October 2026) a heavy load for her size: the carrack's 150 t, or 40 % of a smaller ship's reserve buoyancy
@@ -1875,7 +1875,7 @@ namespace Hansa
                         $"the sea shows under it in Sea's cut ({cut}), and its surface is drawn ({surface.Sum(r => r.Count)} stations)");
 
                     // mended with vanilla items from an inventory: the planks and nails taken as planned
-                    var inv = new InventoryGeneric(4, "hansa-selftest-repair", "0", sapi);
+                    var inv = new InventoryGeneric(4, "ships-selftest-repair", "0", sapi);
                     inv[0].Itemstack = new ItemStack(sapi.World.GetItem(new AssetLocation("game", "plank-oak")), 3);
                     inv[1].Itemstack = new ItemStack(sapi.World.GetItem(new AssetLocation("game", "metalnailsandstrips-iron")), 5);
                     inv[2].Itemstack = new ItemStack(sapi.World.GetItem(new AssetLocation("game", "plank-pine")), 2);
@@ -1892,13 +1892,13 @@ namespace Hansa
                         $"mended with 4 planks and 2 nails and strips from an inventory, the held planks first ({m1})");
                     if (job?.What != "lay")
                     {
-                    var inv2 = new InventoryGeneric(2, "hansa-selftest-caulk", "0", sapi);
+                    var inv2 = new InventoryGeneric(2, "ships-selftest-caulk", "0", sapi);
                     inv2[0].Itemstack = new ItemStack(sapi.World.GetItem(new AssetLocation("game", "flaxfibers")), 1);
                     string m2 = ship.Repair(i, inv2.ToList(), "game:flaxfibers", false, out var none, out _);
                     inv2[1].Itemstack = new ItemStack(sapi.World.GetItem(new AssetLocation("game", "resin")), 4);
                     string m3 = ship.Repair(i, inv2.ToList(), "game:flaxfibers", false, out var caulk, out _);
-                    Check(none == null && m2 == "hansa:repair-needs" && caulk?.What == "caulk" && inv2[0].Empty && inv2[1].StackSize == 3 &&
-                          ship.StateOfPart(i) == PartState.Sound && ship.Repair(i, inv2.ToList(), "game:resin", false, out _, out _) == "hansa:repair-nothing",
+                    Check(none == null && m2 == "ships:repair-needs" && caulk?.What == "caulk" && inv2[0].Empty && inv2[1].StackSize == 3 &&
+                          ship.StateOfPart(i) == PartState.Sound && ship.Repair(i, inv2.ToList(), "game:resin", false, out _, out _) == "ships:repair-nothing",
                         $"its seams caulked with flax fibres and resin (not without the resin: {m2}); then it's sound and needs nothing");
                     }
 
@@ -1919,7 +1919,7 @@ namespace Hansa
                             Check(ship.Pumpers == 2 && ship.Water < w0 - 0.12 && ship.WaterRate < -0.012,
                                 $"two at the pump bring the water down ({w0:0.0} → {ship.Water:0.0} t in 10 s, {ship.WaterRate * 1000:0} l/s; a third can't get at the brake)");
                             // (the eighth client test, note 39: what comes up gushes out of its spout on clients)
-                            float told = ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetFloat("pumped") ?? 0;
+                            float told = ship.WatchedAttributes.GetTreeAttribute("ships")?.GetFloat("pumped") ?? 0;
                             Check(ship.PumpedRate > 0.05 && ship.PumpsWorked == pump.Code && told > 0.05,
                                 $"what the pump brings up is told to clients for its spout's water ({ship.PumpedRate * 1000:0} l/s out of '{ship.PumpsWorked}', synced {told * 1000:0})");
                             // flooded full in shallow water: she comes to rest on the bottom, her deck above the water
@@ -2004,7 +2004,7 @@ namespace Hansa
                     }
                 }
             Log($"deep pool built {x1 - x0 + 1} x {z1 - z0 + 1}, {surf - floor} deep");
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship));
             var ship = (EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
             double cx = spawn.X + 0.5 - 4, cz = (z0 + z1) / 2.0 + 0.5;
             ship.Pos.SetPos(cx, wy, cz);
@@ -2014,7 +2014,7 @@ namespace Hansa
             BuildPlaceAboard(ship);
             // a rowing boat on her gallows, a chest with something in it in the hold, someone aboard, a spawn bound to her
             var boatF = def.Fixtures.FirstOrDefault(f => f.Kind == "boat");   // (a ship without gallows carries none)
-            var rowboat = sapi.World.GetItem(new AssetLocation("hansa", "rowboat-oak"));
+            var rowboat = sapi.World.GetItem(new AssetLocation("ships", "rowboat-oak"));
             var chest = sapi.World.GetBlock(new AssetLocation("game", "chest-east"));
             // (the chest a piece on a floor place in the hold)
             var chestStack = new ItemStack(chest);
@@ -2040,7 +2040,7 @@ namespace Hansa
                 sailor = (EntityAgent)sapi.World.ClassRegistry.CreateEntity(chickenType);
                 sailor.Pos.SetPos(px, py, pz);
                 sapi.World.SpawnEntity(sailor);
-                sailor.TryMount(ship.GetOrCreateDeckSeat("hansa-selftest-sailor", b[0], b[1], b[2]));
+                sailor.TryMount(ship.GetOrCreateDeckSeat("ships-selftest-sailor", b[0], b[1], b[2]));
             }
             Check(stowed && sailor?.MountedOn is DeckSeat, "a carrack in a deep pool with a rowing boat on her gallows, a chest in her hold and someone aboard");
             // and her hearth burning (lit with a torch: it catches at the next burn tick)
@@ -2053,7 +2053,7 @@ namespace Hansa
             }
             bool hearthLit = false;
             var spawns = mod.Spawns;
-            spawns?.Registry.Players.Add("hansa-selftest-sunk", new ShipSpawnBinding { ShipId = ship.EntityId, Plate = "plate" });
+            spawns?.Registry.Players.Add("ships-selftest-sunk", new ShipSpawnBinding { ShipId = ship.EntityId, Plate = "plate" });
             EntityShip hooked = null;
             Action<EntityShip> hook = s => hooked = s;
             ShipWreck.Sunk += hook;
@@ -2071,7 +2071,7 @@ namespace Hansa
                 if (boatF != null) Check(boat is EntityRowBoat && boat.Alive && !ship.Attached.ContainsKey(boatF.Code) && Math.Abs(boat.Pos.Y - wy) < 1.5,
                     $"the rowing boat on her gallows floats free, on the water beside her ({boat?.Code})");
                 ShipSpawnBinding ended = null;
-                spawns?.Registry.Players.TryGetValue("hansa-selftest-sunk", out ended);
+                spawns?.Registry.Players.TryGetValue("ships-selftest-sunk", out ended);
                 Check(spawns == null || ended?.Ended == ShipSpawns.EndSunk, $"the spawns bound to her end ({ended?.Ended ?? "none"})");
                 ship.LocalToWorld(0, def.DamageParts.HoldBottom + 0.5, 0, out double hx, out double hy, out double hz);
                 Check(sea != null && !sea.IsDry(hx, hy, hz) && !mod.Dry.IsDry(hx, hy, hz), "her hold isn't dry any more");
@@ -2087,13 +2087,13 @@ namespace Hansa
                         Check(ship.Alive && ship.Pos.XYZ.DistanceTo(at) < 1e-6 && ship.Pos.Yaw == yaw && ship.Speed == 0 && ship.Heave == 0,
                             "on the bottom she lies still: no motion, no sailing, no waves");
                         Check(ship.Storages.TryGetValue(cargoCode, out var inv) && inv[0].Itemstack?.StackSize == 6 && cargoP != null && ship.Pieces.Get(cargoP.Id) != null &&
-                              ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetInt("stage") == (int)SinkStage.Sunk,
+                              ship.WatchedAttributes.GetTreeAttribute("ships")?.GetInt("stage") == (int)SinkStage.Sunk,
                             "her cargo is still in her (a diver can open it), and she's saved as sunk");
                         Check(!mod.Wrecks.Busy(ship.EntityId) && !mod.Wrecks.Registry.Done.ContainsKey(ship.EntityId),
                             "with Wrecks off she's no wreck: she lies there as she is (3a)");
                         mod.Config.Wrecks = wrecks;
                         ShipWreck.Sunk -= hook;
-                        spawns?.Registry.Players.Remove("hansa-selftest-sunk");
+                        spawns?.Registry.Players.Remove("ships-selftest-sunk");
                         foreach (var e in new Entity[] { sailor, sapi.World.GetEntityById(ship.ReleasedBoats.FirstOrDefault()), ship })
                             if (e != null && e.Alive) e.Die(EnumDespawnReason.Removed);
                         sea?.SetOverride(null);
@@ -2117,7 +2117,7 @@ namespace Hansa
         void CrawlHarbour(HansaMod mod, BlockPos spawn, double wy, Action next)
         {
             // (18 October 2026) a build without carrack-m (the release with the caravel): the ship under test crawls
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", "carrack-m")) ?? sapi.World.GetEntityType(new AssetLocation("hansa", this.cfg.Ship));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", "carrack-m")) ?? sapi.World.GetEntityType(new AssetLocation("ships", this.cfg.Ship));
             if (type == null) { Check(false, "0.3.25: a ship to crawl"); next(); return; }
             Log($"0.3.25: under the sweeps: {type.Code}");
             var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
@@ -2251,7 +2251,7 @@ namespace Hansa
                     }
                 }
             Log($"gun pool built {x1 - x0 + 1} x {z1 - z0 + 1}, {surf - floor} deep");
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship));
             double sz = spawn.Z - 58 + 0.5, sx = spawn.X + 0.5;
             EntityShip Launch(double z)
             {
@@ -2299,15 +2299,15 @@ namespace Hansa
                 string fireRunning = shooter.FireGun(lidded, null, null);
                 string house = shooter.HouseGun(lidded);
                 bool housedAgain = !shooter.GunOpen(lidded);
-                Check(housedNew && fireHoused == "hansa:gun-housed" && opening && fireRunning == "hansa:gun-running-out" && house == null && housedAgain,
+                Check(housedNew && fireHoused == "ships:gun-housed" && opening && fireRunning == "ships:gun-running-out" && house == null && housedAgain,
                     $"a new ship's guns are housed, their ports shut ({fireHoused}); a port opened, its gun is run out for {EntityShip.RunOutMs / 1000} s first ({fireRunning}); housed again");
             }
             foreach (var s in new[] { shooter, target }) foreach (var f in guns) s.OpenGunPort(f, true);
-            var gunBlock = sapi.World.GetBlock(new AssetLocation("hansa", "gun-bronze-north"));
+            var gunBlock = sapi.World.GetBlock(new AssetLocation("ships", "gun-bronze-north"));
             var gunDrops = gunBlock?.Drops;
-            Check(gunBlock != null && sapi.World.GetBlock(new AssetLocation("hansa", "gun-bronze-east")) != null && gunDrops?.Length == 1 &&
+            Check(gunBlock != null && sapi.World.GetBlock(new AssetLocation("ships", "gun-bronze-east")) != null && gunDrops?.Length == 1 &&
                   gunDrops[0].ResolvedItemstack?.Collectible == gunBlock && gunBlock.Attributes?["gun"]["material"].AsString() == "bronze",
-                "the gun as a block is there (hansa:gun-bronze-<side>), for a wreck to give back: bronze, dropping itself");
+                "the gun as a block is there (ships:gun-bronze-<side>), for a wreck to give back: bronze, dropping itself");
             var shots = mod.Shots;
             double g = def.Cannon.Gravity, v = def.Cannon.MuzzleVelocity;
             // the elevation (degrees) that lays a gun on a world point (its drop allowed for; she lies level in a calm; the
@@ -2390,14 +2390,14 @@ namespace Hansa
                         var stop = r1.LastOrDefault(r => r.What == "block");
                         Check(stop != null && stop.At.Z < z0 + 1.5 && ba.GetBlock(new BlockPos((int)Math.Floor(stop.At.X), (int)Math.Floor(stop.At.Y), z0, 0)).Id == stone.Id,
                             $"and goes on into the pool's wall, where it stops: the wall still stands ({stop?.At.Z - z0:0.00} from it)");
-                        Check(again == "hansa:gun-reloading" && shooter.GunReloading(g1) > def.Cannon.Cooldown - 2, $"it can't fire again at once: {again} ({shooter.GunReloading(g1):0.0} s)");
+                        Check(again == "ships:gun-reloading" && shooter.GunReloading(g1) > def.Cannon.Cooldown - 2, $"it can't fire again at once: {again} ({shooter.GunReloading(g1):0.0} s)");
                         if (swivel != null)
                         {
                             var rs = Of(sb);
                             var struck = rs.FirstOrDefault(r => r.What == "ship" && r.Entity == target.EntityId);
                             double greatKj = Ballistics.Energy(def.Cannon, def.Cannon.ShotMass, v);
                             Check(swArc && swErr == null && sb != null && Math.Abs(sb.Mass - swivel.Shot) < 1e-6 && struck != null && struck.Energy < greatKj / 4 &&
-                                  swAgain == "hansa:gun-reloading" && swivel.Reload < def.Cannon.Cooldown,
+                                  swAgain == "ships:gun-reloading" && swivel.Reload < def.Cannon.Cooldown,
                                 $"her swivel gun {swivel.Code}: laid 40° by 12° as asked, past its arc (120°, 50°) only to {swPast}; laid at the other ship's rail ({swLay}) it fires ({swErr ?? "ok"}) " +
                                 $"a {sb?.Mass} kg ball that strikes her ({string.Join(", ", rs.Select(r => r.What))}; {struck?.Energy:0.0} kJ there, a great gun's {greatKj:0} at its muzzle); " +
                                 $"again at once: {swAgain}, ready again in {swivel.Reload} s (a great gun {def.Cannon.Cooldown} s)");
@@ -2406,7 +2406,7 @@ namespace Hansa
                         mod.Config.Cannons = false;
                         string off = shooter.FireGun(port[1], null, null);
                         mod.Config.Cannons = true;
-                        Check(off == "hansa:gun-off", $"with Cannons off nothing fires ({off})");
+                        Check(off == "ships:gun-off", $"with Cannons off nothing fires ({off})");
 
                         // blocks break when they may: a plank in the way of the next gun
                         var g2 = port[1];
@@ -2449,7 +2449,7 @@ namespace Hansa
         /// wall). Laid through the server's API it fires along its lay (the ball's first velocity, from its muzzle), and no
         /// further than it goes; the lay toward where someone looks (a view as a player's client sends it, as she lies); its
         /// crew lays it toward an aim at their pace; the lays saved with her, and a carrack loaded with them laid so;
-        /// /hansa fire with an elevation and a train. And a stand-in at the gun captain's place (a chicken: there are no
+        /// /ships fire with an elevation and a train. And a stand-in at the gun captain's place (a chicken: there are no
         /// players here, and the engine keeps a creature's view the seat's, so it can't lay the gun): behind the breech on
         /// the deck, room to stand there, the gun left as it is.
         /// </summary>
@@ -2530,7 +2530,7 @@ namespace Hansa
                         $"her guns' lays are saved with her ({saved?.Length} bytes) and a carrack loaded with them is laid so ({same} of {all.Length} guns)");
                     copy.Die(EnumDespawnReason.Removed);
 
-                    // /hansa fire with an elevation and a train (as far as it goes; "-" leaves one as it is)
+                    // /ships fire with an elevation and a train (as far as it goes; "-" leaves one as it is)
                     // ((26 October 2026) a third gun; with 2 a side (the caravel's waist since her quarterdeck has swivel guns)
                     // the one laid above, fired a few seconds ago: its reload let go for this)
                     var g3 = guns.Length > 2 ? guns[2] : guns[1];
@@ -2547,7 +2547,7 @@ namespace Hansa
                     GunLaying.Limits(g1, out float g1t0, out _, out _, out _);
                     Check(res.Status == EnumCommandStatus.Success && l3.Train == -8 && l3.Elevation == 1.5f && ang3 < 0.01 && from3 < 1e-6 &&
                           res1.Status == EnumCommandStatus.Success && l1.Train == g1t0 && l1.Elevation == e1Before && res1.StatusMessage.Contains("as far as it goes"),
-                        $"/hansa fire {g3.Code} 1.5 -8 lays it and fires it that way ({ang3:0.0000}° off: \"{res.StatusMessage}\"); with a train beyond the limit " +
+                        $"/ships fire {g3.Code} 1.5 -8 lays it and fires it that way ({ang3:0.0000}° off: \"{res.StatusMessage}\"); with a train beyond the limit " +
                         $"and the elevation left as it is: \"{res1.StatusMessage}\"");
 
                     // a stand-in at the gun captain's place: behind the breech, on the deck
@@ -2936,7 +2936,7 @@ namespace Hansa
                     $"every item she had is in the {rep.Containers.Count} containers put down ({themselves} of hers as themselves, in her or beside her; extra chests): " +
                     $"{string.Join(", ", after.Select(kv => kv.Value + " " + kv.Key.Replace("game:", "")))}; {rep.Dropped} dropped");
                 // her guns
-                int guns = plan.Guns.Count(s => ba.GetBlock(new BlockPos(s.X, s.Y, s.Z, 0))?.Code?.ToString() == "hansa:gun-bronze-" + s.Side);
+                int guns = plan.Guns.Count(s => ba.GetBlock(new BlockPos(s.X, s.Y, s.Z, 0))?.Code?.ToString() == "ships:gun-bronze-" + s.Side);
                 int gunsWant = def.Fixtures.Count(f => f.Type == "gun" && !f.Swivel && (!def.GunPlaceOf.TryGetValue(f.Code, out var gp) || gp.StartsLaid));
                 Check(guns == gunsWant && rep.Guns == gunsWant, $"her {gunsWant} bronze guns are there as blocks ({plan.Guns.Count(s => s.InWreck)} in her, {plan.Guns.Count(s => !s.InWreck)} tumbled onto the seabed; {guns} found)");
                 // the water (under the pool's surface): still in her blocks (they don't push it out), and round her where
@@ -3076,7 +3076,7 @@ namespace Hansa
         /// </summary>
         void CrewWorks(HansaMod mod, ShipDefinition def, BlockPos spawn, double wy, Action then)
         {
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship));
             var plaque = def.Fixtures.FirstOrDefault(f => f.Type == "plaque");
             Check(plaque?.Sel != null && EntityShip.GuestMayUse(plaque) && def.KeepClear.Any(k => k.What == "plaque"),
                 $"the carrack has the bronze plaque for her crew list ({plaque?.Code}), readable by anyone, kept clear");
@@ -3085,23 +3085,23 @@ namespace Hansa
             ship.Pos.Yaw = (float)(Math.PI / 2);
             sapi.World.SpawnEntity(ship);
             Check(!ship.HasCrewList && !ship.LaidUp && ship.CrewCanHave, "a ship from no deed has no crew list, and isn't laid up");
-            EntityShip.KnownPlayers = n => n == "Mate" ? ("hansa-selftest-mate", "Mate") : n == "Cook" ? ("hansa-selftest-cook", "Cook") : null;
-            string e0 = ship.ChangeCrew("hansa-selftest-cook", "Cook", false, "add", "Mate");
-            string e1 = ship.ChangeCrew("hansa-selftest-capt", "Capt", false, "claim", null);
-            string e2 = ship.ChangeCrew("hansa-selftest-cook", "Cook", false, "claim", null);
-            string e3 = ship.ChangeCrew("hansa-selftest-capt", "Capt", false, "add", "Mate");
-            string e4 = ship.ChangeCrew("hansa-selftest-mate", "Mate", false, "add", "Cook");
-            string e5 = ship.ChangeCrew("hansa-selftest-capt", "Capt", false, "add", "Nobody at all");
-            Check(e0 == "hansa:crew-not-captain" && e1 == null && e2 == "hansa:crew-claimed" && e3 == null && e4 == "hansa:crew-not-captain" &&
-                  e5 == "hansa:crew-nosuch" && ship.IsCaptain("hansa-selftest-capt") && ship.IsCrew("hansa-selftest-mate") && !ship.IsCaptain("hansa-selftest-mate"),
+            EntityShip.KnownPlayers = n => n == "Mate" ? ("ships-selftest-mate", "Mate") : n == "Cook" ? ("ships-selftest-cook", "Cook") : null;
+            string e0 = ship.ChangeCrew("ships-selftest-cook", "Cook", false, "add", "Mate");
+            string e1 = ship.ChangeCrew("ships-selftest-capt", "Capt", false, "claim", null);
+            string e2 = ship.ChangeCrew("ships-selftest-cook", "Cook", false, "claim", null);
+            string e3 = ship.ChangeCrew("ships-selftest-capt", "Capt", false, "add", "Mate");
+            string e4 = ship.ChangeCrew("ships-selftest-mate", "Mate", false, "add", "Cook");
+            string e5 = ship.ChangeCrew("ships-selftest-capt", "Capt", false, "add", "Nobody at all");
+            Check(e0 == "ships:crew-not-captain" && e1 == null && e2 == "ships:crew-claimed" && e3 == null && e4 == "ships:crew-not-captain" &&
+                  e5 == "ships:crew-nosuch" && ship.IsCaptain("ships-selftest-capt") && ship.IsCrew("ships-selftest-mate") && !ship.IsCaptain("ships-selftest-mate"),
                 $"the first to sign is her captain; only a captain writes names on ({e0}, {e1}, {e2}, {e3}, {e4}, {e5})");
-            string e6 = ship.ChangeCrew("hansa-selftest-capt", "Capt", false, "leave", null);
-            string e7 = ship.ChangeCrew("hansa-selftest-capt", "Capt", false, "captain", "Mate");
-            string e8 = ship.ChangeCrew("hansa-selftest-mate", "Mate", false, "crew", "Capt");
-            string e9 = ship.ChangeCrew("hansa-selftest-mate", "Mate", false, "add", "Cook");
-            string e10 = ship.ChangeCrew("hansa-selftest-cook", "Cook", false, "leave", null);
-            Check(e6 == "hansa:crew-last-captain" && e7 == null && e8 == null && e9 == null && e10 == null && ship.Crew.Count == 2 &&
-                  ship.IsCaptain("hansa-selftest-mate") && !ship.IsCaptain("hansa-selftest-capt") &&
+            string e6 = ship.ChangeCrew("ships-selftest-capt", "Capt", false, "leave", null);
+            string e7 = ship.ChangeCrew("ships-selftest-capt", "Capt", false, "captain", "Mate");
+            string e8 = ship.ChangeCrew("ships-selftest-mate", "Mate", false, "crew", "Capt");
+            string e9 = ship.ChangeCrew("ships-selftest-mate", "Mate", false, "add", "Cook");
+            string e10 = ship.ChangeCrew("ships-selftest-cook", "Cook", false, "leave", null);
+            Check(e6 == "ships:crew-last-captain" && e7 == null && e8 == null && e9 == null && e10 == null && ship.Crew.Count == 2 &&
+                  ship.IsCaptain("ships-selftest-mate") && !ship.IsCaptain("ships-selftest-capt") &&
                   ship.WatchedAttributes.GetTreeAttribute(EntityShip.CrewKey)?.Count == 2,
                 $"her last captain can't leave; a captain makes others captains or not; anyone leaves ({e6}, {e7}, {e8}, {e9}, {e10}); synced");
             ship.Anchored = false;
@@ -3123,8 +3123,8 @@ namespace Hansa
                     Check(hit == null && ship.Water == w0 && ship.WaterRate == 0,
                         $"laid up she takes no damage from a shot and no water through a hole ({ship.Water:0.00} t)");
                     // her list cleared (the last name off): in commission, and the hole leaks
-                    ship.ChangeCrew("hansa-selftest-capt", "Capt", false, "leave", null);
-                    ship.ChangeCrew("hansa-selftest-mate", "Mate", false, "leave", null);
+                    ship.ChangeCrew("ships-selftest-capt", "Capt", false, "leave", null);
+                    ship.ChangeCrew("ships-selftest-mate", "Mate", false, "leave", null);
                     WaitFor(() => ship.Water > w0 + 0.5, 8, leaks =>
                     {
                         Check(!ship.HasCrewList && !ship.LaidUp && leaks, $"with no crew list she's in commission again, and the hole leaks ({ship.Water:0.0} t)");
@@ -3149,7 +3149,7 @@ namespace Hansa
         void SailStrainWorks(HansaMod mod, ShipDefinition def, BlockPos spawn, double wy, Action then)
         {
             var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship));
             var ship = (EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
             ship.Pos.SetPos(spawn.X - 25.5, wy, spawn.Z + 0.5);
             ship.Pos.Yaw = (float)(Math.PI / 2);
@@ -3174,8 +3174,8 @@ namespace Hansa
                 ship.SailFraction = 0;
                 for (int i = 0; i < 100; i++) ship.SailStrainTick(1);
                 ship.SaveState(true);
-                Check(ship.SailStrain == 0 && ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetFloat("sailStrain", -1) == 0 &&
-                      Math.Abs((ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetFloat("sailGaleW", 0) ?? 0) - SailWear.ForceFloor(mod.Config.SailStrainForce > 0 ? mod.Config.SailStrainForce : 9)) < 0.01,
+                Check(ship.SailStrain == 0 && ship.WatchedAttributes.GetTreeAttribute("ships")?.GetFloat("sailStrain", -1) == 0 &&
+                      Math.Abs((ship.WatchedAttributes.GetTreeAttribute("ships")?.GetFloat("sailGaleW", 0) ?? 0) - SailWear.ForceFloor(mod.Config.SailStrainForce > 0 ? mod.Config.SailStrainForce : 9)) < 0.01,
                     "furled, the strain eases right off in a minute and a half, and clients know (and the server's sail limits: 0.3.24)");
                 sea?.SetOverride(null);
                 ship.Die(EnumDespawnReason.Removed);
@@ -3185,7 +3185,7 @@ namespace Hansa
 
         void HearthWorks(HansaMod mod, ShipDefinition def, BlockPos spawn, double wy, Action then)
         {
-            var type = sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship));
+            var type = sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship));
             Item I(string c) => sapi.World.GetItem(new AssetLocation("game", c));
             Block B(string c) => sapi.World.GetBlock(new AssetLocation("game", c));
             var firewood = I("firewood");
@@ -3215,7 +3215,7 @@ namespace Hansa
                   !ship.Fire.IsBurning && ship.Fire.BurnState == "cold" && ship.HearthOn,
                 $"her hearth has vanilla's firepit inventory ({inv?.GetType().Name}, {inv?.Count} slots, {inv?.InventoryID}), cold");
             var hand = new DummySlot(new ItemStack(torch));
-            Check(ship.TryIgniteHearth(null, hand, 3.2f, 0) == "hansa:hearth-no-fuel" && !ship.Fire.CanIgniteFuel, "with no fuel in it a torch won't light it");
+            Check(ship.TryIgniteHearth(null, hand, 3.2f, 0) == "ships:hearth-no-fuel" && !ship.Fire.CanIgniteFuel, "with no fuel in it a torch won't light it");
 
             // two firewood and a raw red meat in it
             inv[0].Itemstack = new ItemStack(firewood, 2);
@@ -3226,12 +3226,12 @@ namespace Hansa
             Check(saved?.GetItemstack("0")?.StackSize == 2 && saved.GetItemstack("1")?.Collectible?.Code?.Path == "redmeat-raw",
                 "two firewood and a raw red meat put in: saved with her and sent to clients");
             var stick = new DummySlot(new ItemStack(I("stick"), 1));
-            Check(ship.TryIgniteHearth(null, stick, 3.2f, 0) == "hansa:hearth-needs-igniter" && ship.TryIgniteHearth(null, hand, 1f, 0) == "hansa:hearth-not-yet" &&
+            Check(ship.TryIgniteHearth(null, stick, 3.2f, 0) == "ships:hearth-needs-igniter" && ship.TryIgniteHearth(null, hand, 1f, 0) == "ships:hearth-not-yet" &&
                   !ship.Fire.CanIgniteFuel, "a stick doesn't light it, nor a torch held to it only a second");
             var drill = new DummySlot(new ItemStack(firestarter));
             int dur = firestarter.GetRemainingDurability(drill.Itemstack);
             string miss = ship.TryIgniteHearth(null, drill, 3.2f, 0.9);
-            Check(miss == "hansa:hearth-no-catch" && !ship.Fire.CanIgniteFuel && firestarter.GetRemainingDurability(drill.Itemstack) == dur,
+            Check(miss == "ships:hearth-no-catch" && !ship.Fire.CanIgniteFuel && firestarter.GetRemainingDurability(drill.Itemstack) == dur,
                 $"a firestarter's try that doesn't catch (three in four don't, as vanilla's): {miss}");
             string hit = ship.TryIgniteHearth(null, drill, 3.2f, 0.1);
             Check(hit == null && ship.Fire.CanIgniteFuel && firestarter.GetRemainingDurability(drill.Itemstack) == dur - 1,
@@ -3246,7 +3246,7 @@ namespace Hansa
                 lit = sapi.World.ElapsedMilliseconds;
                 var sent = ship.WatchedAttributes.GetTreeAttribute("hansaHearth");
                 Check(burning && ship.Fire.BurnState == "lit" && inv[0].StackSize == 1 && ship.Fire.MaxTemperature == 700 && sent?.GetString("burnstate") == "lit" &&
-                      ship.TryIgniteHearth(null, hand, 3.2f, 0) == "hansa:hearth-burning",
+                      ship.TryIgniteHearth(null, hand, 3.2f, 0) == "ships:hearth-burning",
                     $"it catches at the next burn tick: lit, one firewood burning (700 °C for 24 s), one left; clients told; it can't be lit again");
                 // someone by the fire in the forecastle is warmed; someone on the waist isn't
                 EntityProperties chickenType = null;
@@ -3260,13 +3260,13 @@ namespace Hansa
                     ship.LocalToWorld(spot.X, spot.Y, spot.Z, out double cx, out double cy, out double cz);
                     cook.Pos.SetPos(cx, cy, cz);
                     sapi.World.SpawnEntity(cook);
-                    cook.TryMount(ship.GetOrCreateDeckSeat("hansa-selftest-cook", spot.X, spot.Y, spot.Z));
+                    cook.TryMount(ship.GetOrCreateDeckSeat("ships-selftest-cook", spot.X, spot.Y, spot.Z));
                     var b = def.BoardPoints[0];
                     deckhand = (EntityAgent)sapi.World.ClassRegistry.CreateEntity(chickenType);
                     ship.LocalToWorld(b[0], b[1], b[2], out double bx, out double by, out double bz);
                     deckhand.Pos.SetPos(bx, by, bz);
                     sapi.World.SpawnEntity(deckhand);
-                    deckhand.TryMount(ship.GetOrCreateDeckSeat("hansa-selftest-deckhand", b[0], b[1], b[2]));
+                    deckhand.TryMount(ship.GetOrCreateDeckSeat("ships-selftest-deckhand", b[0], b[1], b[2]));
                 }
                 WaitFor(() => inv[2].Itemstack?.Collectible?.Code?.Path == "redmeat-cooked", 90, cooked =>
                 {
@@ -3349,8 +3349,8 @@ namespace Hansa
                                 mod.Config.Hearth = false;
                                 WaitFor(() => !ship.Fire.IsBurning && !ship.HearthOn, 2, off =>
                                 {
-                                    Check(off && ship.Fire.BurnState == "cold" && ship.WatchedAttributes.GetTreeAttribute("hansa")?.GetBool("hearth", true) == false &&
-                                          ship.TryIgniteHearth(null, hand, 3.2f, 0) == "hansa:hearth-off",
+                                    Check(off && ship.Fire.BurnState == "cold" && ship.WatchedAttributes.GetTreeAttribute("ships")?.GetBool("hearth", true) == false &&
+                                          ship.TryIgniteHearth(null, hand, 3.2f, 0) == "ships:hearth-off",
                                         "with Hearth off it goes out at once, clients are told, and it can't be lit");
                                     mod.Config.Hearth = true;
                                     ship.Die(EnumDespawnReason.Removed);
@@ -3376,7 +3376,7 @@ namespace Hansa
     /// </summary>
     public class StandIn : ISpawnHolder
     {
-        public string Uid => "hansa-selftest";
+        public string Uid => "ships-selftest";
         public string Name => "Tester";
         public IServerPlayer Player => null;
         public PlayerSpawnPos Spawn;

@@ -7,7 +7,7 @@ lanterns, no anchor, no pump, the helm blind behind the mizzen; and the chalk no
 
 Reads models/caravel/export/caravel-def-base.json and caravel-mesh-base.json (the exporter's: the sliced hull, its
 collision, the guns, the gates, the deck cells), the lines and the build's report; writes
-assets/hansa/config/ships/caravel.json and config/shipmeshes/caravel.json. The fittings are drawn here with the carrack
+assets/ships/config/ships/caravel.json and config/shipmeshes/caravel.json. The fittings are drawn here with the carrack
 generator's mesh helpers (tools/shipgen/shipgen.py, Design: ship-local blocks, x fore, y up from the waterline, z to
 starboard), not modelled in AstoCAD: they aren't sliced into blocks. Where each stands is ship data
 (caravel_lines.FITTINGS), not code here. The guns are drawn again here, the carrack's fitted to hers, with their lids
@@ -25,7 +25,7 @@ import numpy as np
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
 MOD = os.path.join(ROOT, "models", "caravel")
-ASSETS = os.path.join(ROOT, "assets", "hansa")
+ASSETS = os.path.join(ROOT, "assets", "ships")
 sys.path.insert(0, os.path.join(ROOT, "tools", "shipgen"))
 sys.path.insert(0, HERE)
 from shipgen import Design, Material          # noqa: E402
@@ -98,8 +98,8 @@ TEXTURES = {
     "rope": "game:block/cloth/reedrope", "cloth": "game:block/linen", "timber": "game:block/wood/debarked/oak",
     "planks": "game:block/wood/planks/oak1", "iron": "game:block/metal/tarnished/iron",
     "bronze": "game:block/metal/plate/tinbronze", "spar": "game:block/wood/debarked/pine",
-    "brass": "game:block/metal/plate/brass", "tarred-in": "game:block/wood/planks/oak4++3~hansa:block/tar",
-    "tarred": "game:block/wood/planks/oak1++3~hansa:block/tar", "black": "game:block/black",
+    "brass": "game:block/metal/plate/brass", "tarred-in": "game:block/wood/planks/oak4++3~ships:block/tar",
+    "tarred": "game:block/wood/planks/oak1++3~ships:block/tar", "black": "game:block/black",
     # (the carrack's fittings' materials: caravel_fittings)
     "oak": "game:block/wood/planks/oak3", "gold": "game:block/metal/plate/gold",
 }
@@ -587,7 +587,7 @@ def paint_quads(M, L, F, only_lids=False):
     """(21 October 2026, the user: "no painting ability (see magelan)") Each quad of her hull, its rails and timbers in
     a paint zone, by what it is (its texture), where it is and which way it faces: per group [start, end, zone, ...]."""
     tex = M["textures"]
-    t_hull, t_hull2 = tex.index("game:block/wood/planks/oak1++3~hansa:block/tar"), tex.index("game:block/wood/planks/oak4++3~hansa:block/tar")
+    t_hull, t_hull2 = tex.index("game:block/wood/planks/oak1++3~ships:block/tar"), tex.index("game:block/wood/planks/oak4++3~ships:block/tar")
     t_deck, t_deck2 = tex.index("game:block/wood/planks/oak1"), tex.index("game:block/wood/planks/oak3")
     t_timber = tex.index("game:block/wood/debarked/oak")
     zi = {z["code"]: n for n, z in enumerate(PAINT_ZONES)}

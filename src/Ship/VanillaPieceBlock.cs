@@ -127,7 +127,7 @@ namespace Hansa
 
         /// <summary>
         /// (0.3.19, the user: "the saw can't be held in the offhand") Building mode: the player's own toggle (a hotkey,
-        /// `.hansa build`), set by the server (<see cref="SetBuilding"/>) and read on both sides from the player entity.
+        /// `.ships build`), set by the server (<see cref="SetBuilding"/>) and read on both sides from the player entity.
         /// </summary>
         public static bool BuildingMode(EntityAgent e) => e?.WatchedAttributes?.GetBool(BuildAttribute) == true;
 
@@ -156,15 +156,15 @@ namespace Hansa
         public static bool IsStructureBlock(Block b) => IsBuildingBlock(b) || IsDoor(b);
 
         /// <summary>(after 0.1.0-dev.6) Why a block in hand isn't put on a place aboard in building mode (a lang code), or null.</summary>
-        public static string BuildingRefusal(Block b, bool building) => building && b != null && !IsStructureBlock(b) ? "hansa:piece-build-decor" : null;
+        public static string BuildingRefusal(Block b, bool building) => building && b != null && !IsStructureBlock(b) ? "ships:piece-build-decor" : null;
 
         /// <summary>
         /// (0.3.23, the user: "maybe for ships stairs better to have a special block") The mod's ship's stairs
-        /// (hansa:shipstair-steep, hansa:shipstair-long; 0.1.0-dev.6: hansa:shipstair-short): in building mode a walked stair 1,
+        /// (ships:shipstair-steep, ships:shipstair-long; 0.1.0-dev.6: ships:shipstair-short): in building mode a walked stair 1,
         /// 2 or 3 cells long with its own handrails.
         /// Vanilla's plank stairs no longer make stairs.
         /// </summary>
-        public static bool IsShipStair(Block b) => b?.Code?.Domain == "hansa" && b.FirstCodePart() == "shipstair";
+        public static bool IsShipStair(Block b) => b?.Code?.Domain == "ships" && b.FirstCodePart() == "shipstair";
 
         /// <summary>(0.3.23) A ship's stair's cells along its run: the steep one 2, the long one 3; (0.1.0-dev.6, note 36) the short one 1.</summary>
         public static int ShipStairCells(Block b) => !IsShipStair(b) ? PiecePlanner.FlightCells : b.Variant?["length"] switch
@@ -228,7 +228,7 @@ namespace Hansa
             var parts = (colon >= 0 ? code.Substring(colon + 1) : code).Split('-');
             // (0.3.19: ladder-wood-oak-north; a stick ladder's wood is oak's)
             if (parts[0] == "ladder") return parts.Length > 2 && parts[1] == "wood" ? parts[2] : "oak";
-            // (0.3.23: the ship's stairs, hansa:shipstair-steep / -long / -short, are oak)
+            // (0.3.23: the ship's stairs, ships:shipstair-steep / -long / -short, are oak)
             if (parts[0] == "shipstair") return "oak";
             int at = parts[0] == "glasspane" ? 2 : 1;
             return parts.Length > at ? parts[at] : "oak";

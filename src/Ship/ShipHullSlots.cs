@@ -78,15 +78,15 @@ namespace Hansa
         public string HullTakeProblem(int n)
         {
             var l = HullLayout;
-            if (HullPanels == null || n < 0 || n >= l.Count) return "hansa:hull-fixed";
-            if (!HullPanels.Filled(n)) return "hansa:hull-already-out";
+            if (HullPanels == null || n < 0 || n >= l.Count) return "ships:hull-fixed";
+            if (!HullPanels.Filled(n)) return "ships:hull-already-out";
             var s = l.Slots[n];
             // half a block of freeboard: waves and her heel reach a panel just over the waterline
             // ((0.3.29) a ceiling panel (her side's inner layer) with her planking in front of it: no sea behind it)
             var near = Grow(s.Box, 0.3);
             foreach (var p in Pieces.All)
                 foreach (var b in p.Solids.Concat(p.Sel))
-                    if (PiecePlanner.Overlap(b, near)) return "hansa:hull-under-piece";
+                    if (PiecePlanner.Overlap(b, near)) return "ships:hull-under-piece";
             foreach (var f in Def.Fixtures.Concat(PlacedFixtures))
             {
                 if (GunAbsent(f)) continue;
@@ -94,7 +94,7 @@ namespace Hansa
                     ? new[] { Attached.TryGetValue(f.Code ?? "", out var st) ? ShipFittings.AttachBox(f, st, Def) : null }
                     : new[] { f.Box };
                 foreach (var b in boxes)
-                    if (b != null && b.Length == 6 && PiecePlanner.Overlap(b, near)) return "hansa:hull-under-piece";
+                    if (b != null && b.Length == 6 && PiecePlanner.Overlap(b, near)) return "ships:hull-under-piece";
             }
             return null;
         }
@@ -130,14 +130,14 @@ namespace Hansa
         public string HullLayProblem(int n, bool checkPeople)
         {
             var l = HullLayout;
-            if (HullPanels == null || n < 0 || n >= l.Count) return "hansa:hull-fixed";
-            if (HullPanels.Filled(n)) return "hansa:hull-already-in";
+            if (HullPanels == null || n < 0 || n >= l.Count) return "ships:hull-fixed";
+            if (HullPanels.Filled(n)) return "ships:hull-already-in";
             var s = l.Slots[n];
             foreach (var p in Pieces.All)
                 foreach (var b in p.Solids)
                     foreach (var sb in s.SolidBoxes)
-                        if (PiecePlanner.Overlap(b, sb)) return "hansa:hull-occupied";
-            if (checkPeople && s.SolidBoxes.Any(BoxOccupied)) return "hansa:piece-someone";
+                        if (PiecePlanner.Overlap(b, sb)) return "ships:hull-occupied";
+            if (checkPeople && s.SolidBoxes.Any(BoxOccupied)) return "ships:piece-someone";
             return null;
         }
 
@@ -151,7 +151,7 @@ namespace Hansa
             {
                 var stack = MaterialStack(HullPanels[n]==SlotState.Glazed
                     ? new SlotMaterialDef {Block=WatchedAttributes.GetTreeAttribute("hansaHullMaterials")?.GetString(s.Id,ModularPieceDef.DefaultBlock("window"))??ModularPieceDef.DefaultBlock("window"),Count=1} : s.Mat);
-                if (stack != null && !player.InventoryManager.TryGiveItemstack(stack, true)) return "hansa:piece-inventory-full";
+                if (stack != null && !player.InventoryManager.TryGiveItemstack(stack, true)) return "ships:piece-inventory-full";
             }
             SetHullState(n, SlotState.Empty);
             return null;
@@ -195,14 +195,14 @@ namespace Hansa
         {
             var l = HullLayout;
             int n = l?.IndexOf(slotId) ?? -1;
-            if (n < 0) return "hansa:hull-fixed";
-            if (GoneDown) return "hansa:gone-down";
+            if (n < 0) return "ships:hull-fixed";
+            if (GoneDown) return "ships:gone-down";
             var s = l.Slots[n];
-            if (!VanillaPieceBlock.BuildingMode(player.Entity)) return "hansa:cell-build-mode";
+            if (!VanillaPieceBlock.BuildingMode(player.Entity)) return "ships:cell-build-mode";
             var held = player.InventoryManager.ActiveHotbarSlot?.Itemstack;
-            if (held?.Collectible?.Tool != EnumTool.Axe) return "hansa:cell-needs-axe";
+            if (held?.Collectible?.Tool != EnumTool.Axe) return "ships:cell-needs-axe";
             var c = s.Centre;
-            if (!InReach(player, c.X, c.Y, c.Z, 1.2)) return "hansa:piece-too-far";
+            if (!InReach(player, c.X, c.Y, c.Z, 1.2)) return "ships:piece-too-far";
             string err = TakeHull(n, player);
             if (err != null) return err;
             HullSound(s, "sounds/block/planks");
@@ -215,8 +215,8 @@ namespace Hansa
         {
             var l = HullLayout;
             int n = l?.IndexOf(slotId) ?? -1;
-            if (n < 0) return "hansa:hull-fixed";
-            if (GoneDown) return "hansa:gone-down";
+            if (n < 0) return "ships:hull-fixed";
+            if (GoneDown) return "ships:gone-down";
             var s = l.Slots[n];
             // ((0.3.30, the user: "repairing missing hull elements from inside plugs only inner layer ... better would be ability
             // to plug both from inside") a ceiling laid from inside with her planking behind it out: the planking first (it's
@@ -226,8 +226,8 @@ namespace Hansa
             var paneSlot=player.InventoryManager.ActiveHotbarSlot;
             if (paneSlot?.Itemstack?.Block is Block pane && VanillaPieceBlock.IsPane(pane))
             {
-                if(!HullWindows.Fits(Def,s)) return "hansa:hull-window-above";
-                if(!InReach(player,s.Centre.X,s.Centre.Y,s.Centre.Z,1.2)) return "hansa:piece-too-far";
+                if(!HullWindows.Fits(Def,s)) return "ships:hull-window-above";
+                if(!InReach(player,s.Centre.X,s.Centre.Y,s.Centre.Z,1.2)) return "ships:piece-too-far";
                 string problem=HullLayProblem(n,true);if(problem!=null) return problem;
                 var materials=WatchedAttributes.GetTreeAttribute("hansaHullMaterials")??new TreeAttribute();
                 materials.SetString(s.Id,pane.Code.ToString());WatchedAttributes["hansaHullMaterials"]=materials;WatchedAttributes.MarkPathDirty("hansaHullMaterials");
@@ -238,7 +238,7 @@ namespace Hansa
             var order = new List<int>();
             if (HullPanels.Filled(n))
             {
-                if (behind < 0) return "hansa:hull-already-in";
+                if (behind < 0) return "ships:hull-already-in";
                 order.Add(behind);
             }
             else
@@ -250,14 +250,14 @@ namespace Hansa
             var slot = player.InventoryManager.ActiveHotbarSlot;
             var held = slot?.Itemstack;
             int need = LayNeed(l.Slots[order[0]].Mat, held);
-            if (need < 0) return "hansa:hull-needs-planks";
-            if (!Creative(player) && held.StackSize < need) return "hansa:hull-needs-planks";
+            if (need < 0) return "ships:hull-needs-planks";
+            if (!Creative(player) && held.StackSize < need) return "ships:hull-needs-planks";
             var c = s.Centre;
-            if (!InReach(player, c.X, c.Y, c.Z, 1.2)) return "hansa:piece-too-far";
+            if (!InReach(player, c.X, c.Y, c.Z, 1.2)) return "ships:piece-too-far";
             // (under her waterline: from inside her, or a diver outside under the water, as a repair)
             var ep = player.Entity;
             bool aboard = ep?.MountedOn is ShipSeat seat && seat.Ship == this;
-            if (s.Sill < Def.Waterline + Sinkage && !aboard && ep?.IsEyesSubmerged() != true) return "hansa:repair-below";
+            if (s.Sill < Def.Waterline + Sinkage && !aboard && ep?.IsEyesSubmerged() != true) return "ships:repair-below";
             int laid = 0;
             foreach (int m in order)
             {
@@ -289,7 +289,7 @@ namespace Hansa
             World.PlaySoundAt(new AssetLocation(sound), x, y, z, null, true, 16);
         }
 
-        /// <summary>(0.3.26) What her hull panels are now, for <c>.hansa hull</c>.</summary>
+        /// <summary>(0.3.26) What her hull panels are now, for <c>.ships hull</c>.</summary>
         public string HullText()
         {
             if (HullPanels == null) return $"The {Def?.Code} has no hull panels that can be taken out (her damage is her planking's, as before).";

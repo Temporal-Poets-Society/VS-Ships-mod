@@ -315,13 +315,13 @@ namespace HansaTests
                     for (int n = 0; n < c.Quads.Length; n++) if (c.Panel[n] == p32 && !c.Inside[n] && c.Group == "exterior") outerQuads++;
                     var built = hs.Build(c, looks32);
                     // (what's cut out of the tarred planking outside, and out of the ceiling inside; the reveal is raw oak)
-                    double before = hs.SoundQuads(c).Where(q => c.Group == "interior" || hs.Textures[(int)q[0]].Contains("hansa:block/tar")).Sum(QuadArea), after = 0;
+                    double before = hs.SoundQuads(c).Where(q => c.Group == "interior" || hs.Textures[(int)q[0]].Contains("ships:block/tar")).Sum(QuadArea), after = 0;
                     foreach (var q in built)
                     {
                         string t = hs.Textures[(int)q[0]];
                         if (c.RevealPanels.Contains(p32) && IsReveal(q, reveal32Quads)) { reveal32++; continue; }
-                        if (c.Group == "exterior" && t.Contains("hansa:block/tar") && t.Contains("dmg-holed")) overlaidTar++;
-                        if (c.Group == "interior" || t.Contains("hansa:block/tar")) after += QuadArea(q);
+                        if (c.Group == "exterior" && t.Contains("ships:block/tar") && t.Contains("dmg-holed")) overlaidTar++;
+                        if (c.Group == "interior" || t.Contains("ships:block/tar")) after += QuadArea(q);
                     }
                     if (c.Group == "exterior") cutOut += before - after;
                     if (c.Group == "interior") cutIn += before - after;
@@ -351,7 +351,7 @@ namespace HansaTests
             long manyMs = sw.ElapsedMilliseconds;
             Check(wrong == 0 && holes > 10 && manyMs < 4000,
                 $"a quarter of her planking hurt ({holes} holes): the chunks built are exactly those that differ ({all.Count} of {hs.Chunks.Count}, {quads} quads in {manyMs} ms)");
-            Check(hs.Textures.Skip(file.Textures.Length).All(t => t.Contains("++0~hansa:block/dmg-") && File.Exists(Path.Combine(assets, "textures", "block", t.Substring(t.LastIndexOf('/') + 1) + ".png")) ||
+            Check(hs.Textures.Skip(file.Textures.Length).All(t => t.Contains("++0~ships:block/dmg-") && File.Exists(Path.Combine(assets, "textures", "block", t.Substring(t.LastIndexOf('/') + 1) + ".png")) ||
                                                                    t == "game:block/wood/planks/oak1"),
                 $"the textures it asks for are the file's with an overlay that's there ({hs.Textures.Count - file.Textures.Length} made)");
         }
@@ -442,7 +442,7 @@ namespace HansaTests
             var file = LoadSkinFile(def, assets);
             var l = def.DamageParts;
             var d = l.D;
-            string dir = Path.Combine(Path.GetTempPath(), "hansa-damage-views");
+            string dir = Path.Combine(Path.GetTempPath(), "ships-damage-views");
             Directory.CreateDirectory(dir);
             // a row of panels amidships in each state: sound, worn, scraped, cracked, leaking, holed (fresh), holed (stove in)
             var states = new (float Hurt, float Wear)[] { (0, 0), (0, d.Worn + 0.05f), (d.Scraped + 0.1f, 0), (d.Cracked + 0.1f, 0), (0, d.Leaking + 0.05f), (d.Holed, 0), (1, 0) };

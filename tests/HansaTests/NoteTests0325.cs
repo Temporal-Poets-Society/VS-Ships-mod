@@ -19,7 +19,7 @@ namespace HansaTests
         static void Notes0325(string root)
         {
             Console.WriteLine("0.3.25: stern chasers, the older carracks archived, crawling under the sweeps");
-            string assets = Path.Combine(root, "assets", "hansa");
+            string assets = Path.Combine(root, "assets", "ships");
             var md = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(assets, "config", "ships", "carrack-m.json")));
             md.Init();
             SternChasers(md);
@@ -86,7 +86,7 @@ namespace HansaTests
             st.Set(sp, true);
             string bothChasers = GunPlaces.MountProblem(md, oppo, st, null, null);
             st.Set(sp, false);
-            Check(first == null && other != null && refused == "hansa:gunplace-gun-room" && inWay == sp && then == null && bothChasers == null,
+            Check(first == null && other != null && refused == "ships:gunplace-gun-room" && inWay == sp && then == null && bothChasers == null,
                 $"179: {sp.Id} mounted ({first ?? "ok"}), {other?.Id} is refused ({refused}, {inWay?.Id} in the way); {sp.Id} taken up, it may ({then ?? "ok"}); both chasers at once ({bothChasers ?? "ok"})");
             // the sea: no waist downflood point from a stern chaser's port (its "port" is across her, not along her side)
             var points = md.DamageParts?.Downflood;
@@ -94,7 +94,7 @@ namespace HansaTests
                 $"179: no downflood point from the stern chasers' ports (open deck) among her {points?.Length ?? 0}");
             // the fire command's sides: port and starboard are her broadsides, stern the chasers
             Check(guns.Count(f => ShipCompartments.AlongX(f) && f.Out[0] < 0) == 2 && guns.Where(f => !ShipCompartments.AlongX(f)).All(f => Math.Abs(f.Out[2]) > 0.99),
-                "179: /hansa fire port|starboard picks the broadside guns, stern the two chasers");
+                "179: /ships fire port|starboard picks the broadside guns, stern the two chasers");
         }
 
         static void Archived(string assets, ShipDefinition md)

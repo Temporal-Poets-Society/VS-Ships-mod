@@ -13,7 +13,7 @@ namespace HansaTests
 {
     static partial class Program
     {
-        static readonly string[] NoteTextures={"game:block/wood/debarked/oak","game:block/wood/planks/oak1","hansa:block/glass-clear","game:block/metal/plate/lead","game:block/metal/plate/iron","game:block/clay/brick/four/running/red1","game:block/coal/bituminous"};
+        static readonly string[] NoteTextures={"game:block/wood/debarked/oak","game:block/wood/planks/oak1","ships:block/glass-clear","game:block/metal/plate/lead","game:block/metal/plate/iron","game:block/clay/brick/four/running/red1","game:block/coal/bituminous"};
         static void Notes135(string root)
         {
             int before=failures;

@@ -100,15 +100,15 @@ namespace Hansa
             switch (p.Role)
             {
                 case PieceRole.Hearth when HearthFixture != null && HearthFixture == PlacedHearth:
-                    if (Fire.IsBurning || Fire.CanIgniteFuel) return "hansa:hearth-hot";
-                    if (HearthInv != null && !HearthInv.Empty) return "hansa:hearth-not-empty";
+                    if (Fire.IsBurning || Fire.CanIgniteFuel) return "ships:hearth-hot";
+                    if (HearthInv != null && !HearthInv.Empty) return "ships:hearth-not-empty";
                     return null;
                 case PieceRole.Oven when OvenFixture != null && OvenFixture == PlacedOven:
-                    if (Oven.Burning) return "hansa:oven-hot";
-                    if (OvenInv != null && !OvenInv.Empty) return "hansa:oven-not-empty";
+                    if (Oven.Burning) return "ships:oven-hot";
+                    if (OvenInv != null && !OvenInv.Empty) return "ships:oven-not-empty";
                     return null;
                 case PieceRole.Flue when HearthFixture != null && HearthFixture == PlacedHearth && (Fire.IsBurning || Fire.CanIgniteFuel):
-                    return "hansa:flue-hot";
+                    return "ships:flue-hot";
             }
             return null;
         }

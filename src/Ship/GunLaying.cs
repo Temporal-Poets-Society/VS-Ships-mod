@@ -406,10 +406,10 @@ namespace Hansa
         {
             int t = (int)Math.Round(lay.Train), e = (int)Math.Round(lay.Elevation);
             int across = TrainAcross(gun);
-            string train = t == 0 ? Lang.Get("hansa:gun-train-square")
-                : across != 0 ? Lang.Get(t * across > 0 ? "hansa:gun-train-starboard" : "hansa:gun-train-port", Math.Abs(t))
-                : Lang.Get(t > 0 ? "hansa:gun-train-bow" : "hansa:gun-train-stern", Math.Abs(t));
-            return Lang.Get("hansa:gun-lay", train, e < 0 ? "−" + -e : e.ToString());
+            string train = t == 0 ? Lang.Get("ships:gun-train-square")
+                : across != 0 ? Lang.Get(t * across > 0 ? "ships:gun-train-starboard" : "ships:gun-train-port", Math.Abs(t))
+                : Lang.Get(t > 0 ? "ships:gun-train-bow" : "ships:gun-train-stern", Math.Abs(t));
+            return Lang.Get("ships:gun-lay", train, e < 0 ? "−" + -e : e.ToString());
         }
 
         /// <summary>A ship's guns' lays, compactly (4 bytes a gun: hundredths of a degree), to save and send.</summary>

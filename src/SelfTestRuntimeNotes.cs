@@ -32,15 +32,15 @@ namespace Hansa
             string powderIn=ship.LoadGunCharge(gun,p,false);
             string ballIn=ship.LoadGunCharge(gun,s,false);
             string twice=ship.LoadGunCharge(gun,s,false);
-            Check(outError=="hansa:gun-load-run-in" && moving==outError && shotFirst=="hansa:gun-load-powder" &&
-                  powderIn==null && ballIn==null && twice=="hansa:gun-load-full" && p.Itemstack.StackSize==1 && s.Itemstack.StackSize==1 &&
+            Check(outError=="ships:gun-load-run-in" && moving==outError && shotFirst=="ships:gun-load-powder" &&
+                  powderIn==null && ballIn==null && twice=="ships:gun-load-full" && p.Itemstack.StackSize==1 && s.Itemstack.StackSize==1 &&
                   st.Charge==GunLoading.Loaded && ship.GunOpen(gun) && ship.GunRunIn(gun),
                 $"132: run out/moving refused ({outError}, {moving}); run in with port open, powder then four shot consumed once ({powderIn??"ok"}, {ballIn??"ok"}, {twice})");
-            Check(ship.FireGun(gun,null,null)=="hansa:gun-load-run-out","132: a loaded gun must be run out to fire");
+            Check(ship.FireGun(gun,null,null)=="ships:gun-load-run-out","132: a loaded gun must be run out to fire");
             Check(ship.WatchedAttributes.GetTreeAttribute("hansaGuns")?.GetTreeAttribute("loads")?.GetInt(gun.Code)==7,
                 "132: powder, shot and run-in state are saved together for this gun");
             var place=ship.GunPlaceOf(gun);
-            Check(place==null || ship.TakeGunProblem(place)=="hansa:gun-take-charged","charged guns refuse removal before losing their powder or shot");
+            Check(place==null || ship.TakeGunProblem(place)=="ships:gun-take-charged","charged guns refuse removal before losing their powder or shot");
             st.Charge=0;
             var empty=ShipWrecks.LootOf(ship,false).SelectMany(l=>l.Items).ToList();
             st.Charge=GunLoading.Loaded;
@@ -51,7 +51,7 @@ namespace Hansa
             ship.OpenGunPort(gun,true);
             string fired=ship.FireGun(gun,null,null);
             string recoilLoad=ship.LoadGunCharge(gun,p,false);
-            Check(fired==null && recoilLoad=="hansa:gun-load-run-in" && p.Itemstack.StackSize==1,
+            Check(fired==null && recoilLoad=="ships:gun-load-run-in" && p.Itemstack.StackSize==1,
                 "automatic recoil starts a fresh run-in timer and refuses powder until it finishes");
             st.FiredMs=long.MinValue/2;
             ship.HouseGun(gun);st.Charge=0;st.RunIn=false;

@@ -13,9 +13,9 @@ namespace Hansa
     /// <summary>
     /// A note written with the surveyor's chalk (<see cref="SurveyorsChalk"/>): what the player looked at and where, the
     /// state of the ship there, their comment and a screenshot. All of them are kept on the player's own disk, in
-    /// ModData/hansa-notes.json (a JSON array, every number) and ModData/hansa-notes.md (a readable list), for Claude
+    /// ModData/ships-notes.json (a JSON array, every number) and ModData/ships-notes.md (a readable list), for Claude
     /// to read when diagnosing a report. Plain data, no game API: the offline checks build, save, read and print them.
-    /// Units: blocks (1 block = 1 m) and degrees. A ship-local point is in her design's frame (assets/hansa/config/ships):
+    /// Units: blocks (1 block = 1 m) and degrees. A ship-local point is in her design's frame (assets/ships/config/ships):
     /// x toward the bow, y up from her waterline, z to starboard.
     /// </summary>
     public class SurveyNote
@@ -27,8 +27,8 @@ namespace Hansa
         /// <summary>The game's calendar then: its date as the game writes it, and the total hours since the world began.</summary>
         public string GameDate;
         public double GameHours;
-        /// <summary>The versions: Hansa, Sea and the game.</summary>
-        public string Hansa, Sea, Game;
+        /// <summary>The versions: Ships, Sea and the game.</summary>
+        public string ShipsVersion, Sea, Game;
         /// <summary>The world (its savegame identifier): a note's mark shows only in its own world.</summary>
         public string World;
         public string Comment = "";
@@ -325,7 +325,7 @@ namespace Hansa
     /// <summary>The notes' files: the JSON array (read and written whole) and the readable list next to it.</summary>
     public static class SurveyNoteFile
     {
-        public const string JsonName = "hansa-notes.json", MarkdownName = "hansa-notes.md";
+        public const string JsonName = "ships-notes.json", MarkdownName = "ships-notes.md";
 
         static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
 
@@ -386,7 +386,7 @@ namespace Hansa
             return string.Join(" ", w.Take(words)) + (w.Length > words ? " …" : "");
         }
 
-        /// <summary>A line of the list (.hansa notes): "#3 · 21:14 · Carrack #6743: Hull, port side... · "the first words…"".</summary>
+        /// <summary>A line of the list (.ships notes): "#3 · 21:14 · Carrack #6743: Hull, port side... · "the first words…"".</summary>
         public static string ListLine(SurveyNote n)
         {
             string time = n.Time != null && n.Time.Length >= 16 ? n.Time.Substring(11, 5) : n.Time ?? "";
@@ -414,7 +414,7 @@ namespace Hansa
         {
             var sb = new StringBuilder();
             notes ??= new List<SurveyNote>();
-            sb.AppendLine("# Hansa notes");
+            sb.AppendLine("# Ships notes");
             sb.AppendLine();
             sb.AppendLine($"{notes.Count} note{(notes.Count == 1 ? "" : "s")}, written with the surveyor's chalk. Every number of each is in " +
                           $"{JsonName} next to this file.");
@@ -446,7 +446,7 @@ namespace Hansa
                     $"{d.Part}: {d.State} (hurt {N(d.Hurt)}, wear {N(d.Wear)}{(d.Leak >= 0.05 ? $", ~{N(d.Leak, "0.0")} l/s" : "")})"))));
             if (n.Player != null) lines.Add(("Player", PlayerLine(n.Player)));
             foreach (var ship in n.Ships ?? new List<NoteShip>()) lines.Add(($"Ship #{ship.Id} ({ship.Role})", ShipLine(ship)));
-            lines.Add(("When", $"{n.Time}; game time {n.GameDate} ({N(n.GameHours, "0.0")} h); Hansa {n.Hansa}, Sea {n.Sea}, game {n.Game}"));
+            lines.Add(("When", $"{n.Time}; game time {n.GameDate} ({N(n.GameHours, "0.0")} h); Ships {n.ShipsVersion}, Sea {n.Sea}, game {n.Game}"));
             return lines;
         }
 

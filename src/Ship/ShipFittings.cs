@@ -92,10 +92,10 @@ namespace Hansa
         public static bool IsShipsBoat(ItemStack stack)
         {
             // Hansa's own boat: an item that puts one of our boats in the water (ItemShipDeed with "boat")
-            if (stack?.Collectible?.Code?.Domain == "hansa" && stack.Collectible.Attributes?["boat"].AsBool(false) == true) return true;
+            if (stack?.Collectible?.Code?.Domain == "ships" && stack.Collectible.Attributes?["boat"].AsBool(false) == true) return true;
             if (stack?.Collectible is not ItemBoat) return false;
             var code = stack.Collectible.Code;
-            return code.Domain == "hansa" ? code.Path.StartsWith("boat-") || code.Path.StartsWith("rowboat-") : stack.Collectible.Variant["type"] == "raft";
+            return code.Domain == "ships" ? code.Path.StartsWith("boat-") || code.Path.StartsWith("rowboat-") : stack.Collectible.Variant["type"] == "raft";
         }
 
         public static bool IsTrunk(ItemStack stack) => stack?.Block is BlockGenericTypedContainerTrunk;

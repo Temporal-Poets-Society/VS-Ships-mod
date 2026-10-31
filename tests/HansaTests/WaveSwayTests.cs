@@ -13,7 +13,7 @@ namespace HansaTests
         // periods are mean upward mean-crossing intervals (irregular sea, not a single sine).
         static void WaveSway(string root)
         {
-            var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets/hansa/config/ships/caravel.json")));
+            var def = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets/ships/config/ships/caravel.json")));
             def.Init();
             def.Waterplane(out double hl, out double hb, out double cx);
             var hull = new ShipWaveHull(def);
