@@ -94,7 +94,39 @@ namespace Hansa
             double p = SoftCap(Math.Atan(pitch), m.MaxPitch * Math.PI / 180);
             double r = SoftCap(-Math.Atan(roll), m.MaxRoll * Math.PI / 180);   // the surface rising to starboard lifts starboard
             // heave above was for the waterplane's centre; the origin sits centreX behind it
-            return new ShipAttitude(heave - Math.Tan(p) * centreX, p, r);
+            return new ShipAttitude(heave - Math.Sin(p) * centreX, p, r);
+        }
+
+        /// <summary>
+        /// Wave-frequency yaw, in rad/s (+ port). The transverse orbital velocity varies along the keel:
+        /// its first moment turns the hull, while the immersed lateral area and rudder resist it. A first-order
+        /// inertia/damping response, not a spring to an arbitrary compass heading. Uniform beam or head waves
+        /// give no yaw moment; oblique trains in a real spectrum give a small, slow sheer.
+        /// </summary>
+        public static double WaveYawRate(Sea.WavePlace waves, double factor, double t, double x, double z,
+            double yaw, double speed, ShipWaveHull hull, double rudder = 1)
+        {
+            if (waves == null || factor <= 0 || hull == null) return 0;
+            double s = Math.Sin(yaw), c = Math.Cos(yaw), rate = 0;
+            double cx = x + s * hull.LateralCentre, cz = z + c * hull.LateralCentre;
+            // Hull inertia grows with L², lateral damping with L. Forward flow over the hull and the
+            // (centred or lashed) rudder adds resistance. Rudder damage removes only its contribution.
+            double tau = 1.5 * Math.Sqrt(hull.Length / 9.81);
+            double damping = 1 + Math.Abs(speed) / Math.Sqrt(9.81 * hull.Draft) *
+                (1 + Math.Clamp(rudder, 0, 1) * hull.RudderResistance);
+            for (int i = 0; i < waves.Count; i++)
+            {
+                double kx = waves.Kx[i], kz = waves.Kz[i], k = Math.Sqrt(kx * kx + kz * kz);
+                if (k < 1e-9) continue;
+                double ku = kx * s + kz * c, kv = -kx * c + kz * s;
+                double theta = kx * cx + kz * cz - waves.Omega[i] * t + waves.Phase[i];
+                double we = waves.Omega[i] - ku * speed;
+                double force = -waves.Amp[i] * factor * waves.Omega[i] * kv / k * ku *
+                    Slope(ku * hull.Length / 2) * Sinc(kv * hull.Beam / 2);
+                double im = we * tau, d = damping * damping + im * im;
+                rate += force * (damping * Math.Cos(theta) - im * Math.Sin(theta)) / d;
+            }
+            return SoftCap(rate, 2 * Math.PI / 180);
         }
 
         /// <summary>
@@ -145,5 +177,54 @@ namespace Hansa
 
         /// <summary>Close to v when small, never beyond ±max.</summary>
         public static double SoftCap(double v, double max) => max <= 0 ? 0 : max * Math.Tanh(v / max);
+    }
+
+    /// <summary>Motion geometry measured once from the design, independent of masts, rig trim and fittings.</summary>
+    public sealed class ShipWaveHull
+    {
+        public readonly double Length, Beam, Draft, FlotationCentre, LateralCentre, RudderResistance;
+
+        public ShipWaveHull(ShipDefinition def)
+        {
+            def.Waterplane(out double hl, out double hb, out double mid);
+            Length = Math.Max(1, hl * 2); Beam = Math.Max(0.5, hb * 2); Draft = Math.Max(0.25, def.Draft);
+            double area = 0, first = 0, lateral = 0, lateralFirst = 0;
+            var g = def.Grid;
+            var outline = def.WaterClip?.DryOutline;
+            for (double x = mid - hl + 0.125; x < mid + hl; x += 0.25)
+            {
+                // The actual waterplane's centroid, not the midpoint of its stem/transom bounding box.
+                double width = outline != null ? 2 * outline.At(x, 0) : 0;
+                double bottom = 0;
+                if (g != null)
+                {
+                    int i = g.CellX(x), j = g.CellY(0);
+                    if (i >= 0 && i < g.NX)
+                    {
+                        double lo = double.MaxValue, hi = double.MinValue;
+                        for (int k = 0; k < g.NZ; k++)
+                        {
+                            if (j >= 0 && j < g.NY && g.Solid(i, j, k))
+                            { lo = Math.Min(lo, g.OZ + k * g.V); hi = Math.Max(hi, g.OZ + (k + 1) * g.V); }
+                            for (int y = 0; y < Math.Min(j + 1, g.NY); y++)
+                                if (g.Solid(i, y, k)) { bottom = Math.Min(bottom, g.OY + y * g.V); break; }
+                        }
+                        if (outline == null && lo <= hi) width = hi - lo;
+                    }
+                }
+                area += width; first += x * width;
+                double depth = Math.Clamp(-bottom, 0, Draft);
+                lateral += depth * 0.25; lateralFirst += x * depth * 0.25;
+            }
+            FlotationCentre = area > 0 ? first / area : mid;
+            LateralCentre = lateral > 0 ? lateralFirst / lateral : FlotationCentre;
+            var rb = def.Damage?.Rudder;
+            if (rb?.Length == 6)
+            {
+                double rudderArea = (rb[3] - rb[0]) * Math.Max(0, Math.Min(0, rb[4]) - rb[1]);
+                double arm = (rb[0] + rb[3]) / 2 - LateralCentre;
+                RudderResistance = rudderArea * arm * arm / Math.Max(1, lateral * Length * Length / 12);
+            }
+        }
     }
 }

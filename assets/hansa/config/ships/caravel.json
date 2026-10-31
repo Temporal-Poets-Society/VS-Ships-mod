@@ -812897,7 +812897,8 @@
   ]
  },
  "motion": {
-  "rollPeriod": 4.5
+  "rollPeriod": 4.5,
+  "rollDamping": 0.55
  },
  "sailing": {
   "maxBrace": 36.0,

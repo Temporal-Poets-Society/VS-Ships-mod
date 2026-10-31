@@ -39,6 +39,7 @@ namespace HansaTests
         {
             string root = FindRoot();
             if (Array.IndexOf(args,"notes135") >= 0) { Notes135(root); return failures==0?0:1; }
+            if (Array.IndexOf(args, "wave-sway") >= 0) { WaveSway(root); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "runtime-notes") >= 0) { RuntimeNotes(root); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "integrate") >= 0) { IntegrationNotes(root); return failures == 0 ? 0 : 1; }
             // (27 October 2026, the build speed-up: the offline tests in one pass) every group the caravel's work runs, one

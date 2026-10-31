@@ -65,6 +65,7 @@ namespace Hansa
                 cfg.Ship = mod.DefaultShipCode;
             }
             var def = mod.GetShip(cfg.Ship);
+            if (cfg.Only == "wave-sway") { WaveSwayRun(mod, def); return; }
             Check(def != null, $"{cfg.Ship} definition loaded");
             Check(sapi.World.GetEntityType(new AssetLocation("hansa", cfg.Ship)) != null, $"{cfg.Ship} entity type registered");
             Check(sapi.World.GetItem(new AssetLocation("hansa", "shipdeed-" + cfg.Ship)) != null, "charter item registered");

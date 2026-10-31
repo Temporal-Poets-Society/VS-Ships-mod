@@ -19,6 +19,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="WaveSwayTests.cs" />
     <Compile Include="RuntimeNoteTests.cs" />
     <Compile Include="IntegrationTests.cs" />
     <Compile Include="Notes135Tests.cs" />
