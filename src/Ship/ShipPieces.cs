@@ -1715,6 +1715,10 @@ namespace Hansa
             {
                 // (a hatch shuts over a ladder's way up, its top step in the opening: the climber opens it, note 169)
                 if (plan.Role == PieceRole.Hatch && p.Role == PieceRole.Ladder) continue;
+                // A hatch can shut over the last nosing of a stair coming up through its opening, just as over
+                // a ladder. Rails or a stair continuing above this deck must still prevent it shutting.
+                if (plan.Role == PieceRole.Hatch && p.Role == PieceRole.Stair && plan.Box != null &&
+                    p.PlacementVolumes.All(v => v.Bounds[4] <= plan.Box[4] + 0.01)) continue;
                 if (ModularGeometry.FittedContact(plan,p)) continue;
                 foreach (var a in volumes)
                     foreach (var b in p.PlacementVolumes)

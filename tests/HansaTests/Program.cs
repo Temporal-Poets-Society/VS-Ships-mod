@@ -33,6 +33,7 @@ namespace HansaTests
         static int Main(string[] args)
         {
             string root = FindRoot();
+            if (Array.IndexOf(args, "issue30") >= 0) { StormFloodTests(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "runtime-notes") >= 0) { RuntimeNotes(root); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "integrate") >= 0) { IntegrationNotes(root); return failures == 0 ? 0 : 1; }
             // (27 October 2026, the build speed-up: the offline tests in one pass) every group the caravel's work runs, one

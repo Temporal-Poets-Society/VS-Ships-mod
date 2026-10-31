@@ -67,6 +67,10 @@ namespace Hansa
         // house's door: since 0.3.7 the companionway has one). The sea over an open hatch or door itself goes straight
         // down.
         public float DownfloodCoefficient = 1.7f, DeckShare = 0.05f, OpenHatchShare = 0.15f;
+        /// <summary>Scupper aperture per metre of exposed deck edge (m²/m), and sound weather-deck seepage
+        /// as a fraction of standing deck water per second. The server conserves this water in DeckFlooding.Step;
+        /// DeckShare/OpenHatchShare remain only for the older instantaneous Downflooding estimate.</summary>
+        public float ScupperAreaPerLength = 0.0125f, DeckSeepRate = 0.0005f;
         /// <summary>Foundering (besides a hold nearly full): the sea getting below faster than this (tonnes a second) beyond what the pumps take out.</summary>
         public float FounderRate = 0.3f;
 
@@ -379,6 +383,10 @@ namespace Hansa
         public bool Hatch;
         /// <summary>(0.3.20, step B) A deck cell of the main deck (OpenFixture "cell:" + its index): open while it's taken up and no hatch is shut over it.</summary>
         public bool Cell;
+        /// <summary>An opening straight into an enclosed room, rather than onto the exposed weather deck.</summary>
+        public bool Direct;
+        /// <summary>A bounded side opening's height (ports, gates, missing panels); zero for an open rail.</summary>
+        public double Height;
     }
 
     /// <summary>
@@ -393,6 +401,8 @@ namespace Hansa
         public readonly DamagePart[] Parts;
         readonly Dictionary<int, int> byCode = new();
         public readonly DownfloodPoint[] Downflood;
+        /// <summary>Exposed main deck footprint (m²), for the average depth of shipped water.</summary>
+        public readonly double DeckArea;
         /// <summary>Each sail's own frame and outline (by the design's sail index; null if it has no axis).</summary>
         public readonly SailFrame[] SailFrames;
 
@@ -620,6 +630,12 @@ namespace Hansa
             GM = wr * wr * kr * kr / 9.81;
 
             Downflood = DownfloodPoints(def, D);
+            int deckLayer = Math.Min(g.CellY(def.DeckY - 0.01), top); // dry mask ends just under the deck
+            for (int i = 0; i < g.NX; i++)
+                for (int k = 0; k < g.NZ; k++)
+                    if (mask?.Solid(i, deckLayer, k) == true &&
+                        def.RoomAt(g.OX + (i + .5) * v, def.DeckY + .5, g.OZ + (k + .5) * v)?.Enclosed != true)
+                        DeckArea += v * v;
         }
 
         class PanelAcc
@@ -696,7 +712,7 @@ namespace Hansa
 
         /// <summary>
         /// Where the sea comes aboard: along both sides of the waist (the main deck open to the sky) at the deck's edge
-        /// (through the scuppers, a fifth as freely, a point each frame space) and where the side is lowest, every
+        /// (a scupper point each frame space; its aperture is set by ScupperAreaPerLength) and where the side is lowest, every
         /// column of the grid: the bulwark's top, a gun port's sill (a lidded one only while it's open, the gun run out:
         /// shut, the bulwark over it), an entry port's gate (its top while it's shut); the hatches in the main deck, a door
         /// on it that leads below (one that unseals a room, over its sill) and the entry port gates while they stand open.
@@ -746,7 +762,7 @@ namespace Hansa
                     foreach (var f in def.Fixtures)
                         if (f.Type == "gate" && f.Box != null && x >= f.Box[0] && x <= f.Box[3] && Math.Sign(f.Box[2] + f.Box[5]) == side)
                             top = Math.Max(top, f.Box[4]);
-                    // a gun port with a lid: its sill only while it's open; shut, the bulwark over the port
+                    // Bridge a lidded port when measuring the shut bulwark; its open sill is added from port data below.
                     FixtureDef lidded = null;
                     foreach (var f in def.Fixtures)
                         if (f.Type == "gun" && f.Lid != null && f.Port?.Length >= 4 && !ShipCompartments.AlongX(f) && x >= f.Port[0] && x <= f.Port[2] &&
@@ -754,7 +770,6 @@ namespace Hansa
                             lidded = f;
                     if (lidded != null)
                     {
-                        list.Add(new DownfloodPoint { X = x, Y = Math.Max(def.DeckY, top), Z = z, Length = g.V, Weight = 1, OpenFixture = lidded.Code });
                         int jt = g.CellY(lidded.Port[3] + 0.01);
                         for (; jt < g.NY; jt++)
                         {
@@ -767,13 +782,14 @@ namespace Hansa
                     list.Add(new DownfloodPoint { X = x, Y = Math.Max(def.DeckY, top), Z = z, Length = g.V, Weight = 1 });
                 }
             }
-            // (0.3.22, step C) a lidded gun port in a castle's side (the waist's are in the columns above): its sill, each
-            // column across it, only while it's open (the gun run out); shut (housed, or an empty gun place), the lid is
+            // A lidded gun port's actual sill, each column across it, only while it's open (the gun run out);
+            // shut (housed, or an empty gun place), the lid is
             // her side there, whether the port is cut in her collision or not
             foreach (var f in ShipCompartments.LiddedPorts(def))
             {
-                // ((0.3.23, note 171) a gun on an open castle deck: the sea through its port lands on that deck, not below)
-                if (ShipCompartments.PortRoom(def, f) == null) continue;
+                // Use the actual port data even if collision voxels bridge the opening (as on the caravel).
+                // An enclosed-room port goes straight below; an exposed waist port ships water onto the deck.
+                bool direct = ShipCompartments.PortRoom(def, f)?.Enclosed == true;
                 var pb = ShipCompartments.PortBox(f);
                 int side = ShipCompartments.PortSide(f);
                 if (ShipCompartments.AlongX(f))
@@ -781,17 +797,17 @@ namespace Hansa
                     // ((0.3.25) a stern chaser's port in a closed room: its sill, each column across it, at the transom's outside)
                     for (int k = g.CellZ(pb[2] + 1e-6); k <= g.CellZ(pb[5] - 1e-6); k++)
                     {
-                        double z = g.OZ + (k + 0.5) * g.V;
-                        if (z < pb[2] || z > pb[5]) continue;
-                        list.Add(new DownfloodPoint { X = f.Out[0] < 0 ? pb[0] : pb[3], Y = Math.Max(def.DeckY, pb[1]), Z = z, Length = g.V, Weight = 1, OpenFixture = f.Code });
+                        double za = Math.Max(pb[2], g.OZ + k * g.V), zb = Math.Min(pb[5], g.OZ + (k + 1) * g.V);
+                        if (zb <= za) continue;
+                        list.Add(new DownfloodPoint { X = f.Out[0] < 0 ? pb[0] : pb[3], Y = pb[1], Z = (za + zb) / 2, Length = zb - za, Weight = 1, OpenFixture = f.Code, Direct = direct, Height = pb[4] - pb[1] });
                     }
                     continue;
                 }
                 for (int i = g.CellX(pb[0] + 1e-6); i <= g.CellX(pb[3] - 1e-6); i++)
                 {
-                    double x = g.OX + (i + 0.5) * g.V;
-                    if (x < pb[0] || x > pb[3] || def.RoomAt(x, def.DeckY + 0.5, 0) == null) continue;   // (the waist's: done)
-                    list.Add(new DownfloodPoint { X = x, Y = Math.Max(def.DeckY, pb[1]), Z = side < 0 ? pb[2] : pb[5], Length = g.V, Weight = 1, OpenFixture = f.Code });
+                    double xa = Math.Max(pb[0], g.OX + i * g.V), xb = Math.Min(pb[3], g.OX + (i + 1) * g.V);
+                    if (xb <= xa) continue;
+                    list.Add(new DownfloodPoint { X = (xa + xb) / 2, Y = pb[1], Z = side < 0 ? pb[2] : pb[5], Length = xb - xa, Weight = 1, OpenFixture = f.Code, Direct = direct, Height = pb[4] - pb[1] });
                 }
             }
             foreach (var f in def.Fixtures)
@@ -804,7 +820,7 @@ namespace Hansa
                 {
                     X = (f.Box[0] + f.Box[3]) / 2, Y = f.Type == "hatch" ? f.Box[4] : f.Box[1], Z = (f.Box[2] + f.Box[5]) / 2,
                     Length = Math.Max(f.Box[3] - f.Box[0], f.Box[5] - f.Box[2]), Weight = 1, OpenFixture = f.Code,
-                    Hatch = f.Type == "hatch" || below
+                    Hatch = f.Type == "hatch" || below, Height = f.Type == "gate" ? f.Box[4] - f.Box[1] : 0
                 });
             }
             // (0.3.26, step D1; docs/slots.md §9) each hull panel over her main deck (a bulwark's, a castle's side): the sea
@@ -813,7 +829,8 @@ namespace Hansa
                 foreach (var s in def.Hull.Slots)
                 {
                     if (s?.Box == null || !s.Above(def) || s.IsInner) continue;      // ((0.3.29) the planking's: the sea's way)
-                    list.Add(new DownfloodPoint { X = (s.Box[0] + s.Box[3]) / 2, Y = s.Sill, Z = s.OuterZ(s.Sill), Length = s.Length, Weight = 1, OpenFixture = "hull:" + s.Index });
+                    list.Add(new DownfloodPoint { X = (s.Box[0] + s.Box[3]) / 2, Y = s.Sill, Z = s.OuterZ(s.Sill), Length = s.Length, Weight = 1, OpenFixture = "hull:" + s.Index,
+                        Direct = def.RoomAt(s.Centre.X, s.Centre.Y, 0)?.Enclosed == true, Height = s.Head - s.Sill });
                 }
             // (0.3.20, step B; docs/slots.md §4) each deck cell of the main deck out in the open (not a castle's floor): an
             // opening while it's taken up and no hatch is shut over it, the sea over it straight below
@@ -1618,6 +1635,7 @@ namespace Hansa
         }
 
         /// <summary>
+        /// Historical instantaneous estimate, retained for old offline comparisons. Runtime uses DeckFlooding.Step.
         /// What the sea pours into her hold over her side (cubic blocks a second): every place it can come aboard that's
         /// under the surface (hatches and gates only while open). What lands on the open deck mostly runs off again
         /// (<see cref="DamageDef.DeckShare"/> of it gets below, more with hatches open); over an open hatch it all goes down.

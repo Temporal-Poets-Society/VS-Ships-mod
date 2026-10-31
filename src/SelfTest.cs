@@ -14,7 +14,7 @@ namespace Hansa
         public bool Enabled;
         public bool Shutdown = true;
         /// <summary>(0.3.14) Run only one step after the pool is built: "blocks" (working blocks aboard, SelfTestBlocks),
-        /// "modular" (carrack-m's pieces), "grid" (the grid carrack, SelfTestGrid).</summary>
+        /// "modular" (carrack-m's pieces), "grid" (the grid carrack, SelfTestGrid), "flooding" (force-12 caravel).</summary>
         public string Only;
         /// <summary>The design the main checks launch, sail, sink and shoot ("hansa-carrack": the grid carrack).</summary>
         public string Ship = "carrack";
@@ -87,15 +87,19 @@ namespace Hansa
             Check(clientPatches == null, "the client's patches (the crosshair on ships, the look-at box, the view on a rolling deck, particles in her dry hold) find what they patch" +
                 (clientPatches != null ? ": " + clientPatches : ""));
             Check(Patches.ReachPatched, "the server measures the reach to a ship to her hull (anti-abuse), not to a box round her middle");
-            ShadowPlans(mod);
-            DamageLooks(mod);
-            Notes0314(mod);
+            if (cfg.Only != "flooding")
+            {
+                ShadowPlans(mod);
+                DamageLooks(mod);
+                Notes0314(mod);
+            }
             if (def == null) { Finish(); return; }
 
             // a 90 x 26 pool, 5 deep, walled, well above the terrain
             var spawn = sapi.World.DefaultSpawnPosition.AsBlockPos;
             int top = sapi.WorldManager.MapSizeY - 20;
             int y0 = top - 8, x0 = spawn.X - 45, z0 = spawn.Z - 13, x1 = spawn.X + 45, z1 = spawn.Z + 13;
+            if (cfg.Only == "flooding") { z0 = spawn.Z - 45; z1 = spawn.Z + 45; }
             var water = sapi.World.GetBlock(new AssetLocation("game", "water-still-7"));
             var stone = sapi.World.GetBlock(new AssetLocation("game", "rock-granite"));
             Check(water != null && stone != null, "water and granite blocks found");
@@ -120,6 +124,7 @@ namespace Hansa
                 sapi.Event.UnregisterGameTickListener(waitId);
                 Check(pending <= 0, "pool chunks loaded");
                 BuildPool(water, stone, x0, x1, y0, z0, z1);
+                if (cfg.Only == "flooding") { StormFlooding(mod, def, spawn, y0); return; }
                 if (cfg.Only == "grid") { GridLaunch(mod, spawn, y0, Finish); return; }
                 // (0.3.17) the modular carrack launched, laid, sealed, walked, reloaded (gone again before the carrack sails)
                 ModularLaunch(mod, spawn, y0);
@@ -282,6 +287,7 @@ namespace Hansa
             var bp = new BlockPos(0);
             // (a ship drawing more than the pool's 4.875 of water, the grid carrack's 4.875: a block deeper for her)
             int bottom = (sapi.ModLoader.GetModSystem<HansaMod>().GetShip(cfg.Ship)?.Draft ?? 0) > 4.6 ? y0 - 1 : y0;
+            if (cfg.Only == "flooding") bottom = y0 - 6; // storm troughs must not turn this into a grounding test
             for (int x = x0; x <= x1; x++)
                 for (int z = z0; z <= z1; z++)
                 {

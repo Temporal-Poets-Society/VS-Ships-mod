@@ -25,6 +25,8 @@ namespace Hansa
         public DamageState PartDamage;
         /// <summary>Water in her hold (cubic blocks: tonnes).</summary>
         public double Water;
+        /// <summary>Shipped water still on the weather deck, before scuppers or openings drain it (tonnes).</summary>
+        public double DeckWater;
         /// <summary>How much deeper than her design waterline she floats (blocks): the water's weight, and going down. Pos.Y is BaseY − this + the heave.</summary>
         public double Sinkage;
         /// <summary>Her list from the water in her (radians, + starboard down), and her trim going down (radians, + bow up).</summary>
@@ -223,6 +225,7 @@ namespace Hansa
         void SaveFloodState(StateWriter w)
         {
             w.Double("water", Water, 0.01);
+            w.Double("deckWater", DeckWater, 0.01);
             w.Double("sink", Sinkage, 0.002);
             w.Double("list", ListAngle, 0.001);
             w.Double("trim", Trim, 0.001);
@@ -244,6 +247,7 @@ namespace Hansa
         void LoadFloodState(ITreeAttribute t)
         {
             Water = t.GetDouble("water");
+            DeckWater = Math.Max(0, t.GetDouble("deckWater"));
             Sinkage = t.GetDouble("sink");
             ListAngle = t.GetDouble("list");
             Trim = t.GetDouble("trim");
@@ -389,6 +393,7 @@ namespace Hansa
             if (!GoneDown)
             {
                 Water = 0;
+                DeckWater = 0;
                 Fouling = 0;
                 Stage = SinkStage.Afloat;
                 ListAngle = 0;
@@ -685,15 +690,15 @@ namespace Hansa
             var pose = new FloodPose { X = Pos.X, Y = BaseY - Sinkage + Heave, Z = Pos.Z, Yaw = Pos.Yaw, Pitch = pitch, Roll = roll, Surface = (x, z) => SeaSurface(x, z, factor) };
             // leaks, by the head of water over each damaged panel outside and in
             double leak = ShipFlood.Leaks(l, PartDamage, Water, pose, cfg.Leaks, out double sideFlow);
-            // the sea coming in over her side (the rail, the scuppers, an open hatch or gate under the waves)
-            double pour = ShipFlood.Downflooding(l, pose, DownfloodOpen);
+            // Shipped water stays on deck until the scuppers, an open hatch/cell or sound-deck seepage drain it.
+            double pour = DeckFlooding.Step(l, pose, DownfloodOpen, step, ref DeckWater).Below;
             // the pumps
             Pumpers = CountPumpers();
             // (the intake at the bilge's lowest point: a full, steady stream while there's water, none once she's pumped
             // dry, until a little more has come in: PumpResidual)
             if (Water <= d.PumpResidual) pumpsDry = true;
             else if (Water >= 3 * d.PumpResidual) pumpsDry = false;
-            double pumped = pumpsDry ? 0 : Math.Min(ShipFlood.PumpRate(d, Pumpers, cfg.Pumps), Water / Math.Max(1e-3, step) + leak + pour);
+            double pumped = pumpsDry ? 0 : Math.Min(ShipFlood.PumpRate(d, Pumpers, cfg.Pumps), Math.Max(0, Water / Math.Max(1e-3, step) + leak + pour));
             PumpedRate = (float)pumped;
             double net = leak + pour - pumped;
             Water = Math.Clamp(Water + net * step, 0, l.Capacity);
@@ -704,7 +709,7 @@ namespace Hansa
             SailStrainTick(step);
 
             // how deep the water puts her, unless she's on the bottom
-            double want = l.SinkageFor(Water);
+            double want = l.SinkageFor(Water + DeckWater);
             double next = Sinkage + Math.Clamp(want - Sinkage, -0.3 * step, 0.3 * step);
             if (next > Sinkage && SettleBlocked(next))
             {

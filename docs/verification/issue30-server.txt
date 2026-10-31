@@ -1,0 +1,27 @@
+﻿31.10.2026 14:41:08 [Server Notification]         Sea.SeaSelfTest
+31.10.2026 14:41:08 [Server Notification]         Hansa.SelfTest
+31.10.2026 14:41:17 [Server Notification] SELFTEST ok   caravel definition loaded
+31.10.2026 14:41:17 [Server Notification] SELFTEST ok   caravel entity type registered
+31.10.2026 14:41:17 [Server Notification] SELFTEST ok   charter item registered
+31.10.2026 14:41:17 [Server Notification] SELFTEST ok   the surveyor's chalk is registered (its own class, in the creative inventory, no recipe)
+31.10.2026 14:41:17 [Server Notification] SELFTEST ok   the client's patches (the crosshair on ships, the look-at box, the view on a rolling deck, particles in her dry hold) find what they patch
+31.10.2026 14:41:17 [Server Notification] SELFTEST ok   the server measures the reach to a ship to her hull (anti-abuse), not to a box round her middle
+31.10.2026 14:41:17 [Server Notification] SELFTEST ok   water and granite blocks found
+31.10.2026 14:41:17 [Server Notification] SELFTEST ok   pool chunks loaded
+31.10.2026 14:41:17 [Server Notification] SELFTEST pool built 91 x 91 at y 228
+31.10.2026 14:41:26 [Server Notification] SELFTEST ok   force-12: a new caravel has her main hatch installed and shut
+31.10.2026 14:41:26 [Server Notification] SELFTEST ok   force-12: all default flood openings are closed
+31.10.2026 14:41:26 [Server Notification] SELFTEST force-12 override: wind 1.50, Hs 5.500, Lp 165.00; full open-sea factor 1 for the accelerated scenarios
+31.10.2026 14:41:26 [Server Notification] SELFTEST ok   force-12 sea override is fully developed
+31.10.2026 14:41:27 [Server Notification] SELFTEST ok   force-12 closed 30 min, heading 0, 0 pumpers: hold 0.011 t, peak 0.011, deck 0.000
+31.10.2026 14:41:27 [Server Notification] SELFTEST ok   force-12 closed 30 min, heading 0, 2 pumpers: hold 0.011 t, peak 0.011, deck 0.000
+31.10.2026 14:41:27 [Server Notification] SELFTEST ok   force-12 closed 30 min, heading 45, 0 pumpers: hold 0.025 t, peak 0.025, deck 0.019
+31.10.2026 14:41:28 [Server Notification] SELFTEST ok   force-12 closed 30 min, heading 45, 2 pumpers: hold 0.025 t, peak 0.025, deck 0.019
+31.10.2026 14:41:28 [Server Notification] SELFTEST ok   force-12 closed 30 min, heading 90, 0 pumpers: hold 0.041 t, peak 0.041, deck 0.076
+31.10.2026 14:41:28 [Server Notification] SELFTEST ok   force-12 closed 30 min, heading 90, 2 pumpers: hold 0.041 t, peak 0.041, deck 0.076
+31.10.2026 14:41:28 [Server Notification] SELFTEST ok   force-12 open ports, gates and hatch 10 min: hold 3.42 t
+31.10.2026 14:41:28 [Server Notification] SELFTEST ok   live flood tick: closed ship stays dry (0.000 t below, 0.000 on deck)
+31.10.2026 14:41:28 [Server Notification] SELFTEST ok   live storm ship remains undamaged in the deep pool
+31.10.2026 14:41:28 [Server Notification] SELFTEST ok   hold water and transient deck water survive state save/load
+31.10.2026 14:41:28 [Server Notification] SELFTEST ALL OK
+31.10.2026 14:41:38 [Server Event] Stopped the server!
