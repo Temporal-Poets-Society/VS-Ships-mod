@@ -1072,6 +1072,12 @@ def main():
         for t_ in kit["things"]:
             i_, zc_ = t_["cell"]
             start.append({"block": t_["block"], "mount": f"f:main:{int(i_)}:{int(zc_) - 1}", "yaw": 0.0})
+    # (31 October 2026, the user: "next build place shelves into cargo hold") a row of shelves along each side of her hold,
+    # a plank slab a block over the outer floor cells (the cells under them free for chests; the middle row the way along);
+    # none beside the main mast and its pump
+    for i_ in [i for i in range(-9, 4) if i != -3]:
+        for k_ in (-2, 0):
+            start.append({"block": "game:plankslab-oak-down-free", "mount": f"hb:hold:{i_}:{k_}:1", "yaw": 0.0})
     hxs, hys = LAY["hatch"]["x"], LAY["hatch"]["y"]
     hzc = -(hys[0] + hys[1]) / 2000.0                  # (model Y port = game z negative)
     modular.append({"kind": "hatch", "at": [r4((hxs[0] + hxs[1]) / 2000.0), r4(deck), r4(hzc)],

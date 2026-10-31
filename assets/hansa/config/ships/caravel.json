@@ -813198,6 +813198,126 @@
    "block": "game:storagevessel-tan-fired",
    "mount": "f:main:-8:-1",
    "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-9:-2:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-9:0:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-8:-2:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-8:0:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-7:-2:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-7:0:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-6:-2:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-6:0:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-5:-2:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-5:0:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-4:-2:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-4:0:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-2:-2:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-2:0:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-1:-2:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:-1:0:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:0:-2:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:0:0:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:1:-2:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:1:0:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:2:-2:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:2:0:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:3:-2:1",
+   "yaw": 0.0
+  },
+  {
+   "block": "game:plankslab-oak-down-free",
+   "mount": "hb:hold:3:0:1",
+   "yaw": 0.0
   }
  ],
  "modularPieces": [

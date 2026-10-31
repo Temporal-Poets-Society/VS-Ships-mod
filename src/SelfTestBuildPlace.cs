@@ -120,6 +120,15 @@ namespace Hansa
                     Check(outs == "ok, ok, ok", $"note 83: the vessel, the shelf and the chest taken up ({outs})");
                     put.Clear();
                 }
+                // ---- (31 October 2026, the user: "next build place shelves into cargo hold") her hold's default shelves: a row along
+                // each side, as a new ship has them; taken up (as a player may) so the checks below find the places free
+                {
+                    var starts = (ship.Def.StartPieces ?? Array.Empty<StartPieceDef>()).Where(sp => sp.Mount?.StartsWith("hb:hold:") == true).ToList();
+                    var laid = starts.Select(sp => ship.Pieces.At(sp.Mount)).Where(sp => sp?.Role == PieceRole.Shelf).ToList();
+                    string upAll = string.Join(", ", laid.Select(sp => ship.RemovePiece(sp, null)).Where(e => e != null).Distinct());
+                    Check(starts.Count >= 20 && laid.Count == starts.Count && upAll == "",
+                        $"her hold's {starts.Count} default shelves laid as a new ship has them ({laid.Count}), each taken up ({(upAll == "" ? "ok" : upAll)})");
+                }
                 // ---- (25 October 2026, dev.9: "no it does not work and cannot be placed") the shelf as the client's crosshair finds
                 // it (PlaceAim, DecoClient's own code), with the game's plank slabs: up, down, on edge, other woods; aimed at the
                 // floor cell from the cell beside it and at her side from over an outermost cell, standing as a player does

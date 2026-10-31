@@ -394,7 +394,8 @@ namespace Hansa
                 hi = Math.Max(hi, heave);
                 worstApplied = Math.Max(worstApplied, Math.Abs(heave - ship.Heave));
                 // the heave is the ship's answer to the waves at its place, worked out from nothing but shared inputs
-                ship.Def.Waterplane(out double hl, out double hb, out double cx);
+                ship.Def.Waterplane(out double hl, out double hb, out _);
+                double cx = ship.WaveHull.FlotationCentre; // (31 October 2026) she pitches about her centre of flotation, as the ship does
                 var again = ShipMotion.Waves(ship.Waves, sea.WaveFactorAt(ship.Pos.X, ship.Pos.Z), ship.Waves.Time, ship.Pos.X, ship.Pos.Z,
                     ship.Pos.Yaw, ship.Speed, hl, hb, cx, ship.Def.Motion);
                 worstAgain = Math.Max(worstAgain, Math.Abs(again.Heave - ship.Heave));
@@ -2155,7 +2156,10 @@ namespace Hansa
                     {
                         double took = (sapi.World.ElapsedMilliseconds - let) / 1000.0;
                         Check(stopped && took < 3.5, $"0.3.25: let go, she stops ({ship.Speed:0.00} b/s after {took:0.0} s)");
-                        var c0 = ship.Pos.XYZ;
+                        // ((31 October 2026, the wave-sway work) her middle is her lateral centre, not the model's origin: she turns about it)
+                        double lc = ship.WaveHull.LateralCentre;
+                        Vec3d Middle() => new Vec3d(ship.Pos.X + Math.Sin(ship.Pos.Yaw) * lc, ship.Pos.Y, ship.Pos.Z + Math.Cos(ship.Pos.Yaw) * lc);
+                        var c0 = Middle();
                         float yaw0 = ship.Pos.Yaw;
                         ship.CrawlTestInput = (0, 1f);
                         long turnAt = sapi.World.ElapsedMilliseconds;
@@ -2165,7 +2169,7 @@ namespace Hansa
                             double secs = (sapi.World.ElapsedMilliseconds - turnAt) / 1000.0;
                             ship.CrawlTestInput = (0, 0f);
                             double turn = GameMath.AngleRadDistance(yaw0, ship.Pos.Yaw) * GameMath.RAD2DEG;
-                            double drift = ship.Pos.XYZ.HorizontalSquareDistanceTo(c0);
+                            double drift = Middle().HorizontalSquareDistanceTo(c0);
                             Check(turned && !ship.Aground && Math.Sqrt(drift) < 0.5 && maxSpeed < 0.05 && secs > 90 / cfg.CrawlTurn - 1 && secs < 90 / cfg.CrawlTurn + 4,
                                 $"0.3.25: D held, standing, she turns {-turn:0.0}° to starboard about her middle in {secs:0.0} s (CrawlTurn {cfg.CrawlTurn}°/s; her middle moved {Math.Sqrt(drift):0.00}, way {maxSpeed:0.00})");
                             WaitFor(() => false, 1.5, ___ =>

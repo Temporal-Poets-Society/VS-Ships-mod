@@ -272,6 +272,12 @@ def page(D, M, pose=None):
             boxes.append({"b": [x - sx / 2, y - 0.05, z - sz / 2, x + sx / 2, y + 0.02, z + sz / 2], "c": "#7a5030", "o": 1.0})
     for sp in D.get("startPieces", []) if show_pieces else []:
         mnt = sp.get("mount", "")
+        if mnt.startswith("hb:"):  # a shelf: a plank slab 1/8 thick under the plane h blocks over the floor cell
+            parts = mnt.split(":")
+            i, kk, lvl = int(parts[2]), int(parts[3]), int(parts[4])
+            y1 = deck_y.get(parts[1], 0.0) + lvl
+            boxes.append({"b": [i, y1 - 0.125, kk + 0.5, i + 1, y1, kk + 1.5], "c": "#b08858", "o": 1.0})
+            continue
         if not mnt.startswith("f:"):
             continue
         parts = mnt.split(":")

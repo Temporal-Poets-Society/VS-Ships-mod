@@ -987,3 +987,8 @@ The final dedicated run reports `SELFTEST ALL OK` at 16:27:55 and exits; its elk
 and its native lead follows and detaches from the post. Wood: 118,728 faces / 0 overlap pairs; copper: 120,027 / 0.
 Combined runtime joints are zero in default, open hatch/door, pumping, window, removed beam/panel and removed rib
 states. Thirty-nine PNG paths/cameras are in the render manifest. No client or user world was opened.
+
+## Hold shelves (31 October 2026, dev.17)
+
+The user: "next build place shelves into cargo hold". A new caravel has a row of shelves along each side of her hold: an oak plank slab a block over the outer floor cells (`hb:hold:i:-2:1` and `hb:hold:i:0:1`, i from -9 to 3, none beside the main mast at i = -3), 24 in all, laid as start pieces (`caravel_layout.py`). The cells under them stay free for chests; the middle row is the way along. Players can take them up or put more (a plank slab in hand, aimed at a floor cell's place a block up: the hint says "a shelf"). The self-test checks all 24 are laid and can be taken up.
+
