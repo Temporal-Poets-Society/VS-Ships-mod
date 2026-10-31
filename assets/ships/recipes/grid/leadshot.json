@@ -1,4 +1,5 @@
 {
+  "name": "ships:leadshot",
   "ingredientPattern": "L",
   "ingredients": {
     "L": {

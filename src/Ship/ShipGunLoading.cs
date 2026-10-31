@@ -41,10 +41,10 @@ namespace Hansa
             int need=held?.Collectible?.Code?.ToString()==GunLoading.Shot && !gun.Swivel?4:1;
             string error=GunLoading.Problem(st.Charge,gun.Swivel || GunRunIn(gun),
                 gunOpenedMs.TryGetValue(gun.Code,out long at) && World.ElapsedMilliseconds-at<RunOutMs,
-                held?.Collectible?.Code?.ToString(),creative?need:held?.StackSize??0,need);
+                held?.Collectible?.Code?.ToString(),creative?need:held?.StackSize??0,need,Mod.Config.CannonsNeedShot);
             if(error!=null) return error;
             if(!creative) { slot.TakeOut(need);slot.MarkDirty(); }
-            st.Charge=st.Charge==0?GunLoading.PowderIn:GunLoading.Loaded;
+            st.Charge=GunLoading.After(st.Charge,Mod.Config.CannonsNeedShot);
             SaveGunLays(true);
             return null;
         }

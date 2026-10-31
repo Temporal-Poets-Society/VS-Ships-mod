@@ -992,3 +992,38 @@ states. Thirty-nine PNG paths/cameras are in the render manifest. No client or u
 
 The user: "next build place shelves into cargo hold". A new caravel has a row of shelves along each side of her hold: an oak plank slab a block over the outer floor cells (`hb:hold:i:-2:1` and `hb:hold:i:0:1`, i from -9 to 3, none beside the main mast at i = -3), 24 in all, laid as start pieces (`caravel_layout.py`). The cells under them stay free for chests; the middle row is the way along. Players can take them up or put more (a plank slab in hand, aimed at a floor cell's place a block up: the hint says "a shelf"). The self-test checks all 24 are laid and can be taken up.
 
+## Dev.18 notes 151–152 and powder-only guns (31 October 2026)
+
+- **151:** placing over a multiblock container starts with the occupied cell under the actual hit, then offers its
+  other occupied cells so a two-cell trunk can find a fully supported placement. Shift still selects placement
+  instead of opening storage. Native chests, trunks, crates and fired storage vessels are stacked and removed in
+  the server self-test; the trunk check includes both halves and the complete note 151 ray. Full-height containers
+  need room above them: the new outer cargo shelves remain physical obstacles.
+- **152:** a raised hatch's quarter-block walking collision reached above its lid and hid it as "Woodwork".
+  Picking recognizes that hatch's own collision; each open leaf is picked in its actual hinge transform. Server
+  use visibility applies the same ownership rule, retaining obstruction by unrelated timber. A closed hatch still
+  owns its deck layer for opening from below. The exact note ray, both leaves from either face at several angles
+  and distances, opening/closing a new ship's hatch, and walking the hold stair through the open coaming are tested.
+  No deck top is drawn across the opening; the existing coaming and `HatchCoaming` flooding callback are retained.
+- **Guns:** default `CannonsNeedShot = false`: one Blasting powder loads a stopped, run-in carriage gun, or a swivel
+  in place. Empty-handed right-click runs out; left-click fires. Enabling the switch restores powder followed by
+  4 Lead sling bullets for a carriage gun / 1 for a swivel, and enables the temporary lead-shot recipe. Server
+  configuration is loaded before recipe filtering, and the switch is synchronized to clients. Charge bits retain
+  which items were consumed: a powder-only charge returns no invented bullets in wreck loot; older full charges
+  remain usable. Ballistics self-tests load from actual item stacks before running out and firing.
+
+The master, ship definition and exported mesh geometry are unchanged; no CAD rebuild or slice was needed.
+Both Release builds pass (4 existing mod warnings, 3 test warnings). `caravel-all` has only the two carrack-m slot
+failures. The full offline run has five historical failures, reproduced against 4c41fb2: the carrack stern water
+cut, hull-hole edges, note 32 panel, note 179 stern-chaser downflood points and archived charters. Focused server
+runs with the shot switch off and on both report `SELFTEST ALL OK`.
+The final full dedicated run also reports `SELFTEST ALL OK` at 18:45:07 and exits at 18:45:17. Its powder-loaded
+gun's ball strikes a creature 8.1 blocks from the muzzle and then stops at the pool wall; the ship-target broadsides,
+recoil/reload and the remaining gameplay checks also pass.
+
+Sixteen game-mesh closeups were inspected, including the exact note 152 camera, all four corners, both hinges and
+the hold stair from below, closed and open. Full paths are in `tmp/notes151-render-paths.txt`; cameras and prepared
+game-view triangles are under `tmp/notes151-views/`. Wood: 118,728 faces / 0 overlaps; copper: 120,027 / 0; combined
+runtime hatch/stair joints, closed and open: 0. No new block shapes were introduced. Work remains uncommitted on
+`codex/notes-151` from 4c41fb2; Sea, the installed game, user Mods and saves were not written.
+

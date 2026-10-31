@@ -308,7 +308,7 @@ namespace Hansa
                 var state = ship.Gun(gun.Code);
                 if ((state.Charge & GunLoading.PowderIn) != 0 && ship.World.GetItem(new AssetLocation(GunLoading.Powder)) is Item powder)
                     loose.Items.Add(new ItemStack(powder));
-                if (state.Charge == GunLoading.Loaded && ship.World.GetItem(new AssetLocation(GunLoading.Shot)) is Item shot)
+                if ((state.Charge & 2) != 0 && ship.World.GetItem(new AssetLocation(GunLoading.Shot)) is Item shot)
                     loose.Items.Add(new ItemStack(shot, gun.Swivel ? 1 : 4));
                 if (take) state.Charge = 0;
             }

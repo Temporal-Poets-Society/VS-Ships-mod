@@ -1703,6 +1703,7 @@ namespace Hansa
             w.Float("pointCloser", PointCloser);
             w.Str("stoves", string.Join(",", LitStoves));
             w.Bool("guns", CannonsOn);
+            w.Bool("gunsNeedShot", CannonsNeedShot);
             w.Bool("hearth", HearthOn);
             w.Bool("oven", OvenOn);
             w.Int("lee", Lee);
@@ -1788,6 +1789,7 @@ namespace Hansa
             LitStoves.Clear();
             foreach (string s in (t.GetString("stoves") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)) LitStoves.Add(s);
             CannonsOn = t.GetBool("guns", true);
+            CannonsNeedShot = t.GetBool("gunsNeedShot");
             HearthOn = t.GetBool("hearth", true);
             OvenOn = t.GetBool("oven", true);
             Lee = t.GetInt("lee");
@@ -1965,12 +1967,13 @@ namespace Hansa
             TrimRig(dt);
 
             float maxSpeed = Def.MaxSpeed * cfg.SpeedMultiplier * (Clad ? 1 + Def.CladdingSpeedBonus : 1) * (float)SpeedFactorNow;
-            if (maxSpeed != MaxSpeedNow || cfg.SailByWind != SailByWind || cfg.Cannons != CannonsOn || cfg.PointCloser != PointCloser)
+            if (maxSpeed != MaxSpeedNow || cfg.SailByWind != SailByWind || cfg.Cannons != CannonsOn || cfg.CannonsNeedShot != CannonsNeedShot || cfg.PointCloser != PointCloser)
             {
                 MaxSpeedNow = maxSpeed;
                 PointCloser = cfg.PointCloser;
                 SailByWind = cfg.SailByWind;
                 CannonsOn = cfg.Cannons;
+                CannonsNeedShot = cfg.CannonsNeedShot;
                 SaveState(true);
             }
             // under sail the wind decides how fast she can go (the helmsman sets sail and steers, the crew trims)

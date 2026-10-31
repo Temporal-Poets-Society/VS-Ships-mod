@@ -6,10 +6,21 @@ namespace Hansa
 {
     public partial class SelfTest
     {
-        // Ballistic tests set up a loaded gun explicitly; ordinary firing always checks its charge.
+        // Ballistic tests use the actual inventory loading path before running out and firing.
         static string FirePrepared(EntityShip ship,FixtureDef gun,double? elevation=null,double? train=null)
         {
-            ship.Gun(gun.Code).Charge=GunLoading.Loaded;
+            ship.Gun(gun.Code).Charge=0;
+            if(!gun.Swivel) ship.RunGunIn(gun,true);
+            var powder=ship.World.GetItem(new AssetLocation(GunLoading.Powder));
+            if(powder==null) return "no powder item";
+            string error=ship.LoadGunCharge(gun,new DummySlot(new ItemStack(powder)),false);
+            if(error!=null) return error;
+            if(ship.Mod.Config.CannonsNeedShot) {
+                var shot=ship.World.GetItem(new AssetLocation(GunLoading.Shot));
+                if(shot==null) return "no shot item";
+                error=ship.LoadGunCharge(gun,new DummySlot(new ItemStack(shot,gun.Swivel?1:4)),false);
+                if(error!=null) return error;
+            }
             ship.OpenGunPort(gun,true);
             ship.Gun(gun.Code).RunIn=false;
             return ship.FireGun(gun,null,null,elevation,train);
@@ -17,10 +28,12 @@ namespace Hansa
 
         void RuntimeLoadingAboard(EntityShip ship,FixtureDef gun)
         {
+            bool needShot=ship.Mod.Config.CannonsNeedShot;
+            ship.Mod.Config.CannonsNeedShot=true;
             var powder=sapi.World.GetItem(new AssetLocation(GunLoading.Powder));
             var shot=sapi.World.GetItem(new AssetLocation(GunLoading.Shot));
-            Check(powder!=null && shot!=null,"132: vanilla blasting powder and lead shot exist on the server");
-            if(powder==null || shot==null) return;
+            Check(powder!=null && shot!=null,"132: vanilla blasting powder and Lead sling bullets exist on the server");
+            if(powder==null || shot==null) { ship.Mod.Config.CannonsNeedShot=needShot;return; }
             var p=new DummySlot(new ItemStack(powder,2));var s=new DummySlot(new ItemStack(shot,5));
             var st=ship.Gun(gun.Code);st.Charge=0;
             ship.OpenGunPort(gun,true);
@@ -55,11 +68,29 @@ namespace Hansa
                 "automatic recoil starts a fresh run-in timer and refuses powder until it finishes");
             st.FiredMs=long.MinValue/2;
             ship.HouseGun(gun);st.Charge=0;st.RunIn=false;
+            ship.Mod.Config.CannonsNeedShot=false;
+            var onlyPowder=new DummySlot(new ItemStack(powder,2));
+            ship.RunGunIn(gun,true);
+            string powderOnly=ship.LoadGunCharge(gun,onlyPowder,false);
+            string doubleLoad=ship.LoadGunCharge(gun,onlyPowder,false);
+            Check(powderOnly==null && st.Charge==GunLoading.PowderIn && GunLoading.Ready(st.Charge) && onlyPowder.StackSize==1 && doubleLoad=="ships:gun-load-full",
+                "powder-only: one powder consumes once and loads ready without sling bullets");
+            var powderLoot=ShipWrecks.LootOf(ship,false).SelectMany(l=>l.Items).ToList();
+            Check(Count(powderLoot,GunLoading.Powder)-Count(empty,GunLoading.Powder)==1 && Count(powderLoot,GunLoading.Shot)==Count(empty,GunLoading.Shot),"powder-only: wreck preserves the powder without inventing sling bullets");
+            st.Charge=0;ship.HouseGun(gun);st.RunIn=false;
+            // The swivel item/mechanics remain, although this caravel has no default swivel places.
+            var swivel=new FixtureDef {Type="gun",Kind="swivel",Code="selftest-loading-swivel",Pos=new double[]{0,2,0},Out=new double[]{0,0,1}};
+            var swivelPowder=new DummySlot(new ItemStack(powder,2));
+            Check(ship.LoadGunCharge(swivel,swivelPowder,false)==null && GunLoading.Ready(ship.Gun(swivel.Code).Charge) && swivelPowder.StackSize==1,
+                "powder-only: a swivel loads in place with one powder");
+            ship.Gun(swivel.Code).Charge=0;
+            ship.Mod.Config.CannonsNeedShot=needShot;
         }
 
         void RuntimePlacementAboard(EntityShip ship)
         {
             if(ship.Def.Code!="caravel") return;
+            Notes151Aboard(ship);
             var lantern=sapi.World.GetBlock(new AssetLocation("game:lantern-small-down"));
             if(lantern!=null && lantern.Id!=0)
             {

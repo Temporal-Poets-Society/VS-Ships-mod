@@ -1216,7 +1216,7 @@ namespace Hansa
                 }
                 bool sneak = ep.Controls.Sneak || ep.Controls.ShiftKey || ep.MountedOn is ShipSeat sk && sk.Controls.Sneak;
                 var loadTarget=inSight.Ship!=null?inSight:seat!=null?(seat.Ship,seat.Fixture):default;
-                if(loadTarget.Item1!=null && GunLoading.IsLoad(capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack?.Collectible?.Code?.ToString()))
+                if(loadTarget.Item1!=null && GunLoading.IsLoad(capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack?.Collectible?.Code?.ToString(),loadTarget.Item1.CannonsNeedShot))
                 {
                     if(capi.World.ElapsedMilliseconds-layingSent>400) {
                         layingSent=capi.World.ElapsedMilliseconds;

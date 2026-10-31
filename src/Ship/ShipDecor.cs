@@ -338,7 +338,7 @@ namespace Hansa
             }
             if (p == null) return got;
             // (0.3.24, note 177) its own solid layer (a door's, seen slanting from that side) doesn't hide it
-            if (got && t > hit.Distance + 0.02 && !(hit.Fixture == null && ShipPieceSet.OwnHit(p, o, d, hit.Distance))) return got;
+            if (got && t > hit.Distance + 0.02 && !(hit.Fixture == null && (ShipPieceSet.OwnHit(p, o, d, hit.Distance) || ShipPieceSet.HatchVoxelHit(p,Grid,o,d,hit.Distance)))) return got;
             hit.Distance = t;
             hit.Fixture = null;
             hit.Part = new ShipPart { Kind = ShipPartKind.Piece, Index = p.Id };
@@ -582,6 +582,14 @@ namespace Hansa
             return ShipPieceSet.Seen(DesignGrid, eye, box);
         }
 
+        bool SeenPieceBy(IServerPlayer player, ShipPiece piece)
+        {
+            var ep=player?.Entity;
+            if(ep==null || Def?.Grid==null) return true;
+            var eye=WorldToLocal(ep.Pos.X+ep.LocalEyePos.X,ep.Pos.Y+ep.LocalEyePos.Y,ep.Pos.Z+ep.LocalEyePos.Z);
+            return ShipPieceSet.SeenPiece(DesignGrid,eye,piece);
+        }
+
         /// <summary>The block's own sound at a piece (its place, hit or break sound; planks if it has none).</summary>
         void PieceSound(ShipPiece p, AssetLocation sound)
         {
@@ -599,7 +607,7 @@ namespace Hansa
             if (GoneDown) return "ships:gone-down";
             var c = p.Center;
             if (!InReach(player, c[0], c[1], c[2])) return "ships:piece-too-far";
-            if (!SeenBy(player, p.SeenBox)) return "ships:piece-too-far";
+            if (!SeenPieceBy(player, p)) return "ships:piece-too-far";
             string err = RemovePiece(p, player);
             if (err == null)
             {
@@ -654,7 +662,7 @@ namespace Hansa
             var c = p.Center;
             if (!InReach(player, c[0], c[1], c[2])) return;
             // ((0.3.23, note 169) a shut hatch from below too: its planking is in her design's collision)
-            if (!SeenBy(player, p.SeenBox)) return;
+            if (!SeenPieceBy(player, p)) return;
             var f = PieceFixture(p);
             switch (p.Role)
             {

@@ -95,8 +95,8 @@ namespace HansaTests
                   GunLoading.Problem(0,true,true,GunLoading.Powder,1,1)=="ships:gun-load-run-in" &&
                   GunLoading.Problem(0,true,false,GunLoading.Shot,4,4)=="ships:gun-load-powder" &&
                   GunLoading.Problem(0,true,false,GunLoading.Powder,1,1)==null &&
-                  GunLoading.Problem(1,true,false,GunLoading.Shot,3,4)=="ships:gun-load-more" &&
-                  GunLoading.Problem(1,true,false,GunLoading.Shot,4,4)==null &&
+                  GunLoading.Problem(1,true,false,GunLoading.Shot,3,4,true)=="ships:gun-load-more" &&
+                  GunLoading.Problem(1,true,false,GunLoading.Shot,4,4,true)==null &&
                   GunLoading.Problem(3,true,false,GunLoading.Shot,4,4)=="ships:gun-load-full",
                   "132: load only after run-in stops, powder before shot, enough shot, no double charge");
 

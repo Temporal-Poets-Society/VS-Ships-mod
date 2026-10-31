@@ -55,6 +55,8 @@ namespace Hansa
         public bool Damage = true;
         /// <summary>A ship's guns are laid and fired (right-click one to stand to it, look to lay it, right-click to fire): cannon balls that hole ships, hurt creatures and players (PvP rules) and splash.</summary>
         public bool Cannons = true;
+        /// <summary>Require Lead sling bullets after powder (4 per carriage gun, 1 per swivel). Off: the ball is implied.</summary>
+        public bool CannonsNeedShot = false;
         /// <summary>Cannon balls break a few soft blocks in their way (not stone, ore or metal; not in a land claim the one who fired may not build in). Off: they stop at the first block.</summary>
         public bool CannonsBreakBlocks = false;
         /// <summary>How hard running aground and into each other hurts (a factor).</summary>
@@ -153,6 +155,8 @@ namespace Hansa
         public override void Start(ICoreAPI api)
         {
             this.api = api;
+            // Configuration must be available before AssetsFinalize filters the server's recipes.
+            if(api.Side==EnumAppSide.Server) LoadServerConfig(api);
             api.RegisterEntity("ships.EntityShip", typeof(EntityShip));
             api.RegisterItemClass("ships.ItemShipDeed", typeof(ItemShipDeed));
             api.RegisterEntity("ships.EntityRowBoat", typeof(EntityRowBoat));
@@ -205,6 +209,13 @@ namespace Hansa
             StartPaintPlans(api);
         }
 
+        public override void AssetsFinalize(ICoreAPI api)
+        {
+            // Server recipes are synchronized to clients. Keep the temporary shot recipe only in shot-required games.
+            if (api.Side == EnumAppSide.Server && !Config.CannonsNeedShot)
+                api.World.GridRecipes.RemoveAll(r=>r.Name?.ToString()=="ships:leadshot");
+        }
+
         public ShipDefinition GetShip(string code) => code != null && ships.TryGetValue(code, out var d) ? d : null;
         public IEnumerable<string> ShipCodes => ships.Keys;
 
@@ -223,10 +234,8 @@ namespace Hansa
 
         // ------------------------------------------------------------------ server
 
-        public override void StartServerSide(ICoreServerAPI api)
+        void LoadServerConfig(ICoreAPI api)
         {
-            sapi = api;
-            LaunchGuard.Clear();
             try
             {
                 Config = api.LoadModConfig<HansaConfig>("ships.json") ?? new HansaConfig();
@@ -236,6 +245,12 @@ namespace Hansa
             {
                 Mod.Logger.Error("Bad ModConfig/ships.json, using defaults: {0}", e.Message);
             }
+        }
+
+        public override void StartServerSide(ICoreServerAPI api)
+        {
+            sapi = api;
+            LaunchGuard.Clear();
             Patches.Cozy = Config.CozyCabins;
 
             serverChannel = api.Network.GetChannel(ChannelName)

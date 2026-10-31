@@ -1520,7 +1520,8 @@ namespace Hansa
         /// </summary>
         /// <remarks>((24 October 2026, caravel note 82: "then i cannot remove it") a panel by its whole wedge too: aimed at its
         /// end or its top (her side's curve leaves them showing) it's the panel, not her woodwork behind)</remarks>
-        public IEnumerable<double[]> PickBoxes => Role == PieceRole.Hatch && !Open || Role == PieceRole.Panel ? Sel.Concat(Solids)
+        public IEnumerable<double[]> PickBoxes => Role == PieceRole.Hatch ? PlacementBoxes.Concat(HatchPlanner.CoamingParts(Box,Coaming).Select(p=>p.Box)).Concat(Open?Enumerable.Empty<double[]>():Solids)
+            : Role == PieceRole.Panel ? Sel.Concat(Solids)
             : Role == PieceRole.Door && Open && OpenLeafBox is double[] leaf ? new[] {leaf} : Sel;
 
         public double DoorAngle => Role != PieceRole.Door || Box == null ? 0 :
@@ -1561,7 +1562,7 @@ namespace Hansa
 
         /// <summary>(0.3.23) The box that must be seen to use or take it (a shut hatch's from below too).</summary>
         public double[] SeenBox => Role == PieceRole.Door && Open ? OpenLeafBox ?? Box
-            : Role == PieceRole.Hatch && !Open ? PiecePlanner.Union(PickBoxes) ?? Box : Box;
+            : Role == PieceRole.Hatch ? PiecePlanner.Union(PickBoxes) ?? Box : Box;
 
         /// <summary>(0.3.19) A ladder-stair or a walked stair.</summary>
         public bool IsStair => Role is PieceRole.Ladder or PieceRole.Stair;
@@ -1853,6 +1854,23 @@ namespace Hansa
             return false;
         }
 
+        /// <summary>Visibility of the leaves as drawn, allowing a hatch's own rounded walking collision.</summary>
+        public static bool SeenPiece(VoxelGrid design, Vintagestory.API.MathTools.Vec3d eye, ShipPiece p)
+        {
+            if(p?.Role!=PieceRole.Hatch) return Seen(design,eye,p?.SeenBox);
+            if(design==null) return true;
+            foreach(var b in p.PickBoxes) for(int k=-1;k<8;k++) {
+                var q=new double[3];
+                for(int a=0;a<3;a++) q[a]=b[a]+(b[a+3]-b[a])*(k<0?.5:(k&(1<<a))==0?.1:.9);
+                var d=new Vintagestory.API.MathTools.Vec3d(q[0]-eye.X,q[1]-eye.Y,q[2]-eye.Z);
+                double len=d.Length();if(len<1e-6) return true;d.Mul(1/len);
+                if(!AimPlace.PieceFace(p,eye,d,len+1,out double t,out _)) continue;
+                double wall=design.Raycast(eye,d,t+.1);
+                if(wall>=t-.02 || HatchVoxelHit(p,design,eye,d,wall)) return true;
+            }
+            return false;
+        }
+
         /// <summary>
         /// (0.3.24, note 177: "from this angle cannot open doors") Is what a ray met at t (her collision as it is, with the
         /// pieces' solids) this piece's own collision? A door's or a partition's solid layer lies a quarter block on one side
@@ -1867,6 +1885,16 @@ namespace Hansa
             foreach (var s in p.Solids)
                 if (s?.Length >= 6 && x >= s[0] - e && x <= s[3] + e && y >= s[1] - e && y <= s[4] + e && z >= s[2] - e && z <= s[5] + e) return true;
             return false;
+        }
+
+        /// <summary>A raised hatch's walking voxels extend beyond its drawn boards. They must not hide its own leaves.</summary>
+        public static bool HatchVoxelHit(ShipPiece p, VoxelGrid grid, Vintagestory.API.MathTools.Vec3d o, Vintagestory.API.MathTools.Vec3d d, double t)
+        {
+            if (p?.Role != PieceRole.Hatch || grid == null || !double.IsFinite(t) || t == double.MaxValue) return false;
+            var boxes = HatchPlanner.CoamingParts(p.Box,p.Coaming).Select(c=>c.Box);
+            if (!p.Open) boxes=boxes.Concat(p.Solids);
+            var at=o.AddCopy(d.X*(t+.001),d.Y*(t+.001),d.Z*(t+.001));
+            return boxes.Any(b=>grid.CellsOf(b) is double[] cell && AimPlace.BoxDistance(cell,at.X,at.Y,at.Z)<1e-6);
         }
 
         /// <summary>

@@ -127,13 +127,14 @@ namespace Hansa
                 BuildPool(water, stone, x0, x1, y0, z0, z1);
                 if (cfg.Only == "flooding") { StormFlooding(mod, def, spawn, y0); return; }
                 if (cfg.Only == "grid") { GridLaunch(mod, spawn, y0, Finish); return; }
-                if(cfg.Only=="notes135")
+                if(cfg.Only=="notes135" || cfg.Only=="notes151")
                 {
                     var type=sapi.World.GetEntityType(new AssetLocation("ships:caravel"));
                     var ship=(EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
                     double level=EntityShip.FindWaterSurface(sapi.World,new BlockPos(spawn.X,y0+5,spawn.Z,0),2,6);
                     ship.Pos.SetPos(spawn.X,level,spawn.Z);sapi.World.SpawnEntity(ship);
-                    Notes135Aboard(ship);
+                    if(cfg.Only=="notes151") { Notes151Aboard(ship);RuntimeLoadingAboard(ship,ship.Def.Fixtures.First(f=>f.Type=="gun")); }
+                    else Notes135Aboard(ship);
                     sapi.Event.RegisterCallback(_=>Finish(),2500);
                     return;
                 }

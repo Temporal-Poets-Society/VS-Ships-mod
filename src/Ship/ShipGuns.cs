@@ -523,7 +523,7 @@ namespace Hansa
             if (GunRunIn(gun)) return "ships:gun-load-run-out";
             if (GunRunningOut(gun) > 0) return "ships:gun-running-out";
             var st = Gun(gun.Code);
-            if(st.Charge!=GunLoading.Loaded) return st.Charge==0?"ships:gun-load-powder":"ships:gun-load-shot";
+            if(!GunLoading.Ready(st.Charge,Mod.Config.CannonsNeedShot)) return GunLoading.Hint(st.Charge,Mod.Config.CannonsNeedShot);
             st.FiredMs = World.ElapsedMilliseconds;
             st.Shots++;
             st.Charge=0;
@@ -592,12 +592,12 @@ namespace Hansa
         {
             if (!CannonsOn) return Lang.Get("ships:gun-state-off");
             if (!GunOpen(gun)) return Lang.Get("ships:gun-state-housed");
-            if (GunRunIn(gun)) return Lang.Get("ships:gun-state-run-in")+" · "+Lang.Get(Gun(gun.Code).Charge==GunLoading.Loaded?"ships:gun-load-full":Gun(gun.Code).Charge==0?"ships:gun-load-powder":"ships:gun-load-shot");
+            if (GunRunIn(gun)) return Lang.Get("ships:gun-state-run-in")+" · "+Lang.Get(GunLoading.Hint(Gun(gun.Code).Charge,CannonsNeedShot));
             double outIn = GunRunningOut(gun);
             if (outIn > 0) return Lang.Get("ships:gun-state-running-out", Math.Ceiling(outIn));
             double left = GunReloading(gun);
-            return left > 0 ? Lang.Get("ships:gun-state-reloading", Math.Ceiling(left)) : Gun(gun.Code).Charge!=GunLoading.Loaded
-                ? Lang.Get(Gun(gun.Code).Charge==0?"ships:gun-load-powder":"ships:gun-load-shot") : Lang.Get("ships:gun-state-ready");
+            return left > 0 ? Lang.Get("ships:gun-state-reloading", Math.Ceiling(left)) : !GunLoading.Ready(Gun(gun.Code).Charge,CannonsNeedShot)
+                ? Lang.Get(GunLoading.Hint(Gun(gun.Code).Charge,CannonsNeedShot)) : Lang.Get("ships:gun-state-ready");
         }
 
         /// <summary>
@@ -627,5 +627,6 @@ namespace Hansa
 
         /// <summary>The server's Cannons switch, for clients (synced with her state).</summary>
         public bool CannonsOn = true;
+        public bool CannonsNeedShot;
     }
 }
