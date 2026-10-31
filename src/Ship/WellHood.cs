@@ -174,7 +174,9 @@ namespace Hansa
         public static string OverOpening(DeckSlotLayout l, Func<int, bool> open, PiecePlan plan)
         {
             if (l == null || plan == null || plan.Role is PieceRole.Hatch or PieceRole.Ladder or PieceRole.Stair) return null;
-            foreach (var b in plan.Solids.Concat(plan.Sel))
+            // A door is supported by its anchored collision layer. Its visible leaf straddles the doorway and
+            // may overhang the well it guards; widening its picking shape must not demand a floor in that well.
+            foreach (var b in plan.Role==PieceRole.Door ? plan.Solids : plan.Solids.Concat(plan.Sel))
                 foreach (int n in l.Under(b, double.NaN))
                 {
                     var d = l.Slots[n];

@@ -20,6 +20,7 @@ namespace HansaTests
             Console.WriteLine("the caravel's swivel guns");
             var (def, file) = LoadHullDesign(root, "caravel");
             var sw = def.Fixtures.Where(f => f.Swivel).ToArray();
+            if (def.Code == "caravel") { Check(sw.Length == 0,"140: the caravel has no swivel places"); return; }
             var obstacles=new PlacementMesh(PlacementMesh.Prepare(def,file));
             var native=Newtonsoft.Json.JsonConvert.DeserializeObject<Vintagestory.API.Common.Shape>(System.IO.File.ReadAllText(System.IO.Path.Combine(root,"assets/hansa/shapes/block/swivelgun.json")));
             native.Elements=native.Elements.Where(e=>e.Name.StartsWith("barrel")).ToArray();

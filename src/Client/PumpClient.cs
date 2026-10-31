@@ -9,12 +9,11 @@ namespace Hansa
     /// <summary>
     /// The water a ship's bilge pump brings up (the user's note 39): while someone works it and it really takes water out
     /// of her hold (the server's PumpedRate, shared by the pumps being worked: none while her hold is dry), water gushes
-    /// out of its spout and splashes on the deck under it, vanilla's watering can's water cubes (tinted as the world's
-    /// water is there), in gushes with the brake's strokes and as much as comes out; and vanilla's pouring sound once a
+    /// out of its spout as a connected laminar stream, with a few splashes only where it lands; and vanilla's pouring sound once a
     /// stroke. A dry pump only clanks (the server's pump sound, quieter). Worked out each frame on the main thread
     /// (<see cref="Update"/>, as the renderer draws her) and spawned on vanilla's particle thread.
     /// </summary>
-    public class PumpClient : IDisposable
+    public class PumpClient : IDisposable, IRenderer
     {
         /// <summary>Pumps further off than this aren't seen gushing.</summary>
         public const double Range = 40;
@@ -26,9 +25,11 @@ namespace Hansa
         /// <summary>One spout for the particle thread: where it is and which way the water leaves it, where it lands, how fast she moves.</summary>
         class Jet
         {
+            public string Key;
             public double X, Y, Z, LX, LY, LZ;
             public float DX, DY, DZ, VX, VY, VZ, Life;
             public double Rate;
+            public double Flow;
             public int Color;
         }
 
@@ -42,22 +43,18 @@ namespace Hansa
         volatile Jet[] jets = Array.Empty<Jet>();
         readonly Dictionary<string, Track> tracks = new();
         // used only on the particle thread
-        readonly SimpleParticleProperties water, splash;
+        readonly SimpleParticleProperties splash;
         readonly Random rand = new();
+        readonly Dictionary<string,(MeshRef Mesh,MeshData Data)> streams=new();
+        readonly float[] model=new float[16];
+        int streamTexture;
+        public double RenderOrder => 0.46;
+        public int RenderRange => 9999;
 
         public PumpClient(ICoreClientAPI capi, ShipClientSystem sys)
         {
             this.capi = capi;
             this.sys = sys;
-            // vanilla's watering can's water (BlockWateringCan.WaterParticles): cubes, falling
-            water = new SimpleParticleProperties
-            {
-                MinPos = new Vec3d(), AddPos = new Vec3d(0.06, 0.06, 0.06),
-                MinVelocity = new Vec3f(), AddVelocity = new Vec3f(),
-                MinSize = 0.22f, MaxSize = 0.45f, GravityEffect = PumpJet.GravityEffect,
-                ParticleModel = EnumParticleModel.Cube, WithTerrainCollision = false,
-                SizeEvolve = new EvolvingNatFloat(EnumTransformFunction.LINEAR, -0.3f)
-            };
             splash = new SimpleParticleProperties
             {
                 MinPos = new Vec3d(), AddPos = new Vec3d(0.24, 0.02, 0.24),
@@ -67,6 +64,7 @@ namespace Hansa
                 SizeEvolve = new EvolvingNatFloat(EnumTransformFunction.LINEAR, -0.6f)
             };
             capi.Event.RegisterAsyncParticleSpawner(OnParticles);
+            capi.Event.RegisterRenderer(this,EnumRenderStage.Opaque,"hansa-pump-stream");
         }
 
         /// <summary>
@@ -122,6 +120,7 @@ namespace Hansa
                     int color = capi.World.ApplyColorMapOnRgba("climateWaterTint", null, ColorUtil.WhiteArgb, (int)sx, (int)sy, (int)sz);
                     list.Add(new Jet
                     {
+                        Key=key,Flow=flow,
                         X = sx, Y = sy, Z = sz, LX = lx + o.X, LY = ly + o.Y, LZ = lz + o.Z,
                         DX = (float)dx, DY = (float)dy, DZ = (float)dz, VX = tr.VX, VY = tr.VY, VZ = tr.VZ, Life = life,
                         Rate = PumpJet.Rate(flow, ship.DamageParts?.D != null ? ShipFlood.PumpRate(ship.DamageParts.D, 1) : 0.2) * PumpJet.Pulse(secs, stroke), Color = (color & 0x00FFFFFF) | (215 << 24)
@@ -150,17 +149,7 @@ namespace Hansa
             {
                 int n = Count(j.Rate, dt);
                 if (n <= 0) continue;
-                float v = (float)PumpJet.Speed;
-                water.Color = j.Color;
-                water.MinPos.Set(j.X - 0.03, j.Y - 0.03, j.Z - 0.03);
-                water.MinVelocity.Set(j.DX * v + j.VX - 0.1f, j.DY * v + j.VY - 0.1f, j.DZ * v + j.VZ - 0.1f);
-                water.AddVelocity.Set(0.2f, 0.2f, 0.2f);
-                water.LifeLength = j.Life * 0.92f;
-                water.addLifeLength = j.Life * 0.12f;
-                water.MinQuantity = n;
-                water.AddQuantity = 0;
-                manager.Spawn(water);
-                int m = Count(j.Rate * 0.5, dt);
+                int m = Count(12, dt);
                 if (m <= 0) continue;
                 splash.Color = j.Color;
                 splash.MinPos.Set(j.LX - 0.12, j.LY + 0.02, j.LZ - 0.12);
@@ -173,11 +162,53 @@ namespace Hansa
             return true;
         }
 
+        public void OnRenderFrame(float dt,EnumRenderStage stage)
+        {
+            if(disposed) return;
+            var live=new HashSet<string>();var cam=capi.World.Player?.Entity?.CameraPos;
+            if(cam==null) return;
+            foreach(var j in jets)
+            {
+                live.Add(j.Key);
+                var quads=PumpJet.Stream(new Vec3d(j.DX,j.DY,j.DZ),j.Life,j.Flow);
+                if(!streams.TryGetValue(j.Key,out var stream))
+                {
+                    var data=new MeshData(quads.Count*4,quads.Count*6,false,true,true,true);
+                    foreach(var q in quads) AddStreamFace(data,q);
+                    stream=(capi.Render.UploadMesh(data),data);streams[j.Key]=stream;
+                }
+                else
+                {
+                    stream.Data.Clear();foreach(var q in quads) AddStreamFace(stream.Data,q);
+                    capi.Render.UpdateMesh(stream.Mesh,stream.Data);
+                }
+                if(streamTexture==0) streamTexture=capi.Render.GetOrLoadTexture(new AssetLocation("game","block/liquid/waterportion.png"));
+                var shader=capi.Render.PreparedStandardShader((int)j.X,(int)j.Y,(int)j.Z);
+                try
+                {
+                    Mat4f.Identity(model);Mat4f.Translate(model,model,(float)(j.X-cam.X),(float)(j.Y-cam.Y),(float)(j.Z-cam.Z));
+                    shader.ModelMatrix=model;shader.ViewMatrix=capi.Render.CameraMatrixOriginf;shader.ProjectionMatrix=capi.Render.CurrentProjectionMatrix;
+                    shader.Tex2D=streamTexture;capi.Render.GlDisableCullFace();capi.Render.RenderMesh(stream.Mesh);
+                }
+                finally {shader.Stop();capi.Render.GlEnableCullFace();}
+            }
+            foreach(var key in new List<string>(streams.Keys)) if(!live.Contains(key)) {streams[key].Mesh.Dispose();streams.Remove(key);}
+        }
+
+        static void AddStreamFace(MeshData data,float[] q)
+        {
+            int first=data.VerticesCount;
+            for(int k=0;k<4;k++) data.AddWithFlagsVertex(q[1+8*k],q[2+8*k],q[3+8*k],q[4+8*k]/16,q[5+8*k]/16,-1,VertexFlags.PackNormal(q[6+8*k],q[7+8*k],q[8+8*k]));
+            data.AddIndices(first,first+1,first+2,first,first+2,first+3);
+        }
+
         public void Dispose()
         {
             disposed = true;
             jets = Array.Empty<Jet>();
             tracks.Clear();
+            foreach(var stream in streams.Values) stream.Mesh.Dispose();streams.Clear();
+            capi.Event.UnregisterRenderer(this,EnumRenderStage.Opaque);
         }
     }
 }

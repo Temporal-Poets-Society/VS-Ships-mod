@@ -24,7 +24,7 @@ rm -rf "$TS/Saves" "$TS/Logs"
 [ -f "$TS/serverconfig.json" ] || cp "$TEMPLATE" "$TS/serverconfig.json"
 
 python - "$TS" <<'EOF'
-import json, sys
+import json, sys, os
 ts = sys.argv[1]
 p = ts + "/serverconfig.json"
 d = json.load(open(p, encoding="utf-8-sig"))
@@ -37,7 +37,7 @@ wc["WorldName"] = "Hansa test"
 wc["MapSizeY"] = 256
 wc["WorldConfiguration"] = {"worldWidth": "4096", "worldLength": "4096", "worldEdge": "blocked", "gameMode": "creative"}
 json.dump(d, open(p, "w", encoding="utf-8"), indent=2)
-json.dump({"Enabled": True, "Shutdown": True}, open(ts + "/ModConfig/hansa-selftest.json", "w"))
+json.dump({"Enabled": True, "Shutdown": True, "Only": os.environ.get("HANSA_SELFTEST_ONLY")}, open(ts + "/ModConfig/hansa-selftest.json", "w"))
 EOF
 
 cd "$VS"

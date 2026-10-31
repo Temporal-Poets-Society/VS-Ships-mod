@@ -19,6 +19,7 @@ namespace Hansa
     public class HookDef
     {
         public string Code;
+        public float? Yaw;
         public double[] Pos;
         public string Hang = "down";
         /// <summary>Optional: a hook on a wall, the wall's normal into the room (for later wall brackets).</summary>
@@ -76,6 +77,8 @@ namespace Hansa
         /// <summary>(0.3.20, step B) A hatch: its opening's cells along x and along z (docs/slots.md §5), and the way its leaves' hinges run ("x", "z"; null: along its long sides, along x when square).</summary>
         public int[] Size;
         public string Hinge;
+        public double Coaming;
+        public bool DoubleLeaf;
         /// <summary>(0.3.23) A stair's cells along its run: 3 (default, the long ship's stair) or 2 (the steep one); (0.1.0-dev.6, note 36) 1 (the short one); 0: not given.</summary>
         public int Length;
         /// <summary>
@@ -185,6 +188,7 @@ namespace Hansa
     /// </summary>
     public class MountPoint
     {
+        public float? Yaw;
         public string Id;
         public MountKind Kind;
         /// <summary>The deck (floor) or room (wall) it's on, and the room it's in (or the deck's code on an open deck).</summary>
@@ -2116,7 +2120,7 @@ namespace Hansa
                 All.Add(new MountPoint
                 {
                     Id = "h:" + h.Code, Kind = MountKind.Hook, Deck = null, Room = Def.RoomAt(x, y + (down ? -0.5 : 0.5), z)?.Code ?? "deck",
-                    X = x, Y = y, Z = z, Hang = down ? "down" : "up", Kinds = h.Kinds ?? new[] { "light" }, Shown = h.Shown, Normal = h.Normal,
+                    X = x, Y = y, Z = z, Hang = down ? "down" : "up", Kinds = h.Kinds ?? new[] { "light" }, Shown = h.Shown, Normal = h.Normal, Yaw = h.Yaw,
                     Box = down ? new[] { x - 0.3, y - 0.75, z - 0.3, x + 0.3, y, z + 0.3 } : new[] { x - 0.3, y, z - 0.3, x + 0.3, y + 0.75, z + 0.3 }
                 });
                 // ((0.1.0-dev.9, caravel note 78) a figurehead's place: the block the figure stands in, in front of her stem (and

@@ -121,6 +121,16 @@ namespace Hansa
                 Check(pending <= 0, "pool chunks loaded");
                 BuildPool(water, stone, x0, x1, y0, z0, z1);
                 if (cfg.Only == "grid") { GridLaunch(mod, spawn, y0, Finish); return; }
+                if(cfg.Only=="notes135")
+                {
+                    var type=sapi.World.GetEntityType(new AssetLocation("hansa:caravel"));
+                    var ship=(EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
+                    double level=EntityShip.FindWaterSurface(sapi.World,new BlockPos(spawn.X,y0+5,spawn.Z,0),2,6);
+                    ship.Pos.SetPos(spawn.X,level,spawn.Z);sapi.World.SpawnEntity(ship);
+                    Notes135Aboard(ship);
+                    sapi.Event.RegisterCallback(_=>Finish(),2500);
+                    return;
+                }
                 // (0.3.17) the modular carrack launched, laid, sealed, walked, reloaded (gone again before the carrack sails)
                 ModularLaunch(mod, spawn, y0);
                 if (cfg.Only == "modular") { Finish(); return; }

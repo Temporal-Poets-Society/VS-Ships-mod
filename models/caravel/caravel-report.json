@@ -27,17 +27,17 @@
   "Beams": {
    "volume_m3": 6.1995,
    "centroid_mm": [
-    -4991,
+    -4978,
     0,
     4272
    ]
   },
   "Decks": {
-   "volume_m3": 47.1064,
+   "volume_m3": 47.3064,
    "centroid_mm": [
-    -4448,
+    -4457,
     0,
-    3500
+    3502
    ]
   },
   "Railings": {
@@ -59,7 +59,7 @@
   "Stairs": {
    "volume_m3": 0.2848,
    "centroid_mm": [
-    -5500,
+    -6066,
     -1000,
     3969
    ]
@@ -973,5 +973,5 @@
    27525
   ]
  },
- "buildSeconds": 685.5
+ "buildSeconds": 598.8
 }

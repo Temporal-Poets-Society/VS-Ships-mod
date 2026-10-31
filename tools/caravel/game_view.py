@@ -135,8 +135,10 @@ def page(D, M, pose=None):
                 rig_of[g] = code
     lee = -1 if tack > 0 else 1                      # (as exported her sails hang to port, game z < 0)
     turned, hidden = {}, set()
-    for code in masts:
-        hidden.add(f"rig:shrouds-{code}-{'port' if lee < 0 else 'starboard'}")
+    fraction = pose.pop("sailFraction", 0.0)
+    if fraction > 0.01:
+        for code in masts:
+            hidden.add(f"rig:shrouds-{code}-{'port' if lee < 0 else 'starboard'}")
     import numpy as np
     by_code = {p["code"]: p for p in D.get("movingParts", [])}
     def transform(code):

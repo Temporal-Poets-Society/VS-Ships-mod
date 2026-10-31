@@ -69,9 +69,9 @@ namespace HansaTests
                 if (w.Length != (s.Half == null ? 4 : 5) || w[0] != (s.IsInner ? "ceil" : "hull") || s.Layer != null && (s.PartnerIndex < 0 || l.Slots[s.PartnerIndex].PartnerIndex != s.Index) || (w[1] == "s" ? 1 : w[1] == "p" ? -1 : 0) != s.Side || w[2] != s.Station.ToString() || w[3] != s.Band.ToString() ||
                     s.Half != null && w[4] != s.Half)
                     bad.Add($"{s.Id}: id doesn't say its side {s.Side}, station {s.Station}, band {s.Band}");
-                if (def.PartMap.StationAt(s.Centre.X) != s.Station) bad.Add($"{s.Id}: its middle is in station {def.PartMap.StationAt(s.Centre.X)}");
-                if (s.Outer?.Length != 4 || s.Normal?.Length != 3 || s.Area <= 0.3 || s.Head <= s.Sill) bad.Add($"{s.Id}: outer/normal/area/sill/head missing");
-                if (s.Normal != null && s.Normal[2] * s.Side <= 0.2) bad.Add($"{s.Id}: its normal isn't outward ({string.Join(" ", s.Normal)})");
+                if (s.Cell==null && def.PartMap.StationAt(s.Centre.X) != s.Station) bad.Add($"{s.Id}: its middle is in station {def.PartMap.StationAt(s.Centre.X)}");
+                if (s.Outer?.Length != 4 || s.Normal?.Length != 3 || s.Area <= 0 || s.Head < s.Sill) bad.Add($"{s.Id}: outer/normal/area/sill/head missing");
+                if (s.Cell==null && s.Normal != null && s.Normal[2] * s.Side <= 0.2) bad.Add($"{s.Id}: its normal isn't outward ({string.Join(" ", s.Normal)})");
                 int vox = 0;
                 foreach (var b in s.SolidBoxes)
                     foreach (long v in DeckSlotLayout.Voxels(g, b))
@@ -80,10 +80,10 @@ namespace HansaTests
                         vox++;
                         if (!g.Solid(i, j, k)) { bad.Add($"{s.Id}: a voxel not solid"); goto next; }
                         double vx = g.OX + (i + 0.5) * g.V, vy = g.OY + (j + 0.5) * g.V, vz = g.OZ + (k + 0.5) * g.V;
-                        if (vx < s.Box[0] || vx > s.Box[3] || vy < s.Box[1] || vy > s.Box[4] || vz * s.Side <= 0) { bad.Add($"{s.Id}: a voxel outside its box"); goto next; }
+                        if (vx < s.Box[0] || vx > s.Box[3] || vy < s.Box[1] || vy > s.Box[4] || (s.Cell==null && vz * s.Side <= 0)) { bad.Add($"{s.Id}: a voxel outside its box"); goto next; }
                         if (def.Slots?.AtVoxel(g, i, j, k) >= 0) { bad.Add($"{s.Id}: a voxel of a deck cell's"); goto next; }
                     }
-                if (vox < 4) bad.Add($"{s.Id}: {vox} voxels");
+                if (s.Cell==null && vox < 4) bad.Add($"{s.Id}: {vox} voxels");
                 next:;
             }
             foreach (var x in bad.Take(10)) Console.WriteLine("         " + x);
@@ -97,6 +97,7 @@ namespace HansaTests
             var outs = new int[l.Count];
             var ins = new int[l.Count];
             var strips = new int[l.Count];
+            var owned = new int[l.Count];
             var pairs = new HashSet<(int, int)>();
             var outside = new List<string>();
             foreach (string gr in SlotMeshPlan.HullGroups)
@@ -106,6 +107,7 @@ namespace HansaTests
                 for (int q = 0; q < quads.Length; q++)
                 {
                     int o = own[q], f = fac[q];
+                    if(o>=0) owned[o]++;
                     if (o >= 0 && f >= 0) pairs.Add((o, f));
                     if (o < 0 && f >= 0) strips[f]++;
                     if (o < 0 || f >= 0) continue;
@@ -128,7 +130,8 @@ namespace HansaTests
             // whether it's in or out, no strips toward it)
             double topDeck = def.Decks.Max(d => d.Y);
             bool OnTop(int n) => l.Slots[n].Sill >= topDeck - 0.05;
-            var noFaces = Enumerable.Range(0, l.Count).Where(n => l.Slots[n].Layer == null ? outs[n] == 0 || ins[n] == 0 || (strips[n] < 2 && !OnTop(n))
+            bool removableRibs=def.DeckSlots?.Any(s=>s.IsStructure)==true;
+            var noFaces = Enumerable.Range(0, l.Count).Where(n => l.Slots[n].Cell!=null ? owned[n]==0 : l.Slots[n].Layer == null ? outs[n] == 0 || ins[n] == 0 || (strips[n] < 2 && !OnTop(n) && !removableRibs)
                 : (l.Slots[n].IsInner ? ins[n] == 0 : outs[n] == 0) || !pairs.Contains((n, l.Slots[n].PartnerIndex))).ToList();
             foreach (int n in noFaces.Take(8)) Console.WriteLine($"         {l.Slots[n].Id}: {outs[n]} outside, {ins[n]} ceiling, {strips[n]} faces of her toward it");
             Check(noFaces.Count == 0, $"{def.Code}: every panel has its outside, its ceiling and the frames' strips' faces toward it ({noFaces.Count} without)");

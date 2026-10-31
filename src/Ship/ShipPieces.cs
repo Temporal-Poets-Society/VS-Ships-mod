@@ -143,6 +143,8 @@ namespace Hansa
         /// <summary>(0.3.23) A stair's cells along its run, and its own handrails (a ship's stair).</summary>
         public int Cells;
         public bool Rails;
+        public double Coaming;
+        public bool DoubleLeaf;
         List<PieceVolume> placementVolumes;
         public IReadOnlyList<PieceVolume> PlacementVolumes => placementVolumes ??= Role == PieceRole.Stair
             ? PieceShape.StairVolumes(Mount, Dir, Rise, Cells, Rails).ToList()
@@ -1087,6 +1089,11 @@ namespace Hansa
             BorderBoxes(m, 2, p);
             var (line, alongX) = MountLayout.BorderLine(m);
             // the hinge: the border's lower end, on the line; ((25 October 2026, note 89) or its upper end, as the player chose)
+            var native = b.BoundsOf(b.Code) ?? new double[] {0,0,0,1,2,0.1875};
+            double thick = Math.Clamp(Math.Min(native[3]-native[0],native[5]-native[2]),0.05,0.25);
+            int thinAxis = alongX ? 2 : 0;
+            p.Box[thinAxis] = line-thick/2; p.Box[thinAxis+3] = line+thick/2;
+            p.Sel.Clear(); p.Sel.Add((double[])p.Box.Clone());
             double hingeAt = (p.Toward & HingeHigh) != 0 ? 0.5 : -0.5;
             p.Pivot = alongX ? new[] { m.X + hingeAt, m.Y, line } : new[] { line, m.Y, m.Z + hingeAt };
             p.Parts.Add(new PiecePart { Block = b.Code, Origin = (double[])p.Pivot.Clone() });
@@ -1295,8 +1302,9 @@ namespace Hansa
             if (m.Kinds != null && Array.IndexOf(m.Kinds, "light") >= 0 && m.Kinds.Length == 1 && !b.Light) { p.Error = "hansa:piece-hook-light"; return p; }
             if (b.Orient is PieceOrient.Attachable or PieceOrient.Bed || b.Container) { p.Error = "hansa:piece-hook-light"; return p; }
             bool down = m.Hang != "up";
+            if (m.Yaw.HasValue) p.Dir = ShipMounts.DirOfYaw(m.Yaw.Value);
             string variant = b.Orient == PieceOrient.Omni ? b.Variant(down ? "down" : "up") ?? b.Code : b.Code;
-            int q = b.Orient == PieceOrient.None ? QuarterFor(p.Dir) : 0;
+            int q = b.Orient == PieceOrient.None || b.Light ? QuarterFor(p.Dir) : 0;
             var origin = new[] { m.X - 0.5, down ? m.Y - 1 : m.Y, m.Z - 0.5 };
             p.Parts.Add(new PiecePart { Block = variant, Origin = origin, Quarter = q });
             p.Mounts.Add(m.Id);
@@ -1487,6 +1495,8 @@ namespace Hansa
         public float Efficiency;
         /// <summary>A door: standing open (saved; shut it's solid and closes its room).</summary>
         public bool Open;
+        public double Coaming;
+        public bool DoubleLeaf;
         /// <summary>(0.3.12) A wall put aboard painted: a vanilla dye's colour, or null as it is (saved).</summary>
         public string Paint;
         /// <summary>(0.3.28, step D2) What shots did to it (a partition, a door, a window, a railing: 0 sound .. Holed shot away; saved).</summary>
@@ -1511,7 +1521,25 @@ namespace Hansa
         /// <remarks>((24 October 2026, caravel note 82: "then i cannot remove it") a panel by its whole wedge too: aimed at its
         /// end or its top (her side's curve leaves them showing) it's the panel, not her woodwork behind)</remarks>
         public IEnumerable<double[]> PickBoxes => Role == PieceRole.Hatch && !Open || Role == PieceRole.Panel ? Sel.Concat(Solids)
-            : Role == PieceRole.Door && Open && OpenLeafBox is double[] leaf ? Sel.Append(leaf) : Sel;
+            : Role == PieceRole.Door && Open && OpenLeafBox is double[] leaf ? new[] {leaf} : Sel;
+
+        public double DoorAngle => Role != PieceRole.Door || Box == null ? 0 :
+            ((Box[3]-Box[0]>Box[5]-Box[2] ? -MountLayout.DZ[Dir] : MountLayout.DX[Dir]) *
+            Math.PI/2 * ModularGeometry.DoorOpenFraction * (HingeHighEnd ? -1 : 1));
+
+        public double[] DoorPoint(double[] point, bool inverse = false)
+        {
+            double a=DoorAngle*(inverse?-1:1),c=Math.Cos(a),s=Math.Sin(a);
+            var hinge=DoorHinge;
+            double x=point[0]-hinge[0],z=point[2]-hinge[2];
+            return new[]{hinge[0]+c*x+s*z,point[1],hinge[2]-s*x+c*z};
+        }
+
+        // The hinge pin lies on the opening face of the leaf. Turning about its centre plane drove the
+        // leaf's thickness through the adjoining partition at the hinge, including its bottom face.
+        public double[] DoorHinge => Pivot==null || Box==null ? Pivot : new[]{
+            Pivot[0]+MountLayout.DX[Dir]*Math.Max(.1875,Math.Min(Box[3]-Box[0],Box[5]-Box[2]))/2,
+            Pivot[1],Pivot[2]+MountLayout.DZ[Dir]*Math.Max(.1875,Math.Min(Box[3]-Box[0],Box[5]-Box[2]))/2};
 
         /// <summary>
         /// (0.3.30, note 243: "check vanilla door closing mechanics. My mind can close pointing at open door and not only on
@@ -1524,16 +1552,7 @@ namespace Hansa
             get
             {
                 if (Role != PieceRole.Door || Pivot == null || Box == null || Dir < 0 || Dir > 3) return null;
-                bool alongX = Box[3] - Box[0] > Box[5] - Box[2];
-                double len = alongX ? Box[3] - Box[0] : Box[5] - Box[2];
-                double a = ModularGeometry.DoorOpenFraction * Math.PI / 2;
-                // (shut it runs from the hinge along the line (+x or +z; (25 October 2026, note 89) -x or -z hung at its upper
-                // end); open, mostly into the cell, a little back along the line)
-                double sg = HingeHighEnd ? -1 : 1;
-                double ax = alongX ? sg : 0, az = alongX ? 0 : sg, ix = MountLayout.DX[Dir], iz = MountLayout.DZ[Dir];
-                double ex = Pivot[0] + len * (ax * Math.Cos(a) + ix * Math.Sin(a)), ez = Pivot[2] + len * (az * Math.Cos(a) + iz * Math.Sin(a));
-                const double t = 0.1;
-                return new[] { Math.Min(Pivot[0], ex) - t, Box[1], Math.Min(Pivot[2], ez) - t, Math.Max(Pivot[0], ex) + t, Box[4], Math.Max(Pivot[2], ez) + t };
+                return PlacementMesh.Bounds(PlacementMesh.Corners(Box).Select(p=>DoorPoint(p)));
             }
         }
         /// <summary>(25 October 2026, note 89) A door hung at its border's +x/+z end (its hinge past the middle of its box).</summary>
@@ -1541,7 +1560,8 @@ namespace Hansa
                                     (Box[3] - Box[0] > Box[5] - Box[2] ? Pivot[0] > (Box[0] + Box[3]) / 2 : Pivot[2] > (Box[2] + Box[5]) / 2);
 
         /// <summary>(0.3.23) The box that must be seen to use or take it (a shut hatch's from below too).</summary>
-        public double[] SeenBox => Role == PieceRole.Hatch && !Open ? PiecePlanner.Union(PickBoxes) ?? Box : Box;
+        public double[] SeenBox => Role == PieceRole.Door && Open ? OpenLeafBox ?? Box
+            : Role == PieceRole.Hatch && !Open ? PiecePlanner.Union(PickBoxes) ?? Box : Box;
 
         /// <summary>(0.3.19) A ladder-stair or a walked stair.</summary>
         public bool IsStair => Role is PieceRole.Ladder or PieceRole.Stair;
@@ -1552,7 +1572,7 @@ namespace Hansa
             {
                 if(Role==PieceRole.Door && Open && OpenLeafBox is double[] door) return new[]{door};
                 if(Role!=PieceRole.Hatch || !Open) return Sel;
-                return HatchPlanner.Leaves(Box,Dir).Select(leaf=>{
+                return HatchPlanner.Leaves(Box,Dir,DoubleLeaf).Select(leaf=>{
                     var part=new MovingPartDef { AxisPoint=leaf.Hinge,AxisDir=leaf.Axis==0?new double[]{1,0,0}:new double[]{0,0,1},Angle=leaf.Sign*HatchPlanner.OpenAngle };
                     var matrix=new float[16];PartMotion.Place(part,1,matrix,null);
                     return PlacementMesh.Bounds(PlacementMesh.Corners(leaf.Box).Select(p=>PlacementMesh.Transform(matrix,p)));
@@ -1595,7 +1615,8 @@ namespace Hansa
                 Parts = p.Parts.Select(x => new PiecePart { Block = x.Block, Origin = (double[])x.Origin.Clone(), Quarter = x.Quarter }).ToList(),
                 Sel = p.Sel.Select(x => (double[])x.Clone()).ToList(), Solids = p.Solids.Select(x => (double[])x.Clone()).ToList(),
                 Box = (double[])p.Box?.Clone(), Pivot = p.Pivot, Tilt = p.Tilt, Hang = p.Hang, Seat = p.Seat, SeatYaw = p.SeatYaw,
-                Slots = p.Slots, Efficiency = p.Efficiency, Rise = p.Rise, Cells = p.Cells, Rails = p.Rails
+                Slots = p.Slots, Efficiency = p.Efficiency, Rise = p.Rise, Cells = p.Cells, Rails = p.Rails,
+                Coaming = p.Coaming, DoubleLeaf = p.DoubleLeaf
             };
         }
 
@@ -1627,6 +1648,8 @@ namespace Hansa
             if (Rake != null) t["rake"] = new DoubleArrayAttribute(Rake);
             if (Cells > 0) t.SetInt("cells", Cells);
             if (Rails) t.SetBool("rails", true);
+            if (Coaming > 0) t.SetDouble("coaming", Coaming);
+            if (DoubleLeaf) t.SetBool("doubleLeaf", true);
             if (Hurt > 0) t.SetFloat("hurt", Hurt);
         }
 
@@ -1645,6 +1668,7 @@ namespace Hansa
                 Rise = t.GetDouble("rise"), Rake = (t["rake"] as DoubleArrayAttribute)?.value, Cells = t.GetInt("cells"), Rails = t.GetBool("rails"),
                 Hurt = Math.Clamp(t.GetFloat("hurt"), 0, 1)
             };
+            p.Coaming = t.GetDouble("coaming"); p.DoubleLeaf = t.GetBool("doubleLeaf");
             foreach (string part in (t.GetString("parts") ?? "").Split(';', StringSplitOptions.RemoveEmptyEntries))
             {
                 var s = part.Split('|');
@@ -1862,13 +1886,7 @@ namespace Hansa
             dist = double.MaxValue;
             ShipPiece best = null;
             foreach (var p in ById.Values)
-                foreach (var s in p.PickBoxes)
-                {
-                    double t = ShipFittings.RayBox(o, d, new Vintagestory.API.MathTools.Cuboidd(s[0], s[1], s[2], s[3], s[4], s[5]));
-                    if (t < 0 || t > range || t >= dist) continue;
-                    dist = t;
-                    best = p;
-                }
+                if (AimPlace.PieceFace(p,o,d,range,out double t,out _) && t < dist) { dist=t; best=p; }
             return best;
         }
 

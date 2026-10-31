@@ -389,7 +389,7 @@ namespace Hansa
             // (0.3.18, note 164: "an open door against another wall flickers") it stops a few degrees short of square, so its
             // open leaf never lies in the plane of a wall beside it on the line it opens along
             float a = (alongX ? (float)(-iz * GameMath.PIHALF) : (float)(ix * GameMath.PIHALF)) * ModularGeometry.DoorOpenFraction * (high ? -1 : 1);
-            var p = new Piece { Fixture = ship.PieceFixture(pc), Interior = true, DoorId = pc.Id, HingeX = (float)pc.Pivot[0], HingeZ = (float)pc.Pivot[2], Swing = a };
+            var p = new Piece { Fixture = ship.PieceFixture(pc), Interior = true, DoorId = pc.Id, HingeX = (float)pc.DoorHinge[0], HingeZ = (float)pc.DoorHinge[2], Swing = a };
             Mat4f.Identity(p.Fit);
             p.Mesh = capi.Render.UploadMultiTextureMesh(md);
             return p;

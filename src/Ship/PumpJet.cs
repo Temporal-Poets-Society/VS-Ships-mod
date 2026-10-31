@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Vintagestory.API.MathTools;
 
 namespace Hansa
@@ -74,7 +75,50 @@ namespace Hansa
         /// The stream swells a little with the brake (0.8 .. 1): strongest at the ends of its swing (its rocking is
         /// sin(2π t / stroke), ShipRenderer's "pump:" source); a steady stream otherwise (0.3.10: no gushes).
         /// </summary>
-        public static double Pulse(double seconds, double stroke) => 0.8 + 0.2 * Math.Abs(Math.Sin(seconds * 2 * Math.PI / Math.Max(0.2, stroke)));
+        public static double Pulse(double seconds, double stroke) => 1;
+
+        /// <summary>A connected laminar tube, relative to the spout, with gravity in world Y. No particle gaps or jitter.</summary>
+        public static List<float[]> Stream(Vec3d direction, double flight, double flow)
+        {
+            var faces=new List<float[]>();
+            if(flow<=1e-4 || flight<=0) return faces;
+            const int steps=20,sides=12;
+            double horizontal=Math.Sqrt(direction.X*direction.X+direction.Z*direction.Z);
+            double ax=horizontal<1e-6?1:-direction.Z/horizontal,az=horizontal<1e-6?0:direction.X/horizontal;
+            var rings=new double[steps+1][][];
+            double distance=0;
+            double[] previous=null;
+            for(int j=0;j<=steps;j++)
+            {
+                double t=flight*j/steps;
+                var centre=new[]{Speed*direction.X*t,Speed*direction.Y*t-Gravity*t*t/2,Speed*direction.Z*t};
+                if(previous!=null) distance+=Math.Sqrt(Math.Pow(centre[0]-previous[0],2)+Math.Pow(centre[1]-previous[1],2)+Math.Pow(centre[2]-previous[2],2));
+                previous=centre;
+                var tangent=new Vec3d(Speed*direction.X,Speed*direction.Y-Gravity*t,Speed*direction.Z);tangent.Normalize();
+                double bx=tangent.Y*az,by=tangent.Z*ax-tangent.X*az,bz=-tangent.Y*ax;
+                double radius=Math.Clamp(Math.Sqrt(flow/0.2)*0.045,0.015,0.06)*Math.Sqrt(Speed/Math.Max(Speed,Speed-direction.Y*Gravity*t));
+                rings[j]=new double[sides][];
+                for(int k=0;k<sides;k++)
+                {
+                    double angle=k*2*Math.PI/sides,c=Math.Cos(angle),s=Math.Sin(angle);
+                    double nx=c*ax+s*bx,ny=s*by,nz=c*az+s*bz;
+                    rings[j][k]=new[]{centre[0]+radius*nx,centre[1]+radius*ny,centre[2]+radius*nz,
+                        k*2*Math.PI*radius*16/sides,distance*16,nx,ny,nz};
+                }
+            }
+            for(int j=0;j<steps;j++) for(int k=0;k<sides;k++)
+            {
+                var q=new float[33];int at=1;
+                int corner=0;
+                foreach(var p in new[]{rings[j][k],rings[j][(k+1)%sides],rings[j+1][(k+1)%sides],rings[j+1][k]})
+                {
+                    for(int v=0;v<8;v++) q[at++]=(float)(v==3 && k==sides-1 && (corner==1 || corner==2) ? p[3]+rings[corner==1?j:j+1][k][3]*sides/(sides-1) : p[v]);
+                    corner++;
+                }
+                faces.Add(q);
+            }
+            return faces;
+        }
 
         /// <summary>How loud the pour is for a flow (0 .. 0.5).</summary>
         public static float Volume(double flow) => flow <= 1e-4 ? 0 : (float)Math.Min(0.5, 0.15 + flow * 1.5);

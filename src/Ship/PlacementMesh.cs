@@ -76,7 +76,7 @@ namespace Hansa
             }
             foreach(var shroud in LateenShrouds.Of(def)) {
                 var m=Matrix(shroud.Group);
-                if(LateenShrouds.SetUp(def,shroud,lee)) Mat4f.Identity(m);
+                if(LateenShrouds.SetUp(def,shroud,lee,fraction)) Mat4f.Identity(m);
                 else LateenShrouds.HangMatrix(shroud,m);
             }
         }

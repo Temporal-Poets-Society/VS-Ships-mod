@@ -13,6 +13,7 @@ namespace HansaTests
         static void IntegrationNotes(string root)
         {
             var (def,file)=LoadHullDesign(root,"caravel");
+            def.Surfaces=ShipSurfaces.From(file,def.Slots);
             var set=new ShipPieceSet();var mesh=new PlacementMesh(PlacementMesh.Prepare(def,file));
             var poses=new Dictionary<string,float[]>();PlacementMesh.RigPoses(def,poses,-1,0,0);
             bool Visible(string group,int index) {

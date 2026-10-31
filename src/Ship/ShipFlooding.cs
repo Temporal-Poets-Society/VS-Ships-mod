@@ -686,7 +686,7 @@ namespace Hansa
             // leaks, by the head of water over each damaged panel outside and in
             double leak = ShipFlood.Leaks(l, PartDamage, Water, pose, cfg.Leaks, out double sideFlow);
             // the sea coming in over her side (the rail, the scuppers, an open hatch or gate under the waves)
-            double pour = ShipFlood.Downflooding(l, pose, DownfloodOpen);
+            double pour = ShipFlood.Downflooding(l, pose, DownfloodOpen, HatchCoaming);
             // the pumps
             Pumpers = CountPumpers();
             // (the intake at the bilge's lowest point: a full, steady stream while there's water, none once she's pumped

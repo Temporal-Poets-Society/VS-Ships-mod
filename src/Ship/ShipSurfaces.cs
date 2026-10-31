@@ -57,6 +57,13 @@ namespace Hansa
                         int owner = deckRefs[2 * q];
                         if (deckRefs[2 * q + 1] >= 0 || quad == null || quad.Length < 33) continue;
                         if (owner >= 0 && (slots == null || owner >= slots.Count || slots.Slots[owner]?.IsCell != false)) continue;
+                        // Ribs bound partitions sideways too; only beams below a deck are upward-only surfaces.
+                        if (owner >= 0 && slots.Slots[owner].IsStructure)
+                        {
+                            s.AddTri(quad, 0, 1, 2);
+                            s.AddTri(quad, 0, 2, 3);
+                            continue;
+                        }
                         // (not a deck's planking: a fixed strip of it, a timber's face hidden in it)
                         double qy = (quad[2] + quad[10] + quad[18] + quad[26]) / 4;
                         if (slots == null || slots.Tops.Exists(t => qy > t.Top - t.Thick - 0.01 && qy < t.Top + 0.01)) continue;

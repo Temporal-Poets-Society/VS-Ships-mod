@@ -95,12 +95,8 @@ def uv_grain(p, n, origin, grain):
     """(21 October 2026, chalk note 20: "texture directions on ribs are wrong") As uv_box, but the wood's grain (the
     texture's u) along the piece's own length: grain 0 X, 1 Y, 2 Z (model axes). A face across the grain (end grain)
     keeps uv_box's way."""
-    ax = max(range(3), key=lambda a: abs(n[a]))
-    l = [(p[a] - origin[a]) / 1000.0 for a in range(3)]
-    if grain == ax:
-        return uv_box(p, n, origin)
-    other = [a for a in range(3) if a != ax and a != grain][0]
-    return (l[grain] * 16, (1 - l[other]) * 16 if other == 2 else l[other] * 16)
+    from surface_uv import wood_uv
+    return wood_uv(p, n, grain)
 
 
 def piece_grain(body, so):
@@ -405,6 +401,21 @@ for key in list(panel_cells):
         del panel_cells[key]
 panel_of_cell = {c_: key for key, cl in panel_cells.items() for c_ in cl}
 panel_of_piece = {ix: key for key, cl in panel_cells.items() for c_ in cl for ix in shell_cells[c_]}
+# Note 148: the master shell is repairable throughout, including the waterways, bottom, counter and transom.
+# Keep the existing side-panel ids for saves. The previously fixed pieces use their actual 3D cell as identity;
+# their spare station range is only an encoding key, never a claim that a transom is a longitudinal side panel.
+cell_panel_keys = {}
+for cell in sorted(shell_cells):
+    if cell in panel_of_cell:
+        continue
+    ci, cj, ck = cell
+    side = side_of_j(cj) or 1
+    key = (side, ci, ck, cj)
+    cell_panel_keys[key] = cell
+    panel_cells[key] = [cell]
+    panel_of_cell[cell] = key
+    for ix in shell_cells[cell]:
+        panel_of_piece[ix] = key
 log("hull panels: candidates", len(panel_cells))
 hull_tris = []                            # (group, tex, tri, uvs, n, owner key or None, facing key or None)
 
@@ -515,6 +526,15 @@ for c in cells["cells"]:
             seg_cells[(ci, cj)] = bp
 seg_of_piece = {ix: key for key, bp in seg_cells.items() for ix in bp}
 seg_of_cell = {(key[0], key[1], MAIN_ROW): key for key in seg_cells}
+rib_cells = {}
+for c in cells["cells"]:
+    rib_pieces = [p["index"] for p in c["pieces"] if p["body"] == "Ribs"]
+    if rib_pieces:
+        key = ("rib", *c["cell"])
+        rib_cells[key] = rib_pieces
+        seg_of_cell.setdefault(tuple(c["cell"]), key)
+        for ix in rib_pieces:
+            seg_of_piece[ix] = key
 beam_tris = []                            # (tex, tri, uvs, n, owner key or None, facing key or None)
 log("beam lengths: candidates", len(seg_cells))
 
@@ -569,7 +589,7 @@ for c in cells["cells"]:
                 nbc = [i, j, k]
                 nbc[a] += 1 if n[a] > 0 else -1
                 nbS = seg_of_cell.get(tuple(nbc))
-            if S is not None or nbS is not None:
+            if body != "Shell" and (S is not None or nbS is not None):
                 if a is not None:
                     cov = cover_pieces(tri, n, (i, j, k), a)
                     if cov is not None:
@@ -1028,6 +1048,8 @@ def mark(i, j, z_lo, z_hi):
 rail = bytearray(nx * ny * nz)        # the railings' own voxels, filled down to what they stand on afterwards
 shellv = bytearray(nx * ny * nz)      # (the hull panels') the shell's voxels, and every other body's
 otherv = bytearray(nx * ny * nz)
+ribv = bytearray(nx * ny * nz)
+nonribv = bytearray(nx * ny * nz)
 
 
 def mark_in(arr, i, j, z_lo, z_hi):
@@ -1072,6 +1094,7 @@ for i in range(nx):
                                         rail_fixed.add(v_)
                             if name != "Railings":
                                 mark_in(shellv if name == "Shell" else otherv, i, j, z0, z1)
+                                mark_in(ribv if name == "Ribs" else nonribv, i, j, z0, z1)
 # (21 October 2026, chalk note 15) a railing is solid from its deck (or the bulwark it caps) up to its top rail: the
 # mod takes anything with air under it near the deck for a stair's tread and keeps the cells round it clear, so a
 # railing's bars and a cap rail's overhang left the quarterdeck no floor places, and nobody falls through a railing
@@ -1132,8 +1155,9 @@ for i in range(nx):
             if not (shellv[v] and solid[v]) or otherv[v] or rail[v]:
                 continue
             zc_ = oz + (k + 0.5) * VOX
-            key = (1 if zc_ > 0 else -1, int(math.floor(xc_)), row)
-            if key in panel_cells:
+            cell = (int(math.floor(xc_)), int(math.floor(-zc_ + 0.5)), row)
+            key = panel_of_cell.get(cell)
+            if key is not None:
                 panel_vox.setdefault(key, []).append((i, j, k))
 
 
@@ -1150,11 +1174,17 @@ for grp, tex, tri, uvs, n, own, fac in hull_tris:
         gt = gtri(tri)
         gn_ = gn(n)
         e["pts"] += gt
-        (e["out"] if gn_[2] * own[0] > 0 else e["in"]).append((gt, gn_))
+        centre = [sum(p[a] for p in tri) / 3 for a in range(3)]
+        outward = outside_hull(*(centre[a] + n[a] * 30 for a in range(3)))
+        (e["out"] if outward else e["in"]).append((gt, gn_))
     elif own is None and fac is not None:
         info.setdefault(fac, {"out": [], "in": [], "pts": [], "strips": 0})["strips"] += 1
     if own is not None:
-        info.setdefault(own, {"out": [], "in": [], "pts": [], "strips": 0})["pts"] += gtri(tri)
+        entry = info.setdefault(own, {"out": [], "in": [], "pts": [], "strips": 0})
+        entry["pts"] += gtri(tri)
+        entry.setdefault("all", []).append((gtri(tri), gn(n)))
+        if fac is None:
+            entry.setdefault("faces", []).append(gtri(tri))
 
 
 def tri_area(t):
@@ -1167,9 +1197,14 @@ def tri_area(t):
 def corners(tris):
     """A face's four corners (aft-low, fwd-low, fwd-high, aft-high) from its triangles (game coordinates)."""
     pts = [q for t, _ in tris for q in t]
-    x0_, x1_ = min(q[0] for q in pts), max(q[0] for q in pts)
-    aft = [q for q in pts if q[0] < x0_ + 0.02]
-    fwd = [q for q in pts if q[0] > x1_ - 0.02]
+    along = max((0, 2), key=lambda a: max(q[a] for q in pts) - min(q[a] for q in pts))
+    x0_, x1_ = min(q[along] for q in pts), max(q[along] for q in pts)
+    aft = [q for q in pts if q[along] < x0_ + 0.02]
+    fwd = [q for q in pts if q[along] > x1_ - 0.02]
+    if max(q[1] for q in pts) - min(q[1] for q in pts) < 0.02:
+        cross = 2 if along == 0 else 0
+        return [list(map(r4, min(aft, key=lambda q: q[cross]))), list(map(r4, min(fwd, key=lambda q: q[cross]))),
+                list(map(r4, max(fwd, key=lambda q: q[cross]))), list(map(r4, max(aft, key=lambda q: q[cross])))]
     return [list(map(r4, min(aft, key=lambda q: q[1]))), list(map(r4, min(fwd, key=lambda q: q[1]))),
             list(map(r4, max(fwd, key=lambda q: q[1]))), list(map(r4, max(aft, key=lambda q: q[1])))]
 
@@ -1201,42 +1236,52 @@ def vox_boxes(vs):
 
 
 hull_slots, panel_index, why = [], {}, {}
-for key in sorted(panel_cells, key=lambda t: (t[1], t[0], t[2])):
-    s_, ci, ck = key
+for key in sorted(panel_cells, key=lambda t: (t[1], t[0], t[2], t[3] if len(t) > 3 else -99)):
+    s_, ci, ck = key[:3]
+    cellular = key in cell_panel_keys
     e = info.get(key)
     vs = panel_vox.get(key, [])
-    if e is None or not e["out"] or not e["in"]:
+    if e is None or not e["pts"]:
+        why[key] = "no outside or ceiling"
+        continue
+    if cellular:
+        if not e["out"]:
+            e["out"] = e.get("all", [])
+        if not e["in"]:
+            e["in"] = e["out"]
+    if not e["out"] or not e["in"]:
         why[key] = "no outside or ceiling"
         continue
     area = sum(tri_area(t) for t, _ in e["out"])
     nm = [sum(nn[q] * tri_area(t) for t, nn in e["out"]) for q in range(3)]
     ln_ = math.sqrt(sum(v * v for v in nm)) or 1.0
     nm = [v / ln_ for v in nm]
-    if area <= 0.3 or nm[2] * s_ <= 0.2 or e["strips"] < 2:
+    if area <= 1e-6:
         why[key] = f"area {area:.2f}, normal {nm[2] * s_:.2f}, {e['strips']} strips"
         continue
     pts = e["pts"]
     box = [min(q[0] for q in pts), min(q[1] for q in pts), min(q[2] for q in pts),
            max(q[0] for q in pts), max(q[1] for q in pts), max(q[2] for q in pts)]
     sol = vox_boxes([v for v in vs if box[0] <= ox + (v[0] + 0.5) * VOX <= box[3] and box[1] <= oy + (v[1] + 0.5) * VOX <= box[4]])
-    if sum(round((b_[3] - b_[0]) * (b_[4] - b_[1]) * (b_[5] - b_[2]) / VOX ** 3) for b_ in sol) < 4:
-        why[key] = f"{len(vs)} voxels of its own"
-        continue
     for b_ in sol:
         box = [min(box[0], b_[0]), min(box[1], b_[1]), min(box[2], b_[2]), max(box[3], b_[3]), max(box[4], b_[4]), max(box[5], b_[5])]
     station = int(math.floor((ci + 0.5 - FR["x0"]) / FR["space"]))
     half = "a" if (ci - FR["x0"]) % FR["space"] == 0 else "f"
+    if cellular:
+        station = 64 + (ci + 16) * 7 + key[3] + 3
+        half = "a"
     out_c = corners(e["out"])
     ys = [q[1] for t, _ in e["out"] for q in t]
     panel_index[key] = len(hull_slots)
     hull_slots.append({
         "id": f"hull:{'s' if s_ > 0 else 'p'}:{station}:{ck}:{half}", "side": s_, "station": station, "band": ck, "half": half,
         "box": [r4(v) for v in box], "outer": out_c, "inner": corners(e["in"]),
-        "normal": [round(v, 3) for v in nm], "area": round(area, 3), "sill": r4(min(ys)), "head": r4(max(ys)),
+        "normal": [round(v, 3) for v in nm], "area": round(area, 7), "sill": r4(min(ys)), "head": r4(max(ys)),
         "room": ("hold" if ck < 3 else "steerage" if ci + 1 <= L["quarterdeckFront"] / 1000 + 1e-6 and ck < 7 else None),
         "solids": sol,
         # (a block of her side: one planks block, or 4 boards, lays it again, as carrack-m's)
-        "material": {"block": "game:planks-oak-ud", "count": 1}})
+        "material": {"block": "game:plank-oak", "count": 4}, "faces": [[[r4(c) for c in p] for p in t] for t in e.get("faces", [])],
+        **({"cell": list(cell_panel_keys[key])} if cellular else {})})
 log("hull panels:", len(hull_slots), "of", len(panel_cells), "candidates; fixed:", dict(list(why.items())[:12]))
 # (24 October 2026, chalk note 56: "cant remove rails") the quarterdeck's side railing, a span between two posts a hull
 # slot of band 7 (the row it stands in), the same panel as her side's: its own faces, its own voxels (with the column
@@ -1315,8 +1360,33 @@ for key in sorted(seg_cells):
     seg_index[key] = len(deck_slots)
     deck_slots.append({"id": f"beam:{cid}", "deck": "main", "kind": "beam", "beam": f"main:{ci}", "beside": [cid],
                        "box": [r4(bx0), r4(by0), r4(z0), r4(bx1), r4(top_b), r4(z0 + 1)],
-                       "material": {"block": "game:planks-oak-ud", "count": 1}})
+                       "material": {"block": "game:supportbeam-oak", "count": 1}})
 log("beam lengths:", len(seg_index), "of", len(seg_cells), "; fixed:", seg_why)
+rib_voxels = {}
+for i in range(nx):
+    ci = math.floor(ox + (i + 0.5) * VOX)
+    for j in range(ny):
+        ck = math.floor(oy + (j + 0.5) * VOX + WL + 1e-8)
+        for k in range(nz):
+            v = (i * ny + j) * nz + k
+            if not ribv[v] or nonribv[v] or rail[v] or not solid[v]:
+                continue
+            cj = math.floor(-(oz + (k + 0.5) * VOX) + 0.5)
+            key = ("rib", ci, cj, ck)
+            if key in rib_cells:
+                rib_voxels.setdefault(key, []).append((i, j, k))
+for key, indices in sorted(rib_cells.items()):
+    _, ci, cj, ck = key
+    sol = vox_boxes(rib_voxels.get(key, []))
+    points = [g((v.Point.x, v.Point.y, v.Point.z)) for ix in indices for v in pieces[ix].Vertexes]
+    bounds = [min(p[a] for p in points) for a in range(3)] + [max(p[a] for p in points) for a in range(3)]
+    for b in sol:
+        bounds = [min(bounds[a], b[a]) for a in range(3)] + [max(bounds[a+3], b[a+3]) for a in range(3)]
+    seg_index[key] = len(deck_slots)
+    deck_slots.append({"id": f"rib:{ci}:{cj}:{ck}", "deck": "hold" if ck < 4 else "main", "kind": "rib",
+                       "box": list(map(r4, bounds)), "solids": sol, "cell": [ci, cj, ck],
+                       "material": {"block": "game:supportbeam-oak", "count": 1}})
+log("removable rib cells:", len(rib_cells))
 for tex, tri, uvs, n, own, fac in beam_tris:
     if fac is not None and fac not in seg_index:
         continue

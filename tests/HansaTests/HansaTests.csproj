@@ -21,6 +21,9 @@
     <Compile Include="Program.cs" />
     <Compile Include="RuntimeNoteTests.cs" />
     <Compile Include="IntegrationTests.cs" />
+    <Compile Include="Notes135Tests.cs" />
+    <Compile Include="..\..\src\Ship\CreatureDeckMotion.cs" Link="Ship\CreatureDeckMotion.cs" />
+    <Compile Include="..\..\src\Ship\HullWindows.cs" Link="Ship\HullWindows.cs" />
     <Compile Include="..\..\src\Ship\OpeningFrames.cs" Link="Ship\OpeningFrames.cs" />
     <Compile Include="..\..\src\Ship\PlacementMesh.cs" Link="Ship\PlacementMesh.cs" />
     <Compile Include="..\..\src\Ship\PieceShape.cs" Link="Ship\PieceShape.cs" />

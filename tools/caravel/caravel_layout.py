@@ -482,6 +482,8 @@ def square_slot_faces(M, D):
             groups_.setdefault((own, 1 if ny > 0 else -1, q[0]), []).append(n)
         drop, add = set(), []
         for (own, sg, tex), ns in groups_.items():
+            if slots[own].get("kind") not in (None, "beam"):
+                continue
             b = slots[own]["box"]
             y = b[4] if sg > 0 else b[1]
             if slots[own].get("kind") == "beam":
@@ -659,7 +661,9 @@ def deflicker(M, D, copper=False):
         # separate its actual faces too; keep references to the original lists so the corrections are exported.
         M = copper_view(M)
     empty = OC.empty_slots(D)
+    print("[layout] checking coplanar faces" + (" (copper)" if copper else ""), flush=True)
     found = OC.find_clashes(M, empty)
+    print(f"[layout] {len(found)} coplanar pairs to resolve", flush=True)
     link, nrm_of, area_of = {}, {}, {}
     for ga, na, gb, nb, ov, c, nrm, aa, ab in found:
         a, b = (ga, na), (gb, nb)
@@ -723,6 +727,13 @@ def main():
     fixtures = list(D["fixtures"])
     parts = list(D["movingParts"])
     standing = []                                   # shrouds, for the mod to press the sails against (rigCheck)
+    # A fixed timber head and forged ring for vanilla creature leads. The ring is clear of the hatch and galley.
+    hitch = np.array([-5.5, deck + 0.85, -1.75])
+    d.add_box_mesh("exterior", "timber", hitch - (0,0.425,0), (0.16,0.85,0.16))
+    CF.iron_ring(d,hitch + (0.09,-0.12,0),0.065,0.014,normal=(0,0,1))
+    fixtures.append({"code":"hitch-main", "type":"hitch", "pos":v4(hitch + (0.09,-0.12,0)),
+                     "box":[-5.58,deck,-1.83,-5.42,deck+0.85,-1.67],
+                     "sel":[-5.62,deck,-1.87,-5.3,deck+0.9,-1.63]})
 
     # Two working strap hinges on each entry gate. Alternate knuckles belong to jamb and leaf, with clear ends.
     for gl in REP["gateLeaves"]:
@@ -849,8 +860,15 @@ def main():
         head = mast["top"] / 1000.0 - top_drop
         for sgn in (1, -1):
             group = f"rig:shrouds-{code}-{'port' if sgn < 0 else 'starboard'}"
-            level = (deck if code == "main" else qd) + 0.65
-            feet = CF.chain_channel(d, xs, level, sgn, lambda x, y: hb(x, y + F.WL))
+            # Note 141: no channels, chainplates or deadeyes. Forged eyes are seated through the cap,
+            # with the shroud seized through the eye, on the inboard half of the upper board.
+            feet = []
+            for x in xs:
+                cap_y = sheer_at(L, x) + REP["capRail"]["h"] / 1000.0 - F.WL
+                c = np.array([x, cap_y + 0.055, sgn * (hb(x, cap_y + F.WL - 0.08) - 0.16)])
+                d.add_cylinder("exterior", "iron", c - (0, 0.11, 0), c - (0, 0.035, 0), 0.018, 0.018, sides=10)
+                CF.iron_ring(d, c, 0.055, 0.012, normal=(1, 0, 0))
+                feet.append(c + (0, 0.055, 0))
             legs = []
             for x, b in zip(xs, feet):
                 a = np.array([mx, head - F.WL, sgn * 0.18])
@@ -939,7 +957,7 @@ def main():
         heel, top_ = F.y_of(mast["heel"]), F.y_of(mast["top"])
         r_ = (mast["r0"] + (mast["r1"] - mast["r0"]) * (y - heel) / (top_ - heel)) / 1000.0
         hp = CF.mast_band(d, mast["x"] / 1000.0, y, r_)
-        hooks.append({"code": f"lantern-{code}mast", "pos": v4(hp), "hang": "down", "kinds": ["light"]})
+        hooks.append({"code": f"lantern-{code}mast", "pos": v4(hp), "hang": "down", "kinds": ["light"], "yaw": 0.0})
     # (24 October 2026, chalk note 63, the user: no stern lantern, its post or its crane on the taffrail)
     # (24 October 2026, chalk note 78: "we could have option to add vanilla figure heads"; the fittings session's place)
     # A raked figurehead seated high on the stem's fore face, under its head.
@@ -949,7 +967,7 @@ def main():
     hooks.append({"code": "figurehead", "pos": figure["pos"], "hang": "up",
                   "normal": [r4(math.cos(a)), r4(-math.sin(a)), 0.0], "kinds": ["figurehead"], "shown": True})
     lantern = {"block": "game:lantern-small-up", "attributes": {"material": "tinbronze", "lining": "plain", "glass": "quartz"}}
-    start = [dict(lantern, mount="h:" + h["code"]) for h in hooks if "light" in h.get("kinds", [])]
+    start = [dict(lantern, mount="h:" + h["code"], yaw=0.0) for h in hooks if "light" in h.get("kinds", [])]
 
     # ---------------------------------------------------------------- swivel guns on the quarterdeck's cap (note 103)
     # (25 October 2026, the user: "gun port gates are trash here") her quarterdeck's 4 carriage guns gone with its railing;
@@ -1058,7 +1076,7 @@ def main():
     hzc = -(hys[0] + hys[1]) / 2000.0                  # (model Y port = game z negative)
     modular.append({"kind": "hatch", "at": [r4((hxs[0] + hxs[1]) / 2000.0), r4(deck), r4(hzc)],
                     "size": [int((hxs[1] - hxs[0]) / 1000), int((hys[1] - hys[0]) / 1000)],
-                    "block": "game:trapdoor-solid-oak-1", "open": False, "code": "hatch-main"})
+                    "block": "game:trapdoor-solid-oak-1", "open": False, "code": "hatch-main", "coaming": 0.25, "doubleLeaf": True, "hinge": "x"})
 
     # ---------------------------------------------------------------- collision: the masts (chalk note 11)
     ox, oy, oz = D["gridOrigin"]
@@ -1258,7 +1276,7 @@ def main():
         x0, x1 = f["pos"][0] - 1.4, f["pos"][0] + 1.4
         za, zb = min(z_in, z_out), max(z_in, z_out)
         gp["cells"] = [s["id"] for s in D.get("deckSlots", [])
-                       if abs(s["box"][4] - f["pos"][1]) < 0.05 and s["box"][0] < x1 - 0.02 and s["box"][3] > x0 + 0.02
+                       if s.get("kind") is None and abs(s["box"][4] - f["pos"][1]) < 0.05 and s["box"][0] < x1 - 0.02 and s["box"][3] > x0 + 0.02
                        and s["box"][2] < zb - 0.02 and s["box"][5] > za + 0.02]
     # Keep only the cut ends of a beam in this visibility format. Whole carlings around connected player openings
     # need a union of the current openings; two owner/facing predicates cannot express that without duplicate faces.
@@ -1305,6 +1323,10 @@ def main():
         n_pushed += moved_
         passes += 1
     if n_left:
+        import overlap_check as OC
+        from mesh_contacts import trim_contacts
+        clipped = trim_contacts(M,OC.find_clashes(M,OC.empty_slots(D)))
+        print(f"[layout] slot contact polygons clipped: {clipped}",flush=True)
         n_col = collapse_slivers(M, D)
         n_left = len(__import__("overlap_check").find_clashes(M, __import__("overlap_check").empty_slots(D)))
         print(f"[layout] slivers among them collapsed: {n_col}")
@@ -1313,6 +1335,8 @@ def main():
         import overlap_check as OC
         for ga, na, gb, nb, ov, c, *_ in OC.find_clashes(M, OC.empty_slots(D))[:6]:
             print(f"[layout]   overlapping: {ga}[{na}] and {gb}[{nb}] at {[round(v, 3) for v in c]}, {ov:.4f} m2")
+        with open(os.path.join(ROOT,"models","caravel","export","caravel-overlap-debug.json"),"w") as debug:
+            json.dump(M,debug,separators=(",",":"))
         # (the user's rule: no visible faces overlapping; tools/caravel/overlap_check.py lists them)
         raise SystemExit(f"[layout] {n_left} pairs of faces still overlap in one plane: not written")
     import overlap_check as OC
@@ -1325,6 +1349,9 @@ def main():
         metal_passes += 1
         print(f"[layout] copper pass {metal_passes}: {moved_} faces separated, {metal_left} overlaps left", flush=True)
     if metal_left:
+        from mesh_contacts import trim_contacts
+        metal=copper_view(M)
+        trim_contacts(metal,OC.find_clashes(metal,OC.empty_slots(D)))
         collapse_slivers(copper_view(M), D)
         metal_left = len(OC.find_clashes(copper_view(M), OC.empty_slots(D)))
     if metal_left:

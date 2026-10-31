@@ -36,7 +36,7 @@ namespace HansaTests
             PieceShape.FitVolumes(lantern,PieceShape.Volumes(lanternShape),lantern.Parts[0].Origin,lantern.Parts[0].Quarter);
             Console.WriteLine("117 actual small lantern "+string.Join(",",lantern.Box)+" mesh "+mesh.Hit(lantern.Box)+" elements "+string.Join(",",lantern.Volumes.Select(v=>mesh.Hit(v.Box,null,null,v.Pose)).Where(s=>s!=null)));
             Check(lanternBounds[3]-lanternBounds[0]<.6,"117: invisible lantern helper geometry is excluded from its footprint");
-            var rigPose=new Dictionary<string,float[]>();PlacementMesh.RigPoses(def,rigPose,1,0,0);
+            var rigPose=new Dictionary<string,float[]>();PlacementMesh.RigPoses(def,rigPose,1,0,1);
             string obstruction=lantern.Volumes.Select(v=>mesh.Hit(v.Box,null,g=>rigPose.TryGetValue(g.StartsWith("part:")?g.Substring(5):g,out var p)?p:null,v.Pose)).FirstOrDefault(s=>s!=null);
             Check(obstruction?.StartsWith("rig:shroud:")==true,"117: the real lantern intersects a cast-off shroud hanging beside the mast ("+obstruction+")");
             foreach(var mast in new[]{("mainmast",-2.5,3.685),("mizzenmast",-10.5,6.685)}) {

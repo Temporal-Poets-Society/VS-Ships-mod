@@ -30,6 +30,9 @@ namespace Hansa
     public class HullSlotDef
     {
         public string Id;
+        /// <summary>Optional master-model cell (X, model Y, model Z). Allows bottom and end panels with any normal.</summary>
+        public int[] Cell;
+        public double[][][] Faces;
         /// <summary>-1 port, +1 starboard; the frame space (ShipPartMap.StationAt of its middle); the band from the keel up.</summary>
         public int Side, Station, Band;
         /// <summary>(0.3.28, D2.1) "a" the frame space's after half (its frame's middle to the space's), "f" its fore half; null: the whole space (0.3.26-0.3.27).</summary>
@@ -66,7 +69,7 @@ namespace Hansa
         [JsonIgnore] public int Index;
         [JsonIgnore] public bool StartsEmpty => Start == "empty";
         [JsonIgnore] public SlotState DesignState => StartsEmpty ? SlotState.Empty : SlotState.Filled;
-        [JsonIgnore] public double[][] SolidBoxes => Solids != null && Solids.Length > 0 ? Solids : Box != null ? new[] { Box } : Array.Empty<double[]>();
+        [JsonIgnore] public double[][] SolidBoxes => Solids != null ? Solids : Box != null ? new[] { Box } : Array.Empty<double[]>();
         [JsonIgnore] public SlotMaterialDef Mat => Material ?? new SlotMaterialDef { Count = Math.Max(1, (int)Math.Round(2 * Area)) };
         /// <summary>The middle of its outside.</summary>
         [JsonIgnore] public Vec3d Centre
@@ -77,7 +80,17 @@ namespace Hansa
                 return new Vec3d(Outer.Average(p => p[0]), Outer.Average(p => p[1]), Outer.Average(p => p[2]));
             }
         }
-        [JsonIgnore] public double Length => Box == null ? 1.5 : Box[3] - Box[0];
+        [JsonIgnore] public double Length => Outer?.Length==4
+            ? Math.Sqrt(Math.Pow(Outer[1][0]-Outer[0][0],2)+Math.Pow(Outer[1][2]-Outer[0][2],2))
+            : Box == null ? 1.5 : Math.Max(Box[3]-Box[0],Box[5]-Box[2]);
+        public Vec3d SurfaceAt(double y)
+        {
+            if(Outer?.Length!=4) return new Vec3d(Centre.X,y,OuterZ(y));
+            var low=new Vec3d((Outer[0][0]+Outer[1][0])/2,(Outer[0][1]+Outer[1][1])/2,(Outer[0][2]+Outer[1][2])/2);
+            var high=new Vec3d((Outer[2][0]+Outer[3][0])/2,(Outer[2][1]+Outer[3][1])/2,(Outer[2][2]+Outer[3][2])/2);
+            double t=Math.Abs(high.Y-low.Y)<1e-8?0:Math.Clamp((y-low.Y)/(high.Y-low.Y),0,1);
+            return new Vec3d(low.X+(high.X-low.X)*t,y,low.Z+(high.Z-low.Z)*t);
+        }
         /// <summary>Is it out over her main deck (a bulwark's, a castle's side): the sea through it is a downflooding point.</summary>
         public bool Above(ShipDefinition def) => Sill >= def.DeckY - 0.05;
         /// <summary>Its outside's z at height y (between its corners), on its side.</summary>
@@ -148,6 +161,9 @@ namespace Hansa
             {
                 var s = slots[n];
                 if (s?.Box == null) continue;
+                // Sliced 3D cells can touch a height band at a vertex. Their real contacts are the exported
+                // owner/facing polygons, rather than legacy station/band adjacency.
+                if(s.Cell!=null) continue;
                 // (a neighbour: the band under or over it whose edge is its edge: no fixed strake between)
                 int sh = s.Station * 2 + s.HalfIndex, lk2 = s.IsInner ? 1000 : 0;
                 if (byPlace.TryGetValue((s.Side, sh, s.Band - 1 + lk2), out int lo) && Math.Abs(slots[lo].Head - s.Sill) < 1e-3) Neighbours[n][0] = lo;
@@ -184,10 +200,10 @@ namespace Hansa
                 if (s?.Outer == null || open != null && !open(n)) continue;
                 // (quick: its box, a little grown)
                 if (ShipFittings.RayBox(o, d, new Cuboidd(s.Box[0] - 0.3, s.Box[1] - 0.3, s.Box[2] - 0.3, s.Box[3] + 0.3, s.Box[4] + 0.3, s.Box[5] + 0.3)) < 0) continue;
-                foreach (var quad in new[] { s.Outer, s.Inner })
+                foreach (var quad in s.Faces?.Length > 0 ? s.Faces : new[] { s.Outer, s.Inner })
                 {
-                    if (quad == null || quad.Length < 4) continue;
-                    double tq = RayQuad(o, d, quad);
+                    if (quad == null || quad.Length < 3) continue;
+                    double tq = quad.Length == 3 ? RayTri(o,d,quad[0],quad[1],quad[2]) : RayQuad(o, d, quad);
                     if (tq >= 0 && tq <= range && tq < t) { t = tq; best = n; }
                 }
             }

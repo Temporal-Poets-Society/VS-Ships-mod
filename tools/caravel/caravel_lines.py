@@ -42,7 +42,7 @@ LAYOUTS = {
     # bulwark round the quarterdeck instead of its railing and no carriage guns there (note 103); the pump forward of
     # the main mast
     "D": {"longer": 2.0, "qd_front": -7.0, "mizzen": -11, "wheel": [-9, 0], "qd_guns": [-13, -11], "main": -3,
-          "pump": [-2, 0], "qd_bulwark": True, "swivels": [8.0], "swivel_reach": 1.05, "bumpkin_out": 2.8,
+          "pump": [-2, 0], "qd_bulwark": True, "swivels": [], "swivel_reach": 1.05, "bumpkin_out": 2.8,
           # (25 October 2026, note 102, the user: the rudder about an upright axis, a level tiller under the quarterdeck;
           # the stern as Boa Esperança's: a flat square transom over an upright sternpost, X -14.5)
           "stern_post_x": -14.5,
@@ -60,8 +60,8 @@ LAYOUTS = {
           # sail to its yard's end. The mizzen's tack 0.5 aft of the sketch's, 1.2 aft of the main's clew (they met)
           "sails": {"main": {"tack": [8.1, 6.5], "peak": [-10.2, 29.8], "clew": [-6.4, 9.1]},
                     "mizzen": {"tack": [-7.6, 9.35], "peak": [-13.6, 27.5], "clew": ["bumpkin", 9.25]}},
-          "stairs": {"quarterdeck": -7, "hold": -5}, "stairs_y": {"quarterdeck": -2.0, "hold": 0.0},
-          "hold_up": "fore"},
+          "stairs": {"quarterdeck": -7, "hold": -6}, "stairs_y": {"quarterdeck": -2.0, "hold": 0.0},
+          "hold_up": "aft", "hatch_cells": 2},
     "C": {"longer": 2.0, "qd_front": -7.0, "mizzen": -11, "wheel": [-9, 0], "qd_guns": [-14, -12],
           "stairs": {"quarterdeck": -7, "hold": -5}},
 }
@@ -129,7 +129,7 @@ if LAY_V.get("hold_up") == "fore":
     HATCH = {"x": [_HS - 2, _HS + 1], "y": [_SY["hold"] - 0.5, _SY["hold"] + 0.5]}
     _hold = {"name": "hold", "cell": [_HS, 0], "foot": [float(_HS), Z_HOLD], "head": [_HS + 1.0, Z_DECK], "y": _SY["hold"]}
 else:
-    HATCH = {"x": [_HS, _HS + 3], "y": [-0.5, 0.5]}
+    HATCH = {"x": [_HS, _HS + LAY_V.get("hatch_cells", 3)], "y": [-0.5, 0.5]}
     _hold = {"name": "hold", "cell": [_HS, 0], "foot": [_HS + 1.0, Z_HOLD], "head": [float(_HS), Z_DECK], "y": 0.0}
 STAIRS = [
     {"name": "quarterdeck", "cell": [_QS, 0], "foot": [_QS + 1.0, Z_DECK], "head": [float(_QS), Z_QD], "y": _SY["quarterdeck"]},
@@ -157,7 +157,7 @@ KITCHEN = {
         {"line": "z", "at": 0.5, "cells": [QD_FRONT - 2.0, QD_FRONT - 1.0], "rows": [0, 1, 2], "anchor": "+z"},  # leave the table and vessel clear
     ],
     "doors": [{"at": [QD_FRONT, 1.0], "along": "z", "anchor": "-x", "into": "-x", "code": "door-cabin-starboard"}],
-    "windows": [{"at": [QD_FRONT, 2.0], "row": 1, "along": "z", "code": "window-cabin-starboard"}],
+    "windows": [],  # note 143: the starboard cabin-front window is a plain partition
     "hearth": {"cell": [QD_FRONT - 2.0, -1], "facing": "+x", "block": "game:firepit-extinct"},
     "oven": {"cell": [QD_FRONT - 2.0, -2], "level": 1, "facing": "+x"},
     "things": [{"block": "game:table-normal", "cell": [QD_FRONT - 2.0, -2]},        # the oven stands on it

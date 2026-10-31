@@ -525,6 +525,8 @@ namespace Hansa
             {
                 case ShipPartKind.Hull:
                 {
+                    var panel=Def.Hull?.Slots.FirstOrDefault(s=>s.Side==part.Side && s.Station==part.Station && s.Band==part.Band && s.HalfIndex==(part.Index&1));
+                    if(panel?.Cell!=null) {text=Lang.Get(HullPanels?[panel.Index]==SlotState.Glazed?"hansa:part-hull-window-cell":"hansa:part-hull-cell",panel.Cell[0],panel.Cell[1],panel.Cell[2]);break;}
                     // ((0.3.26) a hull panel's height from its middle, not a whole block's band)
                     string height = Def.Hull?.Get($"hull:{(part.Side > 0 ? "s" : "p")}:{part.Station}:{part.Band}") is HullSlotDef hs
                         ? map.HeightZoneAt(part.Station, hs.Centre.Y) : map.HeightZone(part.Station, part.Band);
@@ -907,6 +909,9 @@ namespace Hansa
             }
             switch (f.Type)
             {
+                case "hitch":
+                    ShipTethers.TakeLead(this,f,player);
+                    break;
                 case "gate" when ShipSlotsBoards(player):
                 {
                     // ((0.3.27, note 219) boards in hand at an entry port: run her brow out to the quay, or take it in)
@@ -1514,7 +1519,7 @@ namespace Hansa
             return true;
         }
 
-        void Notify(IServerPlayer player, string langCode)
+        internal void Notify(IServerPlayer player, string langCode)
         {
             player.SendMessage(GlobalConstants.InfoLogChatGroup, Lang.GetL(player.LanguageCode, langCode), EnumChatType.Notification);
         }

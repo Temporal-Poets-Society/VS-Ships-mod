@@ -200,6 +200,16 @@ namespace HansaTests
                         }
                     continue;
                 }
+                if(s.IsStructure)
+                {
+                    if(s.Cell?.Length!=3) bad.Add(s.Id+": no model cell");
+                    foreach(var sb in s.SolidBoxes) foreach(long v in DeckSlotLayout.Voxels(g,sb))
+                    {
+                        int k=(int)(v%g.NZ),j=(int)(v/g.NZ%g.NY),i=(int)(v/g.NZ/g.NY);
+                        if(!g.Solid(i,j,k)) bad.Add(s.Id+": a structural voxel is not solid");
+                    }
+                    continue;
+                }
                 if (s.IsBeam)
                 {
                     // ((0.3.27, docs/slots.md §10) a beam's length: under its deck's planking, its cells beside it, solid)
@@ -239,6 +249,7 @@ namespace HansaTests
             // each slot: a top and an underside of its own; its quads within its box (or its neighbours' edge)
             var tops = new int[l.Count];
             var unders = new int[l.Count];
+            var ownedFaces=new int[l.Count];
             var outside = new List<string>();
             var facingPairs = new HashSet<(int, int)>();
             foreach (string gr in SlotMeshPlan.Groups)
@@ -250,6 +261,7 @@ namespace HansaTests
                     var qd = quads[q];
                     double ny = qd[7] + qd[15] + qd[23] + qd[31];
                     int o = own[q], f = fac[q];
+                    if(o>=0) ownedFaces[o]++;
                     // ((22 October 2026) a beam's length: its top the deck's underside, over its box's top (her voxel row) by
                     // the deck's thickness short of 0.25: the caravel's 0.2-thick deck, 0.05)
                     if (o >= 0 && f < 0 && ny > 3.5 && Math.Abs(qd[2] - l.Slots[o].Top) < (l.Slots[o].IsBeam ? 0.1 : 0.05)) tops[o]++;
@@ -267,7 +279,7 @@ namespace HansaTests
                     }
                 }
             }
-            var noTop = Enumerable.Range(0, l.Count).Where(n => !l.Slots[n].IsPort && (tops[n] == 0 || unders[n] == 0)).ToList();
+            var noTop = Enumerable.Range(0, l.Count).Where(n => l.Slots[n].IsStructure ? ownedFaces[n]==0 : !l.Slots[n].IsPort && (tops[n] == 0 || unders[n] == 0)).ToList();
             foreach (int n in noTop.Take(8)) Console.WriteLine($"         {l.Slots[n].Id}: {tops[n]} tops, {unders[n]} undersides");
             Check(noTop.Count == 0, $"{def.Code}: every slot has a top and an underside of its own ({noTop.Count} without)");
             foreach (var x in outside.Take(8)) Console.WriteLine("         " + x);
@@ -313,7 +325,7 @@ namespace HansaTests
         /// <summary>Visible quads (of all the chunks) lying two in one plane, facing one way, overlapping: how many pairs (some listed).</summary>
         static int Coplanars(ShipDefinition def, ShipSkinFile file, SlotMeshPlan plan, SlotStates st, string label)
         {
-            var faces = new List<(double[] B, int Axis, int Sign)>();
+            var faces = new List<(double[] B, double[] N, double D, double[][] P)>();
             foreach (string gr in SlotMeshPlan.Groups)
             {
                 if (!file.Groups.TryGetValue(gr, out var quads)) continue;
@@ -322,16 +334,18 @@ namespace HansaTests
                     {
                         var qd = quads[q];
                         double nx = qd[6] + qd[14] + qd[22] + qd[30], ny = qd[7] + qd[15] + qd[23] + qd[31], nz = qd[8] + qd[16] + qd[24] + qd[32];
-                        int axis = Math.Abs(nx) > Math.Abs(ny) && Math.Abs(nx) > Math.Abs(nz) ? 0 : Math.Abs(ny) > Math.Abs(nz) ? 1 : 2;
-                        int sign = Math.Sign(axis == 0 ? nx : axis == 1 ? ny : nz);
+                        var normal=new[]{nx,ny,nz};double length=Math.Sqrt(Dot(normal,normal));
+                        if(length<1e-8) continue;
+                        normal=normal.Select(v=>v/length).ToArray();
+                        var points=Enumerable.Range(0,4).Select(k=>new double[]{qd[1+8*k],qd[2+8*k],qd[3+8*k]}).ToArray();
                         var b = new[] { double.MaxValue, double.MaxValue, double.MaxValue, double.MinValue, double.MinValue, double.MinValue };
                         for (int k = 0; k < 4; k++)
                             for (int a = 0; a < 3; a++) { b[a] = Math.Min(b[a], qd[1 + 8 * k + a]); b[a + 3] = Math.Max(b[a + 3], qd[1 + 8 * k + a]); }
-                        faces.Add((b, axis, sign));
+                        faces.Add((b, normal, Dot(normal,points[0]),points));
                     }
             }
             int pairs = 0;
-            var byPlane = faces.GroupBy(f => (f.Axis, f.Sign, Math.Round(f.B[f.Axis] * 64)));
+            var byPlane = faces.GroupBy(f => (Math.Round(f.N[0]*20),Math.Round(f.N[1]*20),Math.Round(f.N[2]*20),Math.Round(f.D*100)));
             foreach (var grp in byPlane)
             {
                 var list = grp.ToList();
@@ -340,9 +354,9 @@ namespace HansaTests
                     {
                         var a = list[i].B;
                         var b = list[j].B;
-                        int ax = list[i].Axis, u = (ax + 1) % 3, v = (ax + 2) % 3;
-                        double ou = Math.Min(a[u + 3], b[u + 3]) - Math.Max(a[u], b[u]), ov = Math.Min(a[v + 3], b[v + 3]) - Math.Max(a[v], b[v]);
-                        if (ou > 1e-4 && ov > 1e-4)
+                        if(Enumerable.Range(0,3).Any(k=>a[k]>b[k+3]+1e-5 || b[k]>a[k+3]+1e-5)) continue;
+                        if(Dot(list[i].N,list[j].N)<.99996 || Math.Abs(list[i].D-list[j].D)>.00025) continue;
+                        if (OverlapArea(list[i].N,list[i].P,list[j].P)>2e-6)
                         {
                             if (pairs < 4 && label != null) Console.WriteLine($"         {label}: two faces in one plane at {string.Join(", ", a.Select(x => x.ToString("0.###")))}");
                             pairs++;

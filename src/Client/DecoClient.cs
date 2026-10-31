@@ -502,9 +502,14 @@ namespace Hansa
                 // only: a piece's voxels (a partition's layer under a beam) aren't a fixed beam in front of the piece
                 var dg = ship.DesignGrid ?? ship.Grid;
                 double t = dg.RaycastCell(o, d, range, out int ci, out int cj, out int ck, out _);
-                if (t > range) return default;
                 int n = l.AtVoxel(dg, ci, cj, ck);
                 var at = o.AddCopy(d.X * t, d.Y * t, d.Z * t);
+                foreach(int structure in l.Ports.Where(i=>l.Slots[i].IsStructure && ship.Slots.Filled(i)))
+                {
+                    var b=l.Slots[structure].Box;double ts=ShipFittings.RayBox(o,d,new Cuboidd(b[0],b[1],b[2],b[3],b[4],b[5]));
+                    if(ts>=0 && ts<=range && ts<=t+.13) return new Target {Kind=TargetKind.Cell,Ship=ship,Cell=structure,CellMode=CellTake,Dist=ts,At=o.AddCopy(d.X*ts,d.Y*ts,d.Z*ts)};
+                }
+                if (t > range) return default;
                 // ((0.3.29) a castle port that's in (its board out, its hole open): the axe on its place takes it out
                 foreach (int gpn in l.Ports)
                 {
@@ -601,6 +606,10 @@ namespace Hansa
             if (held?.Collectible?.Tool == EnumTool.Axe)
             {
                 if (!building) return default;
+                // A sliced shell face may be thinner than the collision voxel shared with a rib.
+                int surface = l.PickOpening(o, d, Math.Min(range, wall + .26), ship.HullPanels.Filled, out double surfaceT);
+                if (surface >= 0) return new Target { Kind = TargetKind.Hull, Ship = ship, Cell = surface, CellMode = CellTake,
+                    Dist = surfaceT, At = o.AddCopy(d.X * surfaceT, d.Y * surfaceT, d.Z * surfaceT) };
                 // ((24 October 2026, notes 57, 82) her own planking only, not a piece's voxels in front of it)
                 var dg = ship.DesignGrid ?? ship.Grid;
                 double t = dg.RaycastCell(o, d, range, out int ci, out int cj, out int ck, out _);
@@ -613,7 +622,7 @@ namespace Hansa
                     return new Target { Kind = TargetKind.Hull, Ship = ship, Cell = -1, CellMode = CellTake, Dist = t + 1e-4, At = at, Problem = "hansa:hull-fixed" };
                 return default;
             }
-            if (!EntityShip.LaysOpenings(held)) return default;
+            if (!EntityShip.LaysOpenings(held) && !(building && held?.Block!=null && VanillaPieceBlock.IsPane(held.Block))) return default;
             int best = l.PickOpening(o, d, Math.Min(range, wall + 0.05), ship.HullOpen, out double bt);
             {
                 // ((0.3.30) a ceiling that's in with her planking behind it out: that planking laid from inside, through it)
@@ -652,6 +661,8 @@ namespace Hansa
             if (t.CellMode == CellTake) return ship.HullTakeProblem(t.Cell);
             // ((0.3.30) with her planking behind a ceiling: that first)
             int first = ship.HullBehind(t.Cell) is int b && b >= 0 ? b : t.Cell;
+            if(held?.Block!=null && VanillaPieceBlock.IsPane(held.Block))
+                return HullWindows.Fits(ship.Def,ship.HullLayout.Slots[first]) ? ship.HullLayProblem(first,true) : "hansa:hull-window-above";
             int need = EntityShip.LayNeed(ship.HullLayout.Slots[first].Mat, held);
             if (need < 0 || !EntityShip.Creative(capi.World.Player) && (held?.StackSize ?? 0) < need) return "hansa:hull-needs-planks";
             return ship.HullLayProblem(first, true);
@@ -670,7 +681,11 @@ namespace Hansa
                 return ship.HullPanels.Filled(t.Cell) ? Lang.Get("hansa:hint-hull-lay-behind", both, held?.GetName() ?? "")
                     : Lang.Get("hansa:hint-hull-lay-both", both, held?.GetName() ?? "", name);
             }
-            return t.CellMode == CellTake ? Lang.Get("hansa:hint-hull-take", name, s.Mat.Count) : Lang.Get("hansa:hint-hull-lay", Math.Max(1, EntityShip.LayNeed(s.Mat, held)), held?.GetName() ?? "", name);
+            if(t.CellMode==CellTake)
+                return Lang.Get("hansa:hint-hull-material-take",name,ship.HullPanels[t.Cell]==SlotState.Glazed?1:s.Mat.Count,
+                    Lang.Get(ship.HullPanels[t.Cell]==SlotState.Glazed?"hansa:material-pane":"hansa:material-boards"))+
+                    (s.Sill<ship.Def.Waterline+ship.Sinkage+.5?" · "+Lang.Get("hansa:hull-removal-floods"):"");
+            return Lang.Get("hansa:hint-hull-lay", held?.Block!=null && VanillaPieceBlock.IsPane(held.Block)?1:Math.Max(1,EntityShip.LayNeed(s.Mat,held)),held?.GetName()??"",name);
         }
 
         /// <summary>Why the deck cell in the crosshair can't be done (a lang code), or null; a hatch's plan into the target's Plan.</summary>
@@ -681,8 +696,10 @@ namespace Hansa
             {
                 case CellTake: return ship.TakeProblem(t.Cell);
                 case CellLay:
-                    int need = EntityShip.LayNeed(ship.SlotLayout.Slots[t.Cell].Mat, held);
-                    if (need < 0 || !EntityShip.Creative(capi.World.Player) && (held?.StackSize ?? 0) < need) return "hansa:cell-needs-planks";
+                    var dd=ship.SlotLayout.Slots[t.Cell];
+                    int need = EntityShip.LayNeed(dd.Mat, held);
+                    if (need < 0 || !EntityShip.Creative(capi.World.Player) && (held?.StackSize ?? 0) < need)
+                        return dd.IsBeam || dd.IsStructure ? "hansa:cell-needs-supportbeam" : "hansa:cell-needs-planks";
                     return ship.LayProblem(t.Cell, true);
                 case CellHatch:
                 {
@@ -702,6 +719,7 @@ namespace Hansa
             var ship = t.Ship;
             var dd = ship.SlotLayout.Slots[t.Cell];
             string deck = Lang.HasTranslation("hansa:deck-" + dd.Deck, false, false) ? Lang.Get("hansa:deck-" + dd.Deck) : dd.Deck;
+            if(dd.IsStructure) return Lang.Get(t.CellMode==CellTake?"hansa:hint-rib-take":"hansa:hint-rib-lay");
             // ((0.3.28, D2.4) a gun port's cover)
             if (dd.IsGunPort)
                 return t.CellMode == CellTake ? Lang.Get("hansa:hint-port-out") : t.CellMode == CellLay ? Lang.Get("hansa:hint-port-in", held?.GetName() ?? "") : null;

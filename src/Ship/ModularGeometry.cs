@@ -78,7 +78,18 @@ namespace Hansa
             var rects=(surfaces!=null?layout.DrawnClip(m,surfaces):null)??m.Clip;
             rects=rects==null?new List<double[]> {new[]{(MountLayout.BorderLine(m).AlongX?m.X:m.Z)-.5,m.Y,(MountLayout.BorderLine(m).AlongX?m.X:m.Z)+.5,m.Y+1}}:rects;
             rects=AdjustClip(m,rects,lo,hi);
-            return rects.Select(r=>ModularPart.B(PartMat.Planks,PiecePlanner.ClipBox(m,r,MountLayout.PartitionThickness/2))).ToList();
+            var (_,alongX)=MountLayout.BorderLine(m);
+            double a=(alongX?m.X:m.Z),top=m.Y+1;
+            // DrawnClip finds the real timber behind coarse collision, but may not grow one wall cell into
+            // the next cell's face. At a deck head the wall ends at the underside of the planking.
+            foreach(var deck in layout.Def.Decks)
+                if(deck.Y>m.Y+.01 && deck.Y<=top+.01 && m.X>=deck.X0-.07 && m.X<=deck.X1+.07 &&
+                    layout.Def.Slots.Tops.FirstOrDefault(t=>Math.Abs(t.Top-deck.Y)<.01) is var layer && layer.Thick>0 &&
+                    (layout.Def.Grid.SolidAt(m.X-.06,deck.Y-layer.Thick/2,m.Z) || layout.Def.Grid.SolidAt(m.X+.06,deck.Y-layer.Thick/2,m.Z)))
+                    top=Math.Min(top,deck.Y-layer.Thick);
+            return rects.Select(r=>new[]{Math.Max(r[0],a-.5-lo),Math.Max(r[1],m.Y),Math.Min(r[2],a+.5+hi),Math.Min(r[3],top)})
+                .Where(r=>r[2]>r[0]+1e-6 && r[3]>r[1]+1e-6)
+                .Select(r=>ModularPart.B(PartMat.Planks,PiecePlanner.ClipBox(m,r,MountLayout.PartitionThickness/2))).ToList();
         }
 
         public static List<ModularPart> ContactParts(MountLayout layout,ShipSurfaces surfaces,ShipPieceSet pieces,ShipPiece piece)
@@ -187,6 +198,7 @@ namespace Hansa
             {
                 double ex = alongX ? a : line, ez = alongX ? line : a;
                 bool perp = false, beyond = false, door = false;
+                double doorHalf=h;
                 foreach (var q in pieces)
                 {
                     if (q.Id == wall.Id || !q.OnBorder || q.Role == PieceRole.Railing || q.Mounts.Length == 0) continue;
@@ -201,12 +213,16 @@ namespace Hansa
                     foreach (double qe in new[] { qa - 0.5, qa + 0.5 })
                         if (Math.Abs((qx ? qe : ql) - ex) < 0.01 && Math.Abs((qx ? ql : qe) - ez) < 0.01) atE = true;
                     if (!atE) continue;
-                    if (qx != alongX) { perp |= q.Role != PieceRole.Door; door |= q.Role == PieceRole.Door; }
+                    if (qx != alongX) {
+                        perp |= q.Role != PieceRole.Door; door |= q.Role == PieceRole.Door;
+                        if(q.Role==PieceRole.Door && q.Box!=null) doorHalf=Math.Max(doorHalf,Math.Min(q.Box[3]-q.Box[0],q.Box[5]-q.Box[2])/2);
+                    }
                     else if (Math.Abs(ql - line) < 0.01 && Math.Sign(qa - a) == side) beyond = true;
                 }
                 // ((0.3.29, note 233: the companion's walls meet its door, the great cabin's) a door across its end: the wall
                 // stops at the door's face (its box keeps its length)
-                if (!perp) return door ? -h : 0;
+                if (door) return -doorHalf;
+                if (!perp) return 0;
                 if (alongX) return -h;
                 return beyond ? 0 : h;
             }

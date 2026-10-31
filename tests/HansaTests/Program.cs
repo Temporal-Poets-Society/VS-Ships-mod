@@ -25,14 +25,20 @@ namespace HansaTests
 
         static string FindRoot()
         {
-            var d = new DirectoryInfo(AppContext.BaseDirectory);
-            while (d != null && !File.Exists(Path.Combine(d.FullName, "modinfo.json"))) d = d.Parent;
-            return d?.FullName ?? throw new Exception("mod root not found");
+            foreach(var start in new[]{Environment.GetEnvironmentVariable("HANSA_ROOT"),AppContext.BaseDirectory,Environment.CurrentDirectory})
+            {
+                if(string.IsNullOrEmpty(start)) continue;
+                var d = new DirectoryInfo(start);
+                while (d != null && !File.Exists(Path.Combine(d.FullName, "modinfo.json"))) d = d.Parent;
+                if(d!=null) return d.FullName;
+            }
+            throw new Exception("mod root not found");
         }
 
         static int Main(string[] args)
         {
             string root = FindRoot();
+            if (Array.IndexOf(args,"notes135") >= 0) { Notes135(root); return failures==0?0:1; }
             if (Array.IndexOf(args, "runtime-notes") >= 0) { RuntimeNotes(root); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "integrate") >= 0) { IntegrationNotes(root); return failures == 0 ? 0 : 1; }
             // (27 October 2026, the build speed-up: the offline tests in one pass) every group the caravel's work runs, one
@@ -41,7 +47,7 @@ namespace HansaTests
             {
                 var groups = new[] { new[] { "design", "caravel" }, new[] { "gates" }, new[] { "swivels" }, new[] { "lateen" },
                                      new[] { "gunclick" }, new[] { "paint" }, new[] { "unmanned" }, new[] { "hull" }, new[] { "stairs" },
-                                     new[] { "slots" }, new[] { "partitions" }, new[] { "modular" }, new[] { "decor" }, new[] { "runtime-notes" }, new[] { "integrate" } };
+                                     new[] { "slots" }, new[] { "partitions" }, new[] { "modular" }, new[] { "decor" }, new[] { "runtime-notes" }, new[] { "integrate" }, new[] { "notes135" } };
                 var all = System.Diagnostics.Stopwatch.StartNew();
                 var rows = new System.Collections.Generic.List<string>();
                 int total = 0;
@@ -436,6 +442,8 @@ namespace HansaTests
             string pathA = Path.Combine(root, "assets", "hansa", "config", "ships", "carrack-a.json");
             if (File.Exists(pathA)) SecondDesign(pathA, root);
             else Console.WriteLine("(carrack-a.json not there: the second design isn't checked)");
+
+            Notes135(root);
 
             Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
             return failures == 0 ? 0 : 1;

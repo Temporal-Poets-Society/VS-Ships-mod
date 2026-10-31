@@ -39,7 +39,7 @@ def polys(mesh, empty_slots):
                 own, fac = pairs[2 * n], pairs[2 * n + 1]
                 if not ((own < 0 or own not in empty) and (fac < 0 or fac in empty)):
                     continue
-            pts = [np.array(q[1 + 8 * k: 4 + 8 * k]) for k in range(4)]
+            pts = [np.array(q[1 + 8 * k: 4 + 8 * k],dtype=float) for k in range(4)]
             uniq = [pts[0]]
             for p in pts[1:]:
                 if all(np.linalg.norm(p - u) > 1e-6 for u in uniq):
@@ -129,7 +129,7 @@ def find_clashes(mesh, empty):
     P = polys(mesh, empty)
     items = []
     for g, n, pts, nrm in P:
-        items.append((g, n, pts, nrm, float(nrm @ pts[0]), pts.min(0) - TOL, pts.max(0) + TOL))
+        items.append((g, n, pts, nrm, float(nrm @ pts[0]), tuple(map(float,pts.min(0) - TOL)), tuple(map(float,pts.max(0) + TOL))))
     byn = defaultdict(list)
     for i, it in enumerate(items):
         keys = [[]]
@@ -174,9 +174,13 @@ def find_clashes(mesh, empty):
                 active = [j for j in active if items[j][6][ax] >= loa[ax]]
                 for j in active:
                     gb, nb, pb, nrb, db, lob, hib = items[j]
-                    if (ga == gb and na == nb) or (min(i, j), max(i, j)) in seen:
+                    if ga == gb and na == nb:
                         continue
-                    if np.any(hib < loa) or np.any(lob > hia):
+                    # This broad phase runs millions of times on a sliced hull. Scalar interval checks avoid allocating
+                    # two numpy arrays and reductions for pairs whose boxes are far apart; the geometric test is unchanged.
+                    if hib[0]<loa[0] or hib[1]<loa[1] or hib[2]<loa[2] or lob[0]>hia[0] or lob[1]>hia[1] or lob[2]>hia[2]:
+                        continue
+                    if (min(i,j),max(i,j)) in seen:
                         continue
                     if float(nra @ nrb) < math.cos(math.radians(0.5)):
                         continue

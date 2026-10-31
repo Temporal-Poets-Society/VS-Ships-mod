@@ -68,10 +68,10 @@ namespace Hansa
                 var plan=PiecePlanner.Plan(ship.Mounts,mast,held,0);
                 Check(held.VisualBounds!=null && plan.Box!=null && Math.Abs(plan.Box[4]-mast.Y)<1e-5,
                     "117: the real lantern shape is fitted to its hook, with the same visible bounds used by placement");
-                float lee=ship.LeeShown;ship.LeeShown=1;
+                float lee=ship.LeeShown,fraction=ship.SailFraction;ship.LeeShown=1;ship.SailFraction=1;
                 Check(ship.VisibleObstructed(plan) && ship.LastPlacementObstacle?.StartsWith("rig:shroud:")==true,
                     "117: placement refuses the real lantern crossing the cast-off shroud beside the mainmast ("+ship.LastPlacementObstacle+")");
-                ship.LeeShown=lee;
+                ship.LeeShown=lee;ship.SailFraction=fraction;
                 foreach(var code in new[]{"lantern-mainmast","lantern-mizzenmast"}) {
                     var safe=ship.Mounts.Get("h:"+code);var candidate=PiecePlanner.Plan(ship.Mounts,safe,held,0);
                     Check(!ship.VisibleObstructed(candidate),"117: the moved "+code+" hook clears the ship and rig");

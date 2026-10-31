@@ -54,13 +54,13 @@ namespace Hansa
 
         bool PlacementFaceVisible(string group,int index,ISet<int> takingBeams=null)
         {
-            if(!LateenShrouds.RatlinesVisible(Def,group,LeeShown)) return false;
+            if(!LateenShrouds.RatlinesVisible(Def,group,LeeShown,SailFraction)) return false;
             if(VisibleStructure.SlotRefs!=null && VisibleStructure.SlotRefs.TryGetValue(group,out var refs) && index*2+1<refs.Length)
             {
                 var st=group.StartsWith("slot:hull")?HullPanels:Slots;
                 int owner=refs[index*2],facing=refs[index*2+1];
                 if(!group.StartsWith("slot:hull") && takingBeams!=null && owner>=0 && takingBeams.Contains(owner)) return false;
-                if(st!=null && (!(owner<0 || st.Filled(owner)) || !(facing<0 || !st.Filled(facing)))) return false;
+                if(st!=null && (!(owner<0 || st.MeshFilled(owner)) || !(facing<0 || !st.MeshFilled(facing)))) return false;
             }
             if(group.StartsWith("part:") && Def.GunOfPart.TryGetValue(group.Substring(5),out var gun) && GunAbsent(Def.Fixture(gun))) return false;
             return true;

@@ -765,6 +765,7 @@ namespace HansaTests
             Code = kind != e.Kind ? ModularPieceDef.DefaultBlock(kind) : e.Block ?? ModularPieceDef.DefaultBlock(kind), Family = "x", Rise = e.Rise, DoorInto = e.Into != null ? MountLayout.DirOf(e.Into) : -1,
             Planks = kind == "partition", Pane = kind == "window", Fence = kind == "railing", Stairs = kind == "stair", Ladder = kind == "ladder", Slab = kind == "panel", Door = kind == "door",
             Hearth = kind == "hearth", Oven = kind == "oven", Flue = kind == "flue",
+            Sel = kind=="door" ? new double[]{0,0,0,1,2,.1875} : new double[]{0,0,0,1,1,1},
             // (0.3.23) a stair entry is a ship's stair of its length, with its own handrails
             // ((0.1.0-dev.6, note 36) length 1: the short one)
             StairCells = kind == "stair" && e.Length is PiecePlanner.ShortCells or PiecePlanner.SteepCells ? e.Length : PiecePlanner.FlightCells, StairRails = kind == "stair"

@@ -122,6 +122,9 @@ namespace Hansa
         /// <summary>An opening in her deck: the cell taken up and no shut hatch over it.</summary>
         public bool CellOpen(int n) => Slots != null && n >= 0 && n < Slots.Count && SlotLayout.Slots[n].IsCell && !Slots.Filled(n) && HatchOver(n) is not { Open: false };
 
+        public double HatchCoaming(string opening) => opening?.StartsWith("cell:") == true && int.TryParse(opening.AsSpan(5),out int n)
+            ? HatchOver(n)?.Coaming ?? 0 : 0;
+
         /// <summary>
         /// The openings (cell boxes) in a room's ceiling or floor that open it: an open cell over (under) it whose other side
         /// isn't one of the design's enclosed rooms (as a well's: docs/modular-pieces.md). Worked out again when she changes.
@@ -166,6 +169,13 @@ namespace Hansa
             if (Slots == null || n < 0 || n >= l.Count) return "hansa:cell-fixed";
             // ((0.3.27) a length of a deck beam: its own rules)
             if (l.Slots[n].IsBeam) return BeamTakeProblem(n);
+            if (l.Slots[n].IsStructure)
+            {
+                if (!Slots.Filled(n)) return "hansa:cell-already-out";
+                foreach (var piece in Pieces.All)
+                    if (piece.Solids.Any(b => PiecePlanner.Overlap(b,l.Slots[n].Box,0.005))) return "hansa:beam-under-piece";
+                return null;
+            }
             // ((0.3.29) a castle port: taken out (its trapdoor back) it leaves the opening; not with a gun on it or its lid open)
             if (l.Slots[n].IsGunPort)
             {
@@ -313,8 +323,8 @@ namespace Hansa
             var slot = player.InventoryManager.ActiveHotbarSlot;
             var held = slot?.Itemstack;
             int need = LayNeed(d.Mat, held);
-            if (need < 0) return "hansa:cell-needs-planks";
-            if (!Creative(player) && held.StackSize < need) return "hansa:cell-needs-planks";
+            if (need < 0) return d.IsBeam || d.IsStructure ? "hansa:cell-needs-supportbeam" : "hansa:cell-needs-planks";
+            if (!Creative(player) && held.StackSize < need) return d.IsBeam || d.IsStructure ? "hansa:cell-needs-supportbeam" : "hansa:cell-needs-planks";
             if (!InReach(player, d.CX, d.Top, d.CZ)) return "hansa:piece-too-far";
             string err = LayCell(n, true);
             if (err != null) return err;
@@ -370,17 +380,18 @@ namespace Hansa
         }
 
         /// <summary>(0.3.27) Is what's in hand something that lays an opening (a planks block or boards)?</summary>
-        public static bool LaysOpenings(ItemStack held) => held?.Block != null && VanillaPieceBlock.IsPlanks(held.Block) || IsBoards(held);
+        public static bool LaysOpenings(ItemStack held) => held?.Block != null && VanillaPieceBlock.IsPlanks(held.Block) || IsBoards(held) ||
+            held?.Collectible?.Code?.Domain == "game" && held.Collectible.Code.Path.StartsWith("supportbeam-");
 
         /// <summary>(0.3.26) Does what's in hand lay a slot of this material (a deck cell's, a hull panel's)?</summary>
         public static bool MaterialFits(SlotMaterialDef m, ItemStack held)
         {
-            var b = held?.Block;
-            if (b == null) return false;
+            if (held?.Collectible?.Code == null) return false;
             string want = m?.Block ?? "game:planks-oak-ud";
             string first = want.Contains(':') ? want.Substring(want.IndexOf(':') + 1) : want;
             first = first.Split('-')[0];
-            return first == "planks" ? VanillaPieceBlock.IsPlanks(b) : b.FirstCodePart() == first;
+            if (first == "planks") return held.Block != null && VanillaPieceBlock.IsPlanks(held.Block);
+            return held.Collectible.Code.Domain == "game" && held.Collectible.FirstCodePart() == first;
         }
 
         ItemStack MaterialStack(DeckSlotDef d) => MaterialStack(d.Mat);
@@ -433,8 +444,8 @@ namespace Hansa
             if (plan?.Error != null || plan?.Box == null) return plan;
             var g = PlaceGrid ?? Grid;
             bool Solid(double x, double y, double z) => g.SolidAt(x, y, z);
-            if (HatchPlanner.SwingClash(plan.Box, plan.Dir, Solid, Ladders) == null) return plan;
-            if (hinge == null && HatchPlanner.SwingClash(plan.Box, 1 - plan.Dir, Solid, Ladders) == null) { plan.Dir = 1 - plan.Dir; return plan; }
+            if (HatchPlanner.SwingClash(plan.Box, plan.Dir, Solid, Ladders,plan.DoubleLeaf) == null) return plan;
+            if (hinge == null && HatchPlanner.SwingClash(plan.Box, 1 - plan.Dir, Solid, Ladders,plan.DoubleLeaf) == null) { plan.Dir = 1 - plan.Dir; return plan; }
             plan.Error = "hansa:hatch-no-swing";
             return plan;
         }
@@ -494,7 +505,7 @@ namespace Hansa
             string code = e.Block ?? ModularPieceDef.DefaultBlock("hatch");
             var block = World.GetBlock(new AssetLocation(code));
             if (block == null || block.Id == 0) return "no such block " + code;
-            var plan = SwingClear(HatchPlanner.Plan(l, cells, VanillaPieceBlock.IsGlazedTrapdoor(code), e.Hinge), e.Hinge);
+            var plan = SwingClear(HatchPlanner.Plan(l, cells, VanillaPieceBlock.IsGlazedTrapdoor(code), e.Hinge,e.Coaming,e.DoubleLeaf), e.Hinge);
             if (plan.Error != null) return plan.Error;
             string err = PlaceHatch(plan, new ItemStack(block), false, out placed);
             if (err != null) return err;

@@ -72,6 +72,17 @@ namespace Hansa
         public static bool PieceFace(ShipPiece piece,Vec3d o,Vec3d d,double range,out double t,out double[] normal)
         {
             t=double.MaxValue;normal=null;
+            if (piece.Role == PieceRole.Door && piece.Open && piece.Pivot != null && piece.Box != null)
+            {
+                var oo=piece.DoorPoint(new[]{o.X,o.Y,o.Z},true);
+                var end=piece.DoorPoint(new[]{o.X+d.X,o.Y+d.Y,o.Z+d.Z},true);
+                var ro=new Vec3d(oo[0],oo[1],oo[2]);var rd=new Vec3d(end[0]-oo[0],end[1]-oo[1],end[2]-oo[2]);
+                var b=piece.Box;
+                double hit=ShipFittings.RayBox(ro,rd,new Cuboidd(b[0],b[1],b[2],b[3],b[4],b[5]));
+                if(hit<0 || hit>range) return false;
+                var n=BoxNormal(ro,rd,b);double c=Math.Cos(piece.DoorAngle),s=Math.Sin(piece.DoorAngle);
+                normal=new[]{c*n[0]+s*n[2],n[1],-s*n[0]+c*n[2]};t=hit;return true;
+            }
             foreach(var b in piece.PickBoxes) {
                 double hit=ShipFittings.RayBox(o,d,new Cuboidd(b[0],b[1],b[2],b[3],b[4],b[5]));
                 if(hit<0 || hit>range || hit>=t) continue;
@@ -112,6 +123,12 @@ namespace Hansa
             double qx = p.X + n[0] * Off, qy = p.Y + n[1] * Off, qz = p.Z + n[2] * Off;
             bool up = n[1] > 0.5, down = n[1] < -0.5;
             var pm = piece != null && piece.Mounts.Length > 0 ? l.Get(piece.Mounts[0]) : null;
+
+            // A chest's visible lid is lower than the next whole-block placement level. Use its occupied
+            // cell, rather than rounding the lid's physical height back into the chest's own floor place.
+            if (!wallInHand && !down && piece?.Kind == MountKind.Floor && pm?.Kind == MountKind.Floor &&
+                (up || p.Y >= pm.Y + 0.5))
+                Add(l.FloorAt(pm.Deck, pm.I, pm.K, pm.Level + 1));
 
             // on a border piece: the place past its nearest edge, along its line or over or under it
             if (piece != null && piece.OnBorder && pm?.Kind == MountKind.Border)

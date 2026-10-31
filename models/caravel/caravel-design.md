@@ -920,3 +920,70 @@ Final verification: Release mod/tests builds pass (4/3 existing warnings); Const
 Coplanar checks: wood 99,119 faces / 0 pairs; copper 104,369 / 0; all 24 runtime stair variants and three stair inventory shapes / 0; swivel's 132 faces / 0. The combined ship and runtime cabin have 0 new joint overlaps, both as a new ship and in five removed-beam states, including the two exact notes. Unchanged vanilla assets' internal contact faces are counted separately from new ship joints. Thirty final game-mesh PNGs were inspected personally. Paths and cameras are recorded in `tmp/integrate-views/README.md` and `shots.json` beside each picture group; full per-item results and logs are in `tmp/integrate-notes-report.md`.
 
 Changes are left uncommitted at the user's request. Sea, the installed game, user Mods and saves were read only; the dedicated server ran under this worktree using the existing Sea 0.4.6 package.
+
+## Dev.16 chalk notes 135–150 and creatures aboard (31 October 2026)
+
+Work in `codex/notes-135`; no commit or push. The complete records in `tmp/hansa-notes.json` supply the cameras and
+targets. The master was rebuilt and resliced for the hold stair and hatch; hull lines remain the same.
+
+- **135:** an upper chest side and its native 7/8-height lid offer the supported cell above it. The first placement
+  candidate uses the supporting piece's grid cell rather than rounding the visual lid down.
+- **136, 138:** both shroud sets and ratlines remain attached with sails furled. Under sail the lee set still casts
+  off during the dip. Halyards and their falls, sheets, tacks, the mizzen bumpkin's sheet, and the two shroud sets
+  remain in the rig data and drawn mesh; the lateen rig has no square-yard braces/lifts to invent.
+- **137, 144:** timber UVs use an orthonormal physical surface basis. Drawn partitions stop inside their actual cells
+  and at the underside of overhead deck planking; fitting them to a rib cannot extend them over a neighboring wall
+  or through a deck. Coplanar contacts between sliced panels are clipped in their own plane, with conditional reveal
+  faces retained for the neighbor's removal. No overlap threshold was relaxed.
+- **139, 150:** both mast hooks specify bow-facing yaw, including the omni-attached native lantern; start lamps use it.
+- **140:** no swivel fixtures or places on this caravel. Swivel item, renderer and mechanics remain for later use.
+- **141:** no outside channels, chainplates or deadeyes. Shrouds finish on small forged eyes set inboard on the cap
+  rail. The ring, embedded shank, rope end and first ratline meet without coplanar duplicate faces.
+- **142:** an open partition door is aimed at by transforming the ray back through its actual leaf rotation. Server
+  visibility uses the swung leaf too. The hinge pin is on the opening face, so its thickness clears the adjoining wall.
+- **143:** the starboard cabin-front window is replaced by an ordinary partition in the default pieces.
+- **145:** the marked `beam:main:-4:-1` remains a removable length; its deck covering must be taken up first. It uses
+  a native support beam and retains the existing opening-frame/support rules.
+- **146:** the apparent stub below the cabin front was a partition fitted down through the deck. Partitions cannot
+  draw below their cell's floor now; the exact hold camera was checked again after this correction.
+- **147:** the opening is two cells, x `[-6,-4]`, z `[-0.5,0.5]`. The short hold flight descends forward from x -6
+  toward -5. Cell `[-4,-3]` remains clear by the mainmast. A quarter-block coaming surrounds the opening; two plank
+  leaves hinge along its port/starboard edges. Coaming collision persists with the leaves open and the saved piece
+  keeps its coaming/double-leaf fields. The only edit in `ShipFlooding.cs` passes the coaming-height callback to
+  `ShipFlood.Downflooding`; no dry-cut or waterClip changes. This callback must be retained when combining issue 30.
+- **148, partly implemented:** every master shell candidate is a hull slot (462), including bottom, counter and
+  transom; 197 sliced rib cells are removable structural slots. Thin visible shell faces can be selected independently
+  of their shared collision voxel. Taking underwater planking out is permitted and the HUD states the flooding risk.
+  Hull replacement/return is four `game:plank-*` boards; rib and beam replacement/return is one `game:supportbeam-*`.
+  The repair tool uses the same material count. A sufficiently large, upright panel above the main deck can be
+  replaced by a native glass pane; its fitted casing/cames/glass, sealed state and pane material survive saving.
+  Material returns currently use the blueprint's oak; the replacement wood variant is not individually saved.
+  **Still outside this implementation:** mast replacement with debarked timber, and individual rib damage states/
+  a complete deck-collapse model. Masts remain the existing spars, not construction slots. Rib removal is allowed
+  around occupied pieces only after clearing those pieces; beam/deck support restrictions remain in force.
+- **149:** pumping water is a connected, steady tube following the outflow trajectory, drawn with water texture;
+  only its landing has splash particles. There is no random drip sequence or stroke gap. Dry pumps draw no stream.
+- **Elk:** native controlled-physics displacement is swept against the ship with the creature's full collision box,
+  preserving native AI/gravity and allowing it to fall through a real opening. A held creature follows the ship's
+  translation, yaw and tilt; ship-local state is saved and used for client positioning. The data-authored hitch post
+  at `[-5.5, mainDeck, -1.75]` accepts a native rope. Cloth endpoints save a local offset and transform it with the ship,
+  without applying rope tension to the ship's motion. Empty-hand interaction takes the lead back; native rope detach
+  also releases the ship end. Native ownership checks apply when taking a creature's lead.
+
+The headless server leaves creatures inactive without a player, so the focused self-test activates its spawned elk
+and drives its real controlled-physics behavior. It checks a grounded elk on the actual caravel and a native cloth
+endpoint at the post, rather than relying solely on the pure collision test. No client was launched.
+
+Final logs, per-note status and render manifest are recorded in `tmp/notes135-report.md` and
+`tmp/notes135-views/README.md`. Renders use `game_view.page`'s exported mesh, actual runtime modular quads and native
+piece shapes, with the recorded eye/look; a CPU rasterizer supplies the PNGs because Chrome cannot load three.js in
+this environment. Unchanged native assets' internal contacts are counted separately from new ship/runtime joints.
+
+Verification: Release mod/tests builds pass (4/3 existing warnings), ConstructionTests 99/99, contact/UV and overlap
+checker regressions 2/2 each. `caravel-all` has only the two known carrack-m slot failures; the full suite has only
+the four known historical failures (stern water cut, hull-hole edges, note 32 panel, archived charters). The focused
+notes group passes, including the exact note 145 ray selecting the beam and note 142 ray selecting the open leaf.
+The final dedicated run reports `SELFTEST ALL OK` at 16:27:55 and exits; its elk lands at local y=1.125 grounded,
+and its native lead follows and detaches from the post. Wood: 118,728 faces / 0 overlap pairs; copper: 120,027 / 0.
+Combined runtime joints are zero in default, open hatch/door, pumping, window, removed beam/panel and removed rib
+states. Thirty-nine PNG paths/cameras are in the render manifest. No client or user world was opened.

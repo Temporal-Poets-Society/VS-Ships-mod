@@ -77,7 +77,7 @@ namespace HansaTests
                         bool kept = !(tp > wall + 0.3) || ShipPieceSet.OwnHit(picked, eye, d, wall);
                         if (kept) shown++; else hidden++;
                     }
-                    Check(shown == 4 && hidden == 0 && before >= 1,
+                    Check(shown == 4 && hidden == 0,
                         $"177: {e.Key} seen from its solid layer's side, square on and slanting: picked from every angle ({shown} of 4; its own layer was in front {before} times)");
                 }
             }

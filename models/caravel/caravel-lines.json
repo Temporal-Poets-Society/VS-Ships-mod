@@ -78620,7 +78620,7 @@
   ],
   "hatch": {
    "x": [
-    -7000.0,
+    -6000.0,
     -4000.0
    ],
    "y": [
@@ -78648,7 +78648,7 @@
    {
     "name": "hold",
     "cell": [
-     -5,
+     -6,
      0
     ],
     "foot": [
@@ -78656,7 +78656,7 @@
      1000.0
     ],
     "head": [
-     -4000.0,
+     -6000.0,
      4000.0
     ],
     "y": 0.0
@@ -78778,17 +78778,7 @@
      "code": "door-cabin-starboard"
     }
    ],
-   "windows": [
-    {
-     "at": [
-      -7.0,
-      2.0
-     ],
-     "row": 1,
-     "along": "z",
-     "code": "window-cabin-starboard"
-    }
-   ],
+   "windows": [],
    "hearth": {
     "cell": [
      -9.0,
@@ -78829,9 +78819,7 @@
     }
    ]
   },
-  "swivels": [
-   8.0
-  ],
+  "swivels": [],
   "swivelReach": 1.05,
   "bumpkinOut": 2800.0,
   "sails": {

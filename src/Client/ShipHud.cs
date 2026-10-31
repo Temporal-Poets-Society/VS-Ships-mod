@@ -136,6 +136,8 @@ namespace Hansa
                 case "pump":
                     // the bilge pump: how much water she has in her
                     return Lang.Get("hansa:hint-pump", ship.WaterText());
+                case "hitch":
+                    return Lang.Get("hansa:hitch-rope");
                 case "gun":
                     // a gun: stand to it (unless someone is at it); ready or not, how it's laid
                     return Lang.Get(ship.GunSeatOf(f)?.Passenger != null ? "hansa:hint-gun-taken" : "hansa:hint-gun", name,

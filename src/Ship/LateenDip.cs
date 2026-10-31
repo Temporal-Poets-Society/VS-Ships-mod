@@ -379,8 +379,8 @@ namespace Hansa
         /// </summary>
         public const string ExportPrefix = "rig:shrouds-";
         public static string RatlineGroup(LateenShroud sh) => "rig:ratlines:"+sh.Mast.Code+":"+sh.Side;
-        public static bool RatlinesVisible(ShipDefinition def,string group,float lee) =>
-            !group.StartsWith("rig:ratlines:") || Of(def).Any(sh=>RatlineGroup(sh)==group && SetUp(def,sh,lee));
+        public static bool RatlinesVisible(ShipDefinition def,string group,float lee,float fraction=1) =>
+            !group.StartsWith("rig:ratlines:") || Of(def).Any(sh=>RatlineGroup(sh)==group && SetUp(def,sh,lee,fraction));
 
         /// <summary>How far past its radius a quad's corners may lie from a shroud's line and still be that shroud.</summary>
         const double Reach = 0.06;
@@ -427,7 +427,8 @@ namespace Hansa
         }
 
         /// <summary>Is it set up (the windward set) for the lee shown? The lee set is cast off.</summary>
-        public static bool SetUp(ShipDefinition def, LateenShroud s, float leeShown) => s.Side != DrawnLee(def, s.Mast, leeShown);
+        public static bool SetUp(ShipDefinition def, LateenShroud s, float leeShown, float fraction=1) =>
+            fraction <= 0.01f || s.Side != DrawnLee(def, s.Mast, leeShown);
 
         /// <summary>Where a cast-off shroud's foot hangs: down the after side of its mast (clear of the yard slung on its side), above its channel.</summary>
         public static double[] HungFoot(LateenShroud s) => new[]

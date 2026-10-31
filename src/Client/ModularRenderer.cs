@@ -176,7 +176,20 @@ namespace Hansa
                 tileH = Math.Max(1e-3f, tmax.Y - tmin.Y);
                 tile.Scale(new Vec3f(0, 0, 0), 1 / tx, 1, 1 / tz);
             }
-            foreach (var (box, hinge, axis, sign) in HatchPlanner.Leaves(pc.Box, pc.Dir))
+            if (pc.Coaming > 0)
+            {
+                var frame = new MeshData(64,96,false,true,true,true);
+                foreach (var q in ModularMesh.Quads(HatchPlanner.CoamingParts(pc.Box,pc.Coaming),keepShared:false))
+                {
+                    int first=frame.VerticesCount,flags=VertexFlags.PackNormal(q[6],q[7],q[8]);
+                    for(int k=0;k<4;k++) frame.AddWithFlagsVertex(q[1+8*k],q[2+8*k],q[3+8*k],timber.x1+(timber.x2-timber.x1)*q[4+8*k]/16,timber.y1+(timber.y2-timber.y1)*q[5+8*k]/16,-1,flags);
+                    frame.AddIndices(first,first+1,first+2,first,first+2,first+3);frame.AddTextureId(timber.atlasTextureId);
+                }
+                var coaming=new Piece {Fixture=ship.PieceFixture(pc),Interior=interior,Mesh=capi.Render.UploadMultiTextureMesh(frame)};
+                Mat4f.Identity(coaming.Fit);list.Add(coaming);
+            }
+            if (pc.DoubleLeaf) tile = null;
+            foreach (var (box, hinge, axis, sign) in HatchPlanner.Leaves(pc.Box, pc.Dir,pc.DoubleLeaf))
             {
                 double lo = axis == 0 ? box[2] : box[0];
                 bool hingeLow = Math.Abs((axis == 0 ? hinge[2] : hinge[0]) - lo) < 1e-6;

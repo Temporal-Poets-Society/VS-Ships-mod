@@ -20,6 +20,7 @@ namespace Hansa
             var l = ship.Mounts;
             if (ship.Def?.Code != "caravel" || l == null) { Log($"24 October 2026: the caravel's building notes are checked on the caravel ({ship.Def?.Code} under test)"); return; }
             RuntimePlacementAboard(ship);
+            Notes135Aboard(ship);
             Block B(string c) => sapi.World.GetBlock(new AssetLocation("game", c)) is Block b && b.Id != 0 ? b : null;
             var put = new List<ShipPiece>();
             string Put(MountPoint m, Block b, int dir, out ShipPiece placed)
@@ -196,6 +197,9 @@ namespace Hansa
                     Check(win == "ok", $"note 90: a window on a place her side cuts ({wm?.Id}: {win})");
                     // ((26 October 2026, dev.11) a hold cell whose short stair's top lands on her main deck's hatchway, found in her
                     // layout as it is: the note's cell is her mainmast's now)
+                    if(ship.Pieces.All.Any(p=>p.Role==PieceRole.Hatch && p.Coaming>0))
+                        Check(ship.Pieces.All.Any(p=>p.Role==PieceRole.Stair && p.Box[1]<0),"note 99/147: the raised default hatch has its fitted hold stair; its occupied cells cannot be planked over");
+                    else {
                     var shortB = sapi.World.GetBlock(new AssetLocation(ModularPieceDef.StairBlock(1)));
                     double mainY = ship.Def.Decks.First(dk => dk.Code == "main").Y;
                     var sl = ship.SlotLayout;
@@ -214,6 +218,7 @@ namespace Hansa
                     Check(stairPlan?.Error == null && (!wasOpen || open == "hansa:stair-no-landing") && laid == null && then != "hansa:stair-no-landing",
                         $"note 99: the short stair from {foot?.Id} up {(stairPlan == null ? "-" : MountLayout.DirCode[stairPlan.Dir])}, its top on the hatchway {(hw >= 0 ? sl.Slots[hw].Id : "-")} (planned: {stairPlan?.Error ?? "ok"}): with the hatchway past its top open {open}; laid ({laid ?? "ok"}), not refused for its landing ({then})");
                 }
+                    }
                 // ---- note 82: no panel places on her (nothing put into a cell her hull or ribs are in)
                 Check(!ship.Def.PanelPlaces && !l.Panels.Any(), $"note 82: no panel places on the caravel ({l.Panels.Count()})");
             }

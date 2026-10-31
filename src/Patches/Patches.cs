@@ -176,6 +176,19 @@ namespace Hansa
             });
             Try("wait for ship before mounting", () => harmony.Patch(AccessTools.Method(typeof(EntityAgent), "updateMountedState"),
                 prefix: new HarmonyMethod(typeof(Patches), nameof(UpdateMountedStatePrefix))));
+            Try("creatures on deck", () =>
+            {
+                harmony.Patch(AccessTools.Method(typeof(EntityBehaviorControlledPhysics),"OnPhysicsTick"),
+                    prefix:new HarmonyMethod(typeof(Patches),nameof(CreaturePhysicsBefore)),postfix:new HarmonyMethod(typeof(Patches),nameof(CreaturePhysicsAfter)));
+                harmony.Patch(AccessTools.Method(typeof(EntityBehaviorControlledPhysics),"HandleRemotePhysics"),
+                    postfix:new HarmonyMethod(typeof(Patches),nameof(CreatureRemoteAfter)));
+            });
+            Try("leads on ship posts", () =>
+            {
+                harmony.Patch(AccessTools.Method(typeof(ItemRope),"attachToEntity"),prefix:new HarmonyMethod(typeof(ShipTethers),nameof(ShipTethers.AttachToShip)));
+                harmony.Patch(AccessTools.Method(typeof(ItemRope),"detach"),prefix:new HarmonyMethod(typeof(ShipTethers),nameof(ShipTethers.DetachShip)));
+                harmony.Patch(AccessTools.Method(typeof(ClothPoint),"update"),prefix:new HarmonyMethod(typeof(ShipTethers),nameof(ShipTethers.PinBefore)),postfix:new HarmonyMethod(typeof(ShipTethers),nameof(ShipTethers.PinAfter)));
+            });
             Try("sleep screen in bunks", () => harmony.Patch(AccessTools.Method(typeof(ModSleeping), "FastTick"),
                 prefix: new HarmonyMethod(typeof(Patches), nameof(FastTickPrefix)),
                 postfix: new HarmonyMethod(typeof(Patches), nameof(FastTickPostfix))));
@@ -297,6 +310,9 @@ namespace Hansa
 
         /// <summary>Both of the patches for things dropped aboard took (for the self-test).</summary>
         public static bool DeckItemsPatched;
+        static void CreaturePhysicsBefore(EntityBehaviorControlledPhysics __instance,out Vec3d __state) => __state=__instance.Entity?.Pos.XYZ;
+        static void CreaturePhysicsAfter(EntityBehaviorControlledPhysics __instance,Vec3d __state) => DeckCreatures.AfterPhysics(__instance.Entity,__state);
+        static void CreatureRemoteAfter(EntityBehaviorControlledPhysics __instance) => DeckCreatures.ClientRemote(__instance.Entity);
 
         /// <summary>Server: an item lying aboard is moved by DeckItems, not by vanilla's physics (which would drop it through her).</summary>
         static bool DeckItemPhysicsPrefix(EntityBehaviorPassivePhysics __instance) =>

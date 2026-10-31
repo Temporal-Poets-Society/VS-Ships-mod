@@ -40,6 +40,7 @@ namespace Hansa
             for (int n = 0; n < HullPanels.Count && n < PartDamage.Count; n++)
             {
                 var want = HullPanelRules.StateFor(d, PartDamage.Hurt[n]);
+                if (HullPanels[n] == SlotState.Glazed && want != SlotState.Empty) continue;
                 if (HullPanels[n] == want) continue;
                 HullPanels.Set(n, want);
                 changed = true;
@@ -82,8 +83,6 @@ namespace Hansa
             var s = l.Slots[n];
             // half a block of freeboard: waves and her heel reach a panel just over the waterline
             // ((0.3.29) a ceiling panel (her side's inner layer) with her planking in front of it: no sea behind it)
-            bool sheltered = s.IsInner && s.PartnerIndex >= 0 && HullPanels.Filled(s.PartnerIndex);
-            if (!OnBottom && !sheltered && s.Sill < Def.Waterline + Sinkage + 0.5) return "hansa:hull-below-water";
             var near = Grow(s.Box, 0.3);
             foreach (var p in Pieces.All)
                 foreach (var b in p.Solids.Concat(p.Sel))
@@ -150,7 +149,8 @@ namespace Hansa
             var s = HullLayout.Slots[n];
             if (player != null && !Creative(player))
             {
-                var stack = MaterialStack(s.Mat);
+                var stack = MaterialStack(HullPanels[n]==SlotState.Glazed
+                    ? new SlotMaterialDef {Block=WatchedAttributes.GetTreeAttribute("hansaHullMaterials")?.GetString(s.Id,ModularPieceDef.DefaultBlock("window"))??ModularPieceDef.DefaultBlock("window"),Count=1} : s.Mat);
                 if (stack != null && !player.InventoryManager.TryGiveItemstack(stack, true)) return "hansa:piece-inventory-full";
             }
             SetHullState(n, SlotState.Empty);
@@ -181,6 +181,7 @@ namespace Hansa
                 default: PartDamage.Hurt[n] = 0; PartDamage.Wear[n] = 0; ClearScars(HullLayout.Slots[n].Box, 0.3); break;
             }
             SyncSlotsFromHurt();
+            HullPanels.Set(n,state);
             if (Api?.Side == EnumAppSide.Server)
             {
                 SaveSlots();
@@ -222,6 +223,18 @@ namespace Hansa
             // what keeps the sea out), then the ceiling if the planks in hand go round; a ceiling that's in with her planking
             // behind it out: that planking, laid through it)
             int behind = HullBehind(n);
+            var paneSlot=player.InventoryManager.ActiveHotbarSlot;
+            if (paneSlot?.Itemstack?.Block is Block pane && VanillaPieceBlock.IsPane(pane))
+            {
+                if(!HullWindows.Fits(Def,s)) return "hansa:hull-window-above";
+                if(!InReach(player,s.Centre.X,s.Centre.Y,s.Centre.Z,1.2)) return "hansa:piece-too-far";
+                string problem=HullLayProblem(n,true);if(problem!=null) return problem;
+                var materials=WatchedAttributes.GetTreeAttribute("hansaHullMaterials")??new TreeAttribute();
+                materials.SetString(s.Id,pane.Code.ToString());WatchedAttributes["hansaHullMaterials"]=materials;WatchedAttributes.MarkPathDirty("hansaHullMaterials");
+                SetHullState(n,SlotState.Glazed);
+                if(!Creative(player)) {paneSlot.TakeOut(1);paneSlot.MarkDirty();}
+                return null;
+            }
             var order = new List<int>();
             if (HullPanels.Filled(n))
             {

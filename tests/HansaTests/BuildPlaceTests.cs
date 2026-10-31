@@ -123,7 +123,9 @@ namespace HansaTests
                     (e.Up[1] == 'x' ? e.At[0] + (e.Up[0] == '-' ? -1 : 1) * Math.Max(1, e.Length) : e.At[0]) is double lx &&
                     (e.Up[1] == 'z' ? e.At[2] + (e.Up[0] == '-' ? -1 : 1) * Math.Max(1, e.Length) : e.At[2]) is double lz &&
                     lx > m.X && lx < m.X + 1 && lz > m.Z && lz < m.Z + 1 && Math.Abs(e.At[1] + e.Rise - m.Y) < 0.1);
-                var lone = l.Floors.Where(m => l.FloorAt(m.Deck, m.I, Mirror(m.K)) == null && !Landing(m)).Select(m => m.Id).ToList();
+                bool OppositePost(MountPoint m)=>def.Fixtures.Any(f=>f.Type=="hitch" && f.Box!=null &&
+                    PiecePlanner.Overlap(f.Box,new[]{m.X,m.Y,-m.Z-1,m.X+1,m.Y+1,-m.Z},-.001));
+                var lone = l.Floors.Where(m => l.FloorAt(m.Deck, m.I, Mirror(m.K)) == null && !Landing(m) && !OppositePost(m)).Select(m => m.Id).ToList();
                 Check(lone.Count == 0, $"note 70: every deck's floor places alike port and starboard ({(lone.Count == 0 ? $"{l.Floors.Count()} places" : "alone: " + string.Join(", ", lone.Take(8)))})");
                 var differ = new List<string>();
                 var kinds = new (string Name, PieceBlock B)[] { ("block", block), ("chest", chest), ("vessel", vessel), ("trunk", trunk), ("bed", bed), ("oven", oven) };

@@ -767,7 +767,7 @@
 	"hull-below-water": "Not afloat: that panel is at or under her waterline (she'd fill). Beach her first.",
 	"hull-under-piece": "Something stands against that hull panel: that first.",
 	"hull-occupied": "Something is in the opening: that first.",
-	"hull-needs-planks": "Laying this hull panel takes more: its planks blocks, or 4 boards for each block.",
+	"hull-needs-planks": "Use the required boards to replace this hull panel.",
 	"hint-hull-take": "{0} · hold left mouse to take the panel out (gives {p1:# planks blocks|# planks block|# planks blocks})",
 	"hint-hull-lay": "An opening in her side · right-click: lay it with {0} × {1}",
 	"hint-hull-lay-both": "An opening in her side, her planking behind it out too: the sea comes in here · right-click: lay both from inside with {0} × {1} (the planking first)",
@@ -818,5 +818,17 @@
   "gun-load-shot": "Powder in: right-click with lead shot (4 for a carriage gun, 1 for a swivel).",
   "gun-load-more": "You need 4 lead shot for a carriage gun, or 1 for a swivel.",
   "gun-load-full": "Loaded",
-  "gun-state-run-in": "Run in, port open"
+  "gun-state-run-in": "Run in, port open",
+  "hull-window-above": "A hull window needs a full panel above the main deck.",
+  "hint-hull-material-take": "Hold left-click to remove {0} (returns {1} {2}).",
+  "material-pane": "glass pane",
+  "material-boards": "boards",
+  "hull-removal-floods": "Removing this panel opens the hull to the sea and can sink the ship.",
+  "cell-needs-supportbeam": "Use a support beam to replace this timber.",
+  "hint-rib-take": "Hold left-click to remove this rib (returns a support beam). Decks currently stay in place when ribs are removed.",
+  "hint-rib-lay": "Right-click with a support beam to replace this rib.",
+  "part-hull-cell": "Hull panel, cell {0}:{1}:{2}",
+  "part-hull-window-cell": "Hull window, cell {0}:{1}:{2}",
+  "fixturekind-hitch": "Hitching post",
+  "hitch-rope": "Use a creature's lead on the post; empty hand takes the lead back."
 }

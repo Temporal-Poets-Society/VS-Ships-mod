@@ -277,6 +277,8 @@ namespace Hansa
         {
             foreach (var p in Pieces.All)
             {
+                if (!walls && p.Role == PieceRole.Hatch)
+                    foreach (var coaming in HatchPlanner.CoamingParts(p.Box,p.Coaming)) grid.Fill(coaming.Box);
                 // (0.3.16) windows, railings, stairs and shelves too: pieces go right up to them
                 bool wall = p.WallLike;
                 // (0.3.20) an open hatch fills nothing either (its leaves stand up beside the opening)

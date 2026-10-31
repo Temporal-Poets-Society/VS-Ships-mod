@@ -1608,8 +1608,9 @@ namespace Hansa
         public static double OpenPanel(DamageLayout l, HullSlotDef s, double area, double inside, in FloodPose pose)
         {
             var c = s.Centre;
-            pose.ToWorld(c.X, s.Sill, s.OuterZ(s.Sill), out double sx, out double sy, out double sz);
-            pose.ToWorld(c.X, s.Head, s.OuterZ(s.Head), out double hx, out double hy, out double hz);
+            var sill=s.SurfaceAt(s.Sill);var head=s.SurfaceAt(s.Head);
+            pose.ToWorld(sill.X,sill.Y,sill.Z,out double sx,out double sy,out double sz);
+            pose.ToWorld(head.X,head.Y,head.Z,out double hx,out double hy,out double hz);
             pose.ToWorld(c.X, c.Y, c.Z, out double cx, out double cy, out double cz);
             double sea = pose.Surface(cx, cz);
             if (sea >= hy) return Flow(l.D.LeakCoefficient, area, sea - cy, inside - cy);
@@ -1622,7 +1623,7 @@ namespace Hansa
         /// under the surface (hatches and gates only while open). What lands on the open deck mostly runs off again
         /// (<see cref="DamageDef.DeckShare"/> of it gets below, more with hatches open); over an open hatch it all goes down.
         /// </summary>
-        public static double Downflooding(DamageLayout l, in FloodPose pose, Func<string, bool> isOpen)
+        public static double Downflooding(DamageLayout l, in FloodPose pose, Func<string, bool> isOpen, Func<string,double> coaming = null)
         {
             var d = l.D;
             double openHatches = 0;
@@ -1634,7 +1635,7 @@ namespace Hansa
             foreach (var f in l.Downflood)
             {
                 if (f.OpenFixture != null && isOpen?.Invoke(f.OpenFixture) != true) continue;
-                pose.ToWorld(f.X, f.Y, f.Z, out double wx, out double wy, out double wz);
+                pose.ToWorld(f.X, f.Y + (coaming?.Invoke(f.OpenFixture) ?? 0), f.Z, out double wx, out double wy, out double wz);
                 total += Pour(d, f.Length, f.Weight, pose.Surface(wx, wz) - wy) * (f.Hatch ? 1 : deckShare);
             }
             return total;
@@ -1783,7 +1784,8 @@ namespace Hansa
                     // ((0.3.26, step D1) a hull panel out is laid again in building mode, with planks: not a repair kit's)
                     // ((0.3.27, "made holes in ship but cannot repair") the repair tool lays it too: with planks blocks or boards
                     // (4 a block), held right-click on the opening as any mending, building mode or not)
-                    if (h >= d.Holed && (p.Slot >= 0 || p.Cell >= 0)) jobs.Add(new RepairJob { Part = part, What = "lay", Kits = LayKits(p.LayBlocks), HurtAfter = 0, WearAfter = 0 });
+                    if (h >= d.Holed && (p.Slot >= 0 || p.Cell >= 0)) jobs.Add(new RepairJob { Part = part, What = "lay",
+                        Kits = LayKits(p.Slot >= 0 ? l.Def.Hull.Slots[p.Slot].Mat : l.Def.Slots.Slots[p.Cell].Mat), HurtAfter = 0, WearAfter = 0 });
                     else if (h >= d.Holed) jobs.Add(new RepairJob { Part = part, What = "planks", Kits = new[] { new RepairKit((Plank, 4), (Nails, 2)) }, HurtAfter = 0 });
                     else if (h >= d.Cracked) jobs.Add(new RepairJob { Part = part, What = "planks", Kits = new[] { new RepairKit((Plank, 2), (Nails, 1)) }, HurtAfter = 0 });
                     else if (h >= d.Scraped) jobs.Add(new RepairJob { Part = part, What = "planks", Kits = new[] { new RepairKit((Plank, 1)) }, HurtAfter = 0 });
@@ -1876,6 +1878,15 @@ namespace Hansa
         {
             blocks = Math.Max(1, blocks);
             return new[] { new RepairKit((PlanksBlock, blocks)), new RepairKit((Plank, blocks * BoardsPerPlanks)) };
+        }
+
+        public static RepairKit[] LayKits(SlotMaterialDef material)
+        {
+            string code=material?.Block??"game:planks-oak-ud";
+            int count=Math.Max(1,material?.Count??1);
+            if(code.StartsWith("game:planks-")) return LayKits(count);
+            string family=code.Split(':').Last().Split('-')[0];
+            return new[]{new RepairKit(("game:"+family+"-*",count))};
         }
 
         /// <summary>The repair the held item is for (null if it's for none of them).</summary>

@@ -921,6 +921,7 @@ namespace Hansa
             // the pieces put aboard (PieceRenderer)
             AddPlacedPieces(ship, d);
             if(OpeningFramePiece(ship) is Piece frame) d.Pieces.Add(frame);
+            AddHullWindows(ship,d);
             RemoveLights(ship);
             AddLights(ship);
             return d;
@@ -2016,7 +2017,7 @@ namespace Hansa
                 // vanilla blocks aboard
                 prog.ModelMatrix=model.Values;
                 foreach(var sh in LateenShrouds.Of(ship.Def))
-                    if(sh.Rank==0 && LateenShrouds.SetUp(ship.Def,sh,ship.LeeShown)) Draw(rapi,SkinGroup(m,LateenShrouds.RatlineGroup(sh)));
+                    if(sh.Rank==0 && LateenShrouds.SetUp(ship.Def,sh,ship.LeeShown,ship.SailFraction)) Draw(rapi,SkinGroup(m,LateenShrouds.RatlineGroup(sh)));
                 if (d != null)
                 {
                     foreach (var p in d.Pieces) if (!p.Glass) DrawPiece(rapi, prog, ship, d, p, ext);
@@ -2277,7 +2278,7 @@ namespace Hansa
         /// <summary>(note 104) Where a lateen's shroud is drawn (ship-local): as made while it's set up (the windward set), hanging down its mast when cast off.</summary>
         float[] ShroudPlace(EntityShip ship, LateenShroud sh)
         {
-            if (LateenShrouds.SetUp(ship.Def, sh, ship.LeeShown)) return identity;
+            if (LateenShrouds.SetUp(ship.Def, sh, ship.LeeShown,ship.SailFraction)) return identity;
             LateenShrouds.HangMatrix(sh, shroudHang);
             return shroudHang;
         }

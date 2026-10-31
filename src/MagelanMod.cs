@@ -143,6 +143,7 @@ namespace Hansa
         public ShipWrecks Wrecks;
         /// <summary>Server: things dropped aboard, lying on her decks.</summary>
         public DeckItems DeckItems;
+        public DeckCreatures DeckCreatures;
         /// <summary>The inside of this side's ships' hulls, where Sea treats the water as dry (the hold, the lower deck).</summary>
         public readonly ShipDrySpaces Dry = new();
         Sea.SeaSystem sea;
@@ -268,6 +269,7 @@ namespace Hansa
             Shots = new CannonShots(api, this);
             Wrecks = new ShipWrecks(api, this);
             DeckItems = new DeckItems(api, this);
+            DeckCreatures = new DeckCreatures(api, this);
             api.Event.RegisterGameTickListener(dt => Shots.Tick(dt), 20);
 
             RegisterCommands(api);

@@ -7,7 +7,7 @@ using Vintagestory.API.Datastructures;
 namespace Hansa
 {
     /// <summary>(0.3.20, step B; docs/slots.md) A slot's state: in (sound), cracked (step D: drawn damaged, still solid), taken up.</summary>
-    public enum SlotState : byte { Filled = 0, Cracked = 1, Empty = 2 }
+    public enum SlotState : byte { Filled = 0, Cracked = 1, Empty = 2, Glazed = 3 }
 
     /// <summary>What laying a slot costs and taking it up gives back (docs/slots.md §2).</summary>
     public class SlotMaterialDef
@@ -24,6 +24,7 @@ namespace Hansa
     {
         public string Id;
         public string Deck;
+        public int[] Cell;
         public double[] Box;
         public double[][] Solids;
         public SlotMaterialDef Material;
@@ -46,13 +47,14 @@ namespace Hansa
         [JsonIgnore] public int Index;
         [JsonIgnore] public bool StartsEmpty => Start == "empty";
         [JsonIgnore] public SlotState DesignState => StartsEmpty ? SlotState.Empty : SlotState.Filled;
-        [JsonIgnore] public double[][] SolidBoxes => Kind == "gunport" ? Array.Empty<double[]>() : Solids != null && Solids.Length > 0 ? Solids : new[] { Box };
+        [JsonIgnore] public double[][] SolidBoxes => Kind == "gunport" ? Array.Empty<double[]>() : Solids != null ? Solids : new[] { Box };
         [JsonIgnore] public double Top => Box[4];
         [JsonIgnore] public double CX => (Box[0] + Box[3]) / 2;
         [JsonIgnore] public double CZ => (Box[2] + Box[5]) / 2;
         [JsonIgnore] public SlotMaterialDef Mat => Material ?? new SlotMaterialDef();
         /// <summary>(0.3.27) A length of a deck beam, not a deck cell.</summary>
         [JsonIgnore] public bool IsBeam => Kind == "beam";
+        [JsonIgnore] public bool IsStructure => Kind is "rib" or "mast";
         /// <summary>(0.3.28, step D2) A plain deck cell (no kind: not a beam's length nor any other kind of deck slot): one that takes shots as a damage part.</summary>
         [JsonIgnore] public bool IsCell => Kind == null;
         /// <summary>
@@ -138,7 +140,7 @@ namespace Hansa
                     if (!Beams.TryGetValue(bk, out var bl)) Beams[bk] = bl = new List<int>();
                     bl.Add(n);
                 }
-                else if (s.IsPort || s.IsGunPort) Ports.Add(n);        // ((0.3.28) a port's cover, (0.3.29) a port: in her side, not on a deck's cells
+                else if (s.IsPort || s.IsGunPort || s.IsStructure) Ports.Add(n);
                 else
                 {
                     var key = (TopKey(s.Top), CellI(s.CX), CellK(s.CZ));
@@ -294,6 +296,7 @@ namespace Hansa
         public SlotState this[int i] => i >= 0 && i < s.Length ? s[i] : SlotState.Filled;
         /// <summary>In her (sound or cracked): solid, drawn.</summary>
         public bool Filled(int i) => i >= 0 && i < s.Length && s[i] != SlotState.Empty;
+        public bool MeshFilled(int i) => Filled(i) && s[i] != SlotState.Glazed;
 
         public void Reset()
         {
@@ -353,7 +356,7 @@ namespace Hansa
                     int n = Layout.IndexOf(kv.Key);
                     if (n < 0) continue;
                     int v = t.GetInt(kv.Key);
-                    if (v >= 0 && v <= 2) s[n] = (SlotState)v;
+                    if (v >= 0 && v <= 3) s[n] = (SlotState)v;
                 }
             for (int i = 0; i < s.Length; i++) if (s[i] != old[i]) changed.Add(i);
             Version++;
@@ -433,7 +436,7 @@ namespace Hansa
         public bool Shown(string group, int q, SlotStates st)
         {
             var (o, f) = Refs[group];
-            return (o[q] < 0 || st.Filled(o[q])) && (f[q] < 0 || !st.Filled(f[q]));
+            return (o[q] < 0 || st.MeshFilled(o[q])) && (f[q] < 0 || !st.MeshFilled(f[q]));
         }
 
         /// <summary>A chunk's quads of a group drawn with these states (indices into the group).</summary>
@@ -507,7 +510,7 @@ namespace Hansa
 
         /// <summary>A hatch over these cells (an opening), or why not (Error: a lang code). glazed: a window trapdoor's.</summary>
         /// <param name="hinge">"x": its leaves hinged along x (on its z sides), "z": along z; null: along its long sides, along x when square</param>
-        public static PiecePlan Plan(DeckSlotLayout l, List<int> cells, bool glazed = false, string hinge = null)
+        public static PiecePlan Plan(DeckSlotLayout l, List<int> cells, bool glazed = false, string hinge = null, double coaming = 0, bool doubleLeaf = false)
         {
             var plan = new PiecePlan { Role = PieceRole.Hatch, Kind = MountKind.Horizontal };
             if (l == null || cells == null || cells.Count == 0) { plan.Error = "hansa:hatch-no-opening"; return plan; }
@@ -516,7 +519,11 @@ namespace Hansa
             if (nx > MaxCells || nz > MaxCells) { plan.Error = "hansa:hatch-too-big"; return plan; }
             if (nx * nz != cells.Count || cells.Any(n => Math.Abs(l.Slots[n].Top - top) > 0.01)) { plan.Error = "hansa:hatch-not-rect"; return plan; }
             plan.Box = new[] { r[0], top - Thick, r[1], r[2], top, r[3] };
-            plan.Sel.Add(new[] { r[0], top - Thick, r[1], r[2], top + 0.0625, r[3] });
+            plan.Coaming = Math.Clamp(coaming,0,0.5);
+            plan.DoubleLeaf = doubleLeaf;
+            if (plan.Coaming > 0) { plan.Box[1] = top + plan.Coaming; plan.Box[4] = plan.Box[1] + Thick; }
+            plan.Sel.Add((double[])plan.Box.Clone());
+            if (plan.Coaming > 0) plan.Solids.Add((double[])plan.Box.Clone());
             foreach (int n in cells)
             {
                 plan.Mounts.Add(CellMount(l.Slots[n]));
@@ -533,7 +540,7 @@ namespace Hansa
         /// 10°): her collision (solid(x, y, z)) or a ladder's line within 0.25 of a leaf; null: they swing clear. Points on
         /// each leaf every quarter block, at the middle of its thickness.
         /// </summary>
-        public static double[] SwingClash(double[] box, int dir, Func<double, double, double, bool> solid, IEnumerable<LadderDef> ladders)
+        public static double[] SwingClash(double[] box, int dir, Func<double, double, double, bool> solid, IEnumerable<LadderDef> ladders, bool doubleLeaf = false)
         {
             // (a ladder up to this deck through the opening ends under the leaves: the hatch is its gate; one standing over the deck counts)
             // (one whose foot is on the opening hangs over it, drawn from a block over the deck up: docs/slots.md §5)
@@ -552,7 +559,7 @@ namespace Hansa
                 else if (onIt) continue;
                 lad.Add((p, q));
             }
-            foreach (var (b, h, axis, sign) in Leaves(box, dir))
+            foreach (var (b, h, axis, sign) in Leaves(box, dir, doubleLeaf))
             {
                 bool alongX = axis == 0;
                 double a0 = alongX ? b[0] : b[2], a1 = alongX ? b[3] : b[5];
@@ -597,7 +604,7 @@ namespace Hansa
         /// each leaf's box shut, its hinge line (a point and the axis, 0 x or 2 z) and which way it swings up (+1, -1 about
         /// that axis, right-handed).
         /// </summary>
-        public static List<(double[] Box, double[] Hinge, int Axis, int Sign)> Leaves(double[] box, int dir)
+        public static List<(double[] Box, double[] Hinge, int Axis, int Sign)> Leaves(double[] box, int dir, bool doubleLeaf = false)
         {
             var list = new List<(double[], double[], int, int)>();
             if (box == null) return list;
@@ -606,7 +613,7 @@ namespace Hansa
             double across = a1 - a0;
             double y0 = box[1], y1 = box[4];
             const double gap = 1.0 / 64;
-            if (across < 1.5)
+            if (across < 1.5 && !doubleLeaf)
             {
                 // one leaf, hinged on the -z (or -x) side
                 list.Add((alongX ? new[] { box[0], y0, a0, box[3], y1, a1 } : new[] { a0, y0, box[2], a1, y1, box[5] },
@@ -620,6 +627,19 @@ namespace Hansa
                 alongX ? new[] { box[0], y1, a0 } : new[] { a0, y1, box[2] }, alongX ? 0 : 2, alongX ? -1 : 1));
             list.Add((alongX ? new[] { box[0], y0, mid + gap, box[3], y1, a1 } : new[] { mid + gap, y0, box[2], a1, y1, box[5] },
                 alongX ? new[] { box[0], y1, a1 } : new[] { a1, y1, box[2] }, alongX ? 0 : 2, alongX ? 1 : -1));
+            return list;
+        }
+
+        public static List<ModularPart> CoamingParts(double[] box, double height)
+        {
+            var list = new List<ModularPart>();
+            if (box == null || height <= 0) return list;
+            const double w = 0.125;
+            double y = box[1] - height;
+            list.Add(ModularPart.B(PartMat.Wood,box[0]-w,y,box[2]-w,box[0],box[1],box[5]+w));
+            list.Add(ModularPart.B(PartMat.Wood,box[3],y,box[2]-w,box[3]+w,box[1],box[5]+w));
+            list.Add(ModularPart.B(PartMat.Wood,box[0],y,box[2]-w,box[3],box[1],box[2]));
+            list.Add(ModularPart.B(PartMat.Wood,box[0],y,box[5],box[3],box[1],box[5]+w));
             return list;
         }
     }
