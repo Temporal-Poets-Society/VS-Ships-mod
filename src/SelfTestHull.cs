@@ -212,7 +212,7 @@ namespace Hansa
                         }
                         var shots = mod.Shots;
                         long started = sapi.World.ElapsedMilliseconds;
-                        string fired = shooter.FireGun(gun, null, null, e);
+                        string fired = FirePrepared(shooter, gun, e);
                         var ball = shots.Flying.Count > 0 ? shots.Flying[^1] : null;
                         WaitFor(() => ball == null || !shots.Flying.Contains(ball), 4, w2 =>
                         {

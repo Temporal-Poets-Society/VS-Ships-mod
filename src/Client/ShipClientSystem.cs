@@ -929,7 +929,7 @@ namespace Hansa
                 var hit = ShipFittings.Pick(ship.Def, ship.Grid, lo, ld, range,
                     // (an older design's lantern places are hooks now: DecoClient)
                     f => !ShipMounts.IsLegacyHook(f) && (f.Type != "attach" || f.Shown || ship.Attached.ContainsKey(f.Code) || ship.CoveredBy(f) != null || ShipFittings.Accepts(f, held)),
-                    f => ship.OpenFittings.Contains(f.Code), f => ship.Attached.TryGetValue(f.Code, out var st) ? st : null, out double t, ship.PlacedFixtures, ship.GunAbsent);
+                    f => ship.OpenFittings.Contains(f.Code), f => ship.Attached.TryGetValue(f.Code, out var st) ? st : null, out double t, ship.PlacedFixtures, ship.GunAbsent, ship.GunPick);
                 if (hit != null && t < best.Dist) best = new FixtureHit { Ship = ship, Fixture = hit, Dist = t };
             }
             // ((25 October 2026, notes 97, 98) not one behind a block of the world in front of her)
@@ -1201,6 +1201,15 @@ namespace Hansa
                     return true;
                 }
                 bool sneak = ep.Controls.Sneak || ep.Controls.ShiftKey || ep.MountedOn is ShipSeat sk && sk.Controls.Sneak;
+                var loadTarget=inSight.Ship!=null?inSight:seat!=null?(seat.Ship,seat.Fixture):default;
+                if(loadTarget.Item1!=null && GunLoading.IsLoad(capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack?.Collectible?.Code?.ToString()))
+                {
+                    if(capi.World.ElapsedMilliseconds-layingSent>400) {
+                        layingSent=capi.World.ElapsedMilliseconds;
+                        channel.SendPacket(new GunLayPacket { ShipId=loadTarget.Item1.EntityId,Gun=loadTarget.Item2.Index,Load=true });
+                    }
+                    return true;
+                }
                 // (0.3.21, step C) building mode, empty hand, Shift + right-click a gun place's gun: take it up
                 // (run out: the first such click runs it in and shuts its port, as out of building mode)
                 if (sneak && seat == null && inSight.Ship != null && VanillaPieceBlock.BuildingMode(ep) && capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack == null &&
@@ -1238,9 +1247,11 @@ namespace Hansa
                     return true;
                 }
                 laying = gun;
+                gun.Ship.LookAlongGun(gun.Gun);
+                gun.Ship.BeginLayingHere(gun.Gun);
                 gun.Ship.LayingHere = gun.Gun;
                 layingSent = capi.World.ElapsedMilliseconds;
-                channel.SendPacket(new GunLayPacket { ShipId = gun.Ship.EntityId, Gun = gun.Gun.Index, On = true });
+                channel.SendPacket(new GunLayPacket { ShipId = gun.Ship.EntityId, Gun = gun.Gun.Index, On = true, Begin = true });
                 return true;
             }
             if (!GunButtons.Fires(action)) return false;

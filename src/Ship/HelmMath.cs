@@ -136,5 +136,9 @@ namespace Hansa
         /// <summary>Wind units (Sea's, vanilla's) to metres a second, and metres a second to knots.</summary>
         public static double MetresPerSecond(double strength) => strength * Sailing.WindUnit;
         public const double KnotsPerMetreSecond = 1.94384;
+
+        /// <summary>True and apparent wind use knots only; b/s is reserved for the ship's own speed.</summary>
+        public static string WindSpeed(double metresPerSecond) =>
+            string.Format(System.Globalization.CultureInfo.CurrentCulture, "{0:0} kn", metresPerSecond * KnotsPerMetreSecond);
     }
 }

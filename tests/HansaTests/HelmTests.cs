@@ -14,6 +14,8 @@ namespace HansaTests
         static void Helm(ShipDefinition def, ShipDefinition boat)
         {
             Console.WriteLine("the helm and the wind UI");
+            Check(HelmMath.WindSpeed(9) == "17 kn" && HelmMath.WindSpeed(11) == "21 kn" && HelmMath.WindSpeed(0) == "0 kn",
+                "true and apparent wind display knots only (17 kn / 21 kn), without blocks per second");
             var sd = def.Sailing;
 
             // her frame: the bow is ship-local +x, starboard +z (ShipFrame), and starboard is on the right of the bow seen

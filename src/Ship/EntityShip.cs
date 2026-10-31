@@ -403,7 +403,7 @@ namespace Hansa
             if (Def == null || Grid == null) return false;
             bool got = ShipParts.Ray(Def, Grid, Pos.X, Pos.InternalY, Pos.Z, Pos.Yaw, Pitch, Roll, origin, dir, range,
                 f => !ShipMounts.IsLegacyHook(f) && (f.Type != "attach" || f.Shown || Attached.ContainsKey(f.Code) || CoveredBy(f) != null || ShipFittings.Accepts(f, held)),
-                f => OpenFittings.Contains(f.Code), f => Attached.TryGetValue(f.Code, out var st) ? st : null, out hit, GunAbsent);
+                f => OpenFittings.Contains(f.Code), f => Attached.TryGetValue(f.Code, out var st) ? st : null, out hit, GunAbsent, GunPick);
             // a piece put aboard in front of it (ShipDecor)
             got = PieceRay(origin, dir, range, got, ref hit);
             // a sail in front of that (ShipFlooding: to look at it and mend it)
@@ -932,7 +932,7 @@ namespace Hansa
                     // Shift: run it in and shut its port
                     if (sneak && !ctrl && f.Lid != null)
                     {
-                        string herr = HouseGun(f);
+                        string herr = ToggleGunRun(f);
                         if (herr != null) player.SendIngameError("hansa-gun", Lang.GetL(player.LanguageCode, herr));
                         break;
                     }

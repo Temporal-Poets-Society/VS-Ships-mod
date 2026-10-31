@@ -11,9 +11,8 @@ namespace Hansa
     /// from where it comes toward her) and the apparent wind (an orange one, what her sails feel), north marked on the
     /// rim. Toggled with Ctrl+U or .hansa wind (HansaClientConfig.WindPanel).
     /// (0.3.12, the user found it confusing: units mixed, lines unlabelled, the helm's line saying it all again, the orange
-    /// arrow taken for the no-go angle.) Now every line says what it is, every speed is knots with metres a second (= blocks
-    /// a second) in brackets: "Ship: 9.0 kn (4.6 m/s) ahead", "Wind: force 8 gale, 36 kn (19 m/s) from the SW", "On her
-    /// sails: 38 kn (20 m/s), on the port beam", and at the helm "Beam reach, port tack", "Best she can make here: …". The
+    /// arrow taken for the no-go angle.) Each line names what it measures. Ship speed keeps blocks per second in brackets;
+    /// true and apparent wind use knots only. At the helm: "Beam reach, port tack", "Best she can make here: …". The
     /// card has a red no-go wedge (the bow directions she can't point: the true wind ± the design's Sailing.NoGo) and a
     /// legend under it (wind pale, on her sails orange, her course green, no-go red). And a warning in colour when the
     /// wind is too strong for the sail she has set, before it tears them (<see cref="SailWear.Warning"/>, the same load
@@ -132,17 +131,17 @@ namespace Hansa
 
         static int Deg(double rad) => (int)Math.Round(rad * 180 / Math.PI / 2) * 2;
 
-        /// <summary>A speed (blocks a second) as the panel and the helm say every speed: "9.0 kn (4.6 b/s)" (0.3.24, the user: "b/s hides the fake speed better").</summary>
+        /// <summary>A speed (blocks a second) as the panel and the helm say the ship's own speed: "9.0 kn (4.6 b/s)" (0.3.24, the user: "b/s hides the fake speed better").</summary>
         public static string Speed(double ms, bool tenths = true) =>
             Lang.Get(tenths ? "hansa:speed" : "hansa:speed-whole", ms * HelmMath.KnotsPerMetreSecond, ms);
 
-        /// <summary>"Wind: force 8 gale, 36 kn (19 m/s) from the SW", or "Wind: calm".</summary>
+        /// <summary>"Wind: force 8 gale, 36 kn from the SW", or "Wind: calm".</summary>
         public static string WindLine(Sea.Wind w)
         {
             double strength = w.Strength;
             if (strength < 0.02) return Lang.Get("hansa:windpanel-calm");
             return Lang.Get("hansa:windpanel-true", Sea.Beaufort.Force(strength), Sea.Beaufort.Name(strength),
-                Speed(HelmMath.MetresPerSecond(strength), false), Sea.Compass.Name(w.FromDegrees));
+                HelmMath.WindSpeed(HelmMath.MetresPerSecond(strength)), Sea.Compass.Name(w.FromDegrees));
         }
 
         /// <summary>Where a wind going this way relative to her bow comes from: "right ahead", "on the port beam"...</summary>
@@ -156,11 +155,11 @@ namespace Hansa
                 : Lang.Get("hansa:wind-astern");
         }
 
-        /// <summary>"On her sails: 38 kn (20 m/s), on the port beam" (the apparent wind).</summary>
+        /// <summary>"On her sails: 38 kn, on the port beam" (the apparent wind).</summary>
         public static string OnSailsLine(EntityShip ship, Sea.Wind w)
         {
             Sailing.Apparent(w.X, w.Z, ship.Pos.Yaw, ship.Speed, out double ax, out double az);
-            return Lang.Get("hansa:windpanel-apparent", Speed(HelmMath.MetresPerSecond(Math.Sqrt(ax * ax + az * az)), false),
+            return Lang.Get("hansa:windpanel-apparent", HelmMath.WindSpeed(HelmMath.MetresPerSecond(Math.Sqrt(ax * ax + az * az))),
                 Where(HelmMath.Relative(ax, az, ship.Pos.Yaw)));
         }
 

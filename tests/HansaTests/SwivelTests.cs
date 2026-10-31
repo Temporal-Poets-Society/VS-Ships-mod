@@ -36,15 +36,15 @@ namespace HansaTests
             foreach (var f in sw)
             {
                 var deck = def.Decks?.FirstOrDefault(d => Math.Abs(d.Y - f.Seat[1]) < 0.05);
-                Check(f.Pivot.SequenceEqual(f.Pos) && Math.Abs(f.Trunnion[1] - f.Pos[1] - SwivelGun.PinHeight) < 1e-9 && f.TrainLimits[0] == -80 && f.TrainLimits[1] == 80 &&
-                      f.ElevationLimits[0] == -25 && f.ElevationLimits[1] == 30 && f.Reload == SwivelGun.ReloadSeconds && f.Shot == SwivelGun.ShotKg &&
+                Check(f.Pivot.SequenceEqual(f.Pos) && Math.Abs(f.Trunnion[1] - f.Pos[1] - SwivelGun.PinHeight) < 1e-9 && f.TrainLimits[0] == -100 && f.TrainLimits[1] == 100 &&
+                      f.ElevationLimits[0] == -25 && f.ElevationLimits[1] == 40 && f.Reload == SwivelGun.ReloadSeconds && f.Shot == SwivelGun.ShotKg &&
                       f.Shot < def.Cannon.ShotMass / 5 && f.Reload < def.Cannon.Cooldown && f.Box == null && deck != null,
-                    $"{f.Code}: on its socket at {f.Pos[0]:0.00} {f.Pos[1]:0.00} {f.Pos[2]:0.00}, ±80° by -25..30°, a {f.Shot} kg ball, {f.Reload} s to fire again; its gunner on the {deck?.Code ?? "?"} deck (y {f.Seat[1]:0.00})");
+                    $"{f.Code}: on its socket at {f.Pos[0]:0.00} {f.Pos[1]:0.00} {f.Pos[2]:0.00}, ±100° by -25..40°, a {f.Shot} kg ball, {f.Reload} s to fire again; its gunner on the {deck?.Code ?? "?"} deck (y {f.Seat[1]:0.00})");
                 // the drawn barrel's muzzle (the shape's) where the shot leaves, laid anywhere
                 double worst = 0;
                 var s = new float[16]; var y = new float[16]; var b = new float[16];
-                for (float t = -80; t <= 80; t += 20)
-                    for (float e = -25; e <= 30; e += 11)
+                for (float t = -100; t <= 100; t += 20)
+                    for (float e = -25; e <= 40; e += 13)
                     {
                         var lay = new GunLay(t, e);
                         SwivelGun.PartMatrices(f, lay, s, y, b);
@@ -56,8 +56,8 @@ namespace HansaTests
                 // only within its arc
                 var c = GunLaying.Clamp(f, new GunLay(110, 45));
                 var up = GunLaying.Clamp(f, new GunLay(30, 45));
-                Check(c.Train == 80 && up.Train == 30 && up.Elevation <= 30 && up.Elevation >= 15 && GunLaying.Beyond(f, new GunLay(-95, 0)) && !GunLaying.Beyond(f, new GunLay(-45, -15)),
-                    $"{f.Code}: laid 110° it goes to 80°, 45° up to {up.Elevation:0.0}° (30° its limit; less as its tail comes over its rail); 95° aft is past its arc, 45° aft and 15° down within it");
+                Check(c.Train == 100 && up.Train == 30 && up.Elevation <= 40 && up.Elevation >= 15 && GunLaying.Beyond(f, new GunLay(-105, 0)) && !GunLaying.Beyond(f, new GunLay(-45, -15)),
+                    $"{f.Code}: laid 110° it goes to 100°, 45° up to {up.Elevation:0.0}° (40° its limit; less as its tail comes over its rail); 105° aft is past its arc, 45° aft and 15° down within it");
                 // the gunner where he stands: his click takes it, and it's within his reach
                 var eye = new Vec3d(f.Seat[0], f.Seat[1] + 1.62, f.Seat[2]);
                 var sel = f.SelBox;
@@ -66,21 +66,20 @@ namespace HansaTests
                 var hit = ShipFittings.Pick(def, def.Grid, eye, new Vec3d(to.X / len, to.Y / len, to.Z / len), 4.5, x => true, x => false, x => null, out _);
                 bool reach = GunLaying.InReach(f, new GunLay(0, 0), f.Seat[0], f.Seat[1], f.Seat[2], 3.5);   // (EntityShip.LayReach)
                 Check(hit == f && reach && GunButtons.LaysGun(null, hit, reach, false) == f, $"{f.Code}: from where its gunner stands, his click takes it ({hit?.Code ?? "nothing"}), in reach of its breech");
-                // trained along her rail, it can't be depressed into it (nor its tail lowered into it); square to it, it goes
-                // all the way down her side
+                // The taller, heavier yoke permits the wider arc while keeping barrel and tail above the rail.
                 var along = GunLaying.Clamp(f, new GunLay(75, -25));
-                var tail = GunLaying.Clamp(f, new GunLay(-80, 30));
+                var tail = GunLaying.Clamp(f, new GunLay(-100, 40));
                 var square = GunLaying.Clamp(f, new GunLay(0, -25));
-                Check(along.Elevation > -25 && SwivelGun.ClearOfRail(f, along) && tail.Elevation < 30 && SwivelGun.ClearOfRail(f, tail) && square.Elevation <= -20,
-                    $"{f.Code}: laid 75° along her rail and 25° down it comes up to {along.Elevation:0.0}°; 80° aft and 30° up its tail keeps it to {tail.Elevation:0.0}°; square, {-square.Elevation:0.0}° down her side");
+                Check(along.Elevation == -25 && SwivelGun.ClearOfRail(f, along) && tail.Elevation == 40 && SwivelGun.ClearOfRail(f, tail) && square.Elevation <= -20,
+                    $"{f.Code}: laid 75° along her rail and 25° down it comes up to {along.Elevation:0.0}°; 100° aft and 40° up its tail keeps it to {tail.Elevation:0.0}°; square, {-square.Elevation:0.0}° down her side");
                 // (27 October 2026) all over its arc, as it can be laid: its barrel and tail clear of her rail cap (her mesh's
                 // level faces under them, by a barrel's radius), and its ball's start, past the cap, out of her collision. (Her
                 // collision alone can't say it: a cap's top between two of its quarter-block rows is solid up to the next, so it
                 // only says where the ball starts lower than the cap.)
                 int touch = 0, inside = 0, tried = 0;
                 string where = null;
-                for (float t = -80; t <= 80; t += 10)
-                    for (float e = -25; e <= 30; e += 5)
+                for (float t = -100; t <= 100; t += 10)
+                    for (float e = -25; e <= 40; e += 5)
                     {
                         var lay = GunLaying.Clamp(f, new GunLay(t, e));
                         tried++;

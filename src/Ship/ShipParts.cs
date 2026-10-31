@@ -350,7 +350,8 @@ namespace Hansa
         /// </summary>
         public static bool Ray(ShipDefinition def, VoxelGrid grid, double posX, double posY, double posZ, double yaw, double pitch, double roll,
             Vec3d origin, Vec3d dir, double range, System.Func<FixtureDef, bool> visible, System.Func<FixtureDef, bool> isOpen,
-            System.Func<FixtureDef, ItemStack> attached, out ShipRayHit hit, System.Func<FixtureDef, bool> absent = null)
+            System.Func<FixtureDef, ItemStack> attached, out ShipRayHit hit, System.Func<FixtureDef, bool> absent = null,
+            System.Func<FixtureDef,Vec3d,Vec3d,double> posedPick = null)
         {
             hit = default;
             double len = dir.Length();
@@ -364,7 +365,7 @@ namespace Hansa
                 oz + range < grid.OZ - 1 || oz - range > grid.MaxZ + 1) return false;
 
             double tw = grid.RaycastCell(o, d, range, out int ci, out int cj, out int ck, out int axis, skipStart: true);
-            var f = ShipFittings.Pick(def, grid, o, d, range, visible, isOpen, attached, out double tf, null, absent);
+            var f = ShipFittings.Pick(def, grid, o, d, range, visible, isOpen, attached, out double tf, null, absent, posedPick);
             double t;
             Vec3d normal;
             if (f != null && tf <= range && tf <= tw + 0.05)

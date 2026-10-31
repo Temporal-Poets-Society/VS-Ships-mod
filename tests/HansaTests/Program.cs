@@ -33,13 +33,14 @@ namespace HansaTests
         static int Main(string[] args)
         {
             string root = FindRoot();
+            if (Array.IndexOf(args, "runtime-notes") >= 0) { RuntimeNotes(root); return failures == 0 ? 0 : 1; }
             // (27 October 2026, the build speed-up: the offline tests in one pass) every group the caravel's work runs, one
             // after another in one process, each timed and counted on its own: dotnet run -c Release -- caravel-all
             if (Array.IndexOf(args, "caravel-all") >= 0)
             {
                 var groups = new[] { new[] { "design", "caravel" }, new[] { "gates" }, new[] { "swivels" }, new[] { "lateen" },
                                      new[] { "gunclick" }, new[] { "paint" }, new[] { "unmanned" }, new[] { "hull" }, new[] { "stairs" },
-                                     new[] { "slots" }, new[] { "partitions" }, new[] { "modular" }, new[] { "decor" } };
+                                     new[] { "slots" }, new[] { "partitions" }, new[] { "modular" }, new[] { "decor" }, new[] { "runtime-notes" } };
                 var all = System.Diagnostics.Stopwatch.StartNew();
                 var rows = new System.Collections.Generic.List<string>();
                 int total = 0;
@@ -380,6 +381,7 @@ namespace HansaTests
             var boatDef = JsonConvert.DeserializeObject<ShipDefinition>(File.ReadAllText(Path.Combine(root, "assets", "hansa", "config", "ships", "skiff.json")));
             boatDef.Init();
             Boat(boatDef, def);
+            RuntimeNotes(root);
             Shadows(boatDef, Path.Combine(root, "assets", "hansa"));
             SurveyNotes(def, root);
             Hearth(def);

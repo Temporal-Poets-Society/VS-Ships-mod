@@ -128,6 +128,7 @@ namespace Hansa
         [JsonIgnore] public VoxelGrid Grid;
         /// <summary>A mesh built in memory (a grid ship's: <see cref="GridShips"/>) instead of <see cref="ShipShapes.Skin"/>'s file.</summary>
         [JsonIgnore] public ShipSkinFile SkinFile;
+        [JsonIgnore] public PlacementMesh Placement;
         /// <summary>What part of her a spot of her collision is (the hull's shell, a deck, a mast...): <see cref="ShipPartMap"/>.</summary>
         [JsonIgnore] public ShipPartMap PartMap;
         /// <summary>

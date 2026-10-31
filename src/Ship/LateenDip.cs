@@ -427,13 +427,13 @@ namespace Hansa
         /// <summary>Where a cast-off shroud's foot hangs: down the after side of its mast (clear of the yard slung on its side), above its channel.</summary>
         public static double[] HungFoot(LateenShroud s) => new[]
         {
-            s.Mast.X - (s.Mast.Radius + 0.12 + 0.07 * s.Rank), s.Foot[1] + 0.3, s.Mast.Z + s.Side * 0.03
+            s.Mast.X - (s.Mast.Radius + 0.12 + 0.12 * s.Rank), s.Foot[1] + 0.3, s.Mast.Z + s.Side * 0.03
         };
 
         /// <summary>Where a cast-off shroud's eye hangs: off the after side of its masthead, clear of the mast all the way down.</summary>
         public static double[] HungHead(LateenShroud s) => new[]
         {
-            s.Mast.X - (s.Mast.Radius + 0.05), s.Head[1] - 0.1, s.Mast.Z + s.Side * 0.03
+            s.Mast.X - (s.Mast.Radius + 0.05 + 0.12 * s.Rank), s.Head[1] - 0.1, s.Mast.Z + s.Side * 0.03
         };
 
         /// <summary>A cast-off shroud's matrix (ship-local): turned and stretched from its eye (<see cref="HungHead"/>) down to its foot (<see cref="HungFoot"/>).</summary>

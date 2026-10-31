@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
 using Vintagestory.API.MathTools;
@@ -80,7 +81,10 @@ namespace Hansa
         /// </summary>
         public static GunLay Relative(FixtureDef gun, GunLay view, ref GunLay offset, bool gateOpen = false)
         {
-            var raw = new GunLay(view.Train + offset.Train, view.Elevation + offset.Elevation);
+            double train=view.Train+offset.Train;
+            while(train>180) train-=360;
+            while(train<=-180) train+=360;
+            var raw = new GunLay(train, view.Elevation + offset.Elevation);
             var c = Clamp(gun, raw, gateOpen);
             offset.Train += c.Train - raw.Train;
             offset.Elevation += c.Elevation - raw.Elevation;
@@ -254,6 +258,47 @@ namespace Hansa
         }
 
         // ------------------------------------------------------------------ laid where you look
+        /// <summary>Handle the carriage and barrel where they are drawn, with train, elevation and run-back.</summary>
+        public static double Pick(FixtureDef gun, GunLay lay, double back, Vec3d o, Vec3d d)
+        {
+            double best=double.MaxValue;
+            foreach(var (box,barrel) in PickBodies(gun))
+            {
+                var inv=new float[16];Mat4f.Invert(inv,Matrix(gun,lay,back,barrel));
+                var a=PlacementMesh.Transform(inv,new[] {o.X,o.Y,o.Z});
+                var end=PlacementMesh.Transform(inv,new[] {o.X+d.X,o.Y+d.Y,o.Z+d.Z});
+                double t=ShipFittings.RayBox(new Vec3d(a[0],a[1],a[2]),new Vec3d(end[0]-a[0],end[1]-a[1],end[2]-a[2]),
+                    new Cuboidd(box[0],box[1],box[2],box[3],box[4],box[5]));
+                if(t>=0) best=Math.Min(best,t);
+            }
+            return best==double.MaxValue?-1:best;
+        }
+
+        public static double[] SelectionBounds(FixtureDef gun,GunLay lay,double back) =>
+            PlacementMesh.Bounds(PickBodies(gun).SelectMany(b=>PlacementMesh.Corners(b.Box).Select(p=>{
+                var v=Place(gun,lay,back,new Vec3d(p[0],p[1],p[2]),b.Barrel);return new[] {v.X,v.Y,v.Z}; })));
+
+        static System.Collections.Generic.IEnumerable<(double[] Box,bool Barrel)> PickBodies(FixtureDef gun)
+        {
+            if(gun.Swivel && gun.Sel!=null) { yield return (gun.Sel,true);yield break; }
+            if((gun.Box??gun.Sel) is double[] carriage) yield return (carriage,false);
+            var t=TrunnionOf(gun);OutOf(gun,out double ox,out double oz);
+            double r=Math.Max(0.09,gun.Bore*1.15),tail=gun.Swivel?SwivelGun.TailReach:0.72;
+            var muzzle=gun.Muzzle??new[] {t.X+ox,t.Y,t.Z+oz};
+            yield return (new[] { Math.Min(t.X-ox*tail,muzzle[0])-r,t.Y-r,Math.Min(t.Z-oz*tail,muzzle[2])-r,
+                Math.Max(t.X-ox*tail,muzzle[0])+r,t.Y+r,Math.Max(t.Z-oz*tail,muzzle[2])+r },true);
+        }
+
+        public static float[] Matrix(FixtureDef gun,GunLay lay,double back,bool barrel)
+        {
+            var m=new float[16];var o=Place(gun,lay,back,new Vec3d(),barrel);
+            m[12]=(float)o.X;m[13]=(float)o.Y;m[14]=(float)o.Z;m[15]=1;
+            for(int a=0;a<3;a++) {
+                var p=Place(gun,lay,back,new Vec3d(a==0?1:0,a==1?1:0,a==2?1:0),barrel);
+                m[4*a]=(float)(p.X-o.X);m[4*a+1]=(float)(p.Y-o.Y);m[4*a+2]=(float)(p.Z-o.Z);
+            }
+            return m;
+        }
 
         /// <summary>
         /// The lay that points the barrel along a direction (ship-local, any length): its elevation over her deck, and its

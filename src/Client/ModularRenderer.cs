@@ -96,7 +96,16 @@ namespace Hansa
                 _ => timber
             };
             var md = new MeshData(64, 96, false, true, true, true);
-            foreach (var part in parts)
+            if(pc.Role is PieceRole.Stair or PieceRole.Ladder)
+                foreach(var q in ModularMesh.Quads(parts))
+                {
+                    var tex=Tex((PartMat)(int)q[0]);int start=md.VerticesCount;
+                    int flags=VertexFlags.PackNormal(q[6],q[7],q[8]);
+                    for(int k=0;k<4;k++) md.AddWithFlagsVertex(q[1+8*k],q[2+8*k],q[3+8*k],
+                        tex.x1+(tex.x2-tex.x1)*q[4+8*k]/16,tex.y1+(tex.y2-tex.y1)*q[5+8*k]/16,-1,flags);
+                    md.AddIndices(start,start+1,start+2,start,start+2,start+3);md.AddTextureId(tex.atlasTextureId);
+                }
+            else foreach (var part in parts)
             {
                 if (part.IsBeam) Beam(md, Tex(part.Mat), part.P0, part.P1, part.AlongX, part.W, part.H);
                 else AddBox(md, Tex(part.Mat), part.Box[0], part.Box[1], part.Box[2], part.Box[3], part.Box[4], part.Box[5]);

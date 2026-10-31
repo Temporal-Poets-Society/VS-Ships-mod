@@ -215,7 +215,7 @@ namespace Hansa
         /// </summary>
         public static FixtureDef Pick(ShipDefinition def, VoxelGrid grid, Vec3d o, Vec3d d, double range, System.Func<FixtureDef, bool> visible,
             System.Func<FixtureDef, bool> isOpen, System.Func<FixtureDef, ItemStack> attached, out double dist, System.Collections.Generic.IEnumerable<FixtureDef> extra = null,
-            System.Func<FixtureDef, bool> absent = null)
+            System.Func<FixtureDef, bool> absent = null, System.Func<FixtureDef, Vec3d, Vec3d, double> posedPick = null)
         {
             dist = double.MaxValue;
             FixtureDef best = null;
@@ -226,7 +226,7 @@ namespace Hansa
                 // ((0.1.0-dev.9, note 61) an open gate where its leaf stands open, not the gap it shuts)
                 var box = PickBox(f, isOpen);
                 if (box == null || !visible(f) || absent != null && absent(f)) continue;
-                double t = RayBox(o, d, box);
+                double t = f.Type == "gun" && posedPick != null ? posedPick(f,o,d) : RayBox(o, d, box);
                 // (0.3.7: the hearth's firebed is sunk inside its bricks, which are solid, so the ray always met them first
                 // and the crosshair named the forecastle's woodwork: nothing on the hearth could be clicked)
                 if (wall <= range && BodyOf(f) is double[] body && grid.CellsOf(body) is double[] bc &&

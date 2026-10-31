@@ -148,5 +148,7 @@ namespace Hansa
         [ProtoMember(4)] public bool HasAim;
         [ProtoMember(5)] public float Train;
         [ProtoMember(6)] public float Elevation;
+        [ProtoMember(7)] public bool Load;
+        [ProtoMember(8)] public bool Begin;
     }
 }

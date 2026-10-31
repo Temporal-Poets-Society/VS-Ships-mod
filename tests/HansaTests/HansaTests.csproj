@@ -13,11 +13,17 @@
     <EnableDefaultItems>false</EnableDefaultItems>
     <VintageStoryPath Condition="'$(VintageStoryPath)' == ''">$(VINTAGE_STORY)</VintageStoryPath>
     <VintageStoryPath Condition="'$(VintageStoryPath)' == ''">$(APPDATA)\Vintagestory</VintageStoryPath>
+    <SeaRoot Condition="'$(SeaRoot)' == ''">$(MSBuildProjectDirectory)\..\..\..\Sea</SeaRoot>
     <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
     <NetCoreRuntimeDir>$([System.IO.Directory]::GetDirectories('$(NetCoreRoot)shared\Microsoft.NETCore.App', '10.*')[0])</NetCoreRuntimeDir>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="RuntimeNoteTests.cs" />
+    <Compile Include="..\..\src\Ship\PlacementMesh.cs" Link="Ship\PlacementMesh.cs" />
+    <Compile Include="..\..\src\Ship\PieceShape.cs" Link="Ship\PieceShape.cs" />
+    <Compile Include="..\..\src\Ship\GunLoading.cs" Link="Ship\GunLoading.cs" />
+    <Compile Include="..\..\src\Ship\ModularMesh.cs" Link="Ship\ModularMesh.cs" />
     <Compile Include="GridInspect.cs" />
     <Compile Include="CaravelInspect.cs" />
     <Compile Include="SteerageTests.cs" />
@@ -128,14 +134,14 @@
     <Compile Include="..\..\src\Ship\AimPlace.cs" Link="Ship\AimPlace.cs" />
     <Compile Include="..\..\src\Ship\ModularGeometry.cs" Link="Ship\ModularGeometry.cs" />
     <!-- Sea's waves, which the ship rides -->
-    <Compile Include="..\..\..\Sea\src\Water\WaveField.cs" Link="Sea\WaveField.cs" />
-    <Compile Include="..\..\..\Sea\src\Water\WaterShader.cs" Link="Sea\WaterShader.cs" />
-    <Compile Include="..\..\..\Sea\src\Wind\Wind.cs" Link="Sea\Wind.cs" />
-    <Compile Include="..\..\..\Sea\src\Wind\WorldShape.cs" Link="Sea\WorldShape.cs" />
-    <Compile Include="..\..\..\Sea\src\Wind\Noise.cs" Link="Sea\Noise.cs" />
+    <Compile Include="$(SeaRoot)\src\Water\WaveField.cs" Link="Sea\WaveField.cs" />
+    <Compile Include="$(SeaRoot)\src\Water\WaterShader.cs" Link="Sea\WaterShader.cs" />
+    <Compile Include="$(SeaRoot)\src\Wind\Wind.cs" Link="Sea\Wind.cs" />
+    <Compile Include="$(SeaRoot)\src\Wind\WorldShape.cs" Link="Sea\WorldShape.cs" />
+    <Compile Include="$(SeaRoot)\src\Wind\Noise.cs" Link="Sea\Noise.cs" />
     <!-- (21 October 2026) Sea 0.4's wave field takes its hours from the server's anchors -->
-    <Compile Include="..\..\..\Sea\src\SeaConfig.cs" Link="Sea\SeaConfig.cs" />
-    <Compile Include="..\..\..\Sea\src\Wind\WindModel.cs" Link="Sea\WindModel.cs" />
+    <Compile Include="$(SeaRoot)\src\SeaConfig.cs" Link="Sea\SeaConfig.cs" />
+    <Compile Include="$(SeaRoot)\src\Wind\WindModel.cs" Link="Sea\WindModel.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="$(NetCoreRuntimeDir)\System.*.dll" Exclude="$(NetCoreRuntimeDir)\System.Private.*.dll;$(NetCoreRuntimeDir)\System.IO.Compression.Native.dll" Private="false" />

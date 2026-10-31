@@ -69,6 +69,17 @@ namespace Hansa
             return n;
         }
 
+        public static bool PieceFace(ShipPiece piece,Vec3d o,Vec3d d,double range,out double t,out double[] normal)
+        {
+            t=double.MaxValue;normal=null;
+            foreach(var b in piece.PickBoxes) {
+                double hit=ShipFittings.RayBox(o,d,new Cuboidd(b[0],b[1],b[2],b[3],b[4],b[5]));
+                if(hit<0 || hit>range || hit>=t) continue;
+                t=hit;normal=BoxNormal(o,d,b);
+            }
+            return normal!=null;
+        }
+
         /// <summary>Where a ray meets her collision, and the face's normal there (axis-aligned), or false within range.</summary>
         public static bool GridHit(VoxelGrid g, Vec3d o, Vec3d d, double range, out double t, out double[] normal)
         {
@@ -183,6 +194,17 @@ namespace Hansa
                 if (m.Kind == MountKind.Floor && x >= m.X - 1e-6 && x <= m.X + 1 + 1e-6 && z >= m.Z - 1e-6 && z <= m.Z + 1 + 1e-6 && y >= m.Y - 1e-6 && y < m.Y + 1)
                     return m;
             return null;
+        }
+
+        /// <summary>A stair is offered on its foot's floor. From below a deck its edge also identifies the floor
+        /// underneath it. These are physical faces; a ray passing through a place in the air offers nothing.</summary>
+        public static IEnumerable<MountPoint> StairFloors(MountLayout l, Vec3d hit, double[] normal)
+        {
+            if(l==null || hit==null || normal==null) yield break;
+            double x=hit.X+normal[0]*Off,z=hit.Z+normal[2]*Off;
+            var floors=l.Floors.Where(m=>x>=m.X-1e-6 && x<m.X+1-1e-6 && z>=m.Z-1e-6 && z<m.Z+1-1e-6);
+            foreach(var m in floors.OrderByDescending(m=>m.Y))
+                if(normal[1]>0.5 ? Math.Abs(m.Y-hit.Y)<0.3 : m.Y<hit.Y && hit.Y-m.Y<4.5) yield return m;
         }
 
         /// <summary>The border places whose block (along its segment, up its row) holds the point, nearest line first, within half a block of their line.</summary>

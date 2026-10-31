@@ -14,20 +14,20 @@ namespace Hansa
     /// <item>its selection box is round its barrel laid square; it isn't solid (it's over the rail, out of the way);</item>
     /// <item>the gunner stands on the deck inboard of it (Seat), unless the design says where.</item>
     /// </list>
-    /// No port, lid, carriage or gun place: it's always mounted, always out. (No loading yet, as for her other guns: its
-    /// breech chamber comes with the loading steps; it fires again after <see cref="ReloadSeconds"/>.)
+    /// No port, lid, carriage or gun place: it's always mounted, always out. Its chamber takes powder and one lead shot;
+    /// it can fire again after loading and <see cref="ReloadSeconds"/>.
     /// </summary>
     public static class SwivelGun
     {
         public const string Kind = "swivel";
         /// <summary>The yoke's pins over the socket's top (blocks).</summary>
-        public const double PinHeight = 0.2;
+        public const double PinHeight = 0.62;
         /// <summary>From the pins to the muzzle, and back to the end of the breech's handle (blocks).</summary>
-        public const double MuzzleReach = 0.62, TailReach = 0.45;
+        public const double MuzzleReach = 1.05, TailReach = 0.7621;
         /// <summary>A berço's bore (a 4.5 cm ball), its ball (kg: a 2-pounder's lead and iron), how soon it fires again (s), the radius it strikes with.</summary>
         public const float BoreBlocks = 0.045f, ShotKg = 0.45f, ReloadSeconds = 4, StrikeRadius = 0.05f;
         /// <summary>Its arc when the design gives none (degrees from square, + toward her bow; up and down), and how fast one man lays it.</summary>
-        public static readonly float[] Train = { -80, 80 }, Elevate = { -25, 30 };
+        public static readonly float[] Train = { -100, 100 }, Elevate = { -25, 40 };
         public const float TrainRate = 90, ElevationRate = 60;
         /// <summary>How far inboard of the socket the gunner stands (blocks), unless the design says.</summary>
         public const double StandIn = 0.85;
@@ -38,7 +38,7 @@ namespace Hansa
         /// cap only: the caravel's first quarterdeck rail, 0.15 to 0.25 wide, her side 0.1 more out under it), and by how
         /// much (a barrel's radius and a little).
         /// </summary>
-        public const double RailOut = 0.2, RailIn = 0.12, RailClear = 0.08;
+        public const double RailOut = 0.2, RailIn = 0.12, RailClear = 0.10;
 
         /// <summary>
         /// Can it be laid so without its barrel or its tail going into the rail cap under it? Trained along the rail, the
@@ -56,7 +56,7 @@ namespace Hansa
             foreach (double r in new[] { MuzzleReach, -TailReach })
             {
                 // the farthest point of that half of the barrel still over the cap
-                double half = r > 0 ? railOut : railIn;
+                double half = r*Math.Cos(t) > 0 ? railOut : railIn;
                 double over = across < 1e-6 ? Math.Abs(r) : Math.Min(Math.Abs(r), half / across);
                 if (PinHeight + Math.Sign(r) * over * up < RailClear) return false;
             }
@@ -89,8 +89,8 @@ namespace Hansa
             f.Trunnion ??= new[] { x, y + PinHeight, z };
             f.Muzzle ??= new[] { f.Trunnion[0] + ox * MuzzleReach, f.Trunnion[1], f.Trunnion[2] + oz * MuzzleReach };
             // (the class defaults are a carriage gun's: those mean the design gave none)
-            if (f.TrainLimits == null || f.TrainLimits.Length < 2 || f.TrainLimits[0] == -12 && f.TrainLimits[1] == 12) f.TrainLimits = (float[])Train.Clone();
-            if (f.ElevationLimits == null || f.ElevationLimits.Length < 2 || f.ElevationLimits[0] == -5 && f.ElevationLimits[1] == 15) f.ElevationLimits = (float[])Elevate.Clone();
+            if (f.TrainLimits == null || f.TrainLimits.Length < 2 || f.TrainLimits[0] == -12 && f.TrainLimits[1] == 12 || f.TrainLimits[0] == -80 && f.TrainLimits[1] == 80) f.TrainLimits = (float[])Train.Clone();
+            if (f.ElevationLimits == null || f.ElevationLimits.Length < 2 || f.ElevationLimits[0] == -5 && f.ElevationLimits[1] == 15 || f.ElevationLimits[0] == -25 && f.ElevationLimits[1] == 30) f.ElevationLimits = (float[])Elevate.Clone();
             if (f.TrainRate == 10) f.TrainRate = TrainRate;
             if (f.ElevationRate == 6) f.ElevationRate = ElevationRate;
             if (f.Bore == 0.14f) f.Bore = BoreBlocks;

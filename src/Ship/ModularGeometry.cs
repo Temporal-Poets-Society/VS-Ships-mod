@@ -16,6 +16,7 @@ namespace Hansa
         public PartMat Mat;
         public double[] Box;
         public double[] P0, P1;
+        public double[][] Corners;
         public double W, H;
         public bool AlongX;
         public bool IsBeam => P0 != null;
@@ -31,6 +32,7 @@ namespace Hansa
         /// <summary>A beam whose ends are at one height is a box; else null.</summary>
         public double[] AsBox()
         {
+            if (Corners != null) return null;
             if (!IsBeam) return Box;
             if (Math.Abs(P0[1] - P1[1]) > 1e-9) return null;
             double hw = W / 2, hh = H / 2;
@@ -471,7 +473,7 @@ namespace Hansa
 
         /// <summary>
         /// (0.3.23, the user: handrails built into the ship's stairs, as the ladder's) A ship's stair's own handrails: on each
-        /// side over its stringer, upright stanchions (near its foot, at its middle, near its head) and a wooden handrail
+        /// side over its stringer, stanchions perpendicular to the stringer and a wooden handrail
         /// parallel to its nosings' line, <see cref="PiecePlanner.RailHeight"/> over it. Drawn; its solid guards are
         /// <see cref="PiecePlanner.FlightGuards"/>.
         /// </summary>
@@ -483,21 +485,31 @@ namespace Hansa
             double[] P(double u, double yy, double c) => PiecePlanner.StairPoint(foot, up, u, yy, c);
             double Nose(double u) => PiecePlanner.FlightNosing(rise, u, run);
             double sh = FlightBaluster / 2, top = PiecePlanner.RailHeight;
+            double slope=rise/run, scale=Math.Sqrt(1+slope*slope);
+            double offset=(Nose(0)+top-StringerTop(rise,0,run)+FlightBalusterEmbed)/(1+slope*slope);
+            double shift=-slope*offset;
             double uA = 0.1, uB = run - 0.1;
             // (0.3.24, note 189: "stairs need more railing verticals and all a bit more beefy") balusters about every
             // FlightBalusterPitch along the run (the first near its foot, the last near its head), the rail heavier
             int n = Math.Max(2, (int)Math.Round((uB - uA) / FlightBalusterPitch));
             foreach (double c in new[] { -cs, cs })
             {
-                // the balusters: upright, from down in the stringer (0.3.27, note 200: "should go to and embed into stair
-                // beams, now they hang a bit": they stopped 0.25 over its top) to the rail's underside
+                // The posts embed into the stringer and finish at the handrail's top height.
                 for (int i = 0; i <= n; i++)
                 {
                     double u = uA + (uB - uA) * i / n;
-                    double foot0 = StringerTop(rise, u - sh, run) - FlightBalusterEmbed;
-                    list.Add(ModularPart.B(PartMat.Wood, PiecePlanner.StairBox(foot, up, u - sh, foot0, c - sh, u + sh, Nose(u) + top - FlightRailH / 2, c + sh)));
+                    double bottom=StringerTop(rise,u,run)-FlightBalusterEmbed;
+                    double endU=u+shift,endY=Nose(endU)+top;
+                    var corners=new double[8][];
+                    // The post's axis is normal to the stringer. Its square end faces meet the handrail at its top.
+                    for(int k=0;k<8;k++) {
+                        double a=(k&1)==0?u:endU, y=(k&1)==0?bottom:endY;
+                        double along=(k&2)==0?-sh:sh,across=(k&4)==0?-sh:sh;
+                        corners[k]=P(a+along/scale,y+along*slope/scale,c+across);
+                    }
+                    list.Add(new ModularPart { Mat=PartMat.Wood,Corners=corners });
                 }
-                list.Add(ModularPart.Beam(PartMat.Wood, P(uA - sh, Nose(uA - sh) + top, c), P(uB + sh, Nose(uB + sh) + top, c), alongX, FlightRailW, FlightRailH));
+                list.Add(ModularPart.Beam(PartMat.Wood, P(uA+shift-sh, Nose(uA+shift-sh)+top, c), P(uB+shift+sh, Nose(uB+shift+sh)+top, c), alongX, FlightRailW, FlightRailH));
             }
             return list;
         }

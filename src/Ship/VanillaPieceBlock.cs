@@ -88,6 +88,15 @@ namespace Hansa
             Oven = IsOvenBlock(Block);
             Flue = IsFlueBlock(Block);
             Figurehead = IsFigurehead(Block);
+            if(Figurehead || (Block.FirstCodePart()??"")=="lantern")
+            {
+                var loc=Block.Shape?.Base;
+                if(loc!=null)
+                {
+                    var shape=Shape.TryGet(world.Api,loc.Clone().WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json"));
+                    VisualBounds=PieceShape.Bounds(shape);
+                }
+            }
             if (Hearth || Oven) { Container = false; Slots = 0; }
             AshoreOnly = !Container && !Door && !Pane && !Fence && !Stairs && !Slab && !Ladder && !Hearth && !Oven && !Flue && Orient != PieceOrient.Bed && IsWorkstation(Block);
             var hsv = Block.GetLightHsv(world.BlockAccessor, null, stack);
@@ -99,6 +108,19 @@ namespace Hansa
 
         /// <summary>Was it read in building mode (structure from planks, fences, panes, stairs, slabs)?</summary>
         public bool Building;
+
+        public override double[] BoundsOf(string variant)
+        {
+            var block=Get(variant);
+            if(block.Shape?.Base==null || !Figurehead && block.FirstCodePart()!="lantern") return VisualBounds;
+            return PieceShape.Bounds(Shape.TryGet(world.Api,block.Shape.Base.Clone().WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json")));
+        }
+        public override List<PieceVolume> VolumesOf(string variant)
+        {
+            var block=Get(variant);
+            if(block.Shape?.Base==null || !Figurehead && block.FirstCodePart()!="lantern") return null;
+            return PieceShape.Volumes(Shape.TryGet(world.Api,block.Shape.Base.Clone().WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json")));
+        }
 
         /// <summary>(0.3.19) The player's building mode, on the player entity (saved with them, sent to every client).</summary>
         public const string BuildAttribute = "hansaBuild";
