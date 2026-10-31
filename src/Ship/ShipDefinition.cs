@@ -65,6 +65,7 @@ namespace Hansa
         /// and voxel faces are each).
         /// </summary>
         public HookDef[] Hooks;
+        public BorderPlaceDef[] BorderPlaces;
         public StartPieceDef[] StartPieces;
         public StairDef[] Stairs;
         public KeepClearDef[] KeepClear;
@@ -87,6 +88,7 @@ namespace Hansa
         public bool PanelPlaces = true;
         /// <summary>(0.3.20, step B; docs/slots.md) The deck cells that may be taken up and laid again (null: none, as before).</summary>
         public DeckSlotDef[] DeckSlots;
+        public BeamFrameDef[] BeamFrames;
         /// <summary>(0.3.20) <see cref="DeckSlots"/> worked out (null without them).</summary>
         [JsonIgnore] public DeckSlotLayout Slots;
         /// <summary>(0.3.26, step D1; docs/slots.md §9) Her hull's panels that may be stove in, taken out and laid again (null: none, as before).</summary>

@@ -118,5 +118,22 @@ namespace Hansa
                 plan.Volumes.Add(new PieceVolume { Box = volume.Box, Pose = m });
             }
         }
+
+        /// <summary>A regular placed block's visible elements, with its variant's shape rotation and quarter turn.</summary>
+        public static IEnumerable<PieceVolume> PlacedVolumes(Shape shape,double[] origin,int quarter,double rx=0,double ry=0,double rz=0)
+        {
+            var fit=Mat4f.Create();
+            Mat4f.Translate(fit,fit,(float)origin[0]+.5f,(float)origin[1]+.5f,(float)origin[2]+.5f);
+            Mat4f.RotateY(fit,fit,quarter*GameMath.PIHALF);
+            Mat4f.RotateX(fit,fit,(float)rx*GameMath.DEG2RAD);
+            Mat4f.RotateY(fit,fit,(float)ry*GameMath.DEG2RAD);
+            Mat4f.RotateZ(fit,fit,(float)rz*GameMath.DEG2RAD);
+            Mat4f.Translate(fit,fit,-.5f,-.5f,-.5f);
+            foreach(var v in Volumes(shape)) {
+                if((v.Box[3]-v.Box[0])*(v.Box[4]-v.Box[1])*(v.Box[5]-v.Box[2])<1e-12) continue;
+                var pose=new float[16];Mat4f.Mul(pose,fit,v.Pose);
+                yield return new PieceVolume {Box=v.Box,Pose=pose};
+            }
+        }
     }
 }

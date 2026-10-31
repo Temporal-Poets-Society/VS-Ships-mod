@@ -50,6 +50,55 @@ namespace Hansa
     /// </summary>
     public static class ModularGeometry
     {
+        /// <summary>Partitions can be fitted to the edge of a firebed or a stair landing; neither may be bisected.</summary>
+        public static bool FittedContact(PiecePlan plan,ShipPiece piece)
+        {
+            if(plan.Role==PieceRole.Partition) return FittedWall(plan.Mount,piece.Role,piece.Box,piece.Parts.Count>0?piece.Parts[0].Origin:null,piece.Dir,piece.Cells);
+            if(piece.Role!=PieceRole.Partition || piece.Box==null) return false;
+            // The selection sheet gives the partition's centre plane without needing its mount layout.
+            var b=piece.Box;bool alongX=b[3]-b[0]>b[5]-b[2];
+            var wall=new MountPoint {In=alongX?1:0,X=(b[0]+b[3])/2,Z=(b[2]+b[5])/2};
+            return FittedWall(wall,plan.Role,plan.Box,plan.Mount==null?null:new[]{plan.Mount.X,plan.Mount.Y,plan.Mount.Z},plan.Dir,plan.Cells);
+        }
+        static bool FittedWall(MountPoint wall,PieceRole role,double[] box,double[] origin,int direction,int cells)
+        {
+            if(wall==null || box==null || role is not (PieceRole.Hearth or PieceRole.Stair)) return false;
+            var (line,alongX)=MountLayout.BorderLine(wall);int axis=alongX?2:0;
+            if(role==PieceRole.Hearth) return Math.Abs(line-box[axis])<.01 || Math.Abs(line-box[axis+3])<.01;
+            if(origin==null) return false;
+            var foot=new MountPoint {X=origin[0],Y=origin[1],Z=origin[2]};
+            double run=cells>0?cells:PiecePlanner.FlightCells;
+            var head=PiecePlanner.StairPoint(foot,direction,run,0);
+            return Math.Abs(line-head[axis])<.01;
+        }
+
+        public static List<ModularPart> Partition(MountLayout layout,ShipSurfaces surfaces,IEnumerable<ShipPiece> pieces,ShipPiece wall)
+        {
+            var m=layout.Get(wall.Mount);var (lo,hi)=WallEnds(layout,pieces,wall);
+            var rects=(surfaces!=null?layout.DrawnClip(m,surfaces):null)??m.Clip;
+            rects=rects==null?new List<double[]> {new[]{(MountLayout.BorderLine(m).AlongX?m.X:m.Z)-.5,m.Y,(MountLayout.BorderLine(m).AlongX?m.X:m.Z)+.5,m.Y+1}}:rects;
+            rects=AdjustClip(m,rects,lo,hi);
+            return rects.Select(r=>ModularPart.B(PartMat.Planks,PiecePlanner.ClipBox(m,r,MountLayout.PartitionThickness/2))).ToList();
+        }
+
+        public static List<ModularPart> ContactParts(MountLayout layout,ShipSurfaces surfaces,ShipPieceSet pieces,ShipPiece piece)
+        {
+            var m=layout.Get(piece.Mount);
+            if(m==null) return new();
+            return piece.Role switch {
+                PieceRole.Partition=>Partition(layout,surfaces,pieces.All,piece),
+                PieceRole.Hearth=>Hearth(m,piece.Dir),
+                PieceRole.Stair=>Flight(m,piece.Dir,piece.Rise,PiecePlanner.RunOf(piece),piece.Rails),
+                _=>new()
+            };
+        }
+
+        public static IEnumerable<ModularPart> Contacts(MountLayout layout,ShipSurfaces surfaces,ShipPieceSet pieces,ShipPiece piece)
+        {
+            var plan=new PiecePlan {Role=piece.Role,Mount=layout.Get(piece.Mount),Box=piece.Box,Dir=piece.Dir,Cells=piece.Cells};
+            foreach(var other in pieces.All) if(other.Id!=piece.Id && FittedContact(plan,other))
+                foreach(var part in ContactParts(layout,surfaces,pieces,other)) yield return part;
+        }
         public const double WindowFrame = 0.0625, Mullion = 0.05, CameWidth = 0.014, CameDepth = 0.012;
         /// <summary>(0.3.18, note 164) How far a door put aboard swings open: 86° of a quarter turn (its open leaf never in a wall's plane beside it).</summary>
         public const float DoorOpenFraction = 86f / 90f;

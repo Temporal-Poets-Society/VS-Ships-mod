@@ -20,6 +20,14 @@ namespace HansaTests
             Console.WriteLine("the caravel's swivel guns");
             var (def, file) = LoadHullDesign(root, "caravel");
             var sw = def.Fixtures.Where(f => f.Swivel).ToArray();
+            var obstacles=new PlacementMesh(PlacementMesh.Prepare(def,file));
+            var native=Newtonsoft.Json.JsonConvert.DeserializeObject<Vintagestory.API.Common.Shape>(System.IO.File.ReadAllText(System.IO.Path.Combine(root,"assets/hansa/shapes/block/swivelgun.json")));
+            native.Elements=native.Elements.Where(e=>e.Name.StartsWith("barrel")).ToArray();
+            var barrelFaces=PieceShape.Volumes(native).Select(v=> {
+                var box=(double[])v.Box.Clone();box[0]-=.5;box[3]-=.5;box[2]-=.5;box[5]-=.5;
+                for(int a=0;a<3;a++) if(box[a+3]-box[a]<.001) {box[a]-=.0005;box[a+3]+=.0005;}
+                return box;
+            }).ToArray();
             // her level faces (the rail caps' tops among them), from her mesh: x0 x1 z0 z1 at y
             var level = new List<(double X0, double X1, double Y, double Z0, double Z1)>();
             foreach (var g in file?.Groups ?? new Dictionary<string, float[][]>())
@@ -32,7 +40,7 @@ namespace HansaTests
                         level.Add((Math.Min(Math.Min(q[1], q[9]), Math.Min(q[17], q[25])), Math.Max(Math.Max(q[1], q[9]), Math.Max(q[17], q[25])), y0,
                                    Math.Min(Math.Min(q[3], q[11]), Math.Min(q[19], q[27])), Math.Max(Math.Max(q[3], q[11]), Math.Max(q[19], q[27]))));
                     }
-            Check(sw.Length == 4 && sw.Count(f => f.Out[2] < 0) == 2, $"four swivel guns, two a side ({string.Join(", ", sw.Select(f => f.Code))})");
+            Check(sw.Length == 2 && sw.Count(f => f.Out[2] < 0) == 1 && sw.All(f=>f.Pos[0]>7), $"two bow swivel guns, one a side ({string.Join(", ", sw.Select(f => f.Code))})");
             foreach (var f in sw)
             {
                 var deck = def.Decks?.FirstOrDefault(d => Math.Abs(d.Y - f.Seat[1]) < 0.05);
@@ -101,6 +109,31 @@ namespace HansaTests
                         if (!overCap && m.Y < f.Pos[1] && def.Grid.SolidAt(m.X, m.Y, m.Z)) inside++;
                     }
                 Check(touch == 0 && inside == 0, $"{f.Code}: laid anywhere in its arc, barrel and tail clear over her rail cap ({touch} of {tried} lays touch it{(where != null ? ": " + where : "")}); its ball starts out of her ({inside} in her)");
+                var contacts=new List<string>();
+                foreach(float lee in new[]{-1f,1f}) {
+                    var poses=new Dictionary<string,float[]>();PlacementMesh.RigPoses(def,poses,lee,0,0);
+                    for(float t=-100;t<=100;t+=10) for(float e=-25;e<=40;e+=5) {
+                        var lay=GunLaying.Clamp(f,new GunLay(t,e));
+                        SwivelGun.PartMatrices(f,lay,s,y,b);
+                        // First reject with a sleeve; confirm any contact against the native barrel's actual faces.
+                        var obstruction=obstacles.Hit(new[]{-.075,SwivelGun.PinHeight-.075,-SwivelGun.TailReach,.075,SwivelGun.PinHeight+.075,SwivelGun.MuzzleReach},
+                            (g,i)=>LateenShrouds.RatlinesVisible(def,g,lee),
+                            g=>poses.TryGetValue(g.StartsWith("part:")?g.Substring(5):g,out var pose)?pose:null,b);
+                        if(obstruction!=null) {
+                            obstruction=null;
+                            foreach(var face in barrelFaces) {
+                                obstruction=obstacles.Hit(face,(g,i)=>LateenShrouds.RatlinesVisible(def,g,lee),
+                                    g=>poses.TryGetValue(g.StartsWith("part:")?g.Substring(5):g,out var pose)?pose:null,b);
+                                if(obstruction!=null) break;
+                            }
+                        }
+                        if(obstruction!=null) {
+                            contacts.Add($"{t}/{e} tack {lee}: {obstruction}");
+                            if(contacts.Count==1) Console.WriteLine("  swivel contact face "+string.Join(',',file.Groups[obstruction][obstacles.LastFace]));
+                        }
+                    }
+                }
+                Check(contacts.Count==0,$"{f.Code}: barrel and tail clear the stem, fittings and posed rig on both tacks ({contacts.Count} contacts; {contacts.FirstOrDefault()})");
             }
         }
     }

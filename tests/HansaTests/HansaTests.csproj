@@ -20,6 +20,8 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="RuntimeNoteTests.cs" />
+    <Compile Include="IntegrationTests.cs" />
+    <Compile Include="..\..\src\Ship\OpeningFrames.cs" Link="Ship\OpeningFrames.cs" />
     <Compile Include="..\..\src\Ship\PlacementMesh.cs" Link="Ship\PlacementMesh.cs" />
     <Compile Include="..\..\src\Ship\PieceShape.cs" Link="Ship\PieceShape.cs" />
     <Compile Include="..\..\src\Ship\GunLoading.cs" Link="Ship\GunLoading.cs" />

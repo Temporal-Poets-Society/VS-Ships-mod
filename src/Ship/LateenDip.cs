@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Vintagestory.API.MathTools;
 
@@ -377,6 +378,10 @@ namespace Hansa
         /// "-starboard", not in "exterior". Without them they're found in "exterior" (rope quads along a shroud's line).
         /// </summary>
         public const string ExportPrefix = "rig:shrouds-";
+        public static string RatlineGroup(LateenShroud sh) => "rig:ratlines:"+sh.Mast.Code+":"+sh.Side;
+        public static bool RatlinesVisible(ShipDefinition def,string group,float lee) =>
+            !group.StartsWith("rig:ratlines:") || Of(def).Any(sh=>RatlineGroup(sh)==group && SetUp(def,sh,lee));
+
         /// <summary>How far past its radius a quad's corners may lie from a shroud's line and still be that shroud.</summary>
         const double Reach = 0.06;
 
@@ -476,6 +481,15 @@ namespace Hansa
                         if (file.Textures == null || ti < 0 || ti >= file.Textures.Length || !file.Textures[ti].Contains("rope")) continue;
                     }
                     var s = Along(shrouds, q);
+                    if(s==null && fromExport)
+                    {
+                        var member=shrouds.FirstOrDefault(sh=>kv.Key==ExportPrefix+sh.Mast.Code+(sh.Side>0?"-starboard":"-port"));
+                        if(member!=null) {
+                            string key=RatlineGroup(member);
+                            if(!groups.TryGetValue(key,out var ratlines)) groups[key]=ratlines=new System.Collections.Generic.List<float[]>();
+                            ratlines.Add((float[])q.Clone());moved++;
+                        }
+                    }
                     if (s == null) continue;
                     groups[s.Group].Add((float[])q.Clone());
                     if (!fromExport)

@@ -192,6 +192,7 @@ namespace Hansa
             if (f == null) return "hansa:gunplace-none";
             if (GoneDown) return "hansa:gone-down";
             bool laying = Api?.Side == EnumAppSide.Server ? GunLayer(f) != null : LayingHere == f;
+            if (Gun(f.Code).Charge != 0) return "hansa:gun-take-charged";
             bool manned = GunSeatOf(f) is GunSeat gs && gs.Passenger != null && gs.Passenger.Alive;
             return GunPlaces.TakeProblem(Def, p, GunPlaceStates, GunPlaceLaid(p) ? GunReloading(f) : 0, GunOpen(f), laying, manned);
         }

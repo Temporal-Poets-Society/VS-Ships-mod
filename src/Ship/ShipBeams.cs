@@ -19,6 +19,16 @@ namespace Hansa
     /// </summary>
     public partial class EntityShip
     {
+        int frameVersion=-1;
+        List<ModularPart> openingFrameParts;
+        public List<ModularPart> OpeningFrameParts
+        {
+            get {
+                int version=Slots?.Version??0;
+                if(openingFrameParts==null || frameVersion!=version) {openingFrameParts=OpeningFrames.Build(Def,Slots);frameVersion=version;}
+                return openingFrameParts;
+            }
+        }
         /// <summary>Why a beam segment can't come out now (a lang code), or null.</summary>
         public string BeamTakeProblem(int n)
         {

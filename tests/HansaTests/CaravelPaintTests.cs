@@ -74,7 +74,7 @@ namespace HansaTests
             }
 
             // ---- note 77: from the main deck at the starboard bulwark amidships (station 4, band 4), the user's own aim
-            var n77 = Aim(new[] { -2.544, 2.823, 0.936 }, new[] { 0.0929, -0.4697, 0.8779 });
+            var n77 = Aim(new[] { -4.544, 2.823, 0.936 }, new[] { 0.0929, -0.4697, 0.8779 });
             Console.WriteLine($"         note 77: collision at {n77.Wall:0.000}, planking at {n77.T:0.000}: till dev.8 {n77.Old}, now {n77.Now}");
             Check(n77.Old == "-" && n77.Now == "waist-bulwarks",
                 $"note 77: the crosshair on her bulwarks' inside from the main deck finds them through her collision's solid layer ({n77.Wall:0.00} → {n77.T:0.00}: {n77.Now})");

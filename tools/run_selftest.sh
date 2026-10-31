@@ -7,6 +7,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TS="$ROOT/testserver"
 VS="${VINTAGE_STORY:-$APPDATA/Vintagestory}"
+SEA="${SEA_ROOT:-$ROOT/../Sea}"
 TEMPLATE="${TEMPLATE_CONFIG:-$ROOT/../Earth/testserver/serverconfig.json}"
 WITH_EARTH=0
 [ "${1:-}" = "--with-earth" ] && WITH_EARTH=1
@@ -15,7 +16,7 @@ mkdir -p "$TS/Mods" "$TS/ModConfig"
 # the release zip of a mod folder, named with the version in its modinfo.json (release/<modid>-<version>.zip)
 modzip() { echo "$1/release/$2-$(sed -n 's/.*"version"[^"]*"\([^"]*\)".*/\1/p' "$1/modinfo.json" | head -1).zip"; }
 rm -f "$TS/Mods/"*.zip
-cp "$(modzip "$ROOT" hansa)" "$(modzip "$ROOT/../Sea" sea)" "$TS/Mods/"
+cp "$(modzip "$ROOT" hansa)" "$(modzip "$SEA" sea)" "$TS/Mods/"
 if [ "$WITH_EARTH" = 1 ]; then
   cp "$(modzip "$ROOT/../Cworld" cylinderworld)" "$(modzip "$ROOT/../Earth" earthmap)" "$TS/Mods/"
 fi

@@ -251,6 +251,7 @@ namespace Hansa
             RebuildSeatArray();
 
             LoadState();
+            decorStarts=WatchedAttributes.GetTreeAttribute("hansaPieces")==null && WatchedAttributes.GetTreeAttribute("hansaFit")==null;
             // (0.3.20, step B) her deck cells, before her collision is first built
             InitSlots();
             // (0.3.21, step C) her gun places: which have their gun
@@ -1695,6 +1696,10 @@ namespace Hansa
             w.Bool("hearth", HearthOn);
             w.Bool("oven", OvenOn);
             w.Int("lee", Lee);
+            w.Double("brace", Brace, 0.004);
+            w.Double("sheet", Sheet, 0.004);
+            w.Double("lateenSheet", LateenSheet, 0.004);
+            w.Float("leeShown", LeeShown, 0.01f);
             w.Saved("targetY", targetY);
             // (review H2-4: the height clients draw her at)
             if (!double.IsNaN(BaseY)) w.Double("baseY", BaseY, 0.01);
@@ -1776,6 +1781,10 @@ namespace Hansa
             HearthOn = t.GetBool("hearth", true);
             OvenOn = t.GetBool("oven", true);
             Lee = t.GetInt("lee");
+            Brace = t.GetDouble("brace");
+            Sheet = t.GetDouble("sheet");
+            LateenSheet = t.GetDouble("lateenSheet");
+            LeeShown = t.GetFloat("leeShown", Lee);
             if (t.HasAttribute("targetY")) targetY = t.GetDouble("targetY");
             if (t.HasAttribute("baseY")) BaseY = t.GetDouble("baseY");
             LoadFloodState(t);
@@ -1943,6 +1952,7 @@ namespace Hansa
             float sailGoal = SailSet >= 2 ? 1f : SailSet == 1 ? 0.55f : 0f;
             SailFraction += GameMath.Clamp(sailGoal - SailFraction, -0.35f * dt, 0.25f * dt);
             ServerLateens(dt);
+            TrimRig(dt);
 
             float maxSpeed = Def.MaxSpeed * cfg.SpeedMultiplier * (Clad ? 1 + Def.CladdingSpeedBonus : 1) * (float)SpeedFactorNow;
             if (maxSpeed != MaxSpeedNow || cfg.SailByWind != SailByWind || cfg.Cannons != CannonsOn || cfg.PointCloser != PointCloser)
@@ -2437,20 +2447,7 @@ namespace Hansa
             {
                 var w = WindHere(RenderPos.X, RenderPos.Z);
                 heel = ShipMotion.Heel(w.X, w.Z, RenderYaw, Speed, SailsDrawing, Def.Motion, SailingNow);
-                // the crew trims to the wind the sails feel; the yards come round over a few seconds
-                Sailing.Apparent(w.X, w.Z, RenderYaw, Speed, out double ax, out double az);
-                Sailing.Trim(Sailing.WindAngle(ax, az, RenderYaw, out int side), side, SailingNow, out double brace, out double sheet);
-                double kt = 1 - Math.Exp(-dt * 0.6);
-                Brace += (brace - Brace) * kt;
-                Sheet += (sheet - Sheet) * kt;
-                // (note 64) her lateens dip round their masts to the lee the server says, (note 104) sheeted toward it
-                if (LateenRig.Any(Def))
-                {
-                    LeeShown = LateenRig.Ease(LeeShown, Lee, LateenRig.DipSeconds(Def), dt);
-                    double ls = Lee != 0 ? LateenRig.Sheet(Sailing.WindAngle(ax, az, RenderYaw, out _), Lee, SailingNow) : sheet;
-                    lateenSheetGoal = LateenRig.SheetGoal(lateenSheetGoal, ls);
-                    LateenSheet += (lateenSheetGoal - LateenSheet) * kt;
-                }
+                // Rig trim comes from the server snapshot. Drawing and placement use that same pose.
             }
             // her lean follows the wind in her sails slowly (a heavy hull, sails steadying her, the crew easing the sheets
             // in a gust: MotionDef.HeelResponse), as on the server (ServerHeel)
@@ -2471,7 +2468,7 @@ namespace Hansa
         public double ServerHeel;
 
         /// <summary>
-        /// Client: how the sails are trimmed now (radians about the ship's up axis, + turns the starboard end forward
+        /// Authoritative sail trim (radians about the ship's up axis, + turns the starboard end forward
         /// and the after end to starboard): the square yards' brace and a fore-and-aft sail's sheet (see
         /// <see cref="Sailing.Trim"/>). For drawing the yards round.
         /// </summary>
@@ -2484,16 +2481,32 @@ namespace Hansa
         /// and not while a dip is still under way.
         /// </summary>
         public int Lee;
-        /// <summary>Client: her dipping lateens' sheet (radians, as <see cref="Sheet"/>), always toward the lee (<see cref="LateenRig.Sheet"/>), eased.</summary>
+        /// <summary>Authoritative eased lateen sheet (radians), synced for both drawing and placement.</summary>
         public double LateenSheet;
         double lateenSheetGoal = double.NaN;
+
+        void TrimRig(float dt)
+        {
+            if (!SailByWind) return;
+            var w = WindHere(Pos.X, Pos.Z);
+            Sailing.Apparent(w.X, w.Z, Pos.Yaw, Speed, out double ax, out double az);
+            double angle = Sailing.WindAngle(ax, az, Pos.Yaw, out int side);
+            Sailing.Trim(angle, side, SailingNow, out double brace, out double sheet);
+            double k = 1 - Math.Exp(-dt * 0.6);
+            Brace += (brace - Brace) * k;
+            Sheet += (sheet - Sheet) * k;
+            if (!LateenRig.Any(Def)) return;
+            double goal = Lee != 0 ? LateenRig.Sheet(angle, Lee, SailingNow) : sheet;
+            lateenSheetGoal = LateenRig.SheetGoal(lateenSheetGoal, goal);
+            LateenSheet += (lateenSheetGoal - LateenSheet) * k;
+        }
         /// <summary>
         /// Client (note 104): where a ray (ship-local) meets a dipping lateen's sail as it's drawn now (the renderer's): the
         /// ship, the sail's index, the ray and its range give t along it, -1 if it misses, NaN if it isn't drawn yet.
         /// </summary>
         public static Func<EntityShip, int, Vec3d, Vec3d, double, double> SailMeshRay;
         float leeWantFor;
-        /// <summary>The lee as her lateens are now, easing from one side to the other over a dip (server and client each); NaN at first.</summary>
+        /// <summary>The authoritative eased dip pose, synced to clients; NaN at first.</summary>
         public float LeeShown = float.NaN;
 
         /// <summary>Server: which side her lateens are to lie, from the wind her sails feel, and the dip toward it.</summary>

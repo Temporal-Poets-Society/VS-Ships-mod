@@ -143,6 +143,10 @@ namespace Hansa
         /// <summary>(0.3.23) A stair's cells along its run, and its own handrails (a ship's stair).</summary>
         public int Cells;
         public bool Rails;
+        List<PieceVolume> placementVolumes;
+        public IReadOnlyList<PieceVolume> PlacementVolumes => placementVolumes ??= Role == PieceRole.Stair
+            ? PieceShape.StairVolumes(Mount, Dir, Rise, Cells, Rails).ToList()
+            : Volumes.Count > 0 ? Volumes : Sel.Select(b => new PieceVolume { Box = b, Pose = PieceShape.Tilt(Pivot, Tilt, Dir) }).ToList();
     }
 
     /// <summary>
@@ -1706,12 +1710,12 @@ namespace Hansa
         public ShipPiece Blocking(PiecePlan plan)
         {
             foreach (string m in plan.Mounts) if (At(m) is ShipPiece p) return p;
-            var volumes=(plan.Role==PieceRole.Stair ? PieceShape.StairVolumes(plan.Mount,plan.Dir,plan.Rise,plan.Cells,plan.Rails) :
-                plan.Volumes.Count>0 ? plan.Volumes : plan.Sel.Select(b=>new PieceVolume {Box=b})).ToList();
+            var volumes=plan.PlacementVolumes;
             foreach (var p in ById.Values)
             {
                 // (a hatch shuts over a ladder's way up, its top step in the opening: the climber opens it, note 169)
                 if (plan.Role == PieceRole.Hatch && p.Role == PieceRole.Ladder) continue;
+                if (ModularGeometry.FittedContact(plan,p)) continue;
                 foreach (var a in volumes)
                     foreach (var b in p.PlacementVolumes)
                         if(PieceShape.Overlap(a,b)) return p;

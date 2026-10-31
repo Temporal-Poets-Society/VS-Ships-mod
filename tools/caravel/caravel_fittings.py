@@ -352,14 +352,57 @@ def pump(d, px, pz, deck_y, deck_t, foot_y, brake_dir=1.0, pipe_x=None, pipe_mat
 
 
 # ---------------------------------------------------------------------------------------------- lanterns
+def figurehead_seat(d, outline, hook, angle=20):
+    """Timber saddle under the bear's neck, backed into the stem just below its head."""
+    x, y, _ = hook
+    t = math.radians(angle)
+    c, s = math.cos(t), math.sin(t)
+    def fitted(u, v):
+        return np.array([x + c * (u - 0.05865828) + s * v,
+                         y - s * (u - 0.05865828) + c * v])
+    heel, toe, back_top = fitted(.25, 0), fitted(.75, 0), fitted(.25, .245)
+    # Only the stem's fore outline, before its top returns along the inner edge.
+    top_index = max((i for i,p in enumerate(outline) if p[0]>5000), key=lambda i:outline[i][1])
+    fore = outline[:top_index+1]
+    stem = sorted([(p[1] / 1000 - 2.875, p[0] / 1000) for p in fore if p[0] > 10000], key=lambda p:p[0])
+    def stem_x(h):
+        return float(np.interp(h, [p[0] for p in stem], [p[1] for p in stem])) - .01
+    low = toe[1] - .09
+    profile = [toe - [0, .09], toe, heel, back_top, np.array([stem_x(back_top[1]), back_top[1]])]
+    profile += [np.array([xx-.01, yy]) for yy, xx in reversed(stem) if low < yy < back_top[1]]
+    profile.append(np.array([stem_x(low), low]))
+    # Ear-clip the saddle's concave profile before the convex face/UV tiler.
+    vertices=list(range(len(profile)))
+    cross=lambda a,b,c:float(np.cross(b-a,c-a))
+    sign=1 if sum(np.cross(a,b) for a,b in zip(profile,profile[1:]+profile[:1]))>0 else -1
+    triangles=[]
+    while len(vertices)>3:
+        for j in range(len(vertices)):
+            ia,ib,ic=vertices[j-1],vertices[j],vertices[(j+1)%len(vertices)]
+            a,b,c_=profile[ia],profile[ib],profile[ic]
+            if sign*cross(a,b,c_)<1e-10:continue
+            if any(sign*cross(a,b,profile[k])>=-1e-10 and sign*cross(b,c_,profile[k])>=-1e-10 and sign*cross(c_,a,profile[k])>=-1e-10 for k in vertices if k not in (ia,ib,ic)):continue
+            triangles.append((ia,ib,ic));vertices.pop(j);break
+        else:raise ValueError("Cannot triangulate figurehead saddle")
+    triangles.append(tuple(vertices))
+    for side in (-1, 1):
+        for triangle in triangles:
+            poly = [np.array([profile[i][0], profile[i][1], side * .095]) for i in triangle]
+            d.add_planar("exterior", "oak", poly, (0, 0, side), u_dir=(1, 0, 0))
+    for a, b in zip(profile, profile[1:] + profile[:1]):
+        pts = [np.array([a[0],a[1],-.095]),np.array([b[0],b[1],-.095]),np.array([b[0],b[1],.095]),np.array([a[0],a[1],.095])]
+        d.add_planar("exterior", "oak", pts, np.cross(pts[1]-pts[0],pts[2]-pts[0]), u_dir=pts[1]-pts[0])
+
+
 def mast_band(d, mast_x, y, radius, face=-1.0):
-    """The carrack's mast hook: an iron band round the mast, an arm reaching out aft from it, a pin down at its end the
+    """A mast hook: an iron band round the mast, an arm reaching to port, a pin down at its end the
     lantern hangs from. Returns the hook's point."""
     d.add_cylinder("auto", "iron", (mast_x, y - 0.04, 0), (mast_x, y + 0.04, 0), radius + 0.025, radius + 0.025, sides=16, smooth=False)
-    arm = np.array([mast_x + face * (radius + 0.34), y, 0.0])
-    d.add_beam_mesh("auto", "iron", (mast_x + face * radius, y, 0.0), arm, 0.04, 0.05)
+    # The port arm clears the cast-off shrouds beside the after face of each mast.
+    arm = np.array([mast_x, y, -0.7])
+    d.add_beam_mesh("auto", "iron", (mast_x, y, -radius), arm, 0.04, 0.05)
     d.add_cylinder("auto", "iron", arm, arm - np.array([0, 0.06, 0]), 0.012, 0.012, sides=4)
-    return np.array([arm[0], y - 0.06, 0.0])
+    return np.array([arm[0], y - 0.06, arm[2]])
 
 
 def stern_lantern(d, x_aft, x_post, rail_top):

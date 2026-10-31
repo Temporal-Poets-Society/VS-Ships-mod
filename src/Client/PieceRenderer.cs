@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
@@ -20,13 +22,23 @@ namespace Hansa
         /// <summary>Her pieces, added to her vanilla blocks when they're built again (her fittings' version).</summary>
         void AddPlacedPieces(EntityShip ship, Decor d)
         {
+            // Build once with the decor, rather than loading native shapes for every wall face or frame.
+            var contacts=new List<ModularPart>();
+            foreach(var pc in ship.Pieces.All.Where(p=>p.Role is PieceRole.Deco or PieceRole.Storage or PieceRole.Seat or PieceRole.Oven))
+                foreach(var part in pc.Parts) {
+                    var block=capi.World.GetBlock(new AssetLocation(part.Block));var composite=block?.Shape;
+                    if(composite?.Base==null) continue;
+                    var shape=Shape.TryGet(capi,composite.Base.Clone().WithPathPrefixOnce("shapes/").WithPathAppendixOnce(".json"));
+                    foreach(var v in PieceShape.PlacedVolumes(shape,part.Origin,part.Quarter,composite.rotateX,composite.rotateY,composite.rotateZ))
+                        contacts.Add(new ModularPart {Corners=v.Corners});
+                }
             foreach (var pc in ship.Pieces.All)
             {
                 try
                 {
                     // (0.3.20, step B) a hatch: its leaves, each turning about its own hinge
                     if (pc.Role == PieceRole.Hatch) { d.Pieces.AddRange(HatchPieces(ship, pc)); continue; }
-                    var p = BuildPlacedPiece(ship, pc, out var seen);
+                    var p = BuildPlacedPiece(ship, pc, out var seen,contacts);
                     if (p != null) d.Pieces.Add(p);
                     if (seen != null) d.Pieces.Add(seen);
                 }
@@ -39,12 +51,13 @@ namespace Hansa
         }
 
         /// <param name="seen">its blocks' see-through faces (a lantern's glass), drawn with her glass; null if none</param>
-        Piece BuildPlacedPiece(EntityShip ship, ShipPiece pc, out Piece seen)
+        Piece BuildPlacedPiece(EntityShip ship, ShipPiece pc, out Piece seen,IEnumerable<ModularPart> nativeContacts=null)
         {
             seen = null;
             MeshData all = null, clear = null;
             bool glass = false;
-            if (pc.Role is PieceRole.Panel or PieceRole.Partition) return PanelPiece(ship, pc);
+            if (pc.Role == PieceRole.Panel) return PanelPiece(ship, pc);
+            if (pc.Role == PieceRole.Partition) return ModularPiece(ship, pc,nativeContacts);
             if (pc.Role == PieceRole.Door) return DoorPiece(ship, pc);
             // (0.3.16, notes 154-159) a window, a railing, a stair, a horizontal plank panel: built from boxes (ModularRenderer)
             if (pc.Role is PieceRole.Window or PieceRole.Railing or PieceRole.Ladder or PieceRole.Stair or PieceRole.Shelf) return ModularPiece(ship, pc);

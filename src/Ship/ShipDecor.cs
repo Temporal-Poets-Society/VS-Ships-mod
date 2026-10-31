@@ -896,11 +896,12 @@ namespace Hansa
         /// lanterns go onto the hooks as pieces, and what's on a chest, cargo or bed place her design no longer has becomes a
         /// piece where it stood (a container with what was in it).
         /// </summary>
+        bool decorStarts;
         void MigrateDecor()
         {
             if (Def == null || Mounts == null) return;
-            bool hadPieces = WatchedAttributes.GetTreeAttribute("hansaPieces") != null;
-            bool newShip = !hadPieces && WatchedAttributes.GetTreeAttribute("hansaFit") == null;
+            bool hadPieces=WatchedAttributes.GetTreeAttribute("hansaPieces")!=null;
+            bool newShip = decorStarts;
             bool changed = false;
             if (newShip) changed |= PlaceStartPieces();
             else changed |= RescueOrphanedPieces();
@@ -1039,6 +1040,7 @@ namespace Hansa
                 var block = sp.Block == null ? null : World.GetBlock(new AssetLocation(sp.Block));
                 var m = Mounts.Get(sp.Mount);
                 if (block == null || block.Id == 0 || m == null) continue;
+                if(Pieces.Taken(m.Id)) continue;
                 var stack = new ItemStack(block);
                 if (sp.Attributes != null)
                     foreach (var kv in sp.Attributes) stack.Attributes.SetString(kv.Key, kv.Value);
@@ -1047,12 +1049,13 @@ namespace Hansa
                 if (err == null) any = true;
                 else Api.Logger.Warning("[hansa] {0}: start piece {1} on {2}: {3} ({4})", Def.Code, sp.Block, sp.Mount, err,LastPlacementObstacle);
             }
+            if(any) PlaceModularPieces();
             return any;
         }
 
         /// <summary>
         /// (0.3.16, notes 154-158; docs/modular-pieces.md) The design's modular pieces not laid on her yet: each on its place
-        /// if that's free, remembered as laid either way ("hansaLaid"), so what the player takes up never comes back.
+        /// if that's free, remembered after successful placement ("hansaLaid"), so a missing support can be retried and what the player takes up never comes back.
         /// Returns how many were put.
         /// </summary>
         public int PlaceModularPieces()
@@ -1069,9 +1072,8 @@ namespace Hansa
                 if (e == null) continue;
                 string key = e.Key;
                 if (laid.HasAttribute(key)) continue;
-                laid.SetBool(key, true);
                 string err = PlaceModular(e, out _);
-                if (err == null) n++;
+                if (err == null) {n++;laid.SetBool(key,true);}
                 else Api.Logger.Warning("[hansa] {0}: modular {1} at {2}: {3}", Def.Code, e.Kind, key, err);
             }
             WatchedAttributes["hansaLaid"] = laid;

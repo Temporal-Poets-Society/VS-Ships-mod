@@ -75,8 +75,16 @@ namespace Hansa
 
         public GunLay GunLayNow(string code) => GunLayNow(Def?.Fixture(code));
 
-        public double GunPick(FixtureDef f,Vec3d o,Vec3d d) => GunLaying.Pick(f,GunLayNow(f),GunBack(f),o,d);
-        public double[] GunSelectionBounds(FixtureDef f) => GunLaying.SelectionBounds(f,GunLayNow(f),GunBack(f));
+        readonly Dictionary<FixtureDef,(GunLay Lay,double Back,GunLaying.PickPose Pose)> gunPickPoses=new();
+        GunLaying.PickPose GunPickPose(FixtureDef f)
+        {
+            var lay=GunLayNow(f);double back=GunBack(f);
+            if(!gunPickPoses.TryGetValue(f,out var cached) || cached.Lay.Train!=lay.Train || cached.Lay.Elevation!=lay.Elevation || cached.Back!=back)
+                gunPickPoses[f]=cached=(lay,back,new GunLaying.PickPose(f,lay,back));
+            return cached.Pose;
+        }
+        public double GunPick(FixtureDef f,Vec3d o,Vec3d d) => GunLaying.NearRay(f,GunBack(f),o,d)?GunPickPose(f).Pick(o,d):-1;
+        public double[] GunSelectionBounds(FixtureDef f) => GunPickPose(f).Bounds;
         double GunBack(FixtureDef f) => (Api.Side==EnumAppSide.Client?GunRecoil(f.Code):!GunOpen(f)||GunRunIn(f)?1:PartMotion.Recoil((World.ElapsedMilliseconds-Gun(f.Code).FiredMs)/1000.0))*GunRecoilDistance(f);
 
         /// <summary>
@@ -520,6 +528,7 @@ namespace Hansa
             st.Shots++;
             st.Charge=0;
             st.RunIn=!gun.Swivel;
+            if (!gun.Swivel) gunOpenedMs[gun.Code] = World.ElapsedMilliseconds;
             SaveGunLays(true);
             GunMuzzle(gun, new GunLay(train ?? st.Lay.Train, elevation ?? st.Lay.Elevation), out var at, out var dir);
             // the shot flies off with her own way too

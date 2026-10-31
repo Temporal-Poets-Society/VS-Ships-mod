@@ -80,6 +80,19 @@ def hb_in(x_blocks, z_blocks):
     return max(0.0, hb(x_blocks, z_blocks) - CL.SKIN)
 
 
+def border_places(L):
+    LV=L["levels"]
+    deck=LV["mainDeck"]/1000-2.875
+    qd=LV["quarterdeck"]/1000-2.875
+    # A narrow top wedge beside the stair: authored from the hull section, beyond the walking voxel's resolution.
+    wedge=[]
+    for y0 in np.arange(deck+2, qd-.2-.001, .0625):
+        y1=min(y0+.0625,qd-.2)
+        edge=min(hb_in(CL.QD_FRONT+dx, yy+2.875) for dx in [-.0625,.0625] for yy in [y0,y1])-.002
+        if edge>2.5+.005: wedge.append([2.5,r4(y0),r4(edge),r4(y1)])
+    return [{"code":"cabin-front-starboard-upper","deck":"main","at":[CL.QD_FRONT,deck+2,3],"along":"z","anchor":"-x","clip":wedge}]
+
+
 # ---------------------------------------------------------------------------------------------------------- meshes
 TEXTURES = {
     "rope": "game:block/cloth/reedrope", "cloth": "game:block/linen", "timber": "game:block/wood/debarked/oak",
@@ -929,12 +942,12 @@ def main():
         hooks.append({"code": f"lantern-{code}mast", "pos": v4(hp), "hang": "down", "kinds": ["light"]})
     # (24 October 2026, chalk note 63, the user: no stern lantern, its post or its crane on the taffrail)
     # (24 October 2026, chalk note 78: "we could have option to add vanilla figure heads"; the fittings session's place)
-    # a figurehead's place on the stem's fore face, its foot 1.2 under the stem head's top, facing forward
-    bb_ = np.array(L["backbone"]["outline"]) / 1000.0
-    head_top = float(bb_[bb_[:, 0] > 5.0][:, 1].max())
-    fz_ = head_top - 1.2
-    hooks.append({"code": "figurehead", "pos": v4((CL.x_stem(CL.shape_z(fz_)) + CL.BB_OUT_STEM, fz_ - F.WL, 0.0)), "hang": "up",
-                  "normal": [1.0, 0.0, 0.0], "kinds": ["figurehead"], "shown": True})
+    # A raked figurehead seated high on the stem's fore face, under its head.
+    figure = LAY["fittings"]["figurehead"]
+    CF.figurehead_seat(d, L["backbone"]["outline"], figure["pos"], figure["rake"])
+    a = math.radians(figure["rake"])
+    hooks.append({"code": "figurehead", "pos": figure["pos"], "hang": "up",
+                  "normal": [r4(math.cos(a)), r4(-math.sin(a)), 0.0], "kinds": ["figurehead"], "shown": True})
     lantern = {"block": "game:lantern-small-up", "attributes": {"material": "tinbronze", "lining": "plain", "glass": "quartz"}}
     start = [dict(lantern, mount="h:" + h["code"]) for h in hooks if "light" in h.get("kinds", [])]
 
@@ -958,7 +971,7 @@ def main():
             # ((27 October 2026, the fittings session's "rail": [inboard, outboard]) how far the cap reaches in and out from
             # the socket within the barrel's reach along it (its muzzle's 0.62), from the cap's own section: the runtime keeps
             # barrel and tail clear over that much)
-            reach = LAY.get("swivelReach", 0.62)
+            reach = LAY.get("swivelReach", 1.05)
             xs_ = np.linspace(sx - reach, sx + reach, 25)
             r_in = max(mid - (hb(x, cap_z) - cap_in(x)) for x in xs_)
             r_out = max(hb(x, cap_z) + REP["capRail"]["out"] / 1000.0 - mid for x in xs_)
@@ -1204,6 +1217,16 @@ def main():
         raise SystemExit("[layout] the guns don't fit: " + "; ".join(problems))
 
     # ---------------------------------------------------------------- write
+    for f in fixtures:
+        offset = LAY["fittings"].get("gunCrewOffsets", {}).get(f.get("code"))
+        if offset and "seat" in f:
+            f["seat"] = v4(np.array(f["seat"]) + offset)
+    D["borderPlaces"]=border_places(L)
+    D["beamFrames"] = [{"deck": "main", "stations": [r4((x + .5)) for x in CL.RIBS],
+                        "top": r4(deck - .2), "width": .2, "depth": .4,
+                        "interrupted": [x+.5 for x in CL.RIBS if hxs[0]/1000 < x+.5 < hxs[1]/1000],
+                        "existing": [[r4(hxs[0]/1000-.5),r4(deck-.6),z-.1,r4(hxs[1]/1000+.5),r4(deck-.2),z+.1] for z in [-.6,.6]] +
+                                    [[r4(x0),r4(deck-.6),-.5,r4(x1),r4(deck-.2),.5] for x0,x1 in [(hxs[0]/1000-.2,hxs[0]/1000),(hxs[1]/1000,hxs[1]/1000+.2)]]}]
     D["fixtures"] = fixtures
     D["movingParts"] = parts
     D["sails"] = sails

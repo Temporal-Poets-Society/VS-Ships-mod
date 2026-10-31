@@ -31,7 +31,7 @@ namespace HansaTests
             string game=Environment.GetEnvironmentVariable("VINTAGE_STORY")??"C:/Users/andri/AppData/Roaming/Vintagestory";
             var lanternShape=JsonConvert.DeserializeObject<Shape>(File.ReadAllText(Path.Combine(game,"assets/survival/shapes/block/metal/lantern/small/ceiling.json")));
             var lanternBounds=PieceShape.Bounds(lanternShape);
-            var lanternHook=def.Mounts.Get("h:lantern-mainmast");
+            var lanternHook=new MountPoint {Id="h:old-mainmast",Kind=MountKind.Hook,X=-3.1117,Y=3.685,Z=0,Hang="down"};
             var lantern=PiecePlanner.Plan(def.Mounts,lanternHook,new FakePiece {Code="test:lantern",Light=true,VisualBounds=lanternBounds},0);
             PieceShape.FitVolumes(lantern,PieceShape.Volumes(lanternShape),lantern.Parts[0].Origin,lantern.Parts[0].Quarter);
             Console.WriteLine("117 actual small lantern "+string.Join(",",lantern.Box)+" mesh "+mesh.Hit(lantern.Box)+" elements "+string.Join(",",lantern.Volumes.Select(v=>mesh.Hit(v.Box,null,null,v.Pose)).Where(s=>s!=null)));
@@ -58,13 +58,17 @@ namespace HansaTests
             var bear=JsonConvert.DeserializeObject<Shape>(File.ReadAllText(Path.Combine(game,"assets/survival/shapes/entity/nonliving/boat/figurehead/bear.json")));
             var bounds=PieceShape.Bounds(bear);
             Console.WriteLine("bear bounds "+string.Join(",",bounds));
-            var hook=new MountPoint {Id="h:figurehead",Kind=MountKind.Hook,X=9.67,Y=.75,Z=0,Normal=new[]{.857493,-.514496,0},Kinds=new[]{"figurehead"}};
+            var hook=def.Mounts.Get("h:figurehead");
             var figure=PiecePlanner.Plan(def.Mounts,hook,new FakePiece {Code="game:figurehead-bear",Figurehead=true,VisualBounds=bounds},0);
             PieceShape.FitVolumes(figure,PieceShape.Volumes(bear),figure.Parts[0].Origin,figure.Parts[0].Quarter);
             var tilt=PieceShape.Tilt(figure.Pivot,figure.Tilt,figure.Dir);
             Check(figure.Parts[0].Quarter==1 && Math.Abs((figure.Box[2]+figure.Box[5])/2)<1e-6 && Math.Abs(figure.Parts[0].Origin[0]+bounds[2]-hook.X)<1e-6,
                 "118: the bear faces forward, its actual back is on the hook and its visible width is centred on the stem");
-            Check(figure.Volumes.All(v=>mesh.Hit(v.Box,null,null,v.Pose)==null),"118: proposed lower stem hook fits the actual bear elements against the stem without penetrating it");
+            Check(hook.Y>=2.4 && hook.Y<=2.9 && figure.Volumes.All(v=>mesh.Hit(v.Box,null,null,v.Pose)==null),"118: the high stem hook fits the actual bear and its backing without penetration");
+            foreach(var v in figure.Volumes) {
+                var group=mesh.Hit(v.Box,null,null,v.Pose);
+                if(group!=null) Console.WriteLine("118 contact "+group+" face "+mesh.LastFace+" bounds "+string.Join(',',v.Bounds)+" quad "+string.Join(',',rigFile.Groups[group][mesh.LastFace]));
+            }
 
             var plank=new ShipPiece { Sel=new List<double[]> {new double[]{-15,2.125,-1.5,-14,3.125,-.5}} };
             var eye=new Vec3d(-12.838,2.822,1.853);var dir=new Vec3d(-.5459,-.2209,-.8082).Normalize();

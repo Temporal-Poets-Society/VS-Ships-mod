@@ -230,7 +230,7 @@ def page(D, M, pose=None):
                 n = np.array(q[at + 5:at + 8])
                 if name.startswith("barrel"):
                     E = np.array(rotation((1, 0, 0), -pose.get("elevate:" + code, 0)))
-                    o = np.array([0, 0.2, 0])
+                    o = np.array([0, 0.62, 0])
                     p, n = E @ (p - o) + o, E @ n
                 q[at:at + 3] = list(R @ p + f["pos"])
                 q[at + 5:at + 8] = list(R @ n)

@@ -32,7 +32,7 @@ namespace HansaTests
                 if (open == null || shut == null) continue;
                 // from her deck inside the port, clear of her mainmast (where note 61's player stood), at a man's eye: a ray to each
                 // box's middle (as far as that)
-                var eye = new Vec3d(-0.5, shut.Y1 + 1.62, Math.Sign(g.Pos[2]) * 1.25);
+                var eye = new Vec3d(g.Pos[0], shut.Y1 + 1.62, Math.Sign(g.Pos[2]) * 1.25);
                 bool Picks(Cuboidd at, bool isOpen)
                 {
                     var to = new Vec3d((at.X1 + at.X2) / 2 - eye.X, (at.Y1 + at.Y2) / 2 - eye.Y, (at.Z1 + at.Z2) / 2 - eye.Z);
@@ -47,7 +47,7 @@ namespace HansaTests
             var port = gates.FirstOrDefault(f => f.Code == "gate-port");
             if (port?.OpenSel != null)
             {
-                var eye = new Vec3d(-0.771, 2.826, -1.247);
+                var eye = new Vec3d(port.Pos[0] - .271, 2.826, -1.247);
                 var look = new Vec3d(0.0784, -0.5206, -0.8502);
                 var shutHit = ShipFittings.Pick(def, def.Grid, eye, look, 4.5, f => true, f => false, f => null, out _);
                 var o = port.OpenSel;
@@ -69,7 +69,7 @@ namespace HansaTests
                     var look = new Vec3d(-0.0143, ly * Math.Cos(r) - lz * Math.Sin(r), ly * Math.Sin(r) + lz * Math.Cos(r));
                     var grid = def.Grid.Clone();
                     ShipFittings.ApplySolids(def, grid, f => false, f => null);
-                    var hit = ShipFittings.Pick(def, grid, new Vec3d(-0.929, 2.824, 1.098), look, 4.5, f => true, f => false, f => null, out double t);
+                    var hit = ShipFittings.Pick(def, grid, new Vec3d(stbd.Pos[0] - .429, 2.824, 1.098), look, 4.5, f => true, f => false, f => null, out double t);
                     Check(hit == stbd, $"note 91's ray (rolled {roll}°), the gate shut: takes {hit?.Code ?? "nothing"} at {t:0.00}");
                 }
 

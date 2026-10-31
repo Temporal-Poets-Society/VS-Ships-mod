@@ -631,6 +631,7 @@
 	"gun-take-hot": "Let it cool first: it's still reloading.",
 	"gun-take-run-out": "Run it in and shut its port first (Shift + right-click it).",
 	"gun-take-empty-hand": "Empty your hand to take the gun up.",
+	"gun-take-charged": "Fire the charge before taking this gun up.",
 	"cell-under-gun": "A gun stands on this part of the deck: take the gun up first.",
 	"hint-gunplace-mount": "Right-click: mount the {0} on this gun place ({1} side)",
 	"hint-gun-takeup": "building mode: Shift + right-click with an empty hand takes it up (run in, cold)",

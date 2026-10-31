@@ -5,6 +5,13 @@ using Newtonsoft.Json;
 
 namespace Hansa
 {
+    /// <summary>An authored partial cell border where the walking grid is too coarse to resolve the wall's free wedge.</summary>
+    public sealed class BorderPlaceDef
+    {
+        public string Code,Deck,Along,Anchor;
+        public double[] At;
+        public double[][] Clip;
+    }
     /// <summary>
     /// A hook the design gives for a lantern (or later other things): where the piece hangs from ("down") or stands on
     /// ("up"), and what may go there ("light"). The stern lantern's is Shown: the crosshair finds it empty with nothing in hand.
@@ -377,6 +384,7 @@ namespace Hansa
             l.FloorPlaces();
             l.PanelPlaces();
             l.BorderPlaces();
+            l.AuthoredBorders();
             l.HorizontalPlaces();
             l.FluePlaces();
             l.WallSpots();
@@ -386,6 +394,22 @@ namespace Hansa
             l.MastHooks();
             foreach (var m in l.All) l.ById[m.Id] = m;
             return l;
+        }
+
+        void AuthoredBorders()
+        {
+            foreach(var entry in Def.BorderPlaces??Array.Empty<BorderPlaceDef>()) {
+                if(entry.At==null || entry.At.Length<3 || entry.Clip==null || entry.Clip.Length==0) continue;
+                bool alongX=entry.Along=="x";double line=entry.At[alongX?2:0],along=entry.At[alongX?0:2],y=entry.At[1];
+                if(Borders.Any(m=>BorderLine(m) is var b && b.AlongX==alongX && Math.Abs(b.Line-line)<.001 && Math.Abs((alongX?m.X:m.Z)-along)<.001 && Math.Abs(m.Y-y)<.001)) continue;
+                int direction=DirOf(entry.Anchor??(alongX?"-z":"-x"));
+                var m=new MountPoint {Id="b:"+entry.Code,Kind=MountKind.Border,Deck=entry.Deck,Room=Def.RoomAt(entry.At[0]-.01,y+.1,entry.At[2])?.Code??entry.Deck,
+                    X=entry.At[0],Y=y,Z=entry.At[2],In=direction,Normal=new double[]{DX[direction],0,DZ[direction]},
+                    I=(int)Math.Floor(entry.At[0]+DX[direction]*.1),K=(int)Math.Floor(entry.At[2]-.5+DZ[direction]*.1),
+                    Row=(int)Math.Round(y-(Def.Decks.FirstOrDefault(d=>d.Code==entry.Deck)?.Y??y)),Clip=entry.Clip.ToList(),Drawn=entry.Clip.ToList(),DrawnDone=true};
+                m.Box=PiecePlanner.Union(entry.Clip.Select(r=>PiecePlanner.ClipBox(m,r,PartitionThickness/2)));
+                All.Add(m);
+            }
         }
 
         // ------------------------------------------------------------------ (0.3.20, step B) the deck cells
@@ -456,6 +480,10 @@ namespace Hansa
                         break;
                 }
             }
+            // An authored anchor chooses its support side even while both adjoining deck cells are laid.
+            // The ordinary twin still hides from picking until the first anchor's cell is open.
+            foreach(var entry in Def.ModularPieces??Array.Empty<ModularPieceDef>())
+                if(entry.Anchor!=null && ForModular(entry) is MountPoint chosen && chosen.Kind==MountKind.Border) chosen.SlotOpen=-1;
         }
 
         // ------------------------------------------------------------------ what's kept clear
@@ -2013,7 +2041,7 @@ namespace Hansa
             switch (e.Kind)
             {
                 case "stair" or "ladder" or "hearth" or "oven":
-                    return Floors.FirstOrDefault(m => Math.Abs(m.X + 0.5 - x) < tol && Math.Abs(m.Z + 0.5 - z) < tol && Math.Abs(m.Y - y) < tol);
+                    return All.FirstOrDefault(m => m.Kind==MountKind.Floor && Math.Abs(m.X + 0.5 - x) < tol && Math.Abs(m.Z + 0.5 - z) < tol && Math.Abs(m.Y - y) < tol);
                 case "flue":
                     return Flues.FirstOrDefault(m => Math.Abs(m.X - x) < tol && Math.Abs(m.Z - z) < tol && Math.Abs(m.Y - y) < tol);
                 case "panel":

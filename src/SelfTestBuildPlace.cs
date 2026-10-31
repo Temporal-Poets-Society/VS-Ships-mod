@@ -35,6 +35,9 @@ namespace Hansa
             try
             {
                 // ---- note 74: an oven on top of planks put on her deck
+                var defaultOven=ship.Pieces.All.FirstOrDefault(p=>p.Role==PieceRole.Oven);
+                var ovenStack=defaultOven?.Stack?.Clone();var ovenMount=defaultOven==null?null:l.Get(defaultOven.Mount);
+                if(defaultOven!=null) Check(ship.RemovePiece(defaultOven,null)==null,"the default oven can be taken up before testing a different supporting block");
                 var floor = l.FloorAt("main", -13, -1);   // (her steerage, 2 aft since note 73)
                 string under = Put(floor, B("planks-oak-ud"), 1, out var planks);
                 string onTop = Put(l.Above(floor), B("clayoven-north"), 1, out var ovenP);
@@ -45,6 +48,10 @@ namespace Hansa
                 planksOut = planks == null ? "none" : ship.RemovePiece(planks, null);
                 Check(ovenOut == null && planksOut == null, $"note 74: the oven taken up, then the planks ({ovenOut ?? "ok"}, {planksOut ?? "ok"})");
                 put.Clear();
+                if(ovenStack!=null) {
+                    var restore=PiecePlanner.Plan(l,ovenMount,new VanillaPieceBlock(sapi.World,ovenStack),0);
+                    Check(ship.PlacePiece(restore,ovenStack,false,out _) == null,"the default oven goes back on its table");
+                }
 
                 // ---- note 79: a trunk where two vessels go, her hold's after end, put looking aft
                 var trunkBlock = sapi.World.Blocks.FirstOrDefault(bl => bl is Vintagestory.GameContent.BlockGenericTypedContainerTrunk);
@@ -79,7 +86,9 @@ namespace Hansa
                     string back = plan == null ? "no stack" : ship.PlacePiece(plan, stack, true, out _);
                     Check(down == null && back == null && ship.Pieces.At(hook.Id) != null, $"note 66: the mainmast's lantern taken down ({down ?? "ok"}) and hung back ({back ?? "ok"})");
                     // (and under a deck: the steerage's ceiling's hook)
-                    var ceiling = l.Get("h:c:main:-13:-1");
+                    var ceiling = l.Hooks.Where(h=>MountLayout.IsCeilingHook(h.Id) && h.Deck=="main")
+                        .OrderBy(h=>Math.Abs(h.X+12.5)+Math.Abs(h.Z-1))
+                        .FirstOrDefault(h=>ship.PlaceProblem(PiecePlanner.Plan(l,h,new VanillaPieceBlock(sapi.World,stack),1),false)==null);
                     var underDeck = stack == null || ceiling == null ? null : PiecePlanner.Plan(l, ceiling, new VanillaPieceBlock(sapi.World, stack), 1);
                     string hung = underDeck == null ? "no ceiling hook or stack" : ship.PlacePiece(underDeck, stack, true, out var hungP);
                     string off = hung == null ? ship.RemovePiece(ship.Pieces.At(ceiling.Id), null) : "not hung";

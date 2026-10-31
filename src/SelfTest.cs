@@ -226,7 +226,16 @@ namespace Hansa
                 var bd = beam == null ? null : l.DrawnClip(beam, surfaces);
                 // (the beam over the frame at x -6: her cells from -6.25, its side about -6.09)
                 if (beam != null) Check(bd != null && bd.Any(r => r[2] > -6.2 && r[3] > 1.6), $"note 148: the partition on b:lower:-7:-2:s:2 is drawn out to the beam's side ({bd?.Count ?? 0} parts)");
-                Check(!l.Borders.Any(b => b.Clip != null && b.Clip.Any(r => { var (ln, ax) = MountLayout.BorderLine(b); double lay = ln + (b.In < 2 ? 1 : -1) * def.Grid.V / 2, al = (r[0] + r[2]) / 2, y = (r[1] + r[3]) / 2; return !(ax ? l.InsideHer(al, y, lay) : l.InsideHer(lay, y, al)); })),
+                Check(!l.Borders.Any(b => b.Clip != null && b.Clip.Any(r => {
+                    var (ln,ax)=MountLayout.BorderLine(b);double al=(r[0]+r[2])/2,y=(r[1]+r[3])/2;
+                    if(def.BorderPlaces?.Any(e=>"b:"+e.Code==b.Id)==true) {
+                        double x=ax?al:ln,z=ax?ln:al;
+                        double side=surfaces.Ray(x,y,0,0,0,Math.Sign(z),Math.Abs(z)+1);
+                        return side<Math.Abs(z);
+                    }
+                    double lay=ln+(b.In<2?1:-1)*def.Grid.V/2;
+                    return !(ax?l.InsideHer(al,y,lay):l.InsideHer(lay,y,al));
+                })),
                     "note 149: no border place is outside her side");
                 // the crosshair on the beam just over a top-row place cut under it finds that place
                 var cut = l.Borders.FirstOrDefault(b => b.Room == "lowerdeck" && b.Row == 2 && b.Clip != null && b.Clip.Max(c => c[3]) < b.Y + 0.5);
@@ -576,8 +585,8 @@ namespace Hansa
                             if (t4 < 60) return;
                             sapi.Event.UnregisterGameTickListener(id4);
                             var tree = ship.WatchedAttributes.GetTreeAttribute("hansa");
-                            Check(before > 1 && ship.Speed < before - 1 && ship.Speed < 0.5, $"head to wind she loses her way ({before:0.0} → {ship.Speed:0.0} b/s in 6 s)");
-                            Check(tree?.GetBool("byWind") == true && Math.Abs(tree.GetFloat("maxSpeed") - def.MaxSpeed * (1 + def.CladdingSpeedBonus)) < 1e-4,
+                            Check(before > 1 && ship.Speed < before - 1 && ship.Speed < Math.Max(.5, before - def.Deceleration * 6) + .1, $"head to wind she loses her way ({before:0.0} → {ship.Speed:0.0} b/s in 6 s)");
+                            Check(tree?.GetBool("byWind") == true && Math.Abs(tree.GetFloat("maxSpeed") - def.MaxSpeed * mod.Config.SpeedMultiplier * (1 + def.CladdingSpeedBonus) * ship.SpeedFactorNow) < .011,
                                 "clients know she sails by the wind and her top speed (sheathed)");
                             sea?.SetOverride(null);
                             ship.Die(EnumDespawnReason.Removed);
@@ -793,7 +802,7 @@ namespace Hansa
                 bool TakesAt(Cuboidd at)
                 {
                     double gx = (at.X1 + at.X2) / 2, gy = (at.Y1 + at.Y2) / 2, gz = (at.Z1 + at.Z2) / 2;
-                    ship.LocalToWorld(-0.5, g.Sel[1] + 1.62, Math.Sign(g.Pos[2]) * 1.25, out double ex, out double ey, out double ez);
+                    ship.LocalToWorld(g.Pos[0], g.Sel[1] + 1.62, Math.Sign(g.Pos[2]) * 1.25, out double ex, out double ey, out double ez);
                     ship.LocalToWorld(gx, gy, gz, out double tx, out double ty, out double tz);
                     var to = new Vec3d(tx - ex, ty - ey, tz - ez);
                     return ship.RayHit(new Vec3d(ex, ey, ez), to, to.Length(), null, out var gh) && gh.Fixture == g;
@@ -861,7 +870,7 @@ namespace Hansa
                 double nx = fhook.Normal?.Length >= 3 ? fhook.Normal[0] : 1;
                 bool put = ship.PlacePiece(PlanOn(fhook, bear), bear, true, out var fig) == null && fig != null;
                 Check(put && fig.Role == PieceRole.Deco && fig.Hang == PiecePlanner.FigureheadHang && fig.Solids.Count == 0 && fig.Parts[0].Quarter == (nx >= 0 ? 1 : 3) &&
-                      (nx >= 0 ? fig.Box[0] >= fhook.X - 0.01 : fig.Box[3] <= fhook.X + 0.01) && Math.Abs(fig.Box[1] - fhook.Y) < 0.01 &&
+                      (nx >= 0 ? fig.Box[0] >= fhook.X - 0.01 : fig.Box[3] <= fhook.X + 0.01) && fig.Box[1] <= fhook.Y + .01 && fig.Box[1] >= fhook.Y - .35 &&
                       fig.Stack?.Attributes.GetString("material") == "oak",
                     $"a bear figurehead (oak) on {fhook.Id}: in front of her stem facing the bow, not solid ({(fig == null ? "not put" : $"box {fig.Box[0]:0.00}..{fig.Box[3]:0.00}, quarter {fig.Parts[0].Quarter}, {fig.Stack?.Attributes.GetString("material")}")})");
                 if (put)

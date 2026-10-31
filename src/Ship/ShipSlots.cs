@@ -99,11 +99,13 @@ namespace Hansa
             hullLeakCache.Clear();
             if (Slots == null && HullPanels == null) { hullGrid = null; return; }
             Slots?.Apply(grid);
+            foreach(var frame in OpeningFrames.Build(Def,Slots)) grid.Fill(frame.Box);
             // ((0.3.26) her hull panels out: their voxels gone)
             HullPanels?.Apply(grid);
             hullGrid ??= Def.Grid.Clone();
             hullGrid.CopyFrom(Def.Grid);
             Slots?.Apply(hullGrid);
+            foreach(var frame in OpeningFrames.Build(Def,Slots)) hullGrid.Fill(frame.Box);
             HullPanels?.Apply(hullGrid);
             foreach (var p in Pieces.All)
                 if (p.Role == PieceRole.Hatch && !p.Open)

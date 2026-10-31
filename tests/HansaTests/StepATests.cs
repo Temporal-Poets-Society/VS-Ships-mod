@@ -233,11 +233,16 @@ namespace HansaTests
                     case PieceRole.Stair: bs = ModularGeometry.Flight(m, p.Dir, p.Rise, PiecePlanner.RunOf(p), p.Rails).Select(x => x.AsBox()); break;
                     case PieceRole.Hearth: bs = ModularGeometry.Hearth(m, p.Dir).Select(x => x.AsBox()); break;
                     case PieceRole.Flue: bs = ModularGeometry.Flue(m.Box, set.At(m.Under)?.Role == PieceRole.Hearth).Select(x => x.AsBox()); break;
+                    case PieceRole.Oven: bs=Array.Empty<double[]>(); break; // A vanilla mesh, not its full selection cube; checked with the game mesh preview.
                     default: bs = p.Box != null ? new[] { p.Box } : Array.Empty<double[]>(); break;
                 }
                 foreach (var b in bs) { if (b == null) continue; boxes.Add(b); owner.Add(p); }
             }
-            var found = ModularGeometry.Coplanar(boxes);
+            var found = ModularGeometry.Coplanar(boxes).Where(x=> {
+                var a=owner[x.A];var b=owner[x.B];
+                // Fitted joints are boolean-clipped by ModularMesh; IntegrationNotes exports their actual quads.
+                return !ModularGeometry.FittedContact(new PiecePlan {Role=a.Role,Mount=l.Get(a.Mount),Box=a.Box,Dir=a.Dir,Cells=a.Cells},b);
+            }).ToList();
             var byKinds = found.GroupBy(x => owner[x.A] == owner[x.B] ? owner[x.A].Role + " (itself)" : string.Join(" / ", new[] { owner[x.A].Role.ToString(), owner[x.B].Role.ToString() }.OrderBy(s => s)))
                 .Select(gr => $"{gr.Key} {gr.Count()}").ToList();
             foreach (var x in found.OrderBy(x => owner[x.A].Role == PieceRole.Railing || owner[x.B].Role == PieceRole.Railing ? 0 : 1).Take(8))

@@ -42,7 +42,7 @@ LAYOUTS = {
     # bulwark round the quarterdeck instead of its railing and no carriage guns there (note 103); the pump forward of
     # the main mast
     "D": {"longer": 2.0, "qd_front": -7.0, "mizzen": -11, "wheel": [-9, 0], "qd_guns": [-13, -11], "main": -3,
-          "pump": [-2, 0], "qd_bulwark": True, "swivels": [8.0], "swivel_reach": 1.0, "bumpkin_out": 2.8,
+          "pump": [-2, 0], "qd_bulwark": True, "swivels": [8.0], "swivel_reach": 1.05, "bumpkin_out": 2.8,
           # (25 October 2026, note 102, the user: the rudder about an upright axis, a level tiller under the quarterdeck;
           # the stern as Boa Esperança's: a flat square transom over an upright sternpost, X -14.5)
           "stern_post_x": -14.5,
@@ -148,12 +148,12 @@ CABIN = {"x": QD_FRONT, "doors": [-1, 1], "windows": [0]}
 KITCHEN = {
     "walls": [
         {"line": "x", "at": QD_FRONT, "cells": [0], "rows": [0, 1, 2]},             # the cabin's front either side of the doorway;
-        {"line": "x", "at": QD_FRONT, "cells": [2], "rows": [0, 1]},                # behind the quarterdeck stair (26 October 2026)
+        {"line": "x", "at": QD_FRONT, "cells": [2], "rows": [0, 1, 2]},                # behind the quarterdeck stair (26 October 2026)
                                                                                      # no top row: the stair's last tread meets its top
         {"line": "x", "at": QD_FRONT, "cells": [1], "rows": [2]},                   # over the doorway
-        {"line": "x", "at": QD_FRONT, "cells": [3], "rows": [0, 1]},                # note 109: runtime has no border place for the narrow upper wedge
+        {"line": "x", "at": QD_FRONT, "cells": [3], "rows": [0, 1, 2]},                # note 109: runtime has no border place for the narrow upper wedge
         {"line": "x", "at": QD_FRONT - 2.0, "cells": [-2, 0], "rows": [0, 1, 2], "anchor": "-x"},  # leave the tables' cells clear
-        {"line": "x", "at": QD_FRONT - 2.0, "cells": [-1], "rows": [1, 2], "anchor": "-x"},  # note 108: bottom row needs runtime hearth/wall contact clipping
+        {"line": "x", "at": QD_FRONT - 2.0, "cells": [-1], "rows": [0, 1, 2], "anchor": "-x"},  # note 108: bottom row needs runtime hearth/wall contact clipping
         {"line": "z", "at": 0.5, "cells": [QD_FRONT - 2.0, QD_FRONT - 1.0], "rows": [0, 1, 2], "anchor": "+z"},  # leave the table and vessel clear
     ],
     "doors": [{"at": [QD_FRONT, 1.0], "along": "z", "anchor": "-x", "into": "-x", "code": "door-cabin-starboard"}],
@@ -170,6 +170,8 @@ GATE_CELL = MASTS["main"]["cell"]       # note 116: abreast the main mast
 # blocks the helmsman's sight from under it, lanterns) where her fittings stand: cells [x cell, Y cell] on a deck (the Y
 # cell 0 is the centreline cell); the exporter keeps the deck cells under them fixed, the layout step draws them
 FITTINGS = {
+    "figurehead": {"pos": [10.12, 2.6, 0.0], "rake": 20.0},
+    "gunCrewOffsets": {"gun-port-quarterdeck-2": [-.65, 0, 0], "gun-starboard-quarterdeck-2": [-.65, 0, 0]},
     "pump": {"deck": "main", "cell": LAY_V.get("pump", [0, 0])},   # forward of the main mast; its brake athwartships
     "capstan": {"deck": "main", "cell": [6, 0]},           # on the foredeck abreast the cathead (the user, 22 October
                                                            # 2026), the cable on the deck straight from the hawse

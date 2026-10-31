@@ -920,6 +920,7 @@ namespace Hansa
             }
             // the pieces put aboard (PieceRenderer)
             AddPlacedPieces(ship, d);
+            if(OpeningFramePiece(ship) is Piece frame) d.Pieces.Add(frame);
             RemoveLights(ship);
             AddLights(ship);
             return d;
@@ -2013,6 +2014,9 @@ namespace Hansa
                 }
 
                 // vanilla blocks aboard
+                prog.ModelMatrix=model.Values;
+                foreach(var sh in LateenShrouds.Of(ship.Def))
+                    if(sh.Rank==0 && LateenShrouds.SetUp(ship.Def,sh,ship.LeeShown)) Draw(rapi,SkinGroup(m,LateenShrouds.RatlineGroup(sh)));
                 if (d != null)
                 {
                     foreach (var p in d.Pieces) if (!p.Glass) DrawPiece(rapi, prog, ship, d, p, ext);
@@ -2508,57 +2512,11 @@ namespace Hansa
                 // trained by): moved with it (the parent is listed first)
                 PartMotion.Place(part, PartValue(ship, d, part), mat, partMats);
             }
-            float frac = PartMotion.DrawnSail(ship.SailFraction);
-            ComputeLateens(ship, frac);
-            foreach (var part in ship.Def.MovingParts)
-            {
-                if (part.Kind != "follow") continue;
-                float[] tipMove = part.Follow != null && partMats.TryGetValue(part.Follow, out var fm) ? fm : null;
-                // (note 64) a rope on a dipping lateen's yard (its sheet, tack, halyard): worked out in the lateen's own frame,
-                // then mirrored with it to the mast's other side
-                var lt = default((LateenRig Rig, LateenPose Pose, float[] Frame));
-                bool onLateen = part.Follow != null && lateens.TryGetValue(part.Follow, out lt);
-                if (onLateen) tipMove = lt.Frame;
-                // a sheet: its tip is on the clew, which goes up toward the yard as the sail is furled
-                if (tipMove != null && part.Sail != null && SailOf(ship.Def, part.Sail) is SailDef sd)
-                {
-                    PartMotion.FurlMatrix(sd, onLateen ? lt.Pose.Frac : frac, furlTmp);
-                    Mat4f.Mul(followTmp, tipMove, furlTmp);
-                    tipMove = followTmp;
-                }
-                float[] anchorMove = part.AnchorFollow != null && partMats.TryGetValue(part.AnchorFollow, out var am) ? am : null;
-                PartMotion.FollowMatrix(part, tipMove, partMats[part.Code], anchorMove);
-                if (onLateen && lt.Pose.Mirror)
-                {
-                    Array.Copy(partMats[part.Code], followTmp, 16);
-                    lt.Rig.Drawn(lt.Pose, followTmp, partMats[part.Code]);
-                }
-            }
+            PlacementMesh.RigPoses(ship.Def,partMats,ship.LeeShown,ship.LateenSheet,ship.SailFraction,rigPose);
         }
 
-        /// <summary>(note 64) Her dipping lateens this frame, by their yards' codes: each one's pose and its yard in its own frame (before any mirror).</summary>
-        readonly Dictionary<string, (LateenRig Rig, LateenPose Pose, float[] Frame)> lateens = new();
-        readonly Dictionary<string, float[]> lateenFrames = new();
-
-        /// <summary>
-        /// (note 64) Her dipping lateens (<see cref="LateenRig"/>) as the lee shown has them: each yard's matrix (into partMats,
-        /// mirrored to its mast's other side or not), with the pose its sail and ropes are drawn in.
-        /// </summary>
-        void ComputeLateens(EntityShip ship, float frac)
-        {
-            lateens.Clear();
-            foreach (var rig in LateenRig.Of(ship.Def))
-            {
-                if (rig == null || !partMats.TryGetValue(rig.Yard.Code, out var mat)) continue;
-                var pose = rig.Pose(ship.LeeShown, ship.LateenSheet, frac);
-                if (!lateenFrames.TryGetValue(rig.Yard.Code, out var frame)) lateenFrames[rig.Yard.Code] = frame = new float[16];
-                rig.YardFrame(pose, frame);
-                rig.Drawn(pose, frame, mat);
-                lateens[rig.Yard.Code] = (rig, pose, frame);
-            }
-        }
-
-        readonly float[] furlTmp = new float[16], followTmp = new float[16];
+        readonly PlacementMesh.RigPoseCache rigPose=new();
+        Dictionary<string,(LateenRig Rig,LateenPose Pose,float[] Frame)> lateens=>rigPose.Lateens;
 
         /// <summary>Is someone on this fixture's seat (a boat's rowing thwart, a helm)?</summary>
         static bool Manned(EntityShip ship, string fixture) =>

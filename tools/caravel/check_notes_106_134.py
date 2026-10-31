@@ -50,8 +50,11 @@ check(max(abs(a - b) for a, b in zip(sheet["anchor"], (end[0] / 1000, end[2] / 1
       "128: mizzen sheet follows the new outer end")
 
 pieces = D["modularPieces"]
-print("DEFERRED 108: bottom hearth partition needs runtime contact clipping (two coplanar faces)")
-print("DEFERRED 109: narrow upper front wedge has no runtime border place; adjoining top wall meets the stair")
+check(any(p['kind']=='partition' and p['at']==[-9,1.125,-1] for p in pieces),
+      '108: lower hearth partition supplied (runtime contact mesh checked by integrate)')
+check(any(p['kind']=='partition' and p['at']==[-7,3.125,3] for p in pieces) and
+      any(p['code']=='cabin-front-starboard-upper' and p['clip'] for p in D['borderPlaces']),
+      '109: upper front partition and its exact narrow border supplied')
 check(any(p["kind"] == "door" and p["at"] == [-7.0, 1.125, 1.0] for p in pieces) and
       any(p["kind"] == "window" and p["at"] == [-7.0, 2.125, 2.0] for p in pieces),
       "110: starboard cabin door and outboard window")

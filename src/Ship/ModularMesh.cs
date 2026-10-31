@@ -8,6 +8,8 @@ namespace Hansa
     /// at one texture per physical block; the renderer and geometry tests use these same quads.</summary>
     public static class ModularMesh
     {
+        // Game matrices are floats; rotated native elements at the far end of a ship carry micrometre rounding.
+        const double ContactTolerance=2e-6;
         sealed class Face
         {
             public double[][] P;
@@ -48,32 +50,33 @@ namespace Hansa
             var o=new List<double[]>();
             for(int k=0;k<p.Count;k++) {
                 var a=p[k];var b=p[(k+1)%p.Count];double da=distance(a),db=distance(b);
-                if(da>=-1e-9) o.Add(a);
-                if((da>1e-9&&db< -1e-9)||(da< -1e-9&&db>1e-9)) {
+                if(da>=-ContactTolerance) o.Add(a);
+                if((da>ContactTolerance&&db< -ContactTolerance)||(da< -ContactTolerance&&db>ContactTolerance)) {
                     double t=da/(da-db);o.Add(new[]{a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1]),a[2]+t*(b[2]-a[2])});
                 }
             }
             return o;
         }
 
-        public static List<float[]> Quads(IEnumerable<ModularPart> parts)
+        public static List<float[]> Quads(IEnumerable<ModularPart> parts,IEnumerable<ModularPart> contacts=null,bool keepShared=true)
         {
-            var solids=parts.Select(Faces).ToArray();var boxes=parts.Select(p=>PlacementMesh.Bounds(Corners(p))).ToArray();
+            var own=parts.ToArray();var all=own.Concat(contacts??Enumerable.Empty<ModularPart>()).ToArray();
+            var solids=all.Select(Faces).ToArray();var boxes=all.Select(p=>PlacementMesh.Bounds(Corners(p))).ToArray();
             var result=new List<float[]>();
-            for(int i=0;i<solids.Length;i++) foreach(var face in solids[i])
+            for(int i=0;i<own.Length;i++) foreach(var face in solids[i])
             {
                 var polygons=new List<List<double[]>> {face.P.ToList()};
                 for(int j=0;j<solids.Length&&polygons.Count>0;j++)
                 {
                     if(i==j || !PiecePlanner.Overlap(boxes[i],boxes[j],-1e-7)) continue;
                     // A shared outer plane has one owner. Opposing contact faces are internal on both sides.
-                    if(j>i && solids[j].Any(f=>Dot(face.N,f.N)>1-1e-8 && Math.Abs(face.D-f.D)<1e-8)) continue;
+                    if(j>i && (j<own.Length || keepShared) && solids[j].Any(f=>Dot(face.N,f.N)>1-1e-8 && Math.Abs(face.D-f.D)<ContactTolerance)) continue;
                     var outside=new List<List<double[]>>();
                     foreach(var polygon in polygons) {
                         var inside=polygon;
                         foreach(var plane in solids[j]) {
                             var outPart=Clip(inside,p=>Dot(plane.N,p)-plane.D);
-                            if(outPart.Count>=3 && outPart.Any(p=>Dot(plane.N,p)-plane.D>1e-8)) outside.Add(outPart);
+                            if(outPart.Count>=3 && outPart.Any(p=>Dot(plane.N,p)-plane.D>ContactTolerance)) outside.Add(outPart);
                             inside=Clip(inside,p=>plane.D-Dot(plane.N,p));
                             if(inside.Count<3) break;
                         }

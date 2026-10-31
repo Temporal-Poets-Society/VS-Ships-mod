@@ -165,7 +165,8 @@ namespace Hansa
         {
             if (gun?.Pos == null) return false;
             var b = Breech(gun, lay);
-            return Math.Abs(y - b.Y) < 1.5 && (x - b.X) * (x - b.X) + (z - b.Z) * (z - b.Z) <= reach * reach;
+            double floor = gun.Swivel && gun.Seat?.Length >= 3 ? gun.Seat[1] : b.Y;
+            return Math.Abs(y - floor) < 1.5 && (x - b.X) * (x - b.X) + (z - b.Z) * (z - b.Z) <= reach * reach;
         }
 
         static Vec3d V(double[] a, Vec3d fallback) => a?.Length >= 3 ? new Vec3d(a[0], a[1], a[2]) : fallback;
@@ -261,10 +262,45 @@ namespace Hansa
         /// <summary>Handle the carriage and barrel where they are drawn, with train, elevation and run-back.</summary>
         public static double Pick(FixtureDef gun, GunLay lay, double back, Vec3d o, Vec3d d)
         {
-            double best=double.MaxValue;
-            foreach(var (box,barrel) in PickBodies(gun))
+            if (!NearRay(gun,back,o,d)) return -1;
+            var cache=pickCache.GetValue(gun,_=>new CachedPick());
+            if(cache.Pose==null || cache.Lay.Train!=lay.Train || cache.Lay.Elevation!=lay.Elevation || cache.Back!=back)
+                {cache.Lay=lay;cache.Back=back;cache.Pose=new PickPose(gun,lay,back);}
+            return cache.Pose.Pick(o,d);
+        }
+        sealed class CachedPick { public GunLay Lay;public double Back;public PickPose Pose; }
+        static readonly System.Runtime.CompilerServices.ConditionalWeakTable<FixtureDef,CachedPick> pickCache=new();
+
+        /// <summary>Conservative rejection before constructing any matrices or corner arrays.</summary>
+        public static bool NearRay(FixtureDef gun,double back,Vec3d o,Vec3d d)
+        {
+            if(gun?.Pos==null) return false;
+            double x=gun.Pos[0]-o.X,y=gun.Pos[1]-o.Y,z=gun.Pos[2]-o.Z;
+            double radius=3+Math.Abs(back);
+            double along=Math.Max(0,x*d.X+y*d.Y+z*d.Z);
+            return (x-along*d.X)*(x-along*d.X)+(y-along*d.Y)*(y-along*d.Y)+(z-along*d.Z)*(z-along*d.Z)<=radius*radius;
+        }
+
+        public sealed class PickPose
+        {
+            readonly (double[] Box,float[] Inverse)[] bodies;
+            public readonly double[] Bounds;
+            public PickPose(FixtureDef gun,GunLay lay,double back)
             {
-                var inv=new float[16];Mat4f.Invert(inv,Matrix(gun,lay,back,barrel));
+                var list=new System.Collections.Generic.List<(double[],float[])>();
+                var corners=new System.Collections.Generic.List<double[]>();
+                foreach(var body in PickBodies(gun)) {
+                    var m=Matrix(gun,lay,back,body.Barrel);var inv=new float[16];Mat4f.Invert(inv,m);
+                    list.Add((body.Box,inv));
+                    foreach(var p in PlacementMesh.Corners(body.Box)) corners.Add(PlacementMesh.Transform(m,p));
+                }
+                bodies=list.ToArray();Bounds=PlacementMesh.Bounds(corners);
+            }
+            public double Pick(Vec3d o,Vec3d d)
+            {
+            double best=double.MaxValue;
+            foreach(var (box,inv) in bodies)
+            {
                 var a=PlacementMesh.Transform(inv,new[] {o.X,o.Y,o.Z});
                 var end=PlacementMesh.Transform(inv,new[] {o.X+d.X,o.Y+d.Y,o.Z+d.Z});
                 double t=ShipFittings.RayBox(new Vec3d(a[0],a[1],a[2]),new Vec3d(end[0]-a[0],end[1]-a[1],end[2]-a[2]),
@@ -272,6 +308,7 @@ namespace Hansa
                 if(t>=0) best=Math.Min(best,t);
             }
             return best==double.MaxValue?-1:best;
+            }
         }
 
         public static double[] SelectionBounds(FixtureDef gun,GunLay lay,double back) =>

@@ -298,10 +298,20 @@ namespace Hansa
         /// hold's and any other storage's contents, what's in her hearth, the lanterns, beds, plates and boats on her places,
         /// the copper plates nailed on if her bottom wasn't finished). take: out of her (the last tick), else only counted.
         /// </summary>
-        static List<WreckLoot> LootOf(EntityShip ship, bool take)
+        internal static List<WreckLoot> LootOf(EntityShip ship, bool take)
         {
             var list = new List<WreckLoot>();
             var loose = new WreckLoot();
+            foreach (var gun in ship.Def.Fixtures)
+            {
+                if (gun.Type != "gun" || ship.GunAbsent(gun)) continue;
+                var state = ship.Gun(gun.Code);
+                if ((state.Charge & GunLoading.PowderIn) != 0 && ship.World.GetItem(new AssetLocation(GunLoading.Powder)) is Item powder)
+                    loose.Items.Add(new ItemStack(powder));
+                if (state.Charge == GunLoading.Loaded && ship.World.GetItem(new AssetLocation(GunLoading.Shot)) is Item shot)
+                    loose.Items.Add(new ItemStack(shot, gun.Swivel ? 1 : 4));
+                if (take) state.Charge = 0;
+            }
             foreach (var f in ship.Def.Fixtures)
             {
                 if (f.Type != "attach" || !ship.Attached.TryGetValue(f.Code, out var stack)) continue;

@@ -78698,7 +78698,8 @@
      ],
      "rows": [
       0,
-      1
+      1,
+      2
      ]
     },
     {
@@ -78719,7 +78720,8 @@
      ],
      "rows": [
       0,
-      1
+      1,
+      2
      ]
     },
     {
@@ -78743,6 +78745,7 @@
       -1
      ],
      "rows": [
+      0,
       1,
       2
      ],
@@ -78829,7 +78832,7 @@
   "swivels": [
    8.0
   ],
-  "swivelReach": 1.0,
+  "swivelReach": 1.05,
   "bumpkinOut": 2800.0,
   "sails": {
    "main": {
@@ -78863,6 +78866,26 @@
   },
   "variant": "D",
   "fittings": {
+   "figurehead": {
+    "pos": [
+     10.12,
+     2.6,
+     0.0
+    ],
+    "rake": 20.0
+   },
+   "gunCrewOffsets": {
+    "gun-port-quarterdeck-2": [
+     -0.65,
+     0,
+     0
+    ],
+    "gun-starboard-quarterdeck-2": [
+     -0.65,
+     0,
+     0
+    ]
+   },
    "pump": {
     "deck": "main",
     "cell": [

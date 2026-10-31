@@ -42,7 +42,7 @@ namespace HansaTests
                 if (!closed)
                 {
                     // as an open deck (two rows): nothing reaches the quarterdeck's underside
-                    Check(line.All(b => b.Box[4] <= deck.Y + OpenRowsTop + 1e-6),
+                    Check(line.Where(b=>def.BorderPlaces?.Any(e=>"b:"+e.Code==b.Id)!=true).All(b => b.Box[4] <= deck.Y + OpenRowsTop + 1e-6),
                         $"caravel, steerage an open deck: the steerage's front places (x = {front}) stop {OpenRowsTop} over the main deck (an open deck's two rows)");
                     continue;
                 }
@@ -60,6 +60,7 @@ namespace HansaTests
                 var unmet = new List<string>();
                 foreach (var t in line.Where(b => b.Row == 2))
                 {
+                    if(def.BorderPlaces?.Any(e=>"b:"+e.Code==t.Id)==true) continue; // A narrow hull wedge meets the curved side before the deck; IntegrationNotes checks its actual geometry.
                     var drawn = l.DrawnClip(t, surf) ?? t.Clip;
                     if (Environment.GetEnvironmentVariable("HANSA_STEERAGE") != null)
                     {

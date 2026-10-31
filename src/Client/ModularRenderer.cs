@@ -17,6 +17,19 @@ namespace Hansa
     /// </summary>
     public partial class ShipRenderer
     {
+        Piece OpeningFramePiece(EntityShip ship)
+        {
+            if(ship.OpeningFrameParts.Count==0) return null;
+            var tex=AtlasTex("game:block/wood/debarked/oak",null);
+            var md=new MeshData(64,96,false,true,true,true);
+            foreach(var q in OpeningFrames.Mesh(ship.Def,ship.OpeningFrameParts)) {
+                int start=md.VerticesCount,flags=VertexFlags.PackNormal(q[6],q[7],q[8]);
+                for(int k=0;k<4;k++) md.AddWithFlagsVertex(q[1+8*k],q[2+8*k],q[3+8*k],tex.x1+(tex.x2-tex.x1)*q[4+8*k]/16,tex.y1+(tex.y2-tex.y1)*q[5+8*k]/16,-1,flags);
+                md.AddIndices(start,start+1,start+2,start,start+2,start+3);md.AddTextureId(tex.atlasTextureId);
+            }
+            var p=new Piece {Fixture=new FixtureDef {Type="piece",Code="opening-frames"},Interior=true};
+            Mat4f.Identity(p.Fit);p.Mesh=capi.Render.UploadMultiTextureMesh(md);return p;
+        }
         TextureAtlasPosition AtlasTex(string name, string fallback)
         {
             TextureAtlasPosition tp = null;
@@ -30,7 +43,7 @@ namespace Hansa
         /// A modular piece's mesh (ship-local), or null: its parts (<see cref="ModularGeometry"/>) in the piece's wood (the
         /// block's: oak, pine...) or its paint, the ship's glass, lead, iron, the bricks of a hearth or a flue.
         /// </summary>
-        Piece ModularPiece(EntityShip ship, ShipPiece pc)
+        Piece ModularPiece(EntityShip ship, ShipPiece pc,IEnumerable<ModularPart> nativeContacts=null)
         {
             string code = pc.Parts.Count > 0 ? pc.Parts[0].Block : pc.Stack?.Block?.Code?.ToString();
             string wood = VanillaPieceBlock.WoodOf(code);
@@ -39,6 +52,9 @@ namespace Hansa
             List<ModularPart> parts;
             switch (pc.Role)
             {
+                case PieceRole.Partition:
+                    parts=ModularGeometry.Partition(ship.Mounts,ship.Def.Surfaces,ship.Pieces.All,pc);
+                    break;
                 case PieceRole.Window:
                 {
                     var (lo, hi) = ModularGeometry.WallEnds(ship.Mounts, ship.Pieces.All, pc);
@@ -96,8 +112,8 @@ namespace Hansa
                 _ => timber
             };
             var md = new MeshData(64, 96, false, true, true, true);
-            if(pc.Role is PieceRole.Stair or PieceRole.Ladder)
-                foreach(var q in ModularMesh.Quads(parts))
+            if(pc.Role is PieceRole.Stair or PieceRole.Ladder or PieceRole.Hearth or PieceRole.Partition)
+                foreach(var q in ModularMesh.Quads(parts,ModularGeometry.Contacts(ship.Mounts,ship.Def.Surfaces,ship.Pieces,pc).Concat(nativeContacts??Enumerable.Empty<ModularPart>()),pc.Role!=PieceRole.Partition))
                 {
                     var tex=Tex((PartMat)(int)q[0]);int start=md.VerticesCount;
                     int flags=VertexFlags.PackNormal(q[6],q[7],q[8]);
