@@ -141,7 +141,7 @@ def covered(tri, n, cell, a, cell_solids):
     c = [sum(q[k] for q in tri) / 3 for k in range(3)]
     for q in [c] + [[c[k] + 0.9 * (p[k] - c[k]) for k in range(3)] for p in tri]:
         q = list(q)
-        q[a] += d * 1.0                                   # 1 mm across the border
+        q[a] += d * 1.0
         p = V(*q)
         if not any(near_box(so, p) and piece_inside(so, p, 0.1) for so in solids):
             return False
@@ -266,6 +266,8 @@ def outside_hull(x, y, z):
     her sheer?"""
     if z < LV["underside"] or z > float(_np.interp(x, [q[0] for q in _SHEER], [q[1] for q in _SHEER])):
         return True
+    if x < float(_np.interp(z, [q[1] for q in L["sternProfile"]], [q[0] for q in L["sternProfile"]])) - 1:
+        return True
     zb = round(z / 1000.0, 2)                            # (waterlines are cached by height: 10 mm steps)
     return abs(y) / 1000.0 > float(_CL.half_breadth(_np.array([x / 1000.0]), zb)[0])
 
@@ -380,9 +382,8 @@ def side_of_j(j):
 
 fixed_hull = set()                       # (side, i, row)
 for gf_ in REP["guns"]:
-    if abs(gf_["deck"] - LV["mainDeck"]) < 1:
-        for k_ in (4, 5):
-            fixed_hull.add((-1 if gf_["side"] == "port" else 1, gf_["cell"], k_))
+    for k_ in range(int(gf_["deck"] // 1000), int((gf_["deck"] + L["layout"]["port"]["head"]) // 1000) + 1):
+        fixed_hull.add((-1 if gf_["side"] == "port" else 1, gf_["cell"], k_))
 for gx in range(int(math.floor(L["layout"]["gate"]["x"][0] / 1000)), int(math.ceil(L["layout"]["gate"]["x"][1] / 1000))):
     for s_ in (-1, 1):
         for k_ in (4, 5):
@@ -435,16 +436,59 @@ def in_room(cx, cz):
     return cz < LV["mainDeck"] or (cx < L["quarterdeckFront"] and cz < LV["quarterdeck"] - 150)
 
 
+COPPER_TOP = LV["waterline"] + 125.0
+
+
+def cut_height(tri, uvs, height, below):
+    """Clip a real 3D face at a horizontal paint/material boundary, interpolating its surface UVs."""
+    poly = [list(p) + list(uv) for p, uv in zip(tri, uvs)]
+    out = []
+    for a, b in zip(poly, poly[1:] + poly[:1]):
+        ina, inb = (a[2] <= height) == below, (b[2] <= height) == below
+        if ina:
+            out.append(a)
+        if ina != inb:
+            f = (height - a[2]) / (b[2] - a[2])
+            out.append([a[k] + f * (b[k] - a[k]) for k in range(5)])
+    return [(tuple(p[:3] for p in (out[0], out[k], out[k + 1])),
+             tuple(p[3:] for p in (out[0], out[k], out[k + 1]))) for k in range(1, len(out) - 1)]
+
+
+from functools import lru_cache
+
+
+@lru_cache(maxsize=None)
+def copper_uv(p):
+    """Magelan's along-strake arclength, and distance round the section: 16 texels per physical metre."""
+    x, y, z = p
+    if abs(z - LV["underside"]) < 0.01:
+        return (x / 1000 * 16, abs(y) / 1000 * 16)
+    lines = L["hull"]
+    def along(line):
+        pts = _np.asarray(line["pts"], float)
+        s = _np.r_[0.0, _np.cumsum(_np.linalg.norm(_np.diff(pts, axis=0), axis=1))]
+        return float(_np.interp(x, pts[:, 0], s) - _np.interp(-4500.0, pts[:, 0], s))
+    zs = [l["z"] for l in lines]
+    k = max(0, min(len(lines) - 2, int(_np.searchsorted(zs, z)) - 1))
+    u = float(_np.interp(z, zs[k:k + 2], [along(lines[k]), along(lines[k + 1])]))
+    section = _np.array([[l["z"], _np.interp(x, [q[0] for q in l["pts"]], [q[1] for q in l["pts"]])] for l in lines])
+    ss = _np.r_[0.0, _np.cumsum(_np.linalg.norm(_np.diff(section, axis=0), axis=1))]
+    # Continue across the flat floor from the keel to the bilge. Height alone has no distance across a flat face.
+    v = abs(y) if abs(z - LV["underside"]) < 0.01 else float(section[0, 1] + _np.interp(z, section[:, 0], ss))
+    return (u / 1000 * 16, v / 1000 * 16)
+
+
 def hull_tri(body, tri, uvs, n, c3, own, fac):
     """A triangle of her side's planking (or a fixed piece's face toward a panel) for the hull's slot groups."""
     cx, cy, cz = c3
     if own is not None and fac is None and body == "Shell":
         outward = outside_hull(cx + n[0] * 30.0, cy + n[1] * 30.0, cz + n[2] * 30.0)
-        if outward and cz < LV["waterline"] + 50:
-            hull_tris.append(("slot:hull:bottom", T_HULL, tri, uvs, n, own, fac))
-            hull_tris.append(("slot:hull:bottomclad", T_COPPER, tri, uvs, n, own, fac))
-        elif outward:
-            hull_tris.append(("slot:hull", T_HULL, tri, uvs, n, own, fac))
+        if outward:
+            for tr, uv in cut_height(tri, uvs, COPPER_TOP, True):
+                hull_tris.append(("slot:hull:bottom", T_HULL, tr, uv, n, own, fac))
+                hull_tris.append(("slot:hull:bottomclad", T_COPPER, tr, [copper_uv(tuple(p)) for p in tr], n, own, fac))
+            for tr, uv in cut_height(tri, uvs, COPPER_TOP, False):
+                hull_tris.append(("slot:hull", T_HULL, tr, uv, n, own, fac))
         else:
             hull_tris.append(("slot:hull:interior" if in_room(cx, cz) else "slot:hull", T_HULL2, tri, uvs, n, own, fac))
         return
@@ -540,7 +584,7 @@ for c in cells["cells"]:
                 if S is not None:
                     beam_tris.append((BODY_TEX[body], tri, uvs, n, S, None))
                     continue
-            if body == "Beams" and n[2] > 0.9:
+            if body in ("Beams", "Ribs") and n[2] > 0.9:
                 # a beam's or a carling's top under a deck cell: seen only while that cell is out
                 under = next((slot_of[(d_, i, j)] for d_, z in DECK_Z.items()
                               if (d_, i, j) in slot_of and abs(cz - (z - L["deckThickness"])) < 2), None)
@@ -576,11 +620,12 @@ for c in cells["cells"]:
                 # face is out of her envelope: the bow's inside faces, facing aft, were taken for the transom's outside
                 # (drawn tarred in the bottom's group, never painted)
                 outward = outside_hull(cx + n[0] * 30.0, cy + n[1] * 30.0, cz + n[2] * 30.0)
-                if outward and cz < LV["waterline"] + 50:
-                    add_tri("bottom", T_HULL, tri, uvs, n)
-                    add_tri("bottomclad", T_COPPER, tri, uvs, n)
-                elif outward:
-                    add_tri("exterior", T_HULL, tri, uvs, n)
+                if outward:
+                    for tr, uv in cut_height(tri, uvs, COPPER_TOP, True):
+                        add_tri("bottom", T_HULL, tr, uv, n)
+                        add_tri("bottomclad", T_COPPER, tr, [copper_uv(tuple(p)) for p in tr], n)
+                    for tr, uv in cut_height(tri, uvs, COPPER_TOP, False):
+                        add_tri("exterior", T_HULL, tr, uv, n)
                 elif cz < LV["mainDeck"]:
                     add_tri("interior", T_HULL2, tri, uvs, n)
                 else:
@@ -881,8 +926,18 @@ GG = REP["gunGeometry"]
 gun_subs = OBJ["Guns"].Shape.SubShapes
 assert len(gun_subs) == 4 * len(GF), (len(gun_subs), len(GF))
 for side in ("port", "starboard"):
-    for n, k in enumerate(sorted((k for k, gf in enumerate(GF) if gf["side"] == side), key=lambda k: GF[k]["cell"]), 1):
-        GF[k]["code"] = f"gun-{side}-{n}"
+    for k, gf in enumerate(GF):
+        if gf["side"] != side:
+            continue
+        if gf["deck"] == LV["mainDeck"]:
+            # Keep dev.14's gun identities when adding the new after waist port.
+            n = {1: 1, 3: 2, -1: 3}.get(gf["cell"])
+            if n is None:
+                n = 4 + sorted(c for c in L["layout"]["guns"] if c not in (1, 3, -1)).index(gf["cell"])
+            gf["code"] = f"gun-{side}-{n}"
+        else:
+            n = sorted(L["layout"]["quarterdeckGuns"]).index(gf["cell"]) + 1
+            gf["code"] = f"gun-{side}-quarterdeck-{n}"
 for k, gf in enumerate(GF):
     code = gf["code"]
     bed, fore, aft, barrel = gun_subs[4 * k: 4 * k + 4]
@@ -1323,7 +1378,7 @@ for gf in GF:
     bz0, bz1 = zr(rear, front)
     sz0, sz1 = zr(rear - 150, front)
     kz0, kz1 = zr(seat - 300, front)
-    if on_qd:
+    if on_qd and LV["quarterdeckSide"] <= LV["quarterdeck"] + 1:
         # over the side, between the railing's posts and under its top rail; its faces those of the bottom and top rails
         # (the bottom rail 80 high lying on the deck, the top rail 140 high centred 50 under the posts' tops: their faces
         # and 5 mm clear)

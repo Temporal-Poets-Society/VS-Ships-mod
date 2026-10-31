@@ -60,21 +60,28 @@ def solids_of(shp):
 # ---------------------------------------------------------------- cut: X slabs, then Z layers, then Y columns
 pieces = {}            # (i, j, k) -> list of [body, solid]
 for name, shp in bodies.items():
-    bb = shp.BoundBox
-    for i in range(int(math.floor(bb.XMin / CELL)), int(math.ceil(bb.XMax / CELL))):
-        sx = shp.common(slab_x(i))
-        if sx.Volume < 1.0:
-            continue
-        bx = sx.BoundBox
-        for k in range(int(math.floor(bx.ZMin / CELL)), int(math.ceil(bx.ZMax / CELL))):
-            sz = sx.common(slab_z(k))
-            if sz.Volume < 1.0:
+    # OCC intersections of a compound of touching timbers can omit one member or return it in another slab.
+    # Slice the actual solids independently (notes 111/112/114), preserving each timber and its clean ends.
+    for source in shp.Solids:
+        bb = source.BoundBox
+        for i in range(int(math.floor(bb.XMin / CELL)), int(math.ceil(bb.XMax / CELL))):
+            sx = source.common(slab_x(i))
+            if sx.Volume < 1.0:
                 continue
-            bz = sz.BoundBox
-            for j in range(y_cell(bz.YMin), y_cell(bz.YMax) + 1):
-                sy = sz.common(slab_y(j))
-                for so in solids_of(sy):
-                    pieces.setdefault((i, j, k), []).append([name, so])
+            bx = sx.BoundBox
+            for k in range(int(math.floor(bx.ZMin / CELL)), int(math.ceil(bx.ZMax / CELL))):
+                sz = sx.common(slab_z(k))
+                if sz.Volume < 1.0:
+                    continue
+                bz = sz.BoundBox
+                for j in range(y_cell(bz.YMin), y_cell(bz.YMax) + 1):
+                    sy = sz.common(slab_y(j))
+                    for so in solids_of(sy):
+                        b = so.optimalBoundingBox(False, False)
+                        assert b.XMin >= i * CELL - 0.1 and b.XMax <= (i + 1) * CELL + 0.1
+                        assert b.YMin >= (j - 0.5) * CELL - 0.1 and b.YMax <= (j + 0.5) * CELL + 0.1
+                        assert b.ZMin >= k * CELL - 0.1 and b.ZMax <= (k + 1) * CELL + 0.1
+                        pieces.setdefault((i, j, k), []).append([name, so])
     log(name, "cut;", len(pieces), "cells so far")
 
 # ---------------------------------------------------------------- slivers join a neighbour
@@ -131,6 +138,8 @@ for c, p in pieces.items():
     for body, so in p:
         vol_cells[body] = vol_cells.get(body, 0.0) + so.Volume
 check = {b: {"body_m3": round(bodies[b].Volume / 1e9, 4), "pieces_m3": round(vol_cells.get(b, 0) / 1e9, 4)} for b in bodies}
+for b, shape in bodies.items():
+    assert abs(shape.Volume - vol_cells.get(b, 0)) < max(1.0, shape.Volume * 1e-8), (b, check[b])
 cells = []
 comp = []
 for c in sorted(pieces):

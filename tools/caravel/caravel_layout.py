@@ -367,6 +367,14 @@ def split_tiles(M, start=None):
                 res.append([a[k] + f * (b[k] - a[k]) for k in range(8)])
         return res
 
+    copper = []
+    for i in range(1, 6):
+        path = f"game:block/metal/sheet/copper{i}"
+        if path not in M["textures"]:
+            M["textures"].append(path)
+        copper.append(M["textures"].index(path))
+    def tile_tex(t, iu, iv):
+        return copper[(iu * 73 + iv * 37) % 5] if t in copper else t
     cut, made = 0, 0
     for g in list(M["groups"]):
         if g.startswith("sail:") or g == "shot":
@@ -381,6 +389,8 @@ def split_tiles(M, start=None):
             iu0, iu1 = (math.floor(min(us) / 16 + 1e-5), math.floor(max(us) / 16 - 1e-5)) if poly else (0, 0)
             iv0, iv1 = (math.floor(min(vs) / 16 + 1e-5), math.floor(max(vs) / 16 - 1e-5)) if poly else (0, 0)
             if len(poly) < 3 or (iu0 == iu1 and iv0 == iv1):
+                if poly:
+                    q = [tile_tex(q[0], iu0, iv0)] + q[1:]
                 if poly and (iu0 or iv0):
                     # (in one tile, not the first: brought into it whole)
                     q = list(q)
@@ -412,7 +422,7 @@ def split_tiles(M, start=None):
                     k = 1
                     while k + 1 < len(pc):
                         four = [pc[0], pc[k], pc[k + 1], pc[k + 2] if k + 2 < len(pc) else pc[k + 1]]
-                        out_q.append([q[0]] + [round(v, 4) if a < 3 else round(v, 3) for c in four for a, v in enumerate(c)])
+                        out_q.append([tile_tex(q[0], iu, iv)] + [round(v, 4) if a < 3 else round(v, 3) for c in four for a, v in enumerate(c)])
                         if pairs is not None:
                             out_p += pairs[2 * n: 2 * n + 2]
                         made += 1
@@ -554,6 +564,7 @@ PAINT_ZONES = [
     {"code": "hold-timbers", "name": "Hold's frames and beams, the keelson, the hatchway's carlings", "kind": "moulding", "default": "timber"},
     {"code": "hold-ceiling", "name": "Hold's ceiling: the main deck's underside", "kind": "ceiling", "default": "deck"},
     {"code": "steerage-ceiling", "name": "Steerage's ceiling: the quarterdeck's underside", "kind": "ceiling", "default": "deck"},
+    {"code": "steerage-walls", "name": "Inside the steerage: sides and transom", "kind": "panel", "default": "tarred", "rows": True},
 ]
 
 
@@ -573,12 +584,14 @@ def paint_quads(M, L, F, only_lids=False):
         c = [sum(q[1 + 8 * k + a] for k in range(4)) / 4 for a in range(3)]
         ny_ = sum(q[1 + 8 * k + 6] for k in range(4)) / 4
         if group.startswith("part:gate-"):
-            return "topsides"
+            return {t_hull: "topsides", t_hull2: "waist-bulwarks", t_deck2: "rail-caps"}.get(t)
         if group.endswith("-lid"):
             return {t_hull: "topsides", t_hull2: "waist-bulwarks", t_deck2: "quarterdeck-railing"}.get(t)
         if t == t_hull:
             return "topsides"
         if t == t_hull2:
+            if c[0] < qf and deck - 0.01 <= c[1] < qd - 0.2:
+                return "steerage-walls"
             return "waist-bulwarks" if c[1] > deck - 0.25 else "hold"
         if t == t_deck2:
             return "quarterdeck-railing" if c[0] < qf - 0.02 else "rail-caps"
@@ -613,13 +626,25 @@ def paint_quads(M, L, F, only_lids=False):
 
 
 # ---------------------------------------------------------------------------------------------------------- the build
-def deflicker(M, D):
+def copper_view(M):
+    """The metal alternative, sharing the actual face lists with the exported mesh."""
+    return dict(M, groups={g.removesuffix("clad") if g.endswith("bottomclad") else g: qs
+                           for g, qs in M["groups"].items() if not g.endswith("bottom")},
+                slotQuads={g.removesuffix("clad") if g.endswith("bottomclad") else g: qs
+                           for g, qs in M.get("slotQuads", {}).items() if not g.endswith("bottom")})
+
+
+def deflicker(M, D, copper=False):
     """(22 October 2026, the user: "For ANY visible elements - check 3D model overlaps ... visible surface overlaps
     create texture flickers ... This is also rule for any new or modified models") Drawn faces in one plane, facing one
     way and overlapping (overlap_check.py) flicker. Each cluster of them (faces joined by overlaps) is spread out along
     its normal 2 mm a face: a slot's faces first and staying (the hull's and the decks' meet their neighbours exactly),
     then the larger, the smaller ones in front. Returns (moved, still overlapping after)."""
     import overlap_check as OC
+    if copper:
+        # Copper has its own UV tile cuts, so its faces do not have the tarred alternative's indices. Check and
+        # separate its actual faces too; keep references to the original lists so the corrections are exported.
+        M = copper_view(M)
     empty = OC.empty_slots(D)
     found = OC.find_clashes(M, empty)
     link, nrm_of, area_of = {}, {}, {}
@@ -686,6 +711,27 @@ def main():
     parts = list(D["movingParts"])
     standing = []                                   # shrouds, for the mod to press the sails against (rigCheck)
 
+    # Two working strap hinges on each entry gate. Alternate knuckles belong to jamb and leaf, with clear ends.
+    for gl in REP["gateLeaves"]:
+        code = "gate-" + gl["side"]
+        s = -1.0 if gl["side"] == "port" else 1.0
+        hinge = next(p for p in parts if p["code"] == code)["axisPoint"]
+        inner_z = hinge[2]
+        hinge[2] -= s * 0.020
+        xh, _, zh = hinge
+        for y in (F.y_of(gl["z0"]) + 0.22, F.y_of(gl["z1"]) - 0.23):
+            for j in (-1, 0, 1):
+                group = "part:" + code if j == 0 else "exterior"
+                d.add_cylinder(group, "iron", (xh, y + j * 0.045 - 0.021, zh),
+                               (xh, y + j * 0.045 + 0.021, zh), 0.015, 0.015, sides=10)
+            d.add_box_mesh("part:" + code, "iron", (xh + 0.1525, y, inner_z - s * 0.008), (0.295, 0.045, 0.016))
+            # Two fixed gudgeon tabs join the outer knuckles to the actual curved jamb. A strap across their
+            # middle would foul the rotating centre knuckle; keep that height free and seat each tab in the hull.
+            for j in (-1, 1):
+                yy = y + j * 0.045
+                anchor = (xh - 0.070, yy, s * (hb_in(xh - 0.070, yy + F.WL) + 0.008))
+                d.add_beam_mesh("exterior", "iron", anchor, (xh, yy, zh), 0.016, 0.025, up=(0, 1, 0))
+
     def rope(a, b, group="exterior", r=0.025):
         d.add_rope(a, b, r=r, group=group)
 
@@ -713,7 +759,7 @@ def main():
     def transom_x(z):
         return tx0 + (tx1 - tx0) * (z - tz0) / (tz1 - tz0)
 
-    bumpkin_end = F.g(transom_x(Q) - (1600 if L.get("counter") else 2400), 0, Q + 150)   # (as the build's BK_OUT)
+    bumpkin_end = F.g(*REP["bumpkin"]["end"])
     # (chalk note 64: "The same rope attaches to railings just like that") a rope made fast on a rail ends on a cleat on its
     # top: a foot and two horns along the rail, the rope's last turns across them
     rail_y = (L["railings"]["top"][0][2] - 50 + 70) / 1000.0 - F.WL          # the top rail's top (140 high, 50 under the posts')
@@ -759,9 +805,10 @@ def main():
             # (chalk note 67: "rope ends nowhere with empty space") the tack to an eyebolt in the stem head's after face
             zs_ = sheer_at(L, 9.5) + 0.45
             sx_ = CL.x_stem(CL.shape_z(zs_)) + CL.BB_OUT_STEM - CL.BB_MOULDED
-            tack_to = np.array([sx_ - 0.05, zs_ - F.WL, 0.0])
-            d.add_cylinder("exterior", "iron", tack_to + np.array([0.06, 0, 0]), tack_to + np.array([0.015, 0, 0]), 0.014, 0.014, sides=6)
-            CF.rope_path(d, CF.ring_points(tack_to, 0.04, "z", 10), r=0.012, mat="iron")
+            tack_to = np.array([sx_ - 0.105, zs_ - F.WL, 0.0])
+            d.add_cylinder("exterior", "iron", tack_to + (0.14, 0, 0), tack_to + (0.06, 0, 0), 0.024, 0.024, sides=10)
+            d.add_cylinder("exterior", "iron", tack_to + (0.105, 0, 0), tack_to + (0.12, 0, 0), 0.065, 0.065, sides=12)
+            CF.iron_ring(d, tack_to)
         else:
             sheet_to = bumpkin_end                                                           # out on the bumpkin
             # (chalk note 65: "this rope ends in stairs middle") the tack to the front rail on its yard's side, clear of
@@ -783,24 +830,26 @@ def main():
     # shrouds: the main's three a side to its cap rails aft of the gate, the mizzen's two to the quarterdeck's rail
     mzx = LAY["masts"]["mizzen"]["cell"] + 0.5
     mnx = LAY["masts"]["main"]["cell"] + 0.5         # (draft D: the main mast 2 aft; its shrouds with it)
-    for code, xs, top_drop in (("main", (mnx - 0.75, mnx - 1.55, mnx - 2.35), 1.2), ("mizzen", (mzx - 1.25, mzx - 1.75), 0.9)):
+    for code, xs, top_drop in (("main", (mnx - 0.75, mnx - 1.55, mnx - 2.35), 1.2), ("mizzen", (mzx - 1.0, mzx - 1.35), 0.9)):
         mast = masts[code]
         mx = mast["x"] / 1000.0
         head = mast["top"] / 1000.0 - top_drop
-        for x in xs:
-            if code == "main":
-                zs = sheer_at(L, x)
-                y_low, half = zs + 0.08 - F.WL, hb(x, zs - 0.02) - 0.08
-            else:
-                zr = LV["quarterdeckRail"] / 1000.0
-                y_low, half = zr - F.WL - 0.02, hb(x, zr - 0.02) - 0.12
-            for sgn in (1, -1):
+        for sgn in (1, -1):
+            group = f"rig:shrouds-{code}-{'port' if sgn < 0 else 'starboard'}"
+            level = (deck if code == "main" else qd) + 0.65
+            feet = CF.chain_channel(d, xs, level, sgn, lambda x, y: hb(x, y + F.WL))
+            legs = []
+            for x, b in zip(xs, feet):
                 a = np.array([mx, head - F.WL, sgn * 0.18])
-                b = np.array([x, y_low, sgn * half])
                 # (25 October 2026, note 104, the user: windward shrouds only, as lateen ships set them) each mast's and side's
                 # in a group of their own: the mod shows the windward set and shifts them over with the dip
-                rope(a, b, group=f"rig:shrouds-{code}-{'port' if sgn < 0 else 'starboard'}", r=0.03)
+                rope(a, b, group=group, r=0.03)
+                legs.append((a, b))
                 standing.append(v4(list(b) + list(a)) + [0.04])
+            for y in np.arange(max(b[1] for _, b in legs) + 0.35, head - F.WL - 0.7, 0.35):
+                rung = [b + (a - b) * ((y - b[1]) / (a[1] - b[1])) for a, b in legs]
+                for a, b in zip(rung, rung[1:]):
+                    rope(a, b, group=group, r=0.009)
     for p in parts:
         if p["code"].startswith("yard-"):
             p["angle"] = 57.29578                     # (as before: the sheet's angle, radians to degrees)
@@ -903,11 +952,14 @@ def main():
         return float(np.interp(x * 1000.0, [q[0] for q in _in_at], [q[1] for q in _in_at])) / 1000.0
     for side, sgn in (("port", -1.0), ("starboard", 1.0)):
         for n_, sx in enumerate(sorted(LAY.get("swivels", [])), 1):
+            cap_z = sheer_at(L, sx) - 0.015
+            cap_top = sheer_at(L, sx) + REP["capRail"]["h"] / 1000.0 - F.WL
             mid = hb(sx, cap_z) - (REP["capRail"]["in"] - REP["capRail"]["out"]) / 2000.0
             # ((27 October 2026, the fittings session's "rail": [inboard, outboard]) how far the cap reaches in and out from
             # the socket within the barrel's reach along it (its muzzle's 0.62), from the cap's own section: the runtime keeps
             # barrel and tail clear over that much)
-            xs_ = np.linspace(sx - 0.62, sx + 0.62, 25)
+            reach = LAY.get("swivelReach", 0.62)
+            xs_ = np.linspace(sx - reach, sx + reach, 25)
             r_in = max(mid - (hb(x, cap_z) - cap_in(x)) for x in xs_)
             r_out = max(hb(x, cap_z) + REP["capRail"]["out"] / 1000.0 - mid for x in xs_)
             # (and as drawn: the cap's top faces' corners within that reach, their loft between stations reaching further)
@@ -916,10 +968,10 @@ def main():
                     continue
                 for k in range(4):
                     x, y, z = q[1 + 8 * k: 4 + 8 * k]
-                    if abs(x - sx) <= 0.62 and abs(y - cap_top) < 0.01 and z * sgn > mid - 0.6:
+                    if abs(x - sx) <= reach and abs(y - cap_top) < 0.01 and z * sgn > mid - 0.6:
                         r_in, r_out = max(r_in, mid - z * sgn), max(r_out, z * sgn - mid)
             fixtures.append({"type": "gun", "kind": "swivel", "code": f"swivel-{side}-{n_}", "pos": v4((sx, cap_top, sgn * mid)),
-                             "out": [0.0, 0.0, sgn], "trainLimits": [-80.0, 80.0], "elevationLimits": [-25.0, 30.0],
+                             "out": [0.0, 0.0, sgn], "trainLimits": [-100.0, 100.0], "elevationLimits": [-25.0, 40.0],
                              "rail": [math.ceil(r_in * 100) / 100, math.ceil(r_out * 100) / 100]})
 
     # ---------------------------------------------------------------- stairs, the hatch (chalk notes 18, 22)
@@ -962,16 +1014,25 @@ def main():
     # table)
     kit = LAY.get("kitchen")
     if kit:
+        for door in kit.get("doors", []):
+            modular.append({"kind": "door", "at": [door["at"][0], r4(deck), door["at"][1]], "along": door["along"],
+                            "anchor": door["anchor"], "into": door["into"], "code": door["code"],
+                            "block": "game:door-sleek-windowed-oak", "open": False})
+        for window in kit.get("windows", []):
+            modular.append({"kind": "window", "at": [window["at"][0], r4(deck + window["row"]), window["at"][1]],
+                            "along": window["along"], "code": window["code"]})
         for w_ in kit["walls"]:
             for c_ in w_["cells"]:
                 for row in w_["rows"]:
+                    if w_["line"] == "x" and any(v["at"] == [w_["at"], c_] and v["row"] == row for v in kit.get("windows", [])):
+                        continue
                     y_ = r4(deck + row)
                     if w_["line"] == "x":
                         modular.append({"kind": "partition", "at": [r4(w_["at"]), y_, float(c_)], "along": "z",
-                                        "code": f"partition@{int(w_['at']) - 1},{y_},{c_},z"})
+                                        "code": f"partition@{int(w_['at']) - 1},{y_},{c_},z", **({"anchor": w_["anchor"]} if w_.get("anchor") else {})})
                     else:
                         modular.append({"kind": "partition", "at": [r4(c_ + 0.5), y_, r4(w_["at"])], "along": "x",
-                                        "code": f"partition@{int(c_)},{y_},{w_['at']},x"})
+                                        "code": f"partition@{int(c_)},{y_},{w_['at']},x", **({"anchor": w_["anchor"]} if w_.get("anchor") else {})})
         hc, oc = kit["hearth"]["cell"], kit["oven"]["cell"]
         modular.append({"kind": "hearth", "at": [r4(hc[0] + 0.5), r4(deck), float(hc[1])], "facing": kit["hearth"]["facing"],
                         "block": kit["hearth"]["block"], "code": "hearth"})
@@ -1095,7 +1156,7 @@ def main():
         c = math.floor(f["pos"][0])
         y = f["pos"][1] + CG.RING_Y
         on_qd = abs(f["pos"][1] - qd) < 1e-6
-        if on_qd:
+        if on_qd and LV["quarterdeckSide"] <= LV["quarterdeck"] + 1:
             bolts = [np.array([x, y, s * (rail_line(x, y) - CG.POST_HALF)]) for x in (c, c + 1.0)]
         else:
             bolts = [np.array([x, y, s * (outer(x, y) - CL.SKIN)]) for x in (c + 0.03, c + 0.97)]
@@ -1104,14 +1165,14 @@ def main():
         # (24 October 2026, chalk note 68: "gun port gate inside is different color than hull inside and cannot be
         # painted") the waist lid's inside the hull's inside planking, the quarterdeck's lid the railing's wood; both
         # painted with them (paint_lids)
-        lid = CG.rail_lid(d, f, rail_line, f["port"][1], f["port"][3], wood="oak") if on_qd else             CG.waist_lid(d, f, outer, inside="tarred-in")
+        lid = CG.rail_lid(d, f, rail_line, f["port"][1], f["port"][3], wood="oak") if on_qd and LV["quarterdeckSide"] <= LV["quarterdeck"] + 1 else CG.waist_lid(d, f, outer, inside="tarred-in")
         parts.append(lid)
         f["lid"], f["housed"] = lid["code"], recoil[code]
         # its checks: the barrel clear of its carriage and inside the master build's gun; the lid swung clear of her side
         # (the post or the cap rail), clear of the gun run out and laid to its limits, the muzzle in behind it housed
         el = f["elevationLimits"]
         own, inside = CG.own_clearance(el), CG.within_master(el)
-        if on_qd:
+        if on_qd and LV["quarterdeckSide"] <= LV["quarterdeck"] + 1:
             def side_ok(p, c=c, s=s):
                 w = []
                 for x_, y_, z_ in p:
@@ -1138,7 +1199,7 @@ def main():
         for k_, v_ in gun_checks[-1].items():
             if k_ != "gun" and v_ < 0.0:
                 problems.append(f"{code}: {k_} {v_}")
-    print("[layout] guns:", json.dumps(gun_checks))
+    print("[layout] guns:", json.dumps(gun_checks), flush=True)
     if problems:
         raise SystemExit("[layout] the guns don't fit: " + "; ".join(problems))
 
@@ -1176,12 +1237,35 @@ def main():
         gp["cells"] = [s["id"] for s in D.get("deckSlots", [])
                        if abs(s["box"][4] - f["pos"][1]) < 0.05 and s["box"][0] < x1 - 0.02 and s["box"][3] > x0 + 0.02
                        and s["box"][2] < zb - 0.02 and s["box"][5] > za + 0.02]
+    # Keep only the cut ends of a beam in this visibility format. Whole carlings around connected player openings
+    # need a union of the current openings; two owner/facing predicates cannot express that without duplicate faces.
+    for group in [g for g in M["groups"] if g.startswith("slot:deck")]:
+        quads, pairs = M["groups"][group], M["slotQuads"][group]
+        kept, kp = [], []
+        for i, q in enumerate(quads):
+            facing = pairs[2 * i + 1]
+            slot = D["deckSlots"][facing] if facing >= 0 else None
+            if slot and slot.get("kind") == "beam":
+                b = slot["box"]
+                if any(not (b[0] - 0.001 <= q[1 + 8 * k] <= b[3] + 0.001 and
+                            b[2] - 0.001 <= q[3 + 8 * k] <= b[5] + 0.001) for k in range(4)):
+                    continue
+            kept.append(q)
+            kp += pairs[2 * i:2 * i + 2]
+        M["groups"][group], M["slotQuads"][group] = kept, kp
+    # The flat floor has width without height change: its metal sheets use physical X/Z distance in plan.
+    for group, quads in M["groups"].items():
+        if group.endswith("bottomclad"):
+            for q in quads:
+                if all(abs(q[2 + 8 * k] - D["keelY"]) < 0.001 for k in range(4)):
+                    for k in range(4):
+                        q[4 + 8 * k], q[5 + 8 * k] = q[1 + 8 * k] * 16, abs(q[3 + 8 * k]) * 16
     n_merged = merge_slot_triangles(M)
     square_slot_faces(M, D)
     n_plain = merge_plain_triangles(M)
-    print(f"[layout] triangles paired into quads: {n_merged} in the slot groups, {n_plain} elsewhere")
+    print(f"[layout] triangles paired into quads: {n_merged} in the slot groups, {n_plain} elsewhere", flush=True)
     n_cut, n_pieces = split_tiles(M)
-    print(f"[layout] quads cut at their texture's tile edges: {n_cut}, into {n_pieces}")
+    print(f"[layout] quads cut at their texture's tile edges: {n_cut}, into {n_pieces}", flush=True)
     D["paintZones"] = PAINT_ZONES
     M["paintQuads"] = paint_quads(M, L, F)          # (before the fittings' quads join the groups: they aren't painted)
     M["paintFaces"] = {}
@@ -1189,7 +1273,7 @@ def main():
     before = {g: len(v) for g, v in M["groups"].items()}
     counts = merge_quads(d, M, lambda p: p[1] < deck - 0.1 or (p[0] < qf_x and p[1] < qd - 0.1))
     n_cut2, n_pieces2 = split_tiles(M, before)
-    print(f"[layout] the fittings' quads cut at their texture's tile edges: {n_cut2}, into {n_pieces2}")
+    print(f"[layout] the fittings' quads cut at their texture's tile edges: {n_cut2}, into {n_pieces2}", flush=True)
     M["paintQuads"].update(paint_quads(M, L, F, only_lids=True))      # (note 68: the guns' lids with her hull and rails)
     # (a face moved out can meet another there: again, a few times at most)
     n_pushed, n_left, passes = 0, 1, 0
@@ -1208,6 +1292,24 @@ def main():
             print(f"[layout]   overlapping: {ga}[{na}] and {gb}[{nb}] at {[round(v, 3) for v in c]}, {ov:.4f} m2")
         # (the user's rule: no visible faces overlapping; tools/caravel/overlap_check.py lists them)
         raise SystemExit(f"[layout] {n_left} pairs of faces still overlap in one plane: not written")
+    import overlap_check as OC
+    metal_slivers = collapse_slivers(copper_view(M), D)
+    print(f"[layout] copper duplicate slivers collapsed: {metal_slivers}", flush=True)
+    metal_moved, metal_left, metal_passes = 0, 1, 0
+    while metal_left and metal_passes < 3:
+        moved_, metal_left = deflicker(M, D, copper=True)
+        metal_moved += moved_
+        metal_passes += 1
+        print(f"[layout] copper pass {metal_passes}: {moved_} faces separated, {metal_left} overlaps left", flush=True)
+    if metal_left:
+        collapse_slivers(copper_view(M), D)
+        metal_left = len(OC.find_clashes(copper_view(M), OC.empty_slots(D)))
+    if metal_left:
+        for ga, na, gb, nb, ov, c, *_ in OC.find_clashes(copper_view(M), OC.empty_slots(D))[:6]:
+            print(f"[layout] copper clash: {ga}[{na}] / {gb}[{nb}], {ov:.6f} m2 at {c}", flush=True)
+        raise SystemExit(f"[layout] {metal_left} copper overlaps: not written")
+    if OC.find_clashes(M, OC.empty_slots(D)):
+        raise SystemExit("[layout] copper correction disturbed the wooden alternative: not written")
     out = os.environ.get("CARAVEL_LAYOUT_OUT")             # (a check: somewhere else than the mod's assets)
     with open(os.path.join(out, "caravel.json") if out else os.path.join(ASSETS, "config", "ships", f"{CODE}.json"), "w") as f:
         json.dump(D, f, indent=1)

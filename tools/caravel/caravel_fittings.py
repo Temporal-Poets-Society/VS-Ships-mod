@@ -13,6 +13,56 @@ import numpy as np
 from carrack import rope_path, ring_points, disk, annulus, block_at, helix       # noqa: F401 (the carrack's helpers)
 
 
+def iron_ring(d, c, radius=0.085, rod=0.018, group="exterior", normal=(0, 0, 1)):
+    """A closed forged ring: a torus with shared edges, without overlapping cylinder caps at its joints."""
+    c, n = np.asarray(c, float), np.asarray(normal, float)
+    n /= np.linalg.norm(n)
+    a = np.cross(n, (0, 1, 0) if abs(n[1]) < 0.9 else (1, 0, 0))
+    a /= np.linalg.norm(a)
+    b = np.cross(n, a)
+    def p(i, j):
+        t, u = 2 * math.pi * i / 20, 2 * math.pi * j / 8
+        r = math.cos(t) * a + math.sin(t) * b
+        return c + (radius + rod * math.cos(u)) * r + rod * math.sin(u) * n
+    for i in range(20):
+        for j in range(8):
+            d.add_quad(group, "iron", [p(i, j), p(i + 1, j), p(i + 1, j + 1), p(i, j + 1)],
+                       uvs=[(ii / 20 * 2 * math.pi * radius * 16, jj / 8 * 2 * math.pi * rod * 16)
+                            for ii, jj in ((i, j), (i + 1, j), (i + 1, j + 1), (i, j + 1))])
+
+
+def chain_channel(d, xs, top, side, hull_at):
+    """A channel outside the hull, with bolted knees, chainplates, paired deadeyes and reeved lanyards.
+    Returns each shroud's lower end, on the upper deadeye's strop. All dimensions are physical metres."""
+    x0, x1 = min(xs) - 0.28, max(xs) + 0.28
+    outer = max(hull_at(x, top) for x in np.linspace(x0, x1, 16)) + 0.6
+    inner = min(hull_at(x, top) for x in np.linspace(x0, x1, 16)) - 0.06
+    d.add_box_mesh("exterior", "oak", ((x0 + x1) / 2, top - 0.06, side * (inner + outer) / 2),
+                   (x1 - x0, 0.12, outer - inner))
+    ends = []
+    for x in xs:
+        z = side * (outer - 0.1)
+        lower, upper = np.array([x, top + 0.16, z]), np.array([x, top + 0.68, z])
+        # Straps go below the channel to bolts in the hull; the knee bears on the planking further down.
+        foot = np.array([x, top - 0.85, side * (hull_at(x, top - 0.85) + 0.01)])
+        d.add_beam_mesh("exterior", "iron", foot, lower, 0.025, 0.06, up=(1, 0, 0))
+        d.add_beam_mesh("exterior", "timber", foot + (0, 0.12, 0), (x, top - 0.13, z), 0.10, 0.12, up=(1, 0, 0))
+        for y in (foot[1], foot[1] + 0.17):
+            zz = side * hull_at(x, y)
+            d.add_cylinder("exterior", "iron", (x, y, zz - side * 0.03), (x, y, zz + side * 0.04), 0.035, 0.035, sides=8)
+        for c in (lower, upper):
+            d.add_cylinder("exterior", "timber", c - (0, 0, 0.055), c + (0, 0, 0.055), 0.135, 0.135, sides=16)
+            iron_ring(d, c, 0.143, 0.012)
+            for dx, dy in ((-0.055, 0.025), (0.055, 0.025), (0, -0.065)):
+                for s in (-1, 1):
+                    disk(d, "exterior", "black", c + (dx, dy, s * 0.058), (0, 0, s), 0.021, 8)
+        for dx in (-0.055, 0.0, 0.055):
+            rope_path(d, [lower + (dx, 0.04, -0.07), upper + (dx, -0.04, -0.07),
+                          upper + (dx, -0.04, 0.07), lower + (dx, 0.04, 0.07)], r=0.012)
+        ends.append(upper + (0, 0.155, 0))
+    return ends
+
+
 def _r(p):
     return [round(float(v), 4) for v in p]
 

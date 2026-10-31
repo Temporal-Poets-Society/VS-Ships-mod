@@ -1,0 +1,661 @@
+[
+ {
+  "name": "107-player",
+  "eye": [
+   -14.025,
+   2.829,
+   1.422
+  ],
+  "at": [
+   -13.733,
+   3.375,
+   0.35
+  ],
+  "fov": 65
+ },
+ {
+  "name": "108-player",
+  "eye": [
+   -11.119,
+   2.831,
+   -1.576
+  ],
+  "at": [
+   -9,
+   1.422,
+   -1.148
+  ],
+  "fov": 65
+ },
+ {
+  "name": "109-player",
+  "eye": [
+   -8.063,
+   2.824,
+   1.038
+  ],
+  "at": [
+   -7.01,
+   3.378,
+   2.5
+  ],
+  "fov": 65
+ },
+ {
+  "name": "110-player",
+  "eye": [
+   -4.461,
+   2.822,
+   0.876
+  ],
+  "at": [
+   -7.017,
+   1.125,
+   1.053
+  ],
+  "fov": 65
+ },
+ {
+  "name": "111-player",
+  "eye": [
+   -11.6,
+   -0.177,
+   -0.194
+  ],
+  "at": [
+   -13.25,
+   0.708,
+   -1.248
+  ],
+  "fov": 65
+ },
+ {
+  "name": "112-player",
+  "eye": [
+   -9.609,
+   0.07,
+   -0.779
+  ],
+  "at": [
+   -7.75,
+   0.705,
+   -1.052
+  ],
+  "fov": 65
+ },
+ {
+  "name": "114-player",
+  "eye": [
+   -2.28,
+   -0.177,
+   -1.422
+  ],
+  "at": [
+   -3.574,
+   0.375,
+   -0.459
+  ],
+  "fov": 65
+ },
+ {
+  "name": "119-player",
+  "eye": [
+   8.641,
+   2.823,
+   -0.425
+  ],
+  "at": [
+   9.5,
+   3.415,
+   -0.015
+  ],
+  "fov": 65
+ },
+ {
+  "name": "120-player",
+  "eye": [
+   -3.922,
+   2.824,
+   1.473
+  ],
+  "at": [
+   -4.073,
+   2.375,
+   2.583
+  ],
+  "fov": 65
+ },
+ {
+  "name": "129-player",
+  "eye": [
+   -8.772,
+   5.814,
+   0.615
+  ],
+  "at": [
+   -7.514,
+   4.125,
+   2.405
+  ],
+  "fov": 65
+ },
+ {
+  "name": "130-player",
+  "eye": [
+   -8.426,
+   5.823,
+   1.244
+  ],
+  "at": [
+   -7.25,
+   4.847,
+   0.565
+  ],
+  "fov": 65
+ },
+ {
+  "name": "131-player",
+  "eye": [
+   -7.803,
+   5.824,
+   1.021
+  ],
+  "at": [
+   -7.055,
+   4.353,
+   2.5
+  ],
+  "fov": 65
+ },
+ {
+  "name": "134-player",
+  "eye": [
+   -14.919,
+   5.825,
+   -1.349
+  ],
+  "at": [
+   -15.216,
+   5.375,
+   -1.719
+  ],
+  "fov": 65
+ },
+ {
+  "name": "106-rudder-profile",
+  "eye": [
+   -17.6,
+   -0.5,
+   4
+  ],
+  "at": [
+   -15.2,
+   -1.0,
+   0
+  ],
+  "fov": 55
+ },
+ {
+  "name": "106-rudder-hard-over",
+  "eye": [
+   -18,
+   -0.8,
+   3.5
+  ],
+  "at": [
+   -15.3,
+   -1,
+   0
+  ],
+  "fov": 55,
+  "pose": {
+   "rudder": 1
+  }
+ },
+ {
+  "name": "107-128-bumpkin-outboard",
+  "eye": [
+   -20,
+   5.4,
+   -4
+  ],
+  "at": [
+   -16.4,
+   4.0,
+   0
+  ],
+  "fov": 55
+ },
+ {
+  "name": "111-stern-hold-starboard",
+  "eye": [
+   -11.6,
+   -0.177,
+   0.194
+  ],
+  "at": [
+   -13.5,
+   0.71,
+   1.25
+  ],
+  "fov": 60,
+  "pose": {
+   "pieces": false
+  }
+ },
+ {
+  "name": "116-122-127-gate-starboard-inside",
+  "eye": [
+   -1.2,
+   2.83,
+   0.9
+  ],
+  "at": [
+   -2.5,
+   1.85,
+   3.0
+  ],
+  "fov": 55
+ },
+ {
+  "name": "116-122-gate-starboard-open",
+  "eye": [
+   -1.2,
+   2.83,
+   0.9
+  ],
+  "at": [
+   -2.5,
+   1.85,
+   3.0
+  ],
+  "fov": 55,
+  "pose": {
+   "open:gate-starboard": 1
+  }
+ },
+ {
+  "name": "116-122-gate-port-outside",
+  "eye": [
+   -2.5,
+   2.5,
+   -5.4
+  ],
+  "at": [
+   -2.5,
+   1.8,
+   -3.1
+  ],
+  "fov": 50
+ },
+ {
+  "name": "121-old-gate-new-port",
+  "eye": [
+   -0.64,
+   2.826,
+   -0.229
+  ],
+  "at": [
+   -0.5,
+   1.8,
+   -3.1
+  ],
+  "fov": 60
+ },
+ {
+  "name": "119-eyebolt-close",
+  "eye": [
+   8.8,
+   3.6,
+   -0.6
+  ],
+  "at": [
+   9.5,
+   3.42,
+   0
+  ],
+  "fov": 45
+ },
+ {
+  "name": "120-main-channel-outside",
+  "eye": [
+   -4.05,
+   3.6,
+   5.8
+  ],
+  "at": [
+   -4.05,
+   1.9,
+   3.45
+  ],
+  "fov": 55
+ },
+ {
+  "name": "120-mizzen-channel-outside",
+  "eye": [
+   -12.1,
+   6.5,
+   5.5
+  ],
+  "at": [
+   -11.7,
+   4.8,
+   3.0
+  ],
+  "fov": 55
+ },
+ {
+  "name": "124-transom-inside",
+  "eye": [
+   -12.1,
+   2.75,
+   0.4
+  ],
+  "at": [
+   -15.3,
+   2.4,
+   0
+  ],
+  "fov": 70
+ },
+ {
+  "name": "124-transom-outside",
+  "eye": [
+   -18.4,
+   2.7,
+   -4
+  ],
+  "at": [
+   -15.5,
+   2.0,
+   -1
+  ],
+  "fov": 60
+ },
+ {
+  "name": "125-copper-edge-port",
+  "eye": [
+   -6,
+   3,
+   -9
+  ],
+  "at": [
+   -5,
+   0.1,
+   -3.25
+  ],
+  "fov": 55,
+  "pose": {
+   "clad": true
+  }
+ },
+ {
+  "name": "126-copper-close",
+  "eye": [
+   -5,
+   0,
+   -5.4
+  ],
+  "at": [
+   -5,
+   -0.65,
+   -3.3
+  ],
+  "fov": 50,
+  "pose": {
+   "clad": true
+  }
+ },
+ {
+  "name": "125-copper-fair-line",
+  "eye": [
+   -15,
+   3,
+   -15
+  ],
+  "at": [
+   -4,
+   0,
+   -2
+  ],
+  "fov": 55,
+  "pose": {
+   "clad": true
+  }
+ },
+ {
+  "name": "133-quarterdeck-inside",
+  "eye": [
+   -11.6,
+   6.1,
+   0
+  ],
+  "at": [
+   -11.6,
+   4.75,
+   2.5
+  ],
+  "fov": 75
+ },
+ {
+  "name": "133-quarterdeck-ports-outside",
+  "eye": [
+   -11.6,
+   5.5,
+   6
+  ],
+  "at": [
+   -11.5,
+   4.75,
+   2.7
+  ],
+  "fov": 70
+ },
+ {
+  "name": "133-quarterdeck-run-out",
+  "eye": [
+   -11.6,
+   6.1,
+   0
+  ],
+  "at": [
+   -11.6,
+   4.75,
+   2.5
+  ],
+  "fov": 75,
+  "pose": {
+   "fire:gun-port-quarterdeck-1": 0,
+   "open:gun-port-quarterdeck-1": 1,
+   "train:gun-port-quarterdeck-1": 15,
+   "elevate:gun-port-quarterdeck-1": 7,
+   "fire:gun-port-quarterdeck-2": 0,
+   "open:gun-port-quarterdeck-2": 1,
+   "train:gun-port-quarterdeck-2": 15,
+   "elevate:gun-port-quarterdeck-2": 7,
+   "fire:gun-starboard-quarterdeck-1": 0,
+   "open:gun-starboard-quarterdeck-1": 1,
+   "train:gun-starboard-quarterdeck-1": 15,
+   "elevate:gun-starboard-quarterdeck-1": 7,
+   "fire:gun-starboard-quarterdeck-2": 0,
+   "open:gun-starboard-quarterdeck-2": 1,
+   "train:gun-starboard-quarterdeck-2": 15,
+   "elevate:gun-starboard-quarterdeck-2": 7
+  }
+ },
+ {
+  "name": "133-bow-sockets",
+  "eye": [
+   6.6,
+   3.5,
+   0
+  ],
+  "at": [
+   8,
+   2.6,
+   0
+  ],
+  "fov": 70
+ },
+ {
+  "name": "133-bow-wide-arc",
+  "eye": [
+   6.6,
+   3.5,
+   0
+  ],
+  "at": [
+   8,
+   2.6,
+   0
+  ],
+  "fov": 70,
+  "pose": {
+   "train:swivel-port-1": 100,
+   "elevate:swivel-port-1": 40,
+   "train:swivel-starboard-1": -100,
+   "elevate:swivel-starboard-1": -25
+  }
+ },
+ {
+  "name": "134-transom-starboard",
+  "eye": [
+   -14.919,
+   5.825,
+   1.349
+  ],
+  "at": [
+   -15.216,
+   5.205,
+   1.719
+  ],
+  "fov": 60
+ },
+ {
+  "name": "112-beam-out",
+  "eye": [
+   -9.0,
+   -0.05,
+   -2.3
+  ],
+  "at": [
+   -7.7,
+   0.7,
+   -1.0
+  ],
+  "fov": 70,
+  "pose": {
+   "emptyDeck": [
+    "beam:main:-8:-2",
+    "main:-8:-2"
+   ],
+   "pieces": false
+  }
+ },
+ {
+  "name": "114-beam-out",
+  "eye": [
+   -5.8,
+   -0.25,
+   -1.1
+  ],
+  "at": [
+   -3.8,
+   0.7,
+   -0.1
+  ],
+  "fov": 70,
+  "pose": {
+   "emptyDeck": [
+    "beam:main:-4:-1",
+    "main:-4:-1"
+   ],
+   "pieces": false
+  }
+ },
+ {
+  "name": "114-adjacent-beams-out",
+  "eye": [
+   -5.8,
+   -0.25,
+   -1.9
+  ],
+  "at": [
+   -3,
+   0.7,
+   -1
+  ],
+  "fov": 70,
+  "pose": {
+   "pieces": false,
+   "emptyDeck": [
+    "beam:main:-2:-2",
+    "beam:main:-4:-2",
+    "main:-2:-2",
+    "main:-4:-2"
+   ]
+  }
+ },
+ {
+  "name": "122-hinges-close",
+  "eye": [
+   -3.6,
+   2.0,
+   2.0
+  ],
+  "at": [
+   -2.91,
+   1.65,
+   3.0
+  ],
+  "fov": 40
+ },
+ {
+  "name": "122-hinges-open",
+  "eye": [
+   -3.4,
+   2.0,
+   1.5
+  ],
+  "at": [
+   -2.9,
+   1.65,
+   2.8
+  ],
+  "fov": 48,
+  "pose": {
+   "open:gate-starboard": 1
+  }
+ },
+ {
+  "name": "126-copper-forefoot-joints",
+  "eye": [
+   6.2,
+   -3.3,
+   1.2
+  ],
+  "at": [
+   6.2,
+   -2.6,
+   0
+  ],
+  "fov": 60,
+  "pose": {
+   "clad": true
+  }
+ },
+ {
+  "name": "122-player-old-edge",
+  "eye": [
+   1.347,
+   2.824,
+   1.661
+  ],
+  "at": [
+   0.396,
+   1.882,
+   2.5
+  ],
+  "fov": 65
+ }
+]

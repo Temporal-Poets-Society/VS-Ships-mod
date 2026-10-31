@@ -6,13 +6,16 @@ pieces as plain boxes, from any eye in her ship-local frame (x fore, y up from t
 
 shots.json: [{"name": ..., "eye": [x, y, z], "at": [x, y, z], "fov": 60}, ...] (default: SHOTS below). Writes one page
 (models/caravel/export/game-view.html, its data inlined) and a PNG a shot (headless Chrome, SwiftShader) in the out dir
-(default models/caravel/export/views). Needs cdnjs for three.js.
+(default models/caravel/export/views). Set CARAVEL_THREE_JS to a local three.js bundle for offline rendering;
+otherwise it loads three.js from cdnjs. CARAVEL_ROOT is not needed for this plain-Python viewer.
 """
 import base64
 import json
 import os
 import subprocess
 import sys
+import tempfile
+import hashlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
@@ -83,11 +86,44 @@ def clip_to_side(b):
     return b
 
 
+def swivel_quads(M):
+    """Read the runtime's own block shape for the preview; the ship definition supplies only its sockets."""
+    shape = json.load(open(os.path.join(ROOT, "assets", "hansa", "shapes", "block", "swivelgun.json")))
+    result = []
+    faces = {"west": (0, 0), "east": (0, 1), "down": (1, 0), "up": (1, 1), "north": (2, 0), "south": (2, 1)}
+    for e in shape["elements"]:
+        lo, hi = e["from"], e["to"]
+        for name, f in e.get("faces", {}).items():
+            axis, high = faces[name]
+            other = [a for a in range(3) if a != axis]
+            tex = shape["textures"][f["texture"].lstrip("#")]
+            if tex not in M["textures"]:
+                M["textures"].append(tex)
+            q = [M["textures"].index(tex)]
+            for u, v in ((0, 0), (1, 0), (1, 1), (0, 1)):
+                p = list(lo)
+                p[axis] = hi[axis] if high else lo[axis]
+                p[other[0]] = hi[other[0]] if u else lo[other[0]]
+                p[other[1]] = hi[other[1]] if v else lo[other[1]]
+                n = [0, 0, 0]
+                n[axis] = 1 if high else -1
+                q += [p[0] / 16 - 0.5, p[1] / 16, p[2] / 16 - 0.5,
+                      (hi[other[0]] - lo[other[0]]) * u, (hi[other[1]] - lo[other[1]]) * v] + n
+            result.append((e["name"], q))
+    return result
+
+
 def page(D, M, pose=None):
     """The page's data: per texture the triangles drawn (positions, normals, UVs, shade), the textures (base and
     overlay data URIs, blend), boxes for her laid pieces. pose: {source: value}, the moving parts driven by a source
     turned by their angle times the value (a rope following one of them left out)."""
     pose = dict(pose or {})
+    clad = pose.pop("clad", False)
+    empty_deck, empty_hull = set(pose.pop("emptyDeck", [])), set(pose.pop("emptyHull", []))
+    show_pieces = pose.pop("pieces", True)
+    for f in D.get("fixtures", []):
+        if f.get("type") == "gun" and f.get("housed"):
+            pose.setdefault("fire:" + f["code"], 1.0)
     # (a lateen's tack: "tack" -1 her rig mirrored across each mast's centre plane, as the mod sets the other tack; "sheet"
     # degrees each yard and its sail turned about its mast toward the lee; the windward shrouds only)
     tack, sheet = pose.pop("tack", 1), pose.pop("sheet", 0.0)
@@ -101,18 +137,39 @@ def page(D, M, pose=None):
     turned, hidden = {}, set()
     for code in masts:
         hidden.add(f"rig:shrouds-{code}-{'port' if lee < 0 else 'starboard'}")
-    for mp in D.get("movingParts", []):
-        if mp.get("source") in pose and mp.get("kind", "rotate") == "rotate":
-            turned["part:" + mp["code"]] = (mp["axisPoint"], rotation(mp["axisDir"], mp.get("angle", 1.0) * pose[mp["source"]]))
+    import numpy as np
+    by_code = {p["code"]: p for p in D.get("movingParts", [])}
+    def transform(code):
+        key = "part:" + code
+        if key in turned:
+            return turned[key]
+        mp = by_code[code]
+        R, t = np.eye(3), np.zeros(3)
+        v = pose.get(mp.get("source"), 0)
+        if mp.get("kind", "rotate") == "rotate" and v:
+            R = np.array(rotation(mp["axisDir"], mp.get("angle", 1.0) * v))
+            o = np.array(mp["axisPoint"])
+            t = o - R @ o
+        elif mp.get("kind") == "slide" and v:
+            t = np.array(mp["axisDir"]) * mp["distance"] * v
+        if mp.get("parent") in by_code:
+            P, pt = transform(mp["parent"])
+            R, t = P @ R, P @ t + pt
+        turned[key] = (R, t)
+        return R, t
+    for code in by_code:
+        transform(code)
     for mp in D.get("movingParts", []):
         if mp.get("kind") == "follow" and "part:" + mp.get("follow", "") in turned:
-            hidden.add("part:" + mp["code"])
-    deck_filled = [s.get("start") != "empty" for s in D.get("deckSlots", [])]
-    hull_filled = [s.get("start") != "empty" for s in D.get("hullSlots", [])]
+            R, t = turned["part:" + mp["follow"]]
+            if np.linalg.norm(R - np.eye(3)) + np.linalg.norm(t) > 1e-8:
+                hidden.add("part:" + mp["code"])
+    deck_filled = [s.get("start") != "empty" and s["id"] not in empty_deck for s in D.get("deckSlots", [])]
+    hull_filled = [s.get("start") != "empty" and s["id"] not in empty_hull for s in D.get("hullSlots", [])]
     tris = {}
 
     def add(q, shade, turn=None, rig=None):
-        t = q[0]
+        texture_index = q[0]
         c = [list(q[1 + 8 * k: 9 + 8 * k]) for k in range(4)]
         if rig is not None:
             import math
@@ -128,12 +185,11 @@ def page(D, M, pose=None):
             if tack < 0:
                 c = c[::-1]
         if turn:
-            o, R = turn
+            R, t = turn
             for v in c:
-                d = [v[a] - o[a] for a in range(3)]
-                v[0:3] = [o[a] + sum(R[a][b] * d[b] for b in range(3)) for a in range(3)]
+                v[0:3] = list(R @ v[:3] + t)
                 v[5:8] = [sum(R[a][b] * v[5 + b] for b in range(3)) for a in range(3)]
-        e = tris.setdefault(t, {"p": [], "n": [], "uv": [], "s": []})
+        e = tris.setdefault(texture_index, {"p": [], "n": [], "uv": [], "s": []})
         for a, b, cc in ((0, 1, 2), (0, 2, 3)):
             if cc == 3 and c[3][:3] == c[2][:3]:
                 continue
@@ -144,7 +200,7 @@ def page(D, M, pose=None):
                 e["s"].append(shade)
 
     for g, quads in M["groups"].items():
-        if g in ("shot", "bottomclad", "slot:hull:bottomclad") or g in hidden:
+        if g == "shot" or (g.endswith("bottomclad") if not clad else g.endswith("bottom")) or g in hidden:
             continue
         shade = 0.72 if "interior" in g else 1.0
         pairs = M.get("slotQuads", {}).get(g)
@@ -157,6 +213,28 @@ def page(D, M, pose=None):
                 if fac >= 0 and filled[fac]:
                     continue
             add(q, shade, turned.get(g), rig_of.get(g))
+    import math
+    sw = swivel_quads(M)
+    for f in D.get("fixtures", []):
+        if f.get("kind") != "swivel":
+            continue
+        code = f["code"]
+        face = math.degrees(math.atan2(f["out"][0], f["out"][2]))
+        train = pose.get("train:" + code, 0) * (1 if f["out"][2] >= 0 else -1)
+        for name, q in sw:
+            q = list(q)
+            R = np.array(rotation((0, 1, 0), face + (0 if name.startswith("socket") else train)))
+            for k in range(4):
+                at = 1 + 8 * k
+                p = np.array(q[at:at + 3])
+                n = np.array(q[at + 5:at + 8])
+                if name.startswith("barrel"):
+                    E = np.array(rotation((1, 0, 0), -pose.get("elevate:" + code, 0)))
+                    o = np.array([0, 0.2, 0])
+                    p, n = E @ (p - o) + o, E @ n
+                q[at:at + 3] = list(R @ p + f["pos"])
+                q[at + 5:at + 8] = list(R @ n)
+            add(q, 1.0)
     textures = []
     for code in M["textures"]:
         base, _, rest = code.partition("++")
@@ -167,7 +245,7 @@ def page(D, M, pose=None):
                          "blend": int(blend) if blend else 0})
     boxes = []
     deck_y = {d["code"]: d["y"] for d in D.get("decks", [])}
-    for m in D.get("modularPieces", []):
+    for m in D.get("modularPieces", []) if show_pieces else []:
         x, y, z = m["at"]
         k = m["kind"]
         if k in ("partition", "window", "door"):
@@ -190,7 +268,7 @@ def page(D, M, pose=None):
         elif k == "hatch":
             sx, sz = m.get("size", [1, 1])
             boxes.append({"b": [x - sx / 2, y - 0.05, z - sz / 2, x + sx / 2, y + 0.02, z + sz / 2], "c": "#7a5030", "o": 1.0})
-    for sp in D.get("startPieces", []):
+    for sp in D.get("startPieces", []) if show_pieces else []:
         mnt = sp.get("mount", "")
         if not mnt.startswith("f:"):
             continue
@@ -262,6 +340,7 @@ def main():
     shots = json.load(open(sys.argv[1])) if len(sys.argv) > 1 else SHOTS
     outdir = os.path.abspath(sys.argv[2]) if len(sys.argv) > 2 else os.path.join(ROOT, "models", "caravel", "export", "views")
     os.makedirs(outdir, exist_ok=True)
+    profile = os.path.join(tempfile.gettempdir(), "caravel-preview-" + hashlib.sha256(outdir.encode()).hexdigest()[:12])
     D = json.load(open(os.path.join(ROOT, "assets", "hansa", "config", "ships", "caravel.json")))
     M = json.load(open(os.path.join(ROOT, "assets", "hansa", "config", "shipmeshes", "caravel.json")))
     pages = {}
@@ -271,17 +350,30 @@ def main():
             html = os.path.join(ROOT, "models", "caravel", "export", f"game-view-{len(pages)}.html")
             os.makedirs(os.path.dirname(html), exist_ok=True)
             with open(html, "w", encoding="utf-8") as f:
-                f.write(HTML.replace("__DATA__", json.dumps(page(D, M, s.get("pose")), separators=(",", ":")))
+                template = HTML
+                local_three = os.environ.get("CARAVEL_THREE_JS")
+                if local_three:
+                    with open(local_three, encoding="utf-8") as js:
+                        template = template.replace('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>', '<script>' + js.read() + '</script>')
+                f.write(template.replace("__DATA__", json.dumps(page(D, M, s.get("pose")), separators=(",", ":")))
                         .replace("__W__", str(W)).replace("__H__", str(H)))
             pages[key] = "file:///" + html.replace("\\", "/").replace(" ", "%20")
     for s in shots:
         url = pages[json.dumps(s.get("pose") or {}, sort_keys=True)]
         h = "eye=" + ",".join(map(str, s["eye"])) + "&at=" + ",".join(map(str, s["at"])) + "&fov=" + str(s.get("fov", 60))
         out = os.path.join(outdir, s["name"] + ".png")
-        subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--use-angle=swiftshader", "--enable-unsafe-swiftshader",
-                        f"--window-size={W},{H}", "--timeout=40000", "--hide-scrollbars", f"--screenshot={out}", url + "#" + h],
+        if os.path.exists(out):
+            os.remove(out)
+        result = subprocess.run([CHROME, "--headless=new", "--no-sandbox", "--disable-gpu", "--use-angle=swiftshader", "--enable-unsafe-swiftshader",
+                        "--user-data-dir=" + profile,
+                        f"--window-size={W},{H}", "--timeout=40000", "--virtual-time-budget=10000", "--hide-scrollbars", f"--screenshot={out}", url + "#" + h],
                        check=False, capture_output=True, timeout=300)
-        print("wrote", out)
+        if not os.path.exists(out):
+            raise RuntimeError("Chrome did not render " + out + ": " + result.stderr.decode(errors="replace")[-2000:])
+        from PIL import Image, ImageStat
+        if max(ImageStat.Stat(Image.open(out)).stddev[:3]) < 1:
+            raise RuntimeError("Blank render: " + out + "; set CARAVEL_THREE_JS to a local three.js file when offline")
+        print("wrote", out, flush=True)
 
 
 if __name__ == "__main__":
