@@ -33,6 +33,7 @@ namespace Hansa
 
         void RuntimeLoadingAboard(EntityShip ship,FixtureDef gun)
         {
+            CaravelCharterRecipes();
             bool needShot=ship.Mod.Config.CannonsNeedShot;
             ship.Mod.Config.CannonsNeedShot=true;
             var powder=sapi.World.GetItem(new AssetLocation(GunLoading.Powder));

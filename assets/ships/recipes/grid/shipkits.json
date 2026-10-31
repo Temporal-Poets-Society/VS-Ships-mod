@@ -1,0 +1,81 @@
+// (31 October 2026) the caravel's bill of materials in bundles, each a full grid at vanilla stack sizes
+// (docs/proposals/caravel-charter-bom.md); the charter takes 7 planking, 1 frames, 1 spars, 1 sails, 1 rigging,
+// 2 batteries, 64 resin and 64 flax fibres: 3,584 boards, 288 support beams, 50 debarked logs, 244 linen,
+// 176 rope, 10 bronze guns, 256 nails and strips and 12 iron ingots in all
+// planking: 512 boards and their nails and strips (hull, decks, castles, bulwarks: about 930 m2)
+// frames: 288 support beams (her 197 rib and 31 beam cells, the yards and the rudder) and iron knees
+// spars: 50 debarked logs (keel, stem and sternpost, the two masts) and iron for bands and pintles
+// sails: 244 linen (main 145 m2, mizzen 98 m2) and 56 rope for their boltropes
+// rigging: 120 rope (shrouds, halyards, sheets, tacks, the anchor cable) and the anchor's iron
+// battery: five bronze guns on their carriages (ships:gun-bronze stacks one to a slot)
+// the caravel's charter: her bundles, and resin and flax fibres to caulk her seams
+[
+	{
+		ingredientPattern: "PPP,PNP,PPP",
+		ingredients: {
+			"P": { type: "item", code: "game:plank-*", quantity: 64, skipVariants: ["veryaged", "rotten", "veryrotten"] },
+			"N": { type: "item", code: "game:metalnailsandstrips-iron", quantity: 32 }
+		},
+		width: 3, height: 3,
+		output: { type: "item", code: "ships:shipkit-planking" }
+	},
+	{
+		ingredientPattern: "BBB,BNB,BBB",
+		ingredients: {
+			"B": { type: "block", code: "game:supportbeam-*", quantity: 36 },
+			"N": { type: "item", code: "game:metalnailsandstrips-iron", quantity: 32 }
+		},
+		width: 3, height: 3,
+		output: { type: "item", code: "ships:shipkit-frames" }
+	},
+	{
+		ingredientPattern: "LLL,LIL",
+		ingredients: {
+			"L": { type: "block", code: "game:debarkedlog-*-ud", quantity: 10 },
+			"I": { type: "item", code: "game:ingot-iron", quantity: 4 }
+		},
+		width: 3, height: 2,
+		output: { type: "item", code: "ships:shipkit-spars" }
+	},
+	{
+		ingredientPattern: "LRL,R_R,LRL",
+		ingredients: {
+			"L": { type: "block", code: "game:linen-*-down", quantity: 61 },
+			"R": { type: "item", code: "game:rope", quantity: 14 }
+		},
+		width: 3, height: 3,
+		output: { type: "item", code: "ships:shipkit-sails" }
+	},
+	{
+		ingredientPattern: "RRR,RAR,RRR",
+		ingredients: {
+			"R": { type: "item", code: "game:rope", quantity: 15 },
+			"A": { type: "item", code: "game:ingot-iron", quantity: 8 }
+		},
+		width: 3, height: 3,
+		output: { type: "item", code: "ships:shipkit-rigging" }
+	},
+	{
+		ingredientPattern: "GGG,G_G",
+		ingredients: {
+			"G": { type: "block", code: "ships:gun-bronze-*" }
+		},
+		width: 3, height: 2,
+		output: { type: "item", code: "ships:shipkit-battery" }
+	},
+	{
+		ingredientPattern: "PFS,LRB,CCX",
+		ingredients: {
+			"P": { type: "item", code: "ships:shipkit-planking", quantity: 7 },
+			"F": { type: "item", code: "ships:shipkit-frames" },
+			"S": { type: "item", code: "ships:shipkit-spars" },
+			"L": { type: "item", code: "ships:shipkit-sails" },
+			"R": { type: "item", code: "ships:shipkit-rigging" },
+			"B": { type: "item", code: "ships:shipkit-battery", quantity: 2 },
+			"C": { type: "item", code: "game:resin", quantity: 32 },
+			"X": { type: "item", code: "game:flaxfibers", quantity: 64 }
+		},
+		width: 3, height: 3,
+		output: { type: "item", code: "ships:shipdeed-caravel" }
+	}
+]
