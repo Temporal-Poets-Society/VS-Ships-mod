@@ -49,6 +49,7 @@
     <Compile Include="NoteTests.cs" />
     <Compile Include="NoteTests0328.cs" />
     <Compile Include="HearthTests.cs" />
+    <Compile Include="..\..\src\Ship\FirepitTarget.cs" Link="Ship\FirepitTarget.cs" />
     <Compile Include="ChalkTextTests.cs" />
     <Compile Include="PumpTests.cs" />
     <Compile Include="OvenTests.cs" />

@@ -50,7 +50,7 @@ namespace HansaTests
             {
                 var groups = new[] { new[] { "design", "caravel" }, new[] { "gates" }, new[] { "swivels" }, new[] { "lateen" },
                                      new[] { "gunclick" }, new[] { "paint" }, new[] { "unmanned" }, new[] { "hull" }, new[] { "stairs" },
-                                     new[] { "slots" }, new[] { "partitions" }, new[] { "modular" }, new[] { "decor" }, new[] { "runtime-notes" }, new[] { "integrate" }, new[] { "notes135" }, new[] { "notes151" } };
+                                     new[] { "slots" }, new[] { "partitions" }, new[] { "modular" }, new[] { "decor" }, new[] { "runtime-notes" }, new[] { "integrate" }, new[] { "notes135" }, new[] { "notes151" }, new[] { "hearth" } };
                 var all = System.Diagnostics.Stopwatch.StartNew();
                 var rows = new System.Collections.Generic.List<string>();
                 int total = 0;

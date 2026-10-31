@@ -125,6 +125,12 @@ namespace Hansa
                 sapi.Event.UnregisterGameTickListener(waitId);
                 Check(pending <= 0, "pool chunks loaded");
                 BuildPool(water, stone, x0, x1, y0, z0, z1);
+                if (cfg.Only == "hearth")
+                {
+                    double level = EntityShip.FindWaterSurface(sapi.World, new BlockPos(spawn.X, y0 + 5, spawn.Z, 0), 2, 6);
+                    HearthWorks(mod, def, spawn, level, Finish);
+                    return;
+                }
                 if (cfg.Only == "flooding") { StormFlooding(mod, def, spawn, y0); return; }
                 if (cfg.Only == "grid") { GridLaunch(mod, spawn, y0, Finish); return; }
                 if(cfg.Only=="notes135" || cfg.Only=="notes151")
@@ -3186,6 +3192,12 @@ namespace Hansa
 
         void HearthWorks(HansaMod mod, ShipDefinition def, BlockPos spawn, double wy, Action then)
         {
+            try { HearthInteractionWorks(mod, def, spawn, wy, () => HearthBurns(mod, def, spawn, wy, then)); }
+            catch (Exception e) { Check(false, "firepit interaction setup: " + e); HearthBurns(mod, def, spawn, wy, then); }
+        }
+
+        void HearthBurns(HansaMod mod, ShipDefinition def, BlockPos spawn, double wy, Action then)
+        {
             var type = sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship));
             Item I(string c) => sapi.World.GetItem(new AssetLocation("game", c));
             Block B(string c) => sapi.World.GetBlock(new AssetLocation("game", c));
@@ -3212,6 +3224,9 @@ namespace Hansa
                 $"the firehearth ({(hf == null ? "none" : def.Fixture("hearth") != null ? "the design's" : "laid as a piece")}), and vanilla's firewood, raw red meat, a firestarter, a lit torch ({torch?.Code}), a clay pot ({pot?.Code}) and grain to try it with");
             if (hf == null || firewood == null || meat == null || firestarter == null || torch == null || pot == null || grain == null) { ship.Die(EnumDespawnReason.Removed); then(); return; }
             var inv = ship.HearthInv;
+            var resolved = ship.FixtureByIndex(hf.Index);
+            Check(resolved == hf && resolved.Type == "hearth",
+                $"firepit right-click packet resolves to the active hearth: index {hf.Index}, type {resolved?.Type}, same fixture {resolved == hf}");
             Check(ship.HearthFixture == hf && inv is Vintagestory.GameContent.InventorySmelting && inv.Count == 7 && inv.InventoryID == EntityShip.HearthInventoryClass + "-" + ship.EntityId &&
                   !ship.Fire.IsBurning && ship.Fire.BurnState == "cold" && ship.HearthOn,
                 $"her hearth has vanilla's firepit inventory ({inv?.GetType().Name}, {inv?.Count} slots, {inv?.InventoryID}), cold");

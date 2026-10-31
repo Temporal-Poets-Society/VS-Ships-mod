@@ -242,6 +242,10 @@ namespace Hansa
         /// </summary>
         public FixtureDef PieceFixture(ShipPiece p)
         {
+            // A fire fixture has its own firebed/mouth position and selection, different from the
+            // furniture box below. Keep that identity for clicks, lighting and the dialog reply.
+            var fire = FirepitTarget.ForPiece(p, PlacedHearth, PlacedOven);
+            if (fire != null) return fire;
             pieceFixtures.TryGetValue(p.Id, out var f);
             if (f != null && f.Code == p.StorageCode && ReferenceEquals(f.Sel, p.Box)) return f;
             var c = p.Center;
