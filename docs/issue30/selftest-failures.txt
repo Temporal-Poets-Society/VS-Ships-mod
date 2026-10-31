@@ -1,0 +1,11 @@
+31.10.2026 14:34:09 [Server Notification] SELFTEST FAIL 0.3.17: a new carrack-m has all her 125 modular pieces laid (111, 0 railings beside her stairs skipped; 111 remembered)
+31.10.2026 14:34:09 [Server Notification] SELFTEST FAIL 0.3.17: carrack-m's greatcabin (walled by pieces) is sealed with her doors shut
+31.10.2026 14:34:09 [Server Notification] SELFTEST FAIL 0.3.17: carrack-m's forecastle (walled by pieces) is sealed with her doors shut
+31.10.2026 14:34:09 [Server Notification] SELFTEST FAIL 0.3.17: her great cabin's door (b:main:-3:-2:e:0) open, the cabin is open; shut again, sealed
+31.10.2026 14:34:09 [Server Notification] SELFTEST FAIL 0.3.18: her hearth is the one laid (f:main:17:1): its stand-in is her hearth, its inventory there, its smoke from its fire (no flue: 0.3.24, note 192)
+31.10.2026 14:34:09 [Server Notification] SELFTEST FAIL 0.3.27: the main:-6 beam's length beam:main:-6:2 doesn't come out with the deck over it in (hansa:beam-deck-in); the well's three cells taken up and a steep stair put by hand through it (the client says hansa:piece-blocked): the beam's length came out with it (False), the stair walked up and down (False)
+31.10.2026 14:34:09 [Server Notification] SELFTEST FAIL 0.3.27: the beam can't be laid back through the stair (hansa:cell-already-in); the stair taken up (no stair), the beam laid back (0 taken out with the stair: hansa:cell-already-in; in her collision True), the cells laid (ok, ok, ok): as before (1 differences, 1 before)
+31.10.2026 14:34:10 [Server Notification] SELFTEST FAIL 0.3.27 (note 222): a lower deck cell where a stair across her fits between two beams
+31.10.2026 14:34:10 [Server Notification] SELFTEST FAIL 0.3.30 (notes 236, 239): no gun places on the poop's sides (False), every port fixed, no boards or trapdoor ports (False)
+31.10.2026 14:34:10 [Server Notification] SELFTEST FAIL 0.3.29 (note 233): a new carrack-m's companion beside the quarterdeck stair: its well open (True), its stair down (none), 14 walls, its door (b:main:0:-1:w:0)
+31.10.2026 14:38:56 [Server Notification] SELFTEST FAIL 0.3.26: loaded again, hull:p:10:5:f is still out (saved as 11 difference), not in her grid

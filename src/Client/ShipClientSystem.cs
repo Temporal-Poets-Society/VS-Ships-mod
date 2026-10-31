@@ -214,6 +214,18 @@ namespace Hansa
                         try { return TextCommandResult.Success(renderer.DamageReport(ship)); }
                         catch (Exception e) { return TextCommandResult.Error("damagecheck failed: " + e.Message); }
                     })
+                .EndSubCommand()
+                .BeginSubCommand("watercheck")
+                    .WithDescription("Read-only water diagnostics for the ship you're aboard, looking at, or nearest to you")
+                    .HandleWith(cmd =>
+                    {
+                        var ep = capi.World.Player?.Entity;
+                        if (ep == null || renderer == null) return TextCommandResult.Error("No ship renderer.");
+                        var ship = (ep.MountedOn as ShipSeat)?.Ship ??
+                            ShipLookedAt(ep, capi.World.Player.WorldData.PickingRange, out _) ?? NearestShip(ep.Pos.XYZ);
+                        if (ship == null) return TextCommandResult.Error("No ship nearby.");
+                        return TextCommandResult.Success(renderer.WaterReport(ship, ep));
+                    })
                 .EndSubCommand();
         }
 

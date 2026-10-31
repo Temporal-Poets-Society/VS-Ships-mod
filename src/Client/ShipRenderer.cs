@@ -2827,13 +2827,48 @@ namespace Hansa
                 var wc = ship.Def?.WaterClip;
                 // (a ship going down, or on the bottom, is full of the sea: no cut)
                 if (wc == null || ship.GoneDown) continue;
-                var o = RenderOrigin(ship, ep);
-                // the water in her hold (level in the world) as it's drawn (else as it's wet): the sea isn't cut away under it
-                double flood = !ship.Flooded ? double.NaN
-                    : floods.TryGetValue(ship.EntityId, out var fl) && !double.IsNaN(fl.WorldDy) ? o.Y + fl.WorldDy
-                    : o.Y + ship.FloodWorldY - ship.Pos.Y;
-                clips.Add(ShipWater.Clip(ship.Def, o.X, o.Y, o.Z, ship.Pos.Yaw, ship.Pitch, ship.Roll, ship.Heel, calm, flood));
+                clips.Add(ClipFor(ship, ep, calm));
             }
+        }
+
+        Sea.WaterClipBox ClipFor(EntityShip ship, EntityPlayer ep, float calm)
+        {
+            var o = RenderOrigin(ship, ep);
+            // The sea is deliberately left visible below stored floodwater.
+            double flood = !ship.Flooded ? double.NaN
+                : floods.TryGetValue(ship.EntityId, out var fl) && !double.IsNaN(fl.WorldDy) ? o.Y + fl.WorldDy
+                : o.Y + ship.FloodWorldY - ship.Pos.Y;
+            return ShipWater.Clip(ship.Def, o.X, o.Y, o.Z, ship.Pos.Yaw, ship.Pitch, ship.Roll, ship.Heel, calm, flood);
+        }
+
+        /// <summary>Read-only diagnostics: distinguish our flat flood mesh from Sea's ocean before changing either.</summary>
+        public string WaterReport(EntityShip ship, EntityPlayer ep)
+        {
+            var sb = new System.Text.StringBuilder();
+            void Line(FormattableString s) => sb.AppendLine(s.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            Line($"Water on {ship.GetName()} #{ship.EntityId} ({ship.Def?.Code})");
+            Line($"Stored: {ship.Water:0.000} m3, rate {ship.WaterRate:0.0000} m3/s; Flooded={ship.Flooded}, GoneDown={ship.GoneDown}");
+            Line($"Pose: heave {ship.Heave:0.000}, pitch {ship.Pitch * 180 / Math.PI:0.000}, roll {ship.Roll * 180 / Math.PI:0.000}, heel {ship.Heel * 180 / Math.PI:0.000} deg");
+            floods.TryGetValue(ship.EntityId, out var f);
+            Line($"Hansa flood mesh: built={f?.Built == true}, failed={floodFailed}, level={f?.Level ?? double.NaN:0.000}, world dy={f?.WorldDy ?? double.NaN:0.000}");
+            Line($"Sea: water injected={Sea.WaterRenderer.Injected}, waves injected={Sea.WaterRenderer.WavesInjected}, dry injected={Sea.Hooks.DryHullsInjected}, fallback level={Sea.Hooks.WaterCodeLevel}");
+            if (ship.Def?.WaterClip == null) { sb.Append("No waterClip in this ship's definition."); return sb.ToString(); }
+            var o = RenderOrigin(ship, ep);
+            float calm = RidingCalmZone + (Sea.WaterShader.CalmZone - RidingCalmZone) * (1 - sys.SeaMotion);
+            var c = ClipFor(ship, ep, calm);
+            Line($"Computed clip (omitted while GoneDown): dry={c.Dry}, detailed={c.HasDryProfile}, flooded={c.Flooded}, flood world y={(c.Flooded ? c.FloodY : double.NaN):0.000}");
+            Line($"Clip pivot: {c.X:0.000}, {c.WaterY:0.000}, {c.Z:0.000}; local band {ship.Def.WaterClip.Height - c.DryDepth:0.000}..{ship.Def.WaterClip.Height + c.DryHeight:0.000}");
+            var eye = ep.CameraPos;
+            ShipFrame.ToLocal(ship.Pos.Yaw, ship.Pitch, ship.Roll, eye.X - o.X, eye.Y - o.Y, eye.Z - o.Z,
+                out double lx, out double ly, out double lz);
+            Line($"Camera: local {lx:0.000}, {ly:0.000}, {lz:0.000}; inside computed Sea cut={c.InDryHull(eye.X, eye.Y, eye.Z)}");
+            foreach (var pass in new[] { EnumShaderProgram.Chunkliquid, EnumShaderProgram.Chunkliquiddepth })
+            {
+                var prog = capi.Shader.GetProgram((int)pass);
+                Line($"{pass}: program={prog?.ProgramId ?? 0}, dry-outline uniform={prog?.HasUniform("seaDryE") == true}");
+            }
+            sb.Append("Computed clip and program capabilities above; this does not read back GPU uniform values.");
+            return sb.ToString();
         }
 
         /// <summary>The rowing boats nearby: the water held down under them (EntityRowBoat.WaterClip).</summary>

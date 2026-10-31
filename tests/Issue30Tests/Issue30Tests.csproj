@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Read-only references: neither this harness nor Hansa builds Sea. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>LatestMajor</RollForward>
+    <UseAppHost>false</UseAppHost>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+    <VintageStoryPath Condition="'$(VintageStoryPath)' == ''">$(APPDATA)\Vintagestory</VintageStoryPath>
+    <SeaRoot Condition="'$(SeaRoot)' == ''">C:\VS mods\Sea</SeaRoot>
+    <HansaAssembly Condition="'$(HansaAssembly)' == ''">$(MSBuildProjectDirectory)\..\..\bin\Debug\mod\Hansa.dll</HansaAssembly>
+    <SeaAssembly Condition="'$(SeaAssembly)' == ''">$(SeaRoot)\bin\Debug\mod\Sea.dll</SeaAssembly>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <NetCoreRuntimeDir>$([System.IO.Directory]::GetDirectories('$(NetCoreRoot)shared\Microsoft.NETCore.App', '10.*')[0])</NetCoreRuntimeDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="$(NetCoreRuntimeDir)\System.*.dll" Exclude="$(NetCoreRuntimeDir)\System.Private.*.dll;$(NetCoreRuntimeDir)\System.IO.Compression.Native.dll" Private="false" />
+    <Reference Include="$(NetCoreRuntimeDir)\System.Private.CoreLib.dll" Private="false" />
+    <Reference Include="$(NetCoreRuntimeDir)\netstandard.dll" Private="false" />
+    <Reference Include="$(NetCoreRuntimeDir)\mscorlib.dll" Private="false" />
+    <Reference Include="Hansa"><HintPath>$(HansaAssembly)</HintPath></Reference>
+    <Reference Include="Sea"><HintPath>$(SeaAssembly)</HintPath></Reference>
+    <Reference Include="Newtonsoft.Json"><HintPath>$(VintageStoryPath)\Lib\Newtonsoft.Json.dll</HintPath></Reference>
+    <Reference Include="VintagestoryAPI"><HintPath>$(VintageStoryPath)\VintagestoryAPI.dll</HintPath></Reference>
+  </ItemGroup>
+</Project>
