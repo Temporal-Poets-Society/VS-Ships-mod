@@ -517,9 +517,13 @@ namespace Hansa
         public bool ToggleHatch(IServerPlayer player, ShipPiece p)
         {
             if (p?.Role != PieceRole.Hatch) return false;
-            if (HatchSwingOccupied(p))
+            if (HatchSwingBlocker(p, out string who, out double[] at))
             {
-                if (player != null) Notify(player, "ships:doorway-blocked");
+                World.Logger.Notification("[ships] hatch {0} on ship {1} (box {2}, dir {3}): {4} in its swing at local {5}", p.Id, EntityId,
+                    string.Join(" ", p.Box.Select(v => v.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))), p.Dir, who,
+                    string.Join(" ", at.Select(v => v.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))));
+                if (player != null)
+                    player.SendMessage(Vintagestory.API.Config.GlobalConstants.InfoLogChatGroup, Vintagestory.API.Config.Lang.GetL(player.LanguageCode, "ships:hatch-blocked", who), EnumChatType.Notification);
                 return false;
             }
             p.Open = !p.Open;
@@ -528,21 +532,25 @@ namespace Hansa
             return true;
         }
 
-        bool HatchSwingOccupied(ShipPiece p)
+        bool HatchSwingOccupied(ShipPiece p) => HatchSwingBlocker(p, out _, out _);
+
+        /// <summary>The first body in a hatch's leaf swing: its name and its ship-local box (for the refusal and the log).</summary>
+        bool HatchSwingBlocker(ShipPiece p, out string who, out double[] at)
         {
             foreach(var seat in Seats.OfType<ShipSeat>()) {
                 if(seat.Passenger is not Vintagestory.API.Common.EntityAgent agent || !agent.Alive || agent.MountedOn!=seat) continue;
                 var l=seat.LocalPos;
                 var body=new[]{l.X-DeckMover.HalfWidth,l.Y,l.Z-DeckMover.HalfWidth,l.X+DeckMover.HalfWidth,l.Y+DeckMover.Height,l.Z+DeckMover.HalfWidth};
-                if(HatchPlanner.BodyInSwing(p.Box,p.Dir,p.DoubleLeaf,p.Slots>0,body)) return true;
+                if(HatchPlanner.BodyInSwing(p.Box,p.Dir,p.DoubleLeaf,p.Slots>0,body)) { who=agent.GetName()+" ("+seat.SeatId+")"; at=body; return true; }
             }
             // Native creatures and people standing aboard without a deck seat also have real bodies.
             foreach(var entity in World.GetEntitiesAround(Pos.XYZ,20,10,e=>e is Vintagestory.API.Common.EntityAgent && e.Alive && e.Pos.Dimension==Pos.Dimension)) {
                 if(entity is Vintagestory.API.Common.EntityAgent agent && agent.MountedOn is ShipSeat) continue;
                 var l=WorldToLocal(entity.Pos.X,entity.Pos.Y,entity.Pos.Z); var b=entity.CollisionBox;
-                if(b!=null && HatchPlanner.BodyInSwing(p.Box,p.Dir,p.DoubleLeaf,p.Slots>0,new[]{l.X+b.X1,l.Y+b.Y1,l.Z+b.Z1,l.X+b.X2,l.Y+b.Y2,l.Z+b.Z2})) return true;
+                var body=b==null?null:new[]{l.X+b.X1,l.Y+b.Y1,l.Z+b.Z1,l.X+b.X2,l.Y+b.Y2,l.Z+b.Z2};
+                if(body!=null && HatchPlanner.BodyInSwing(p.Box,p.Dir,p.DoubleLeaf,p.Slots>0,body)) { who=entity.GetName()+" ("+entity.Code+", "+((entity as Vintagestory.API.Common.EntityAgent)?.MountedOn?.GetType().Name??"not mounted")+")"; at=body; return true; }
             }
-            return false;
+            who=null; at=null; return false;
         }
 
         /// <summary>(0.3.20) What her deck cells are now, for <c>.ships slots</c>.</summary>

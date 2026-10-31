@@ -238,6 +238,7 @@
 	"attach-blocked": "Someone is standing there.",
 	"chest-not-empty": "Empty the chest first.",
 	"doorway-blocked": "Someone is standing in the way.",
+	"hatch-blocked": "{0} is in the hatch's swing.",
 	"cladding-needs-copper": "Hold copper plates or copper sheets to sheathe the bottom.",
 	"cladding-sheets-pair": "Two copper sheets make a plate's worth of sheathing.",
 	"cladding-progress": "Copper sheathing: {0} of {1} plates nailed on.",
