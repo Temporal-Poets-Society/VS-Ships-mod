@@ -1779,6 +1779,8 @@ namespace Hansa
         public const int OpenDeckRows = 2;
         /// <summary>(0.3.16, note 159) A horizontal plank panel's thickness (under its plane), as a partition's.</summary>
         public const double ShelfThickness = 0.125;
+        // Note 154: room shelves are suspended; well tops and hood roofs remain available.
+        public static bool ShelvesEnabled = false;
 
         /// <summary>The horizontal place over a floor cell at h blocks up (1, 2; 3 a well's top), or null.</summary>
         public MountPoint HorizontalAt(string deck, int i, int k, int h) => Get($"hb:{deck}:{i}:{k}:{h}");
@@ -1802,6 +1804,7 @@ namespace Hansa
                 {
                     double y = m.Y + h;
                     if (g.Collides(m.X + e, y - 1 + e, m.Z + e, m.X + 1 - e, y - e, m.Z + 1 - e)) break;
+                    if (h < 3 && !ShelvesEnabled) continue;
                     if (h == 3) { if (!WellTop(m, y)) break; }
                     // ((24 October 2026, caravel note 83: "some thin shelf ... to place vessels, chest etc on second block") on an
                     // open deck too where a deck is over it (under a castle's overhang), not under the sky

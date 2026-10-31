@@ -10,6 +10,11 @@ namespace Hansa
         static string FirePrepared(EntityShip ship,FixtureDef gun,double? elevation=null,double? train=null)
         {
             ship.Gun(gun.Code).Charge=0;
+            if(!ship.Mod.Config.CannonsNeedShot) {
+                ship.OpenGunPort(gun,true);
+                var powderItem=ship.World.GetItem(new AssetLocation(GunLoading.Powder));
+                return ship.FireGun(gun,null,null,elevation,train,new[]{new DummySlot(new ItemStack(powderItem))});
+            }
             if(!gun.Swivel) ship.RunGunIn(gun,true);
             var powder=ship.World.GetItem(new AssetLocation(GunLoading.Powder));
             if(powder==null) return "no powder item";
@@ -69,20 +74,30 @@ namespace Hansa
             st.FiredMs=long.MinValue/2;
             ship.HouseGun(gun);st.Charge=0;st.RunIn=false;
             ship.Mod.Config.CannonsNeedShot=false;
-            var onlyPowder=new DummySlot(new ItemStack(powder,2));
-            ship.RunGunIn(gun,true);
-            string powderOnly=ship.LoadGunCharge(gun,onlyPowder,false);
-            string doubleLoad=ship.LoadGunCharge(gun,onlyPowder,false);
-            Check(powderOnly==null && st.Charge==GunLoading.PowderIn && GunLoading.Ready(st.Charge) && onlyPowder.StackSize==1 && doubleLoad=="ships:gun-load-full",
-                "powder-only: one powder consumes once and loads ready without sling bullets");
-            var powderLoot=ShipWrecks.LootOf(ship,false).SelectMany(l=>l.Items).ToList();
-            Check(Count(powderLoot,GunLoading.Powder)-Count(empty,GunLoading.Powder)==1 && Count(powderLoot,GunLoading.Shot)==Count(empty,GunLoading.Shot),"powder-only: wreck preserves the powder without inventing sling bullets");
+            var firingPlayer=new HearthTestPlayer((Vintagestory.Server.ServerMain)sapi.World,new Vintagestory.API.Common.EntityPlayer {Api=sapi});
+            var inventory=new InventoryGeneric(12,"hotbar",firingPlayer.PlayerUID,sapi);
+            ((HearthTestInventories)firingPlayer.InventoryManager).Inventories[inventory.InventoryID]=inventory;
+            inventory[1].Itemstack=new ItemStack(powder,2);
+            var onlyPowder=inventory[1];
+            ship.OpenGunPort(gun,true);
+            string powderOnly=ship.FireGun(gun,null,firingPlayer);
+            string early=ship.FireGun(gun,null,firingPlayer);
+            Check(powderOnly==null && early=="ships:gun-reloading" && ship.GunReloading(gun)>0 && onlyPowder.StackSize==1 && !ship.GunRunIn(gun),
+                "156: firing consumes one powder from inventory, starts automatic reload and stays run out; early fire consumes nothing");
+            // Advance this gun's reload clock, without loading, running in, running out or changing its charge.
+            st.FiredMs-= (long)((gun.Reload>0?gun.Reload:ship.Def.Cannon.Cooldown)*1000+1);
+            Check(ship.GunReloading(gun)==0 && ship.FireGun(gun,null,firingPlayer)==null && onlyPowder.Empty && !ship.GunRunIn(gun),
+                "156: it becomes ready by elapsed time alone, fires again and consumes exactly the second powder");
+            st.FiredMs=long.MinValue/2;
+            int shots=st.Shots;
+            Check(ship.FireGun(gun,null,firingPlayer)=="ships:gun-needs-powder" && st.Shots==shots && ship.GunReloading(gun)==0,
+                "156: no powder means no shot or reload and a clear blasting-powder message");
             st.Charge=0;ship.HouseGun(gun);st.RunIn=false;
             // The swivel item/mechanics remain, although this caravel has no default swivel places.
             var swivel=new FixtureDef {Type="gun",Kind="swivel",Code="selftest-loading-swivel",Pos=new double[]{0,2,0},Out=new double[]{0,0,1}};
             var swivelPowder=new DummySlot(new ItemStack(powder,2));
-            Check(ship.LoadGunCharge(swivel,swivelPowder,false)==null && GunLoading.Ready(ship.Gun(swivel.Code).Charge) && swivelPowder.StackSize==1,
-                "powder-only: a swivel loads in place with one powder");
+            Check(ship.FireGun(swivel,null,null,ammunition:new[]{swivelPowder})==null && swivelPowder.StackSize==1 && !ship.GunRunIn(swivel) && ship.GunReloading(swivel)>0,
+                "156: swivels use the same automatic reload and one powder per shot");
             ship.Gun(swivel.Code).Charge=0;
             ship.Mod.Config.CannonsNeedShot=needShot;
         }

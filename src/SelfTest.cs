@@ -133,13 +133,13 @@ namespace Hansa
                 }
                 if (cfg.Only == "flooding") { StormFlooding(mod, def, spawn, y0); return; }
                 if (cfg.Only == "grid") { GridLaunch(mod, spawn, y0, Finish); return; }
-                if(cfg.Only=="notes135" || cfg.Only=="notes151")
+                if(cfg.Only=="notes135" || cfg.Only=="notes151" || cfg.Only=="notes153")
                 {
                     var type=sapi.World.GetEntityType(new AssetLocation("ships:caravel"));
                     var ship=(EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
                     double level=EntityShip.FindWaterSurface(sapi.World,new BlockPos(spawn.X,y0+5,spawn.Z,0),2,6);
                     ship.Pos.SetPos(spawn.X,level,spawn.Z);sapi.World.SpawnEntity(ship);
-                    if(cfg.Only=="notes151") { Notes151Aboard(ship);RuntimeLoadingAboard(ship,ship.Def.Fixtures.First(f=>f.Type=="gun")); }
+                    if(cfg.Only=="notes151" || cfg.Only=="notes153") { Notes151Aboard(ship);RuntimeLoadingAboard(ship,ship.Def.Fixtures.First(f=>f.Type=="gun"));if(cfg.Only=="notes153") Notes135Aboard(ship); }
                     else Notes135Aboard(ship);
                     sapi.Event.RegisterCallback(_=>Finish(),2500);
                     return;

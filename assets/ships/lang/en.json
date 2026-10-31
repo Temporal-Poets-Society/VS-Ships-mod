@@ -831,5 +831,10 @@
   "part-hull-cell": "Hull panel, cell {0}:{1}:{2}",
   "part-hull-window-cell": "Hull window, cell {0}:{1}:{2}",
   "fixturekind-hitch": "Hitching post",
-  "hitch-rope": "Use a creature's lead on the post; empty hand takes the lead back."
+  "hitch-rope": "Use a creature's lead on the post; empty hand takes the lead back.",
+	"gun-needs-powder": "Needs 1 Blasting powder in your inventory to fire.",
+	"gun-auto-loading": "Reloading is automatic. Keep Blasting powder in your inventory: one per shot.",
+	"gun-auto-ready": "Ready · 1 Blasting powder from your inventory per shot; reloads automatically",
+	"hud-gun-keys-auto": "Hold right and move the view: aim · Left-click: fire (1 Blasting powder) · Reloads automatically · Ctrl + right-click: stand to it · Shift + right-click: shut port",
+	"hint-tether-post": "Right-click with a rope to tie it here · Right-click to take the lead back"
 }

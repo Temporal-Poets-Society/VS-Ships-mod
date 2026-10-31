@@ -29,6 +29,10 @@ namespace Hansa
             this.world = world;
             Block = stack.Block;
             Code = Block.Code.ToString();
+            if(!building && Block is BlockFence && Block.HasBehavior<BlockBehaviorRopeTieable>() && Block.Variant.ContainsKey("type")) {
+                var post=world.GetBlock(Block.CodeWithVariant("type","empty"));
+                if(post?.Id>0) FencePostCode=post.Code.ToString();
+            }
             var behaviors = Block.BlockBehaviors ?? Array.Empty<BlockBehavior>();
             if (Block is BlockBed)
             {

@@ -37,16 +37,20 @@ namespace Hansa
 
             var type=sapi.World.GetEntityType(new AssetLocation("game:tameddeer-elk-male-adult"));
             var elk=type==null?null:sapi.World.ClassRegistry.CreateEntity(type) as EntityAgent;
-            var post=ship.Def.Fixtures.FirstOrDefault(f=>f.Type=="hitch");
-            Check(elk!=null && post!=null,"elk: a native elk and ship hitching post are available");
+            var fence=sapi.World.GetBlock(new AssetLocation("game:woodenfence-oak-ew-free"));
+            ShipPiece post=null; string postError="no native fence";
+            if(fence?.Id>0) foreach(var m in ship.Mounts.Floors.Where(m=>m.Deck=="main" && m.Level==0).OrderBy(m=>Math.Abs(m.X+5.5)+Math.Abs(m.Z+1))) {
+                var plan=PiecePlanner.Plan(ship.Mounts,m,new VanillaPieceBlock(sapi.World,new ItemStack(fence),false),0);
+                postError=ship.PlacePiece(plan,new ItemStack(fence),true,out post);if(post!=null) break;
+            }
+            Check(elk!=null && ShipTethers.IsPost(post) && post.Parts[0].Block.Contains("-empty-"),"155: an ordinary vanilla fence item places a native disconnected RopeTieable post on a chosen deck cell ("+(postError??"ok")+")");
             if(elk==null || post==null) return;
             ship.LocalToWorld(.5,ship.Def.DeckY+.15,0,out double x,out double y,out double z);elk.Pos.SetPos(x,y,z);sapi.World.SpawnEntity(elk);
             DeckCreatures.TestTrace[elk.EntityId]="no controlled-physics tick";
             var manager=sapi.ModLoader.GetModSystem<ClothManager>();
-            ship.LocalToWorld(post.Pos[0],post.Pos[1],post.Pos[2],out double px,out double py,out double pz);
-            var rope=ClothSystem.CreateRope(sapi,manager,elk.Pos.XYZ,new Vec3d(px,py,pz),null);
-            rope.FirstPoint.PinTo(elk,new Vec3f(0,.5f,0));rope.LastPoint.PinTo(ship,new Vec3f((float)post.Pos[0],(float)post.Pos[1],(float)post.Pos[2]));
-            rope.LastPoint.NoAttachTransform=true;manager.RegisterCloth(rope);
+            var ropeSlot=new DummySlot(new ItemStack(sapi.World.GetItem(new AssetLocation("game:rope"))));
+            var rope=ShipTethers.Attach(ship,post,elk,ropeSlot,null);
+            var at=ShipTethers.PostPosition(post);
             sapi.Event.RegisterCallback(_=>
             {
                 try
@@ -59,11 +63,22 @@ namespace Hansa
                     for(int tick=0;tick<100 && physics!=null;tick++) physics.OnPhysicsTick(.02f);
                     var local=ship.WorldToLocal(elk.Pos.X,elk.Pos.Y,elk.Pos.Z);
                     Check(DeckCreatures.IsAboard(elk,ship) && local.Y>ship.Def.DeckY-.1 && elk.OnGround,"elk: native creature physics lands and stands on the moving deck ("+local+", ground "+elk.OnGround+"; "+DeckCreatures.TestTrace[elk.EntityId]+")");
-                    rope.LastPoint.update(0,sapi.World);
-                    ship.LocalToWorld(post.Pos[0],post.Pos[1],post.Pos[2],out px,out py,out pz);
-                    Check(rope.LastPoint.Pos.SquareDistanceTo(px,py,pz)<.0001 && rope.LastPoint.pinnedToOffset.X==(float)post.Pos[0],"elk: the native lead follows the post and retains a ship-local saved offset");
-                    ShipTethers.DetachShip(rope,ship);
-                    Check(!rope.LastPoint.Pinned,"elk: the native lead can be detached from a ship post again");
+                    var original=new EntityPos().SetFrom(ship.Pos);
+                    try {
+                        // Move and turn the actual ship, then drive its normal creature-carry tick (no client is present).
+                        ship.Pos.X+=2;ship.Pos.Z+=1;ship.Pos.Yaw+=.2f;
+                        typeof(DeckCreatures).GetMethod("Tick",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(ship.Mod.DeckCreatures,new object[]{.02f});
+                        rope.LastPoint.update(0,sapi.World);
+                        ship.LocalToWorld(at[0],at[1],at[2],out double px,out double py,out double pz);
+                        var moved=ship.WorldToLocal(elk.Pos.X,elk.Pos.Y,elk.Pos.Z);
+                        Check(moved.DistanceTo(local)<.001 && elk.OnGround && DeckCreatures.IsAboard(elk,ship) && rope.LastPoint.Pos.SquareDistanceTo(px,py,pz)<.0001 &&
+                            rope.LastPoint.pinnedToOffset.X==(float)at[0],"155: translate and turn the ship: the elk stays on deck and the native rope follows the placed post with a saved local offset");
+                        Check(ship.RemovePiece(post,null)==null && !rope.LastPoint.Pinned && rope.FirstPoint.PinnedToEntity==elk,"155: taking the placed post up frees its lead, retaining the creature end");
+                        rope.LastPoint.PinTo(ship,new Vec3f(-5.41f,1.855f,-1.75f));rope.LastPoint.NoAttachTransform=true;
+                        var links=ship.WatchedAttributes.GetTreeAttribute("hansaTethers");links.SetString(rope.ClothId.ToString(),"hitch-main");
+                        rope.LastPoint.update(0,sapi.World);
+                        Check(!rope.LastPoint.Pinned && !links.HasAttribute(rope.ClothId.ToString()),"155: a saved lead on the removed fixed fixture is freed and its obsolete link cleared");
+                    } finally {ship.Pos.SetFrom(original);}
                 }
                 catch(Exception e) {Check(false,"elk: native lead/deck check: "+e.Message);}
                 finally {DeckCreatures.TestTrace.TryRemove(elk.EntityId,out string trace);manager.UnregisterCloth(rope.ClothId);elk.Die(EnumDespawnReason.Removed);}

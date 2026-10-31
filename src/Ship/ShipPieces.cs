@@ -82,6 +82,8 @@ namespace Hansa
         public bool Hearth, Oven, Flue;
         /// <summary>(0.1.0-dev.9, caravel note 78) A figurehead: vanilla's carved ones, or a chiseled block (as the sailboat takes them).</summary>
         public bool Figurehead;
+        /// <summary>The disconnected native fence variant used when placing a rope post on a deck.</summary>
+        public string FencePostCode;
         /// <summary>Visible bounds in the block's own frame (for hanging and figurehead shapes).</summary>
         public double[] VisualBounds;
         public virtual double[] BoundsOf(string variant) => VisualBounds;
@@ -1186,6 +1188,7 @@ namespace Hansa
                 PieceOrient.Omni => b.Variant("up") ?? b.Code,
                 _ => b.Code
             };
+            variant=b.FencePostCode??variant;
             int q = b.Orient == PieceOrient.None || b.TurnMesh ? QuarterFor(p.Dir) : 0;
             var cells = b.Cells(variant) ?? new List<int[]> { new[] { 0, 0, 0 } };
             var origin = new[] { m.X, m.Y, m.Z };
@@ -1515,12 +1518,12 @@ namespace Hansa
         /// <summary>(0.3.16) Walls of a sort, solid after her place grid is taken (pieces go right up to them): border pieces, stairs, shelves.</summary>
         public bool WallLike => OnBorder || Role is PieceRole.Ladder or PieceRole.Stair or PieceRole.Shelf;
         /// <summary>
-        /// (0.3.23, note 169: "hatches cannot be opened from bottom") What the crosshair picks it by: its selection boxes, and
-        /// a shut hatch also by its cells' planking under them (from below the crosshair meets that first: her collision).
+        /// Selection bounds. Hatch rays test the actual oriented leaf elements; their walking voxels and
+        /// fixed coaming never become selectable moving leaves, including when aimed at from below.
         /// </summary>
         /// <remarks>((24 October 2026, caravel note 82: "then i cannot remove it") a panel by its whole wedge too: aimed at its
         /// end or its top (her side's curve leaves them showing) it's the panel, not her woodwork behind)</remarks>
-        public IEnumerable<double[]> PickBoxes => Role == PieceRole.Hatch ? PlacementBoxes.Concat(HatchPlanner.CoamingParts(Box,Coaming).Select(p=>p.Box)).Concat(Open?Enumerable.Empty<double[]>():Solids)
+        public IEnumerable<double[]> PickBoxes => Role == PieceRole.Hatch ? PlacementBoxes
             : Role == PieceRole.Panel ? Sel.Concat(Solids)
             : Role == PieceRole.Door && Open && OpenLeafBox is double[] leaf ? new[] {leaf} : Sel;
 
@@ -1907,7 +1910,7 @@ namespace Hansa
         {
             if (double.IsNaN(t) || double.IsInfinity(t) || t == double.MaxValue) return null;
             foreach (var p in ById.Values)
-                if (p.Role is not (PieceRole.Door or PieceRole.Hatch) || !p.Open)
+                if (p.Role != PieceRole.Hatch && (p.Role != PieceRole.Door || !p.Open))
                     if (OwnHit(p, o, d, t)) return p;
             return null;
         }

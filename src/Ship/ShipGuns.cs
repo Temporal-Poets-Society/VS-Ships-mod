@@ -179,7 +179,7 @@ namespace Hansa
             foreach (var f in GunList)
             {
                 if (f.Swivel) continue;
-                bool open = GunOpen(f) && !Gun(f.Code).RunIn;
+                bool open = GunOpen(f) && !GunRunIn(f);
                 if (!GunPortSeen.TryGetValue(f.Code, out var s)) GunPortSeen[f.Code] = (open, long.MinValue / 4);
                 else if (s.Open != open) GunPortSeen[f.Code] = (open, now);
             }
@@ -189,7 +189,7 @@ namespace Hansa
         public float GunHoused(FixtureDef gun)
         {
             if (gun==null || gun.Swivel) return 0;
-            bool open = GunOpen(gun) && !Gun(gun.Code).RunIn;
+            bool open = GunOpen(gun) && !GunRunIn(gun);
             double since = GunPortSeen.TryGetValue(gun.Code, out var s) && s.Open == open ? (World.ElapsedMilliseconds - s.Ms) / (double)RunOutMs : 1;
             double k = Math.Clamp(since, 0, 1);
             k = k * k * (3 - 2 * k);
@@ -511,7 +511,7 @@ namespace Hansa
         /// limits if need be). Returns an error lang code, or null when it fired: the shot is on its way
         /// (<see cref="CannonShots"/>), clients see it run back, flash and smoke.
         /// </summary>
-        public string FireGun(FixtureDef gun, Entity firer, IServerPlayer player, double? elevation = null, double? train = null)
+        public string FireGun(FixtureDef gun, Entity firer, IServerPlayer player, double? elevation = null, double? train = null, IEnumerable<ItemSlot> ammunition = null)
         {
             if (Api?.Side != EnumAppSide.Server || gun?.Type != "gun" || Def == null) return "ships:gun-cannot";
             if (GunAbsent(gun)) return "ships:gunplace-no-gun";
@@ -523,12 +523,20 @@ namespace Hansa
             if (GunRunIn(gun)) return "ships:gun-load-run-out";
             if (GunRunningOut(gun) > 0) return "ships:gun-running-out";
             var st = Gun(gun.Code);
-            if(!GunLoading.Ready(st.Charge,Mod.Config.CannonsNeedShot)) return GunLoading.Hint(st.Charge,Mod.Config.CannonsNeedShot);
+            bool manual=Mod.Config.CannonsNeedShot;
+            if(manual) {
+                if(!GunLoading.Ready(st.Charge,true)) return GunLoading.Hint(st.Charge,true);
+            } else if(!GunLoading.Ready(st.Charge)) {
+                // Existing saved charges have already paid for their shot. Otherwise draw from the firing
+                // player's whole inventory, not just the hand used to aim. Explicit slots are used by server simulations.
+                ammunition??=GunLoading.PlayerInventory(player ?? (firer is EntityPlayer ep ? World.PlayerByUid(ep.PlayerUID) : null));
+                if(!GunLoading.TakePowder(ammunition)) return "ships:gun-needs-powder";
+            }
             st.FiredMs = World.ElapsedMilliseconds;
             st.Shots++;
             st.Charge=0;
-            st.RunIn=!gun.Swivel;
-            if (!gun.Swivel) gunOpenedMs[gun.Code] = World.ElapsedMilliseconds;
+            st.RunIn=manual && !gun.Swivel;
+            if (st.RunIn) gunOpenedMs[gun.Code] = World.ElapsedMilliseconds;
             SaveGunLays(true);
             GunMuzzle(gun, new GunLay(train ?? st.Lay.Train, elevation ?? st.Lay.Elevation), out var at, out var dir);
             // the shot flies off with her own way too
@@ -596,7 +604,7 @@ namespace Hansa
             double outIn = GunRunningOut(gun);
             if (outIn > 0) return Lang.Get("ships:gun-state-running-out", Math.Ceiling(outIn));
             double left = GunReloading(gun);
-            return left > 0 ? Lang.Get("ships:gun-state-reloading", Math.Ceiling(left)) : !GunLoading.Ready(Gun(gun.Code).Charge,CannonsNeedShot)
+            return left > 0 ? Lang.Get("ships:gun-state-reloading", Math.Ceiling(left)) : !CannonsNeedShot ? Lang.Get("ships:gun-auto-ready") : !GunLoading.Ready(Gun(gun.Code).Charge,true)
                 ? Lang.Get(GunLoading.Hint(Gun(gun.Code).Charge,CannonsNeedShot)) : Lang.Get("ships:gun-state-ready");
         }
 
@@ -622,7 +630,7 @@ namespace Hansa
                 text += "\n" + (across == 0 ? Lang.Get("ships:hud-gun-limit", Math.Round(-t0), Math.Round(t1), Math.Round(e0), Math.Round(e1))
                     : Lang.Get("ships:hud-gun-limit-across", Math.Round(across > 0 ? -t0 : t1), Math.Round(across > 0 ? t1 : -t0), Math.Round(e0), Math.Round(e1)));
             }
-            return text + "\n" + Lang.Get(captain?.MountedOn is GunSeat ? "ships:hud-gun-keys-seat" : "ships:hud-gun-keys");
+            return text + "\n" + Lang.Get(captain?.MountedOn is GunSeat ? "ships:hud-gun-keys-seat" : CannonsNeedShot ? "ships:hud-gun-keys" : "ships:hud-gun-keys-auto");
         }
 
         /// <summary>The server's Cannons switch, for clients (synced with her state).</summary>

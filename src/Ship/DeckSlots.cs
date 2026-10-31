@@ -566,7 +566,7 @@ namespace Hansa
                 double c0 = alongX ? b[2] : b[0], c1 = alongX ? b[5] : b[3];
                 double hc = alongX ? h[2] : h[0];
                 double far = Math.Abs(c1 - hc) > Math.Abs(c0 - hc) ? c1 : c0, width = Math.Abs(far - hc), cs = Math.Sign(far - hc);
-                double dy = -Thick / 2;
+                double dy = (b[1]+b[4])/2-h[1];
                 for (int deg = 10; deg <= OpenAngle; deg += 10)
                 {
                     double t = sign * deg * Math.PI / 180, cos = Math.Cos(t), sin = Math.Sin(t);
@@ -612,22 +612,50 @@ namespace Hansa
             double a0 = alongX ? box[2] : box[0], a1 = alongX ? box[5] : box[3];
             double across = a1 - a0;
             double y0 = box[1], y1 = box[4];
+            double hingeY = y1;
             const double gap = 1.0 / 64;
             if (across < 1.5 && !doubleLeaf)
             {
                 // one leaf, hinged on the -z (or -x) side
                 list.Add((alongX ? new[] { box[0], y0, a0, box[3], y1, a1 } : new[] { a0, y0, box[2], a1, y1, box[5] },
-                    alongX ? new[] { box[0], y1, a0 } : new[] { a0, y1, box[2] }, alongX ? 0 : 2, alongX ? -1 : 1));
+                    alongX ? new[] { box[0], hingeY, a0 } : new[] { a0, hingeY, box[2] }, alongX ? 0 : 2, alongX ? -1 : 1));
                 return list;
             }
             double mid = (a0 + a1) / 2;
             // (right-handed: about +x a leaf reaching +z from its hinge rises turned by a negative angle, one reaching -z by a
             // positive; about +z one reaching +x by a positive, one reaching -x by a negative)
             list.Add((alongX ? new[] { box[0], y0, a0, box[3], y1, mid - gap } : new[] { a0, y0, box[2], mid - gap, y1, box[5] },
-                alongX ? new[] { box[0], y1, a0 } : new[] { a0, y1, box[2] }, alongX ? 0 : 2, alongX ? -1 : 1));
+                alongX ? new[] { box[0], hingeY, a0 } : new[] { a0, hingeY, box[2] }, alongX ? 0 : 2, alongX ? -1 : 1));
             list.Add((alongX ? new[] { box[0], y0, mid + gap, box[3], y1, a1 } : new[] { mid + gap, y0, box[2], a1, y1, box[5] },
-                alongX ? new[] { box[0], y1, a1 } : new[] { a1, y1, box[2] }, alongX ? 0 : 2, alongX ? 1 : -1));
+                alongX ? new[] { box[0], hingeY, a1 } : new[] { a1, hingeY, box[2] }, alongX ? 0 : 2, alongX ? 1 : -1));
             return list;
+        }
+
+        public static float[] LeafPose((double[] Box, double[] Hinge, int Axis, int Sign) leaf, double degrees)
+        {
+            var part = new MovingPartDef { AxisPoint=leaf.Hinge, AxisDir=leaf.Axis==0?new double[]{1,0,0}:new double[]{0,0,1}, Angle=(float)(leaf.Sign*degrees) };
+            var matrix=new float[16]; PartMotion.Place(part,1,matrix,null); return matrix;
+        }
+
+        /// <summary>Actual drawn board/frame and hardware, in their closed frame.</summary>
+        public static List<ModularPart> LeafParts((double[] Box, double[] Hinge, int Axis, int Sign) leaf, bool glazed) =>
+            ModularGeometry.HatchLeaf(leaf.Box,leaf.Axis,leaf.Sign==(leaf.Axis==0?-1:1),glazed);
+
+        /// <summary>Body against the swept oriented leaves, never their union or walking voxels.
+        /// Half-degree samples are closer than 5 mm at a one-block leaf tip; the body's volume is tested by SAT.</summary>
+        public static bool BodyInSwing(double[] box,int dir,bool doubleLeaf,bool glazed,double[] body)
+        {
+            var target=new PieceVolume {Box=body};
+            foreach(var leaf in Leaves(box,dir,doubleLeaf)) {
+                if(body[leaf.Axis+3]<=leaf.Box[leaf.Axis] || body[leaf.Axis]>=leaf.Box[leaf.Axis+3]) continue;
+                var parts=LeafParts(leaf,glazed);
+                for(double angle=0;angle<=OpenAngle;angle+=.5) {
+                    var pose=LeafPose(leaf,angle);
+                    foreach(var p in parts)
+                        if(PieceShape.Overlap(new PieceVolume {Box=p.Box,Pose=pose},target)) return true;
+                }
+            }
+            return false;
         }
 
         public static List<ModularPart> CoamingParts(double[] box, double height)

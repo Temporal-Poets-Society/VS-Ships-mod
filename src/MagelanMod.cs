@@ -55,7 +55,8 @@ namespace Hansa
         public bool Damage = true;
         /// <summary>A ship's guns are laid and fired (right-click one to stand to it, look to lay it, right-click to fire): cannon balls that hole ships, hurt creatures and players (PvP rules) and splash.</summary>
         public bool Cannons = true;
-        /// <summary>Require Lead sling bullets after powder (4 per carriage gun, 1 per swivel). Off: the ball is implied.</summary>
+        /// <summary>Enable manual run-in, powder-and-shot loading (4 bullets per carriage gun, 1 per swivel).
+        /// Off: automatic reload, one blasting powder from the firing player's inventory per shot.</summary>
         public bool CannonsNeedShot = false;
         /// <summary>Cannon balls break a few soft blocks in their way (not stone, ore or metal; not in a land claim the one who fired may not build in). Off: they stop at the first block.</summary>
         public bool CannonsBreakBlocks = false;

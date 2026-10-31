@@ -246,6 +246,8 @@ namespace HansaTests
                 Check(lone.Count == 0, $"note 70: her hooks alike port and starboard ({(lone.Count == 0 ? $"{l.Hooks.Count()} hooks" : "alone: " + string.Join(", ", lone.Take(6)))})");
             }
 
+            Check(!l.Horizontals.Any(m=>m.Id.StartsWith("hb:") && m.Level<3),"154: room shelf places disabled");
+            if(MountLayout.ShelvesEnabled) {
             // ---- note 83: the thin shelf (a plank slab a block up over a floor cell, under a deck) found by aiming at the cell's
             // floor from close by or at her side or a wall at its height; a chest under it, a vessel on it, not taken up from under that
             {
@@ -316,6 +318,7 @@ namespace HansaTests
                     $"note 83: a shelf over a chest in her hold ({shelfPlan.Error ?? (overChest ? "fits" : "blocked")}), a vessel on it ({holds}), the shelf not taken up from under the vessel ({under?.Role.ToString() ?? "nothing on it"})");
             }
 
+            }
             // ---- (25 October 2026, dev.9) notes 89, 90, 95/96, 99
             {
                 // 89: a door hung at either end of its doorway, as the crosshair was nearer

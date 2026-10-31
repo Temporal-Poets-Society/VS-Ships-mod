@@ -82,18 +82,13 @@ namespace Hansa
                     var a=PlacementMesh.Transform(inverse,new[]{o.X,o.Y,o.Z});
                     var end=PlacementMesh.Transform(inverse,new[]{o.X+d.X,o.Y+d.Y,o.Z+d.Z});
                     var ro=new Vec3d(a[0],a[1],a[2]); var rd=new Vec3d(end[0]-a[0],end[1]-a[1],end[2]-a[2]);
-                    var b=leaf.Box;
+                    foreach(var partBox in HatchPlanner.LeafParts(leaf,piece.Slots>0)) {
+                    var b=partBox.Box;
                     double hit=ShipFittings.RayBox(ro,rd,new Cuboidd(b[0],b[1],b[2],b[3],b[4],b[5]));
                     if(hit<0 || hit>range || hit>=t) continue;
                     var n=BoxNormal(ro,rd,b); var nn=PlacementMesh.Transform(matrix,new[]{a[0]+n[0],a[1]+n[1],a[2]+n[2]});
                     normal=new[]{nn[0]-o.X,nn[1]-o.Y,nn[2]-o.Z};t=hit;
-                }
-                var fixedBoxes=HatchPlanner.CoamingParts(piece.Box,piece.Coaming).Select(c=>c.Box);
-                // A shut hatch also owns the deck layer below it, so it can be opened from the hold.
-                foreach(var b in fixedBoxes.Concat(piece.Open?Enumerable.Empty<double[]>():piece.Solids)) {
-                    double hit=ShipFittings.RayBox(o,d,new Cuboidd(b[0],b[1],b[2],b[3],b[4],b[5]));
-                    if(hit<0 || hit>range || hit>=t) continue;
-                    t=hit;normal=BoxNormal(o,d,b);
+                    }
                 }
                 return normal!=null;
             }

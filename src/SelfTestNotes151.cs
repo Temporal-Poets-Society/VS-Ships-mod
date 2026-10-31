@@ -34,6 +34,28 @@ namespace Hansa
             Check(walked,"152: the default hold stair is walked up and down through the opened coaming");
             Check(ship.ToggleHatch(null,hatch) && !hatch.Open && closed && hatch.Mounts.All(id=>!ship.CellOpen(ship.SlotLayout.IndexOf(id.Substring(5)))),"152: new ship's hatch closes and seals both deck cells again");
             Check(hatch.Mounts.All(id=>ship.HatchCoaming("cell:"+ship.SlotLayout.IndexOf(id.Substring(5)))==.25),"152: both cells retain the flooding coaming height");
+            // A real mounted agent exercises the body's authoritative ship-local position, including a person
+            // standing right against the coaming. No client or player save is needed for this regression.
+            var actorType=sapi.World.GetEntityType(new AssetLocation("game:chicken-hen"));
+            var actor=actorType==null?null:sapi.World.ClassRegistry.CreateEntity(actorType) as EntityAgent;
+            if(actor!=null) {
+                ship.LocalToWorld(-6.7,1.125,.965,out double ax,out double ay,out double az);actor.Pos.SetPos(ax,ay,az);sapi.World.SpawnEntity(actor);
+                var seat=ship.GetOrCreateDeckSeat("notes153-hatch-body",-6.7,1.125,.965);
+                try {
+                    bool mounted=actor.TryMount(seat), toggled=mounted;
+                    foreach(var at in new[]{new[]{-6.7,.965},new[]{-5.0,.925},new[]{-5.0,-.925},new[]{-6.425,0.0},new[]{-3.575,0.0},new[]{-6.425,-.925},new[]{-6.425,.925},new[]{-3.575,-.925},new[]{-3.575,.925}}) {
+                        seat.SetLocal(at[0],1.125,at[1],DeckSeat.FlagOnGround);
+                        toggled &= ship.ToggleHatch(null,hatch) && hatch.Open && ship.ToggleHatch(null,hatch) && !hatch.Open;
+                    }
+                    Check(toggled,"153: actual server opens and closes with a body at the recorded location, both sides, ends and all coaming corners");
+                    seat.SetLocal(-5,1.125,0,DeckSeat.FlagOnGround);
+                    Check(!ship.ToggleHatch(null,hatch) && !hatch.Open,"153: opening refuses a body really standing on the leaves");
+                    hatch.Open=true;
+                    Check(!ship.ToggleHatch(null,hatch) && hatch.Open,"153: closing refuses a body really in the leaf swing");
+                    seat.SetLocal(-6.7,1.125,.965,DeckSeat.FlagOnGround);
+                    ship.ToggleHatch(null,hatch);
+                } finally {actor.TryUnmount();actor.Die(Vintagestory.API.Common.EnumDespawnReason.Removed);}
+            } else Check(false,"153: native body actor available");
             Check(ship.World.GridRecipes.Any(r=>r.Name?.ToString()=="ships:leadshot")==ship.Mod.Config.CannonsNeedShot,"cannons: temporary sling-bullet recipe exists only when CannonsNeedShot is enabled");
 
             var l=ship.Mounts;
@@ -74,6 +96,23 @@ namespace Hansa
                 Check(stacked,"151: Shift-place on native "+block.Code+" on its lid"+(block is Vintagestory.GameContent.BlockGenericTypedContainerTrunk?" (both halves and exact note ray)":"")+":"+details);
                 Check(ship.RemovePiece(lower,null)==null,"151: lower container taken up after the stacked one");
             }
+
+            // Emulate a dev.17 shelf in a saved ship. Its mount is no longer offered, but loading/migration must
+            // retain the piece and let the player take it up. The ordinary native stack is kept, not converted.
+            PiecePlan savedShelf;
+            var slab=sapi.World.GetBlock(new AssetLocation("game:plankslab-oak-down-free"));
+            try {
+                MountLayout.ShelvesEnabled=true;var oldLayout=MountLayout.Build(ship.Def);
+                savedShelf=PiecePlanner.Plan(oldLayout,oldLayout.HorizontalAt("hold",-4,0,1),new VanillaPieceBlock(sapi.World,new ItemStack(slab),true),0);
+            } finally {MountLayout.ShelvesEnabled=false;}
+            var shelf=ShipPiece.From(savedShelf,ship.Pieces.NextId,new ItemStack(slab));ship.Pieces.Add(shelf);
+            var savedPieces=new Vintagestory.API.Datastructures.TreeAttribute();ship.Pieces.ToTree(savedPieces);ship.WatchedAttributes["hansaPieces"]=savedPieces;
+            var flags=System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic;
+            typeof(EntityShip).GetMethod("LoadPieces",flags).Invoke(ship,null);
+            typeof(EntityShip).GetMethod("MigrateDecor",flags).Invoke(ship,null);
+            var loadedShelf=ship.Pieces.Get(shelf.Id);
+            Check(loadedShelf?.Role==PieceRole.Shelf && loadedShelf.Box.SequenceEqual(shelf.Box) && loadedShelf.Stack?.Block==slab &&
+                ship.RemovePiece(loadedShelf,null)==null,"154: a saved native shelf survives real loading/migration and remains removable while new shelf places are disabled");
         }
     }
 }

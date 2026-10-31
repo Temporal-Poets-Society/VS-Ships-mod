@@ -7,7 +7,7 @@ namespace Hansa
 {
     public partial class EntityShip
     {
-        public bool GunRunIn(FixtureDef gun) => gun!=null && !gun.Swivel && (!GunOpen(gun) || Gun(gun.Code).RunIn);
+        public bool GunRunIn(FixtureDef gun) => gun!=null && !gun.Swivel && (!GunOpen(gun) || (Api?.Side==EnumAppSide.Server?Mod.Config.CannonsNeedShot:CannonsNeedShot) && Gun(gun.Code).RunIn);
 
         /// <summary>Pull back without shutting the port. Loading and housing are separate operations.</summary>
         public string RunGunIn(FixtureDef gun, bool instant = false)
@@ -35,6 +35,7 @@ namespace Hansa
         /// <summary>Server inventory transaction, shared with the dedicated-server tests.</summary>
         public string LoadGunCharge(FixtureDef gun,ItemSlot slot,bool creative)
         {
+            if(!Mod.Config.CannonsNeedShot) return "ships:gun-auto-loading";
             if(Api.Side!=EnumAppSide.Server || gun?.Type!="gun" || GunAbsent(gun) || GoneDown || !CannonsOn) return "ships:gun-cannot";
             var held=slot?.Itemstack;
             var st=Gun(gun.Code);
@@ -51,6 +52,7 @@ namespace Hansa
 
         public string ToggleGunRun(FixtureDef gun)
         {
+            if(!Mod.Config.CannonsNeedShot) return HouseGun(gun);
             if(!GunRunIn(gun)) return RunGunIn(gun);
             // A second Shift-click houses an already run-in gun; ordinary right-click runs it out.
             return HouseGun(gun);

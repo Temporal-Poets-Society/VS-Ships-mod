@@ -38,6 +38,7 @@ namespace HansaTests
         static int Main(string[] args)
         {
             string root = FindRoot();
+            if (Array.IndexOf(args,"notes153") >= 0) { Notes153(root); return failures==0?0:1; }
             if (Array.IndexOf(args,"notes151") >= 0) { Notes151(root); return failures==0?0:1; }
             if (Array.IndexOf(args,"notes135") >= 0) { Notes135(root); return failures==0?0:1; }
             if (Array.IndexOf(args, "wave-sway") >= 0) { WaveSway(root); return failures == 0 ? 0 : 1; }
@@ -50,7 +51,7 @@ namespace HansaTests
             {
                 var groups = new[] { new[] { "design", "caravel" }, new[] { "gates" }, new[] { "swivels" }, new[] { "lateen" },
                                      new[] { "gunclick" }, new[] { "paint" }, new[] { "unmanned" }, new[] { "hull" }, new[] { "stairs" },
-                                     new[] { "slots" }, new[] { "partitions" }, new[] { "modular" }, new[] { "decor" }, new[] { "runtime-notes" }, new[] { "integrate" }, new[] { "notes135" }, new[] { "notes151" }, new[] { "hearth" } };
+                                     new[] { "slots" }, new[] { "partitions" }, new[] { "modular" }, new[] { "decor" }, new[] { "runtime-notes" }, new[] { "integrate" }, new[] { "notes135" }, new[] { "notes151" }, new[] { "notes153" }, new[] { "hearth" } };
                 var all = System.Diagnostics.Stopwatch.StartNew();
                 var rows = new System.Collections.Generic.List<string>();
                 int total = 0;
@@ -448,6 +449,7 @@ namespace HansaTests
 
             Notes135(root);
             Notes151(root);
+            Notes153(root);
 
             Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
             return failures == 0 ? 0 : 1;

@@ -424,8 +424,8 @@ namespace HansaTests
             double wall = shut.Raycast(eye, d, 8);
             var picked = set.Pick(eye, d, 8, out double tp);
             bool oldWay = hatch.Sel.Any(s => ShipFittings.RayBox(eye, d, new Cuboidd(s[0], s[1], s[2], s[3], s[4], s[5])) is double ts && ts >= 0 && ts <= wall + 0.15);
-            bool seen = ShipPieceSet.Seen(shut, eye, hatch.SeenBox), seenOld = ShipPieceSet.Seen(shut, eye, hatch.Box);
-            Check(picked == hatch && tp <= wall + 0.15 && seen,
+            bool seen = ShipPieceSet.SeenPiece(shut, eye, hatch), seenOld = ShipPieceSet.Seen(shut, eye, hatch.Box);
+            Check(picked == hatch && (tp <= wall + 0.02 || ShipPieceSet.HatchVoxelHit(hatch,shut,eye,d,wall)) && seen,
                 $"from below the crosshair picks the shut hatch (at {tp:0.00}, her collision at {wall:0.00}) and it's seen to be opened ({seen}); before 0.3.23 by its leaves only: picked {oldWay}, seen {seenOld}");
         }
     }

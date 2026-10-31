@@ -429,7 +429,7 @@ namespace Hansa
                 case TargetKind.Piece:
                 {
                     string name = ship.PieceName(t.Piece);
-                    string use = t.Piece.Role switch
+                    string use = ShipTethers.IsPost(t.Piece) ? Lang.Get("ships:hint-tether-post") : t.Piece.Role switch
                     {
                         PieceRole.Storage => Lang.Get("ships:hint-piece-open"),
                         PieceRole.Bed => Lang.Get("ships:hint-piece-sleep"),
@@ -908,6 +908,11 @@ namespace Hansa
             switch (t.Kind)
             {
                 case TargetKind.Piece:
+                    if(ShipTethers.IsPost(t.Piece)) {
+                        if(capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack?.Collectible is Vintagestory.GameContent.ItemRope) return false;
+                        if(OnceAClick("lead:"+t.Piece.Id)) channel.SendPacket(new DecorPacket {ShipId=t.Ship.EntityId,Action=DecorPacket.Use,Piece=t.Piece.Id});
+                        return true;
+                    }
                     // ((0.3.27, note 199) a wrench in hand: turn it, as vanilla's wrench turns a block)
                     if (EntityShip.IsWrench(capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack))
                     {
@@ -1115,6 +1120,16 @@ namespace Hansa
                     .Translate((float)(o.X - cam.X), (float)(o.Y - cam.Y), (float)(o.Z - cam.Z))
                     .RotateY(ShipFrame.ModelYaw(ship.Pos.Yaw)).RotateZ((float)ship.Pitch).RotateX((float)ship.Roll);
                 const float grow = 0.003f;
+                if(t.Piece?.Role==PieceRole.Hatch && t.Kind is TargetKind.Piece or TargetKind.PaintPiece) {
+                    foreach(var leaf in HatchPlanner.Leaves(t.Piece.Box,t.Piece.Dir,t.Piece.DoubleLeaf)) {
+                        var placed=Mat4f.Create();Mat4f.Mul(placed,m.Values,HatchPlanner.LeafPose(leaf,t.Piece.Open?HatchPlanner.OpenAngle:0));
+                        var b=leaf.Box;
+                        var lm=new Matrixf().Set(placed).Translate((float)b[0]-grow,(float)b[1]-grow,(float)b[2]-grow)
+                            .Scale((float)(b[3]-b[0])+2*grow,(float)(b[4]-b[1])+2*grow,(float)(b[5]-b[2])+2*grow);
+                        cube.Render(capi,lm,1.6f);
+                    }
+                    capi.Render.GlToggleBlend(false);return;
+                }
                 m.Translate((float)box[0] - grow, (float)box[1] - grow, (float)box[2] - grow)
                  .Scale((float)(box[3] - box[0]) + 2 * grow, (float)(box[4] - box[1]) + 2 * grow, (float)(box[5] - box[2]) + 2 * grow);
                 (repairBox != null ? repairCube : cube).Render(capi, m, repairBox != null ? 2.2f : 1.6f);

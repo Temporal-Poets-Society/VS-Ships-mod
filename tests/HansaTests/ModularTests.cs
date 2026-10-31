@@ -92,7 +92,8 @@ namespace HansaTests
 
             // ---- horizontal places (note 159): shelves in the rooms, a panel's plan; standing on it
             var shelves = l.Horizontals.ToList();
-            Check(shelves.Count(h => h.Level <= 2) > 50, $"horizontal panel places: {shelves.Count(h => h.Level == 1)} a block up, {shelves.Count(h => h.Level == 2)} two, {shelves.Count(h => h.Level == 3)} wells' tops");
+            Check(MountLayout.ShelvesEnabled ? shelves.Count(h => h.Level <= 2) > 50 : shelves.All(h=>h.Level>=3 || MountLayout.IsHood(h.Id)),
+                $"154: horizontal panel places obey shelf switch ({shelves.Count} well tops/hoods, room shelves disabled by default)");
             var shelfPlace = shelves.FirstOrDefault(h => h.Level == 1 && l.FloorAt(h.Deck, h.I, h.K, 1) != null);
             if (shelfPlace != null)
             {
@@ -267,8 +268,8 @@ namespace HansaTests
                 var b0 = open.First(b => b.Row == 0);
                 var (line, alongX) = MountLayout.BorderLine(b0);
                 var e = new ModularPieceDef { Kind = "railing", Along = alongX ? "x" : "z", At = alongX ? new[] { b0.X + 0.05, b0.Y, line } : new[] { line, b0.Y, b0.Z - 0.05 } };
-                var hp = shelves.First();
-                var es = new ModularPieceDef { Kind = "panel", At = new[] { hp.X, hp.Y, hp.Z } };
+                var hp = shelves.FirstOrDefault();
+                var es = new ModularPieceDef { Kind = "panel", At = hp==null?new double[]{0,0,0}:new[] { hp.X, hp.Y, hp.Z } };
                 var ef = new ModularPieceDef { Kind = "stair", At = new[] { floor.X + 0.5, floor.Y, floor.Z + 0.5 }, Up = "-z" };
                 var el = new ModularPieceDef { Kind = "ladder", At = new[] { floor.X + 0.5, floor.Y, floor.Z + 0.5 }, Up = "-z" };
                 Check(l.ForModular(e) == b0 && l.ForModular(es) == hp && l.ForModular(ef) == floor && l.ForModular(el) == floor && MountLayout.DirOf("-z") == 3 &&

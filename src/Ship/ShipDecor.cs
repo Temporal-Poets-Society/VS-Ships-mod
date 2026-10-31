@@ -639,6 +639,7 @@ namespace Hansa
                 // (all or nothing: never dropped, it'd go into the sea)
                 if (!player.InventoryManager.TryGiveItemstack(ReturnedStack(p), true)) return "ships:piece-inventory-full";
             }
+            ShipTethers.ReleasePiece(this,p);
             Pieces.Remove(p.Id);
             Changed();
             return null;
@@ -667,6 +668,7 @@ namespace Hansa
             if (!InReach(player, c[0], c[1], c[2])) return;
             // ((0.3.23, note 169) a shut hatch from below too: its planking is in her design's collision)
             if (!SeenPieceBy(player, p)) return;
+            if(ShipTethers.IsPost(p)) {ShipTethers.TakeLead(this,p,player);return;}
             var f = PieceFixture(p);
             switch (p.Role)
             {
@@ -971,7 +973,10 @@ namespace Hansa
         bool RescueOrphanedPieces()
         {
             // ((0.3.20) a hatch's places are her deck cells, not mount points)
-            var orphans = Pieces.All.Where(p => p.Role != PieceRole.Hatch && (p.Mounts.Length == 0 || p.Mounts.Any(id => Mounts.Get(id) == null)))
+            // Saved shelves keep their geometry/support and can be taken up, even though new shelf places are disabled.
+            var orphans = Pieces.All.Where(p => p.Role != PieceRole.Hatch &&
+                !(p.Role == PieceRole.Shelf && !MountLayout.ShelvesEnabled && p.Mount?.StartsWith("hb:") == true) &&
+                (p.Mounts.Length == 0 || p.Mounts.Any(id => Mounts.Get(id) == null)))
                 .OrderBy(p => p.Box?[1] ?? 0).ToList();
             if (orphans.Count == 0) return false;
             foreach (var p in orphans)

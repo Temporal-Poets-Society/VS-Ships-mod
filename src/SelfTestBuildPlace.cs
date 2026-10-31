@@ -95,6 +95,10 @@ namespace Hansa
                     string off = hung == null ? ship.RemovePiece(ship.Pieces.At(ceiling.Id), null) : "not hung";
                     Check(hung == null && off == null, $"note 66: a lantern hung under the steerage's ceiling ({hung ?? "ok"}) and taken down ({off ?? "ok"})");
                 }
+                Check(!MountLayout.ShelvesEnabled && !l.Horizontals.Any(m=>m.Level<3 && m.Id.StartsWith("hb:")) &&
+                    !(ship.Def.StartPieces??Array.Empty<StartPieceDef>()).Any(p=>p.Mount?.StartsWith("hb:hold:")==true),
+                    "154: no default hold shelves or room-shelf placement offers; well tops remain separate");
+                if(MountLayout.ShelvesEnabled) {
                 // ---- note 83: a shelf a block up in her hold, aimed at from a step away with a plank slab (building mode), over a
                 // chest; a vessel on it; not taken up from under the vessel; then each taken up
                 {
@@ -175,6 +179,7 @@ namespace Hansa
                     }
                     Check(slabs.Count >= 4 && looks > 100 && missed.Count == 0,
                         $"dev.9: the shelf as the client's crosshair finds it, with the game's plank slabs ({string.Join(", ", slabs.Select(b => b.Code.Path))}): {looks} looks, {blocked} refused at visible fittings{(missed.Count == 0 ? ", every one" : "; not: " + string.Join("; ", missed.Take(6)))}");
+                }
                 }
                 // ---- (25 October 2026, dev.9) note 89: a door hung at either end; note 90: a window on a place her side cuts; note
                 // 99: the short stair up aft from her hold's cell under the hatchway: its top on the hatch, not "no landing"

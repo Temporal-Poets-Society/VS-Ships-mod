@@ -513,11 +513,11 @@ namespace Hansa
             return null;
         }
 
-        /// <summary>A hatch opened or shut (the door's sounds); it won't shut on someone standing in the opening.</summary>
+        /// <summary>A hatch opens or closes only when its actual leaf swing is clear of bodies.</summary>
         public bool ToggleHatch(IServerPlayer player, ShipPiece p)
         {
             if (p?.Role != PieceRole.Hatch) return false;
-            if (p.Open && p.Box != null && BoxOccupied(new[] { p.Box[0], p.Box[1] - 0.25, p.Box[2], p.Box[3], p.Box[4] + 0.05, p.Box[5] }))
+            if (HatchSwingOccupied(p))
             {
                 if (player != null) Notify(player, "ships:doorway-blocked");
                 return false;
@@ -526,6 +526,23 @@ namespace Hansa
             PieceSound(p, new AssetLocation("sounds/block/door"));
             Changed();
             return true;
+        }
+
+        bool HatchSwingOccupied(ShipPiece p)
+        {
+            foreach(var seat in Seats.OfType<ShipSeat>()) {
+                if(seat.Passenger is not Vintagestory.API.Common.EntityAgent agent || !agent.Alive || agent.MountedOn!=seat) continue;
+                var l=seat.LocalPos;
+                var body=new[]{l.X-DeckMover.HalfWidth,l.Y,l.Z-DeckMover.HalfWidth,l.X+DeckMover.HalfWidth,l.Y+DeckMover.Height,l.Z+DeckMover.HalfWidth};
+                if(HatchPlanner.BodyInSwing(p.Box,p.Dir,p.DoubleLeaf,p.Slots>0,body)) return true;
+            }
+            // Native creatures and people standing aboard without a deck seat also have real bodies.
+            foreach(var entity in World.GetEntitiesAround(Pos.XYZ,20,10,e=>e is Vintagestory.API.Common.EntityAgent && e.Alive && e.Pos.Dimension==Pos.Dimension)) {
+                if(entity is Vintagestory.API.Common.EntityAgent agent && agent.MountedOn is ShipSeat) continue;
+                var l=WorldToLocal(entity.Pos.X,entity.Pos.Y,entity.Pos.Z); var b=entity.CollisionBox;
+                if(b!=null && HatchPlanner.BodyInSwing(p.Box,p.Dir,p.DoubleLeaf,p.Slots>0,new[]{l.X+b.X1,l.Y+b.Y1,l.Z+b.Z1,l.X+b.X2,l.Y+b.Y2,l.Z+b.Z2})) return true;
+            }
+            return false;
         }
 
         /// <summary>(0.3.20) What her deck cells are now, for <c>.ships slots</c>.</summary>

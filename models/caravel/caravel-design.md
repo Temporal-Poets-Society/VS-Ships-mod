@@ -1027,3 +1027,42 @@ game-view triangles are under `tmp/notes151-views/`. Wood: 118,728 faces / 0 ove
 runtime hatch/stair joints, closed and open: 0. No new block shapes were introduced. Work remains uncommitted on
 `codex/notes-151` from 4c41fb2; Sea, the installed game, user Mods and saves were not written.
 
+## Chalk notes 153–156 (follow-up to dev.20, 31 October 2026)
+
+- **153:** selection tests the actual board/frame and hardware of each closed or open hatch leaf. The fixed coaming,
+  centre gap and rounded walking voxels are not selectable leaves. The outline follows each leaf's hinge transform.
+  Opening and closing test bodies against the oriented leaves throughout their swing, rather than a box covering
+  the opening. Dead or stale seat occupants do not count. Leaf geometry, coaming, stair and flooding heights are unchanged.
+- **154:** no default hold shelves. The retained layout recipe is behind `HOLD_SHELVES_ENABLED = False`; room-shelf
+  places are behind `MountLayout.ShelvesEnabled = false`. Well tops and hood roofs retain their separate uses.
+  Saved shelves remain ordinary removable pieces, with their native slab stacks and support geometry; migration
+  does not treat their disabled mount as an orphan. They are not automatically dropped or put into the hold.
+- **155:** no fixed `hitch-main` fixture or mesh. An ordinary vanilla wooden fence item, placed on a floor in normal
+  decorating mode, supplies its native disconnected post variant. Native `game:rope` recognizes a placed block's
+  `BlockBehaviorRopeTieable`, as installed vanilla 1.22.7 does. Its ship end saves the piece ID and a local block-centre
+  offset; native creature attachment, ownership and rope interactions remain. Taking up the post frees that end.
+  Old leads on the deleted fixture are freed too. Deck-creature physics is unchanged.
+- **156:** default `CannonsNeedShot = false` means automatic reload by elapsed time, without manual loading or a
+  permanent run-in/run-out cycle after firing. Each shot takes one Blasting powder from the firing player's own
+  hotbar/backpack inventory, including creative mode; no powder refuses the shot with an explicit message. Open
+  containers and the creative catalogue do not supply powder. Existing paid-for saved charges can fire once without
+  charging their powder twice. The true switch retains manual powder followed by shot. Swivels use the same default
+  automatic flow, although this caravel has none. Initial port opening and brief automatic recoil remain.
+
+Verification on `codex/notes-153`, base `2157b13`, uncommitted: both Release builds pass (4/3 existing warnings),
+ConstructionTests 99/99, `caravel-all` only the two known carrack-m slot failures. Full offline tests have five historical
+failures: carrack stern water cut, hull-hole edges, note 32 panel, note 179 stern-chaser downflood points and archived
+charters. The latter two were also reproduced against the unchanged base commit. The new notes group passes all 176
+hatch rays around both sides, ends and coaming corners, with closed/open selection and server visibility. Dedicated
+tests also exercise actual server toggles beside/in the swing, saved-shelf loading/migration/removal, native post
+placement, an elk and lead following translation/turning, post removal, legacy lead cleanup, and repeat firing from
+a player's native inventory. The final full dedicated run reports `SELFTEST ALL OK` at 20:20:12 and exits at 20:20:21;
+port 42597 is free. No game client or user world was opened.
+
+The export uses the unchanged master and slice. Wood: 118,562 drawn faces / 0 overlaps; copper: 119,861 / 0.
+Combined runtime hatch/stair/post joints are zero in all rendered states, and the native post has zero internal
+coplanar pairs. No block shapes were added or edited. All 26 game-mesh PNGs were inspected; complete paths are in
+`tmp/notes153-render-paths.txt`, cameras and prepared game-view data in `tmp/notes153-views/`. The plain per-note
+report, test logs and in-game check instructions are recorded in `tmp/notes153-report.txt`. Sea and the installed
+game, user Mods and saves were read only.
+

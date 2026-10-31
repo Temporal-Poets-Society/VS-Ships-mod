@@ -145,7 +145,7 @@ namespace HansaTests
             Check(elk.OnGround && Math.Abs(elk.Y-.25)<1e-8,"elk: a full creature collision box lands and stands on the deck");
             floor.Fill(new[]{2.0,0,2,4,.25,4},false);
             Check(!elk.Move(floor,0,-.5,0),"elk: removing the deck lets the creature fall through the real opening");
-            Check(def.Fixtures.Any(f=>f.Type=="hitch" && f.Box!=null && f.Pos!=null),"elk: a solid data-authored hitching post has a lead attachment point");
+            Check(!def.Fixtures.Any(f=>f.Type=="hitch"),"155: hitching is supplied by placed native fence posts, not a fixed fixture");
             Console.WriteLine(failures==before?"notes135 ALL OK":$"notes135 {failures-before} FAILED");
         }
     }

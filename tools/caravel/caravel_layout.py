@@ -34,6 +34,7 @@ import caravel_lines as CL                     # noqa: E402
 import caravel_fittings as CF                  # noqa: E402
 
 CODE = "caravel"
+HOLD_SHELVES_ENABLED = False  # Note 154: room shelf function is suspended in the runtime too.
 
 
 def r4(v):
@@ -727,13 +728,7 @@ def main():
     fixtures = list(D["fixtures"])
     parts = list(D["movingParts"])
     standing = []                                   # shrouds, for the mod to press the sails against (rigCheck)
-    # A fixed timber head and forged ring for vanilla creature leads. The ring is clear of the hatch and galley.
-    hitch = np.array([-5.5, deck + 0.85, -1.75])
-    d.add_box_mesh("exterior", "timber", hitch - (0,0.425,0), (0.16,0.85,0.16))
-    CF.iron_ring(d,hitch + (0.09,-0.12,0),0.065,0.014,normal=(0,0,1))
-    fixtures.append({"code":"hitch-main", "type":"hitch", "pos":v4(hitch + (0.09,-0.12,0)),
-                     "box":[-5.58,deck,-1.83,-5.42,deck+0.85,-1.67],
-                     "sel":[-5.62,deck,-1.87,-5.3,deck+0.9,-1.63]})
+    # Note 155: creature leads attach to player-placed vanilla fence pieces, not a fixed fixture.
 
     # Two working strap hinges on each entry gate. Alternate knuckles belong to jamb and leaf, with clear ends.
     for gl in REP["gateLeaves"]:
@@ -1075,9 +1070,10 @@ def main():
     # (31 October 2026, the user: "next build place shelves into cargo hold") a row of shelves along each side of her hold,
     # a plank slab a block over the outer floor cells (the cells under them free for chests; the middle row the way along);
     # none beside the main mast and its pump
-    for i_ in [i for i in range(-9, 4) if i != -3]:
-        for k_ in (-2, 0):
-            start.append({"block": "game:plankslab-oak-down-free", "mount": f"hb:hold:{i_}:{k_}:1", "yaw": 0.0})
+    if HOLD_SHELVES_ENABLED:
+        for i_ in [i for i in range(-9, 4) if i != -3]:
+            for k_ in (-2, 0):
+                start.append({"block": "game:plankslab-oak-down-free", "mount": f"hb:hold:{i_}:{k_}:1", "yaw": 0.0})
     hxs, hys = LAY["hatch"]["x"], LAY["hatch"]["y"]
     hzc = -(hys[0] + hys[1]) / 2000.0                  # (model Y port = game z negative)
     modular.append({"kind": "hatch", "at": [r4((hxs[0] + hxs[1]) / 2000.0), r4(deck), r4(hzc)],
