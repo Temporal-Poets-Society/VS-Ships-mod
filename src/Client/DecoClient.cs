@@ -909,7 +909,8 @@ namespace Hansa
             {
                 case TargetKind.Piece:
                     if(ShipTethers.IsPost(t.Piece)) {
-                        if(capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack?.Collectible is Vintagestory.GameContent.ItemRope) return false;
+                        // Our piece pick is authoritative for this click; vanilla may have no ship entity
+                        // selection. The server validates the piece and calls the real ItemRope entry point.
                         if(OnceAClick("lead:"+t.Piece.Id)) channel.SendPacket(new DecorPacket {ShipId=t.Ship.EntityId,Action=DecorPacket.Use,Piece=t.Piece.Id});
                         return true;
                     }

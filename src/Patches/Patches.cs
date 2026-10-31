@@ -185,9 +185,12 @@ namespace Hansa
             });
             Try("leads on ship posts", () =>
             {
+                harmony.Patch(AccessTools.Method(typeof(ItemRope),"OnHeldInteractStart"),prefix:new HarmonyMethod(typeof(ShipRopes),nameof(ShipRopes.HeldBefore)),postfix:new HarmonyMethod(typeof(ShipRopes),nameof(ShipRopes.HeldAfter)));
+                harmony.Patch(AccessTools.Method(typeof(ItemRope),"createRope"),prefix:new HarmonyMethod(typeof(ShipRopes),nameof(ShipRopes.CreateBefore)));
                 harmony.Patch(AccessTools.Method(typeof(ItemRope),"attachToEntity"),prefix:new HarmonyMethod(typeof(ShipTethers),nameof(ShipTethers.AttachToShip)));
                 harmony.Patch(AccessTools.Method(typeof(ItemRope),"detach"),prefix:new HarmonyMethod(typeof(ShipTethers),nameof(ShipTethers.DetachShip)));
                 harmony.Patch(AccessTools.Method(typeof(ClothPoint),"update"),prefix:new HarmonyMethod(typeof(ShipTethers),nameof(ShipTethers.PinBefore)),postfix:new HarmonyMethod(typeof(ShipTethers),nameof(ShipTethers.PinAfter)));
+                harmony.Patch(AccessTools.Method(typeof(ClothSystem),"updateFixedStep"),prefix:new HarmonyMethod(typeof(ShipRopes),nameof(ShipRopes.BeforeStep)));
             });
             Try("sleep screen in bunks", () => harmony.Patch(AccessTools.Method(typeof(ModSleeping), "FastTick"),
                 prefix: new HarmonyMethod(typeof(Patches), nameof(FastTickPrefix)),
