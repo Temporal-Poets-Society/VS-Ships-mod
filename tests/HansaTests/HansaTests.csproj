@@ -39,6 +39,8 @@
     <Compile Include="DeckItemTests.cs" />
     <Compile Include="DamageTests.cs" />
     <Compile Include="FloodReport.cs" />
+    <Compile Include="StormFloodTests.cs" />
+    <Compile Include="..\..\src\Ship\DeckFlooding.cs" Link="Ship\DeckFlooding.cs" />
     <Compile Include="DamageSkinTests.cs" />
     <Compile Include="CannonTests.cs" />
     <Compile Include="LayTests.cs" />

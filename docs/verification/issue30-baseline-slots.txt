@@ -1,0 +1,3 @@
+﻿  FAIL carrack-m: every slot a whole cell on her grid at its deck's top, its solids its own column, solid as its start says (49 problems)
+  FAIL carrack-m: every slot has a top and an underside of its own (16 without)
+2 FAILED
