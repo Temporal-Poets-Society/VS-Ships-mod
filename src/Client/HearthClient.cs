@@ -31,7 +31,7 @@ namespace Hansa
         class Spawn
         {
             /// <summary>(Smoke: the oven burning, its smoke out of the same stovepipe; no flames of the firepit's.)</summary>
-            public bool Lit, Wide, Embers, Smoke;
+            public bool Lit, Wide, Embers, Smoke, SmokeInside;
             public double X, Y, Z, CX, CY, CZ;
             public float VX, VY, VZ, WX, WZ;
         }
@@ -52,7 +52,7 @@ namespace Hansa
         class Props
         {
             public AdvancedParticleProperties[] Lit, Ring, Extinct;
-            public AdvancedParticleProperties Chimney;
+            public AdvancedParticleProperties Chimney, MouthSmoke;
         }
 
         public HearthClient(ICoreClientAPI capi, ShipClientSystem sys)
@@ -110,6 +110,7 @@ namespace Hansa
             smoke.PosOffset[2].avg = 0;
             smoke.PosOffset[2].var = 0.1f;
             p.Chimney = smoke;
+            p.MouthSmoke = Inside(smoke.Clone());
             return p;
         }
 
@@ -251,14 +252,15 @@ namespace Hansa
                     ovenSounds[ship.EntityId] = snd;
                 }
                 snd?.SetPosition(at);
-                // its smoke out of the stovepipe, unless the hearth's fire smokes there already
-                if (f.Chimney != null && !(ship.HearthOn && ship.Fire.IsBurning))
+                // Smoke at the mouth without a flue; a shared chimney only needs one smoke stream.
+                if (f.Chimney == null || !(ship.HearthOn && ship.Fire.IsBurning))
                 {
-                    ShipFrame.ToWorld(ship.Pos.Yaw, ship.Pitch, ship.Roll, f.Chimney[0], f.Chimney[1], f.Chimney[2], out double cx, out double cy, out double cz);
-                    var s = new Spawn { Smoke = true, X = tx, Y = ty, Z = tz, CX = cx + o.X, CY = cy + o.Y, CZ = cz + o.Z };
+                    var outlet = FirepitTarget.SmokeOutlet(f);
+                    ShipFrame.ToWorld(ship.Pos.Yaw, ship.Pitch, ship.Roll, outlet[0], outlet[1], outlet[2], out double cx, out double cy, out double cz);
+                    var s = new Spawn { Smoke = true, SmokeInside = f.Chimney == null, X = tx, Y = ty, Z = tz, CX = cx + o.X, CY = cy + o.Y, CZ = cz + o.Z };
                     var w = sys.Hansa?.WindAt(s.CX, s.CZ) ?? new Vec3d();
-                    s.WX = (float)w.X * SmokeWind;
-                    s.WZ = (float)w.Z * SmokeWind;
+                    s.WX = s.SmokeInside ? 0 : (float)w.X * SmokeWind;
+                    s.WZ = s.SmokeInside ? 0 : (float)w.Z * SmokeWind;
                     list.Add(s);
                 }
             }
@@ -324,10 +326,11 @@ namespace Hansa
                 }
                 if ((s.Lit || s.Smoke) && p.Chimney != null && s.CY != 0)
                 {
-                    p.Chimney.WindAffectednesAtPos = 0;
-                    p.Chimney.basePos.Set(s.CX, s.CY, s.CZ);
-                    p.Chimney.baseVelocity.Set(s.WX, 0, s.WZ);
-                    manager.Spawn(p.Chimney);
+                    var smoke = s.SmokeInside ? p.MouthSmoke : p.Chimney;
+                    smoke.WindAffectednesAtPos = 0;
+                    smoke.basePos.Set(s.CX, s.CY, s.CZ);
+                    smoke.baseVelocity.Set(s.WX, 0, s.WZ);
+                    manager.Spawn(smoke);
                 }
             }
             return true;

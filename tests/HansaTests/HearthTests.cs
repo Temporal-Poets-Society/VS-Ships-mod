@@ -20,6 +20,7 @@ namespace HansaTests
         static void Hearth(ShipDefinition def)
         {
             Console.WriteLine("the firehearth: vanilla's firepit fire, cooking times, warmth, saved and loaded");
+            FirepitTargets();
 
             // ---- the crosshair on it picks it (0.3.7, the user's note 1: its firebed is sunk inside its bricks, which are
             // solid, so the ray met them first and named the forecastle's woodwork: nothing on the hearth could be clicked)
@@ -243,6 +244,31 @@ namespace HansaTests
                      inv[i].Itemstack.StackSize == loaded[i].Itemstack.StackSize));
                 Check(same && saved.GetInt("qslots") == 7, "its inventory saved and loaded: the fuel, the pot, the cooked meat and the pot's grain, each in its slot");
             }
+        }
+
+        static void FirepitTargets()
+        {
+            foreach (var role in new[] { PieceRole.Hearth, PieceRole.Oven })
+            {
+                var p = new ShipPiece { Id = 32, Role = role, Box = new[] { -9.0, 1.125, -1.5, -8, 2.125, -.5 } };
+                var f = new FixtureDef { Code = p.StorageCode, Type = role == PieceRole.Hearth ? "hearth" : "oven",
+                    Box = (double[])p.Box.Clone(), Pos = new[] { -8.5, 1.375, -1.0 },
+                    Sel = new[] { -8.9375, 1.375, -1.4375, -8.0625, 1.975, -.5625 } };
+                var target = FirepitTarget.ForPiece(p, role == PieceRole.Hearth ? f : null, role == PieceRole.Oven ? f : null);
+                Check(target == f && !ReferenceEquals(f.Sel, p.Box) && f.Pos[1] != p.Box[1],
+                    $"{role}: packet lookup keeps the active fire fixture when its firebed and selection differ from the furniture box");
+                p.Box = (double[])p.Box.Clone();
+                Check(FirepitTarget.ForPiece(p, role == PieceRole.Hearth ? f : null, role == PieceRole.Oven ? f : null) == f,
+                    $"{role}: a network/save reload of identical furniture bounds keeps the fire target");
+                p.Id++;
+                Check(FirepitTarget.ForPiece(p, f, f) == null, $"{role}: another placed fire cannot reuse a removed fire's target");
+                p.Id--; p.Box[0] -= 1;
+                Check(FirepitTarget.ForPiece(p, f, f) == null, $"{role}: moved furniture requires a fresh fire fixture");
+            }
+            var oven = new FixtureDef { Pos = new[] { -8.5, 2.125, -2.0 }, Fire = new[] { -8.5, 2.275, -2.0 } };
+            Check(FirepitTarget.SmokeOutlet(oven) == oven.Fire, "an unflued oven emits smoke at its fire");
+            oven.Chimney = new[] { -8.5, 5.0, -2.0 };
+            Check(FirepitTarget.SmokeOutlet(oven) == oven.Chimney, "a flued oven emits smoke at the chimney mouth");
         }
 
         static void Log(string s) => Console.WriteLine(s);
