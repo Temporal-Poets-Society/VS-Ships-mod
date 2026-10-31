@@ -668,7 +668,7 @@ namespace Hansa
             if (!InReach(player, c[0], c[1], c[2])) return;
             // ((0.3.23, note 169) a shut hatch from below too: its planking is in her design's collision)
             if (!SeenPieceBy(player, p)) return;
-            if(ShipTethers.IsPost(p)) {ShipTethers.TakeLead(this,p,player);return;}
+            if(ShipTethers.IsPost(p)) {ShipTethers.UsePost(this,p,player);return;}
             var f = PieceFixture(p);
             switch (p.Role)
             {

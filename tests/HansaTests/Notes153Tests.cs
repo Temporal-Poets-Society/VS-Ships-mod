@@ -12,6 +12,7 @@ namespace HansaTests
         static void Notes153(string root)
         {
             int before=failures;
+            Tethers();
             var (def,file)=LoadHullDesign(root,"caravel");
             var entry=def.ModularPieces.Single(e=>e.Code=="hatch-main");
             var cells=def.Slots.Rect(entry.At[1],-6,-.5,-4,.5);

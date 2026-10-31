@@ -985,6 +985,13 @@ namespace Hansa
             if (ep == null) return;
             double range = capi.World.Player.WorldData.PickingRange;
 
+            // A native creature selection wins over decorating/fixtures behind it. In particular, a rope
+            // click on an animal must reach ItemRope (including vanilla ownership and tameness checks).
+            if (action == EnumEntityAction.InWorldRightMouseDown &&
+                capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack?.Collectible is Vintagestory.GameContent.ItemRope &&
+                capi.World.Player.CurrentEntitySelection?.Entity is Entity creature && creature is not EntityShip &&
+                creature.HasBehavior<Vintagestory.GameContent.EntityBehaviorRopeTieable>()) return;
+
             // the surveyor's chalk in hand: every click is its (a note, a mark read or rubbed out), whatever is in the crosshair
             if (Chalk != null && Chalk.OnClick(ep, action))
             {

@@ -18,14 +18,31 @@ namespace Hansa
         public static double[] PostPosition(ShipPiece piece) => piece.Parts.Count>0 ?
             new[]{piece.Parts[0].Origin[0]+.5,piece.Parts[0].Origin[1]+.5,piece.Parts[0].Origin[2]+.5} : piece.Center;
 
+        // Set only while UsePiece's already reach/visibility-checked post goes through vanilla's item flow.
+        [ThreadStatic] static ShipPiece usingPost;
+        public static void UsePost(EntityShip ship,ShipPiece post,IServerPlayer player)
+        {
+            var slot=player.InventoryManager.ActiveHotbarSlot;
+            if(slot?.Itemstack?.Collectible is not ItemRope rope) {TakeLead(ship,post,player);return;}
+            var previous=usingPost;usingPost=post;
+            try {
+                var handling=EnumHandHandling.NotHandled;
+                rope.OnHeldInteractStart(slot,player.Entity,null,new EntitySelection {Entity=ship,Position=ship.Pos.XYZ},true,ref handling);
+            } finally {usingPost=previous;}
+        }
+
         public static bool AttachToShip(EntityAgent byEntity,EntitySelection toEntitySel,ItemSlot slot,ClothSystem sys,
             ref bool relayRopeInteractions,ref ClothSystem __result)
         {
             if(toEntitySel?.Entity is not EntityShip ship) return true;
             relayRopeInteractions=false;__result=null;
-            var eye=byEntity.Pos.XYZ.Add(byEntity.LocalEyePos);
-            if(!ship.RayHit(eye,byEntity.Pos.GetViewVector().ToVec3d(),5,slot.Itemstack,out var hit) || hit.Part.Kind!=ShipPartKind.Piece || ship.GoneDown) return false;
-            var post=ship.Pieces.Get(hit.Part.Index);
+            var post=usingPost;
+            if(post==null) {
+                var eye=byEntity.Pos.XYZ.Add(byEntity.LocalEyePos);
+                double range=(byEntity as EntityPlayer)?.Player?.WorldData?.PickingRange??4.5;
+                if(!ship.RayHit(eye,byEntity.Pos.GetViewVector().ToVec3d(),range,slot.Itemstack,out var hit) || hit.Part.Kind!=ShipPartKind.Piece) return false;
+                post=ship.Pieces.Get(hit.Part.Index);
+            }
             if(!IsPost(post)) return false;
             // Native rope creation and consumption still run in ItemRope.OnHeldInteractStart. Only its target differs.
             if(ship.World.Side!=EnumAppSide.Server) return false;
@@ -41,7 +58,7 @@ namespace Hansa
             if(sys==null)
             {
                 ship.LocalToWorld(at[0],at[1],at[2],out double x,out double y,out double z);
-                sys=ClothSystem.CreateRope(ship.Api,manager,byEntity.Pos.XYZ,new Vec3d(x,y,z),null);
+                sys=ClothSystem.CreateRope(ship.Api,manager,byEntity.Pos.XYZ,TetherGeometry.RopeTarget(byEntity.Pos.XYZ,new Vec3d(x,y,z)),null);
                 sys.FirstPoint.PinTo(byEntity,new Vec3f(0,(float)byEntity.LocalEyePos.Y-.25f,0));
                 manager.RegisterCloth(sys);
                 slot.Itemstack.Attributes.SetLong("ropeHeldByEntityId",byEntity.EntityId);
@@ -49,7 +66,9 @@ namespace Hansa
             }
             var point=created?sys.LastPoint:sys.Ends.FirstOrDefault(p=>p.PinnedToEntity?.EntityId==byEntity.EntityId) ?? sys.Ends.FirstOrDefault(p=>!p.Pinned);
             if(point==null) return null;
-            point.PinTo(ship,new Vec3f((float)at[0],(float)at[1],(float)at[2]));
+            // PinTo(Entity) retains a previous player UID in vanilla. Clear it before transferring the end,
+            // otherwise a late load can reconnect this ship-local offset to the former holder.
+            point.UnPin();point.PinTo(ship,new Vec3f((float)at[0],(float)at[1],(float)at[2]));
             point.NoAttachTransform=true;
             var t=ship.WatchedAttributes.GetTreeAttribute("hansaTethers")??new TreeAttribute();
             t.SetString(sys.ClothId.ToString(),PostKey(post));ship.WatchedAttributes["hansaTethers"]=t;ship.WatchedAttributes.MarkPathDirty("hansaTethers");
@@ -75,7 +94,7 @@ namespace Hansa
                 var stack=new ItemStack(ship.World.GetItem(new AssetLocation("game:rope")));
                 stack.Attributes.SetInt("clothId",id);stack.Attributes.SetLong("ropeHeldByEntityId",player.Entity.EntityId);
                 if(!player.InventoryManager.TryGiveItemstack(stack,true)) {ship.Notify(player,"ships:piece-inventory-full");return;}
-                point.PinTo(player.Entity,new Vec3f(0,(float)player.Entity.LocalEyePos.Y-.25f,0));point.NoAttachTransform=false;
+                point.UnPin();point.PinTo(player.Entity,new Vec3f(0,(float)player.Entity.LocalEyePos.Y-.25f,0));point.NoAttachTransform=false;
                 links.RemoveAttribute(entry.Key);ship.WatchedAttributes.MarkPathDirty("hansaTethers");return;
             }
         }
@@ -102,11 +121,34 @@ namespace Hansa
             ship.WatchedAttributes.MarkPathDirty("hansaTethers");
         }
 
-        public struct PinState {public Vec3f Offset;public bool NoTransform;public Vec3d Motion;}
+        public struct PinState {
+            public Vec3f Offset;public bool NoTransform,CanPull;
+            public EntityShip Ship;public TetherFrame Frame;public Vec3d Before;
+        }
         public static void PinBefore(ClothPoint __instance,ClothSystem ___cs,out PinState __state)
         {
             __state=default;
-            if(__instance.PinnedToEntity is not EntityShip ship) return;
+            if(!__instance.Pinned) {
+                if(ShipRopes.Frame(___cs,out var aboard,out var pose))
+                    __state=new PinState {Ship=aboard,Frame=pose,Before=pose.Local(__instance.Pos)};
+                return;
+            }
+            var ship=__instance.PinnedToEntity as EntityShip;
+            var holder=__instance.PinnedToEntity as EntityAgent;
+            if(ship==null && holder?.MountedOn is not ShipSeat) return;
+            __state=new PinState {Offset=__instance.pinnedToOffset,NoTransform=__instance.NoAttachTransform,CanPull=___cs.CanPull};
+            // ClothPoint applies tension to MountedOn.Entity. A deck walker's hand and a fixed post
+            // must not accelerate the whole ship. The animal's own point still receives native tension.
+            ___cs.CanPull=false;
+            if(ship==null) {
+                var hand=new Vec3d(0,holder.LocalEyePos.Y-.3,0).AheadCopy(.1,holder.Pos.Pitch,holder.Pos.Yaw)
+                    .AheadCopy(.4,holder.Pos.Pitch,holder.Pos.Yaw-(float)Math.PI/2);
+                // A mounted first-person hand pose can be stale/hidden; use the same eye-relative hand
+                // offset as vanilla's fallback, in the camera frame used to draw her decks and creatures.
+                if(holder.Api is Vintagestory.API.Client.ICoreClientAPI api && api.World.Player?.Entity==holder)
+                    hand.Add(((EntityPlayer)holder).CameraPos.SubCopy(holder.Pos.X,holder.Pos.Y,holder.Pos.Z));
+                __instance.pinnedToOffset=hand.ToVec3f();__instance.NoAttachTransform=true;return;
+            }
             var links=ship.WatchedAttributes.GetTreeAttribute("hansaTethers");
             // The old fixed fixture was removed. Free a legacy lead rather than pinning it to empty air.
             if(ship.World.Side==EnumAppSide.Server && links!=null) {
@@ -117,16 +159,24 @@ namespace Hansa
                 }
             }
             var local=__instance.pinnedToOffset;
-            __state=new PinState {Offset=local,NoTransform=__instance.NoAttachTransform,Motion=ship.Pos.Motion.Clone()};
-            ship.LocalToWorld(local.X,local.Y,local.Z,out double x,out double y,out double z);
-            __instance.pinnedToOffset=new Vec3f((float)(x-ship.Pos.X),(float)(y-ship.Pos.Y),(float)(z-ship.Pos.Z));
+            var world=ShipRopes.Pose(ship).World(new Vec3d(local.X,local.Y,local.Z));
+            __instance.pinnedToOffset=new Vec3f((float)(world.X-ship.Pos.X),(float)(world.Y-ship.Pos.Y),(float)(world.Z-ship.Pos.Z));
             __instance.NoAttachTransform=true;
         }
-        public static void PinAfter(ClothPoint __instance,PinState __state)
+        public static void PinAfter(ClothPoint __instance,ClothSystem ___cs,PinState __state)
         {
-            if(__state.Offset==null) return;
-            __instance.pinnedToOffset=__state.Offset;__instance.NoAttachTransform=__state.NoTransform;
-            if(__instance.PinnedToEntity is EntityShip ship) ship.Pos.Motion.Set(__state.Motion);
+            if(__state.Offset!=null) {
+                ___cs.CanPull=__state.CanPull;
+                if(__instance.Pinned) {__instance.pinnedToOffset=__state.Offset;__instance.NoAttachTransform=__state.NoTransform;}
+            }
+            if(__state.Before==null) return;
+            var to=__state.Frame.Local(__instance.Pos);
+            int stopped=TetherGeometry.Move(__state.Ship.Grid,__state.Before,to);
+            if(stopped==0) return;
+            __instance.Pos.Set(__state.Frame.World(to));
+            ShipFrame.ToLocal(__state.Frame.Yaw,__state.Frame.Pitch,__state.Frame.Roll,__instance.Velocity.X,__instance.Velocity.Y,__instance.Velocity.Z,out double x,out double y,out double z);
+            ShipFrame.ToWorld(__state.Frame.Yaw,__state.Frame.Pitch,__state.Frame.Roll,(stopped&1)!=0?0:x,(stopped&2)!=0?0:y,(stopped&4)!=0?0:z,out x,out y,out z);
+            __instance.Velocity.Set((float)x,(float)y,(float)z);
         }
     }
 }
