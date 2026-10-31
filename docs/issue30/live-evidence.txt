@@ -1,0 +1,8 @@
+Read-only log excerpts, 31 October 2026, local time Europe/Riga.
+client-chat.log:7: 31.10.2026 14:03:50 [Chat] Wind fixed: 1.50 from the E (90°), Beaufort 12, until /sea clearwind. The sea builds up over ~3 game hours (add 'built' to skip that). @ 0
+client-chat.log:11: 31.10.2026 14:08:45 [Chat] Launched: Caravel (#642). @ 0
+client-chat.log:13: 31.10.2026 14:12:46 [Chat] She's foundering: the sea is coming in faster than it goes out. Man the pumps, mend the holes, or take to the boats! @ -6
+client-chat.log:14: 31.10.2026 14:14:55 [Chat] She's foundering: the sea is coming in faster than it goes out. Man the pumps, mend the holes, or take to the boats! @ -6
+server-audit.log:14: 31.10.2026 14:08:45 [Audit] [hansa] Andris launched Caravel #642 at 460545, 109, 30103
+Installed Hansa name recorded in these logs: hansa-0.1.0-dev.16.zip
+Screenshot 30b-water-in-hull-dev15.webp file timestamp: 2026-10-31 14:14:36 local. This is a file timestamp, not frame telemetry.
