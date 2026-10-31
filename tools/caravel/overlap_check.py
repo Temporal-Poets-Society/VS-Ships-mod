@@ -4,6 +4,8 @@ create texture flickers ... This is also rule for any new or modified models"). 
 
     python tools/caravel/overlap_check.py [assets/hansa/config/shipmeshes/caravel.json] [--all]
 
+--clad checks the copper alternative. --state <json> takes emptyDeck/emptyHull slot ID lists, as game_view.py does.
+
 Faces are the mesh file's quads (a triangle is a quad with its last corner doubled), as a new ship draws them: a slot
 group's quad only if its owner is in and its facing slot (if any) is out as designed (docs/legacy/slots.md §3); a
 sail's and the shot's groups are left out (drawn alone). Two faces clash when their planes agree within 1 mm and 0.5°,
@@ -11,6 +13,7 @@ their normals point the same way, and their outlines overlap by more than 2 mm2.
 where they are (ship-local blocks); exits 1 if there are any.
 """
 import json
+import argparse
 import math
 import os
 import sys
@@ -43,7 +46,11 @@ def polys(mesh, empty_slots):
                     uniq.append(p)
             if len(uniq) < 3:
                 continue
-            nrm = np.cross(uniq[1] - uniq[0], uniq[2] - uniq[0])
+            # A tile cut can leave three leading corners on one edge. Their tiny rounding error does not define
+            # the face's plane: use its largest triangle, including the fourth corner (the copper forefoot case).
+            crosses = [np.cross(uniq[a] - uniq[0], uniq[b] - uniq[0])
+                       for a in range(1, len(uniq)) for b in range(a + 1, len(uniq))]
+            nrm = max(crosses, key=lambda v: float(v @ v))
             ln = np.linalg.norm(nrm)
             if ln < 1e-9:
                 continue
@@ -185,13 +192,29 @@ def find_clashes(mesh, empty):
 
 
 def main():
-    args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    path = args[0] if args else os.path.join(ROOT, "assets", "hansa", "config", "shipmeshes", "caravel.json")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("path", nargs="?", default=os.path.join(ROOT, "assets", "hansa", "config", "shipmeshes", "caravel.json"))
+    parser.add_argument("--clad", action="store_true")
+    parser.add_argument("--state")
+    parser.add_argument("--all", action="store_true", help="accepted for compatibility; all non-sail groups are checked")
+    args = parser.parse_args()
+    path = args.path
     defp = path.replace("shipmeshes", "ships")
     mesh = json.load(open(path))
+    if args.clad:
+        # The metal and tar are alternatives. Check the metal's independently tiled faces as well.
+        mesh["groups"] = {g.removesuffix("clad") if g.endswith("bottomclad") else g: qs
+                          for g, qs in mesh["groups"].items() if not g.endswith("bottom")}
+        mesh["slotQuads"] = {g.removesuffix("clad") if g.endswith("bottomclad") else g: qs
+                             for g, qs in mesh.get("slotQuads", {}).items() if not g.endswith("bottom")}
     empty = {"deck": set(), "hull": set()}
     if os.path.exists(defp):
-        empty = empty_slots(json.load(open(defp)))
+        design = json.load(open(defp))
+        empty = empty_slots(design)
+        if args.state:
+            state = json.load(open(args.state))
+            for family, field, key in (("deck", "deckSlots", "emptyDeck"), ("hull", "hullSlots", "emptyHull")):
+                empty[family].update(i for i, s in enumerate(design.get(field, [])) if s["id"] in state.get(key, []))
     found = find_clashes(mesh, empty)
     clashes = defaultdict(list)
     for ga, na, gb, nb, ov, c, nrm, aa, ab in found:

@@ -235,10 +235,10 @@ SHELL_TOOLS += gate_cuts
 # the bulwark's top (the port's head is the rail, 1 block over the deck), both sides; no lids yet. The quarterdeck's
 # guns fire over its side, through the railing's open cells.
 PORT_CUT = LAY["port"]
-for c in LAY["guns"]:
+for c, port_deck in [(c, LV["mainDeck"]) for c in LAY["guns"]] + [(c, LV["quarterdeck"]) for c in LAY["quarterdeckGuns"]]:
     for sgn in (1, -1):
         SHELL_TOOLS.append(Part.makeBox(1000 - 2 * PORT_CUT["inset"], 2500, 1500,
-                                        V(c * 1000 + PORT_CUT["inset"], 2000 if sgn > 0 else -4500, LV["mainDeck"] + PORT_CUT["sill"])))
+                                        V(c * 1000 + PORT_CUT["inset"], 2000 if sgn > 0 else -4500, port_deck + PORT_CUT["sill"])))
 
 
 # ------------------------------------------------------------------------------------------------ decks
@@ -280,7 +280,11 @@ hatch_cut = Part.makeBox(hx[1] - hx[0], hy[1] - hy[0], 1200, V(hx[0], hy[0], LV[
 main = slab(LV["mainDeck"], DECK_T).common(inner).cut(ribs).cut(backbone).cut(hatch_cut)
 if stock_hole is not None:                          # (the rudder's stock up through the main deck to the tiller)
     main = main.cut(stock_hole)
-qd = slab(LV["quarterdeck"], DECK_T, x1=L["quarterdeckFront"]).common(inner).cut(ribs).cut(backbone)
+# Rib heads finish on the deck's underside; the planking covers their end grain (note 129).
+_qd_slab = slab(LV["quarterdeck"], DECK_T, x1=L["quarterdeckFront"])
+rib_solids = [r.cut(_qd_slab) for r in rib_solids]
+ribs = Part.makeCompound(rib_solids)
+qd = _qd_slab.common(inner).cut(backbone)
 decks = Part.makeCompound([hold, main, qd])
 beam_solids = []
 for x0, x1, z0, z1, half in L["beams"]:
@@ -307,10 +311,10 @@ for sgn in (1, -1):
     hatch_frame.append(Part.makeBox(_ca1 - _ca0, BEAM_W, BEAM_H, V(_ca0, hy[1] if sgn > 0 else hy[0] - BEAM_W, bz0)))
 for xe in (hx[0] - BEAM_W, hx[1]):
     hatch_frame.append(Part.makeBox(BEAM_W, hy[1] - hy[0], BEAM_H, V(xe, hy[0], bz0)))
-_frame = Part.makeCompound(hatch_frame)
+_frame = hatch_frame[0].multiFuse(hatch_frame[1:]).removeSplitter()
 _cut = []
 for b_ in beam_solids:
-    if b_.BoundBox.intersect(_frame.BoundBox):
+    if b_.BoundBox.intersect(_frame.BoundBox) and b_.common(_frame).Volume > 1.0:
         _cut += [so for so in b_.cut(_frame).Solids if so.Volume > 5e6]
     else:
         _cut.append(b_)
@@ -336,8 +340,8 @@ STAIR_CLEAR_RIBS = [Part.makeBox(c.BoundBox.XLength, BIG, c.BoundBox.ZLength + 5
                                  V(c.BoundBox.XMin, 0.0 if c.BoundBox.YMax > 1.0 else -BIG, LV["quarterdeck"])) for c in STAIR_CLEAR]
 for _clear in STAIR_CLEAR_RIBS:
     _cut = sum(r_.common(_clear).Volume for r_ in rib_solids if r_.BoundBox.intersect(_clear.BoundBox))
-    rib_solids = [max(r_.cut(_clear).Solids, key=lambda so: so.Volume)
-                  if r_.BoundBox.intersect(_clear.BoundBox) and r_.common(_clear).Volume > 1.0 else r_ for r_ in rib_solids]
+    rib_solids = [so for r_ in rib_solids for so in
+                  (r_.cut(_clear).Solids if r_.BoundBox.intersect(_clear.BoundBox) else [r_]) if so.Volume > 1e6]
     log("the quarterdeck stair's landing kept clear of the ribs:", round(_cut / 1e6, 4), "litres off")
 ribs = Part.makeCompound(rib_solids)
 log("beams", len(beam_solids))
@@ -512,11 +516,15 @@ def mast_dims(key):
 # the mizzen's clew goes to a bumpkin, a spar out through the transom at the quarterdeck's floor (item 1)
 # (24 October 2026, chalk note 59: "would make sense that this part goes till the deck beam") its heel in to the after face
 # of the first quarterdeck beam forward of the transom, on the same line (it stopped 0.6 inside the transom, in the air)
-BK_OUT = V(transom_x(Q) - (1600 if COUNTER else 2400), 0, Q + 150)   # (over a counter: the sketch's clew, 1.6 out)
+BK_OUT = V(transom_x(Q) - LAY.get("bumpkinOut", 2400), 0, Q + 150)
 _bk_in = V(transom_x(Q) + 600, 0, Q - 330)
 _bk_beam = min((b_[0] for b_ in L["beams"] if abs(b_[3] - (Q - DECK_T)) < 1 and b_[0] > _bk_in.x), default=_bk_in.x)
-BK_IN = _bk_in + (_bk_in - BK_OUT) * ((_bk_beam - _bk_in.x) / (_bk_in.x - BK_OUT.x))
+BK_IN = V(_bk_beam + 100.0, 0, Q - DECK_T - 200.0)
 bumpkin = spar(BK_IN, BK_OUT, 110, 80)   # under the deck's planking
+# A stopped socket in the first full beam, with 100 mm of the heel seated in it (notes 107, 128).
+beams = Part.makeCompound([b.cut(bumpkin) if b.BoundBox.intersect(bumpkin.BoundBox) and b.common(bumpkin).Volume > 1.0 else b
+                           for b in beam_solids])
+beam_solids = list(beams.Solids)
 # The latina's sails and yards from the user's sketch (18 October): each yard balanced on its mast, crossing it
 # about halfway along (a yard slung near one end does not work); the mizzen's sail with a level foot 2.2 over the
 # quarterdeck and its after edge over the stern; the main's foot sloping up aft. Points (x, z) mm.
@@ -626,7 +634,9 @@ def rudder_lead(z):
 # blade's leading edge, goes on up through the counter and the main deck to the tiller under the quarterdeck's beams
 RUD_BLADE_TOP = COUNTER["post_top"] - 100.0 if COUNTER else RUD_TOP
 rudder_face_pts = [V(rudder_lead(z_b), 0, z_b), V(rudder_lead(RUD_BLADE_TOP), 0, RUD_BLADE_TOP),
-                   V(rudder_lead(RUD_BLADE_TOP) - RUD_HEAD_W, 0, RUD_BLADE_TOP), V(rudder_lead(z_b) - RUD_FOOT, 0, z_b)]
+                   V(rudder_lead(RUD_BLADE_TOP) - RUD_HEAD_W, 0, RUD_BLADE_TOP),
+                   V(rudder_lead(LV["waterline"]) - RUD_FOOT, 0, LV["waterline"]),
+                   V(rudder_lead(z_b) - RUD_FOOT, 0, z_b)]
 rudder = Part.Face(Part.makePolygon(rudder_face_pts + [rudder_face_pts[0]])).extrude(V(0, 200, 0))
 rudder.translate(V(0, -100, 0))
 if COUNTER:
@@ -648,6 +658,9 @@ tiller_port = Part.makeBox(800, 420, 240, V(transom_x(RUD_TOP) - 500, -210, RUD_
 bk0, bk1 = BK_IN, BK_OUT                                 # the bumpkin's ends
 # (26 October 2026: the sky showed round the spar) the socket the spar's own taper, 5 larger round it
 bumpkin_socket = spar(bk0 - (bk1 - bk0).normalize() * 50, bk1 + (bk1 - bk0).normalize() * 50, 115, 85)
+# The spar rises through the after edge of the quarterdeck: the same fitted notch continues through its planking.
+qd = qd.cut(bumpkin_socket)
+decks = Part.makeCompound([hold, main, qd])
 # (over a counter the tiller is inside her, under the quarterdeck: no port; the stock's hole through the counter instead)
 SHELL_TOOLS += [stock_hole if COUNTER else tiller_port, bumpkin_socket]
 # (25 October 2026, the slot check: her collision refused the quarterdeck's stair) over the quarterdeck's level, where the
@@ -823,6 +836,12 @@ if QD_BULWARK:
     _ty = (half_breadth(_tx + 60, _tz - 15) or 2000.0) + CAP_OUT
     _tin = cap_in_at(_xa)
     _tcap = Part.makeBox(_tin + CAP_OUT + 60, 2 * _ty, CAP_H, V(_tx - CAP_OUT, -_ty, _tz))
+    # Follow the narrowing stern corners in plan; the old rectangular cap left proud square ears (note 134).
+    _xx = [_tx - CAP_OUT, _tx, _tx + 60, _tx + 150, _tx + _tin + 20]
+    _edge = [(x, (half_breadth(max(x, _tx), _tz - 15) or 0.0) + CAP_OUT) for x in _xx]
+    _outline = [V(x, y, _tz) for x, y in _edge] + [V(x, -y, _tz) for x, y in reversed(_edge)]
+    _plan = Part.Face(Part.makePolygon(_outline + [_outline[0]])).extrude(V(0, 0, CAP_H))
+    _tcap = _tcap.common(_plan)
     rail_parts.append(_tcap.common(forward_of_transom(-CAP_OUT - 5)))
     CAP_RECORD["runs"].append({"side": "transom", "x0": round(_tx), "y": round(_ty)})
 log("cap rail", CAP_RECORD["runs"])
@@ -875,10 +894,20 @@ if KIT:
         for c_ in w_["cells"]:
             for row in w_["rows"]:
                 z0_, z1_ = d0 + 1000 * row, min(d0 + 1000 * (row + 1), d1)
+                if w_["line"] == "x" and any(v["at"] == [w_["at"], c_] and v["row"] == row for v in KIT.get("windows", [])):
+                    continue
                 if w_["line"] == "x":                    # a wall across her on x = at, over the z cell c_
                     parts_.append(Part.makeBox(120, 1000, z1_ - z0_, V(w_["at"] * 1000 - 60, -(c_ + 0.5) * 1000, z0_)))
                 else:                                    # along her on z = at, over the x cell from c_
                     parts_.append(Part.makeBox(1000, 120, z1_ - z0_, V(c_ * 1000, -w_["at"] * 1000 - 60, z0_)))
+    for door in KIT.get("doors", []):
+        x_, k_ = door["at"]
+        parts_.append(Part.makeBox(120, 1000, 2000, V(x_ * 1000 - 60, -(k_ + 0.5) * 1000, d0)))
+    for window in KIT.get("windows", []):
+        x_, k_ = window["at"]
+        z_ = d0 + 1000 * window["row"]
+        frame_ = Part.makeBox(120, 1000, 1000, V(x_ * 1000 - 60, -(k_ + 0.5) * 1000, z_))
+        parts_.append(frame_.cut(Part.makeBox(200, 750, 750, V(x_ * 1000 - 100, -(k_ + 0.5) * 1000 + 125, z_ + 125))))
     def cellbox(c_, z0_, h_, inset=0.0):
         x_, k_ = c_
         return Part.makeBox(1000 - 2 * inset, 1000 - 2 * inset, h_, V(x_ * 1000 + inset, -(k_ + 0.5) * 1000 + inset, z0_))
@@ -888,15 +917,16 @@ if KIT:
     parts_.append(cellbox(KIT["oven"]["cell"], d0 + 1000, 750, 80))
     cabin = memo("cabin", [LINES_HASH] + parts_, lambda: (lambda in_: Part.makeCompound([q.common(in_) for q in parts_]))(
         inner_near(Part.makeCompound(parts_))))
-# (25 October 2026, note 103) the swivel guns' places on the quarterdeck's cap rail, 2 a side (the fittings session
+# (30 October 2026, note 133) the swivel guns' places on the local cap rail (the fittings session
 # draws the gun: a placeholder here, a crotch's post and a short barrel)
 swivels = []
 for sx_ in LAY.get("swivels", []):
     for sgn in (1, -1):
-        zc_ = LV["quarterdeckSide"] + 80.0
-        yo_ = half_breadth(sx_ * 1000, zc_ - 100) or 2800.0
-        p0_ = V(sx_ * 1000, sgn * (yo_ - 150), zc_)
-        swivels += [Part.makeCylinder(40, 250, p0_), spar(p0_ + V(-500, 0, 300), p0_ + V(600, 0, 300), 70, 50)]
+        zc_ = sheer_at(sx_ * 1000) + CAP_H
+        yo_ = half_breadth(sx_ * 1000, zc_ - CAP_H - 15) or 2800.0
+        p0_ = V(sx_ * 1000, sgn * (yo_ - (CAP_IN - CAP_OUT) / 2), zc_)
+        swivels += [Part.makeCylinder(40, 250, p0_),
+                    Part.makeCylinder(60, 1100, p0_ + V(0, -sgn * 500, 300), V(0, sgn, 0))]
 # the wheel, where caravel_layout.py draws it in the game (a placeholder here: rim, posts)
 _wx = LAY["fittings"]["wheel"]["cell"][0] * 1000 + 230
 wheel_ph = Part.makeCompound([Part.makeCylinder(560, 75, V(_wx - 37, 0, LV["quarterdeck"] + 850), V(1, 0, 0)),
@@ -1181,6 +1211,7 @@ report = {
     "sailFeet": sail_clear,
     "guns": gun_fit,
     "gateLeaves": GATE_LEAF,
+    "bumpkin": {"heel": list(BK_IN), "end": list(BK_OUT)},
     "tiller": {"end": [TILLER_END, 0.0, RUD_TOP], "head": [round(TILLER_HEAD.x), 0.0, round(TILLER_HEAD.z)]},
     "rudderAxis": [round(STOCK_X if COUNTER else rudder_lead(z_b) + RUD_GAP, 1), 0.0, z_b],
     "capRail": CAP_RECORD,

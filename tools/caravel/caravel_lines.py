@@ -41,8 +41,8 @@ LAYOUTS = {
     # quarterdeck's stair to starboard against her side (the user: "At least on Nao Victoria it is done like that"), a
     # bulwark round the quarterdeck instead of its railing and no carriage guns there (note 103); the pump forward of
     # the main mast
-    "D": {"longer": 2.0, "qd_front": -7.0, "mizzen": -11, "wheel": [-9, 0], "qd_guns": [], "main": -3,
-          "pump": [-2, 0], "qd_bulwark": True, "swivels": [-9.5, -13.5],
+    "D": {"longer": 2.0, "qd_front": -7.0, "mizzen": -11, "wheel": [-9, 0], "qd_guns": [-13, -11], "main": -3,
+          "pump": [-2, 0], "qd_bulwark": True, "swivels": [8.0], "swivel_reach": 1.0, "bumpkin_out": 2.8,
           # (25 October 2026, note 102, the user: the rudder about an upright axis, a level tiller under the quarterdeck;
           # the stern as Boa Esperança's: a flat square transom over an upright sternpost, X -14.5)
           "stern_post_x": -14.5,
@@ -100,7 +100,7 @@ MASTS = {                       # cell, heel Z, used by which rig (the user, 17 
 RIBS = list(range(-14, 7, 2))           # every 2nd cell, 1 clear between (the user, 17 October); masts in clear cells.
                                         # None at 8: the forefoot there is too narrow for a frame (the user, 17 October).
                                         # (note 73) from -14: the stern 2 aft (the drafts, 1 aft: a short frame there)
-GUN_CELLS = [1, 3]                       # main deck, waist (the user, 18 October)
+GUN_CELLS = [-1, 1, 3] if VARIANT == "D" else [1, 3]  # note 121: the old entry port becomes a gun port, both sides
 QD_GUN_CELLS = LAY_V["qd_guns"]          # quarterdeck; the railing is open over these cells (22 October 2026: from
                                          # -7 to -9, beside the mizzen, the wheel taking -7: chalk note 30; 24 October,
                                          # note 62: "move all 4 cannons 1 block to aft")
@@ -151,12 +151,13 @@ KITCHEN = {
         {"line": "x", "at": QD_FRONT, "cells": [2], "rows": [0, 1]},                # behind the quarterdeck stair (26 October 2026)
                                                                                      # no top row: the stair's last tread meets its top
         {"line": "x", "at": QD_FRONT, "cells": [1], "rows": [2]},                   # over the doorway
-        {"line": "x", "at": QD_FRONT, "cells": [3], "rows": [0, 1]},                # the side's wedge
-        {"line": "x", "at": QD_FRONT - 2.0, "cells": [-2, 0], "rows": [0, 1, 2]},       # the galley's after wall,
-        {"line": "x", "at": QD_FRONT - 2.0, "cells": [-1], "rows": [1, 2]},             # over the hearth (it stands in
-                                                                                         # the bottom row's place)
-        {"line": "z", "at": 0.5, "cells": [QD_FRONT - 2.0, QD_FRONT - 1.0], "rows": [0, 1, 2]},   # its starboard wall
+        {"line": "x", "at": QD_FRONT, "cells": [3], "rows": [0, 1]},                # note 109: runtime has no border place for the narrow upper wedge
+        {"line": "x", "at": QD_FRONT - 2.0, "cells": [-2, 0], "rows": [0, 1, 2], "anchor": "-x"},  # leave the tables' cells clear
+        {"line": "x", "at": QD_FRONT - 2.0, "cells": [-1], "rows": [1, 2], "anchor": "-x"},  # note 108: bottom row needs runtime hearth/wall contact clipping
+        {"line": "z", "at": 0.5, "cells": [QD_FRONT - 2.0, QD_FRONT - 1.0], "rows": [0, 1, 2], "anchor": "+z"},  # leave the table and vessel clear
     ],
+    "doors": [{"at": [QD_FRONT, 1.0], "along": "z", "anchor": "-x", "into": "-x", "code": "door-cabin-starboard"}],
+    "windows": [{"at": [QD_FRONT, 2.0], "row": 1, "along": "z", "code": "window-cabin-starboard"}],
     "hearth": {"cell": [QD_FRONT - 2.0, -1], "facing": "+x", "block": "game:firepit-extinct"},
     "oven": {"cell": [QD_FRONT - 2.0, -2], "level": 1, "facing": "+x"},
     "things": [{"block": "game:table-normal", "cell": [QD_FRONT - 2.0, -2]},        # the oven stands on it
@@ -164,7 +165,7 @@ KITCHEN = {
                {"block": "game:storagevessel-tan-fired", "cell": [QD_FRONT - 1.0, 0]}],
 } if VARIANT == "D" else None
 # 10) gates in the waist's bulwark with a rope ladder down the side (the user, 18 October)
-GATE_CELL = -1
+GATE_CELL = MASTS["main"]["cell"]       # note 116: abreast the main mast
 # (21 October 2026, the user's list after trying her: no pump, no anchor, a wheel on the quarterdeck because the mizzen
 # blocks the helmsman's sight from under it, lanterns) where her fittings stand: cells [x cell, Y cell] on a deck (the Y
 # cell 0 is the centreline cell); the exporter keeps the deck cells under them fixed, the layout step draws them
@@ -705,9 +706,9 @@ def railings():
         zb = Z_QD
         port_y = port_front + ([yin] if yin - port_front[-1] > 0.3 else [])
         stbd_y = ([-yin] if stbd_front[0] + yin > 0.3 else []) + stbd_front
-        if gap_hi < -yin + 0.3:                       # (the gap against the starboard side: no starboard part)
+        if gap_lo < -yin + 0.3:                       # no short post between the stair and her side (note 131)
             stbd_y = []
-        if gap_lo > yin - 0.3:
+        if gap_hi > yin - 0.3:
             port_y = []
         for y in port_y:
             path.append((pt(QD_FRONT - 0.05, y, zb), pt(QD_FRONT - 0.05, y, zt), "front"))
@@ -838,6 +839,8 @@ def build():
                    "cabin": {"x": CABIN["x"] * MM, "doors": CABIN["doors"], "windows": CABIN["windows"]} if not KITCHEN else None,
                    "kitchen": KITCHEN,
                    "swivels": LAY_V.get("swivels", []),
+                   "swivelReach": LAY_V.get("swivel_reach", 0.62),
+                   "bumpkinOut": LAY_V.get("bumpkin_out", 2.4) * MM,
                    "sails": {k: {kk: ([vv * MM if isinstance(vv, (int, float)) else vv for vv in v] if isinstance(v, list) else v)
                                  for kk, v in sl.items()} for k, sl in LAY_V.get("sails", {}).items()},
                    "variant": VARIANT,

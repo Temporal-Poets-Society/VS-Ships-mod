@@ -686,6 +686,120 @@ logs the oven refused (the build-place session's stacked places, not merged here
 With the stair's landing (26 October 2026): the stock's hole through the counter 10 round it (it was 25, a ring seen from
 below), and the bumpkin's socket its own taper 5 larger round it (the sky showed round the spar): `views/game/29`, `30`.
 
+### The sixth trial (30 October 2026, dev.14 model notes 106–134)
+
+This round changes the master, its export and its default layout. Runtime interaction changes are on the other
+worker's branch; no `src/` changes are included here. The note cameras are kept in
+`views/notes-106-134/shots.json`, in ship coordinates, with additional views of the joints from the opposite side.
+
+- **106 — rudder:** 1.5 m constant chord below the waterline, with a straight after edge; only the short part above
+  the waterline narrows to the stock. The upright post, stock, axis and level tiller stay in their places.
+- **107, 128 — bumpkin:** 2.8 m beyond the transom (X −18.3); its heel is 100 mm into the first quarterdeck beam,
+  at Z 6.6, in a stopped socket. Its fitted opening continues through the after edge of the quarterdeck planking.
+  The mizzen clew and sheet follow its outer end. Both ends come from the build report, rather than duplicating a
+  second position in the layout code.
+- **108–110 — galley and cabin front (108/109 deferred, 110 fixed):** the starboard cabin doorway at z +1 has its
+  windowed oak door, opening into the cabin, and a window outboard at z +2. Doors, windows, wall rows and anchors
+  are layout data. The galley stays in the user's ship #227 arrangement. A focused placement check found why the
+  two remaining wall rows cannot be supplied safely by data alone: the hearth occupies its full cell, so a bottom
+  partition at (−9, 1.125, −1) is refused with the default anchor; `anchor: "-x"` lays it but leaves two coplanar
+  hearth/wall faces. The runtime must clip contact faces between the firebed/kerb and its neighbouring wall.
+  The upper outer wedge at (−7, 3.125, +3) has no border mount: the narrowing hull leaves too little free area.
+  The adjoining top wall at z +2 would also intersect the last stair tread (0.0377 m²). Runtime needs clipped
+  narrow border mounts and stair/wall contact clipping. Those unsafe entries are omitted until that work lands;
+  moving the galley or stair to conceal these limitations would change the agreed layout.
+  Galley wall anchors put their collision on the cabin side, leaving the table and vessel cells clear. The server
+  also reports the oven before its supporting start table is laid, and the hatch as occupied; runtime should retry
+  supported modular pieces after laying the start blocks, and resolve the hatch/stair occupancy explicitly.
+- **111 — stern ends:** the slicer cuts each solid separately. Intersecting a compound of touching timbers could
+  omit a member of a cell, despite the original solid containing it. Every cut piece is checked against its actual
+  3D cell with its precise bounding box, and the sliced volumes must add up to each body's volume.
+- **112, 114 — beams (partly fixed):** the default hatch's fixed carlings run between whole beams; the revised
+  slicer preserves the beam lengths and their cut ends. Picking and replacing a beam length in game remains the runtime worker's part.
+  Automatic carlings around player-made openings are not exported: `owner filled AND facing empty` cannot express
+  the union of adjoining frame openings, and exporting one set per removed length produces duplicate faces when
+  two neighbouring frames are opened. The runtime needs to build one shared frame around each connected opening,
+  extending to the nearest remaining whole beams and omitting a divider between two adjacent removed lengths.
+  The design supplies the actual beam centres and a 0.2 × 0.4 m section. A single opening and two neighbouring
+  frame openings must both pass the overlap check before this is enabled.
+- **116, 121, 122, 127 — entry ports:** both gates and their rope ladders move to X −2.5, abreast the main mast.
+  Cell −1, their former place, now has a carriage gun port and lid on each side. The old jamb battens move with the
+  gates. The leaves have two visible strap hinges with separate fixed and moving knuckles. Their inner planking
+  belongs to `waist-bulwarks`, their caps to `rail-caps`, and their outer planking to `topsides`; the hardware is unpainted.
+  Hinge barrels sit 20 mm inboard of the leaf's inner face, with 15 mm radius knuckles and seated straps. Fixed
+  tabs join the two outer knuckles separately to the curved jamb, leaving the rotating middle knuckle free. Both
+  leaves pass the complete swing check, including the ironwork. The old note 122 ray now sees the inner edge
+  of the rib beside the replacement gun port; that rib remains part of the structure.
+- **119, 120 — rope attachments:** the bow tack ends on an 18 cm forged eye with a shank and seating flange.
+  The shrouds end on paired deadeyes with strops and reeved lanyards, above channels outside the hull. Bolted
+  chainplates and knees seat the channels against the planking. Ratlines join the shrouds, in the same windward
+  rig groups. The mizzen's channel is between the restored gun ports, clear of their openings.
+- **124 — transom:** the outer-face test includes the actual stern profile, so its outside cannot be classified as
+  inside planking. The transom's inside and the steerage's side insides use `steerage-walls`, a row paint zone,
+  separate from the open bulwarks. The main-deck edge closes its bottom.
+- **125, 126 — copper:** actual triangles are clipped at one horizontal line, y +0.125 (model Z 3.0), instead of
+  assigning a whole triangle by its centre. As on Magelan (read only), the metal uses all five vanilla copper-sheet
+  textures, varied by sheet. Its UVs follow distance along each strake and round each section, including across the
+  flat floor; faces are cut into atlas tiles, never squeezed into one.
+  The overlap check also checks the copper alternative, whose tile cuts differ from the tarred bottom's. It takes
+  a face's plane from its largest triangle: a tile edge can have three leading collinear corners, whose rounding
+  error formerly made an oblique forefoot face appear to lie in the stem's plane. Regression checks cover
+  that false positive and a real overlap of the same oblique face.
+- **129–131 — quarterdeck front:** rib ends finish under the quarterdeck planking, which covers their end grain.
+  Note 130 points at an upright of the front guardrail, rather than an extra rib or fitting; it remains a guard for
+  the deck edge. At the starboard stair the outer edge of its gap is used to decide whether another short railing
+  is needed: the stray outboard post in note 131 is gone.
+- **134 — stern cap:** the transom cap follows the hull's plan at both corners. The old rectangular piece projected
+  beyond the narrowing side caps there. Its joint is fused with the side caps.
+- **133 — guns:** four carriage guns on the quarterdeck, two per side, in clear cells −13 and −11 (X −12.5 and
+  −10.5), with 750 mm ports through the solid bulwark and plank lids. No port cuts a rib. The waist now has six guns.
+  Its original gun IDs stay on cells 1 and 3; the new after pair is `gun-<side>-3`, the quarterdeck's
+  `gun-<side>-quarterdeck-1/2`. Two bow sockets at X +8 use the existing runtime swivel fixture format, with ±100°
+  train, −25..+40° elevation and measured cap widths in `rail`. Enlarging the gun and its runtime motion belongs to
+  the other worker. The current unmodified swivel block shape has three coplanar overlaps that that worker must
+  remove: barrel/reinforce at its after end, barrel/muzzle at its muzzle end, and socket/collar at their top.
+  At the bow the cap top is y 2.65, with sockets at z ±1.64. For a one-metre muzzle reach at −25°, its trunnion
+  should be at least 0.48 m above that datum (including 50 mm clearance). The swept barrel remains well outside
+  the stem; no standing rigging is near these sockets. The runtime's current short gun and rail clamp limit the
+  elevation and its picking test fails from the new bow position; the enlarged gun must use these socket data.
+
+Verification after the final export (30 October 2026):
+
+- The master build's ten carriage guns fit at their limits; the layout checks all ten lids, housed muzzles and gun
+  clearances. The per-solid slice preserves each body's volume (669 cells, 1,281 pieces). There are 136 removable
+  hull panels and 31 removable main-deck beam lengths; lengths containing other structure remain fixed.
+- `dotnet build -c Release` and `dotnet build tests/HansaTests -c Release` pass, zero warnings and errors. The
+  worktree builds used temporary properties for the game install and the existing Sea assembly/source references;
+  neither Sea nor the game install was written. Construction checks: **99/99**. The export-data checker
+  `tools/caravel/check_notes_106_134.py`: **0 failures**, with 108/109 explicitly deferred. Overlap checker
+  regression tests: **2/2**.
+- `tools/caravel/overlap_check.py`: **0** overlaps in **99,079** drawn faces; `--clad`: **0** in **104,329**. Three
+  removal states (a beam length and its covering deck cell removed, and two neighbouring frame openings)
+  also report **0**: 99,080 / 99,078 / 99,080 faces. The fixed hatch carlings finish on the whole beams.
+- `caravel-all`: **20 failures** in 47.3 s. Design caravel, hull, stairs, partitions, modular pieces and decor pass;
+  all 27 modular entries tested find their places, including the oven after its start table. The failures are
+  six gate-picking assertions using the former gate area; nine swivel assertions (old four-gun layout/limits and
+  the current runtime rail clamp/picking); one old assertion that every shroud-group face lies on a shroud (there
+  are now ratlines); one gun-click check (the two bow swivels); one paint ray through the relocated gate; and the
+  two known carrack-m slot failures (49 cell problems, 16 missing top/underside faces). Both gate swing checks pass.
+  A focused runtime probe from abreast the new gates picks each leaf correctly both shut and open.
+- Full offline run: **22 failures**: the same 18 caravel assertions above, plus the four baseline failures: the
+  carrack's stern water cut, hull-hole edges, note 32's great-cabin panel and archived charter inventory.
+- Dedicated server self-test: **4 failures**: two gate-picking checks from the former deck position, sheathed
+  top-speed synchronization, and the swivel elevation/rail-clamp expectation. It finishes and exits; port 42597
+  is free. This run used the final ship definition (its SHA-256 stayed identical after the last visual-only
+  fixed-hinge-tab correction). The current unmodified swivel block's three coplanar pairs remain the runtime
+  worker's responsibility, as listed above.
+- **42 game-mesh closeups rendered and inspected**, including the original note cameras, opposite corners,
+  open hinges, run-out quarterdeck guns, copper forefoot joints and removed-beam states. All picture paths
+  are listed in [the render index](views/notes-106-134/README.md); cameras and poses are in its `shots.json`.
+
+Round status: **fixed** 106, 107, 110, 111, 116, 119, 120, 121, 124, 125, 126, 127, 128, 129, 131 and 134;
+**partly fixed** 112/114 (player-made opening frames need runtime), 122 (hinges fixed; the targeted rib edge retained),
+130 (identified as the guardrail upright, retained), and 133 (carriage guns and bow socket data complete; enlarged
+swivels and their runtime motion/picking are the other worker's); **not done** 108/109 (runtime geometry/mount limits
+described above). No `src/` or runtime block-shape changes are included here.
+
 ### Server self-test on the caravel (20 October 2026)
 
 `tools/run_selftest.sh` on the Release build tests the caravel (the configured `carrack` isn't in it). The test is
