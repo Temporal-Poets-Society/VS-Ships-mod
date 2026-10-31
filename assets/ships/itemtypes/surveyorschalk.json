@@ -6,7 +6,7 @@
 	textures: {
 		"material": { base: "game:block/stone/rock/chalk1" }
 	},
-	creativeinventory: { "general": ["*"] },
+	creativeinventory: { "general": ["*"], "earthplus": ["*"] },
 	materialDensity: 2500,
 	guiTransform: {
 		translation: { x: 2, y: 1, z: 0 },

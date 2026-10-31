@@ -17,7 +17,7 @@
 	// (0.3.25, the user: "keep only modular now and park in archive previous") only the carrack (carrack-m) is to be had;
 	// the archived charters (carrack, carrack-a) stay registered so deeds already in inventories still launch their ships
 	// (the user, 18 October 2026) the caravel's charter only: the carracks are out of the release and paused
-	creativeinventory: { "general": ["*-caravel"] },
+	creativeinventory: { "general": ["*-caravel"], "earthplus": ["*-caravel"] },
 	guiTransform: {
 		rotation: { x: 0, y: 0, z: 0 },
 		origin: { x: 0.5, y: 0, z: 0.5 },

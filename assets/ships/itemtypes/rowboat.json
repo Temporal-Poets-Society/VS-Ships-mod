@@ -83,7 +83,7 @@
 	"creativeinventory": {
 		"general": [
 			"*"
-		],
+		], "earthplus": ["*"],
 		"items": [
 			"*"
 		]

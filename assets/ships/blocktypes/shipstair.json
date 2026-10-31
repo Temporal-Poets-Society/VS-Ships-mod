@@ -4,7 +4,7 @@
 	variantgroups: [
 		{ code: "length", states: ["steep", "long", "short"] }
 	],
-	creativeinventory: { "general": ["*"] },
+	creativeinventory: { "general": ["*"], "earthplus": ["*"] },
 	shapebytype: {
 		"*-steep": { base: "ships:block/shipstair-steep" },
 		"*-long": { base: "ships:block/shipstair-long" },

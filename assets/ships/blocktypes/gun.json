@@ -5,7 +5,7 @@
 		{ code: "metal", states: ["bronze"] },
 		{ code: "side", loadFromProperties: "abstract/horizontalorientation" }
 	],
-	creativeinventory: { "general": ["*-north"] },
+	creativeinventory: { "general": ["*-north"], "earthplus": ["*-north"] },
 	shapebytype: {
 		"*-north": { base: "ships:block/gun-bronze", rotateY: 0 },
 		"*-east": { base: "ships:block/gun-bronze", rotateY: 270 },
