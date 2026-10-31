@@ -56,8 +56,23 @@ it.
 Not counted: the furnishings that come with her (lanterns, tables, storage vessel, hearth, oven), which are vanilla
 blocks; and the copper sheathing.
 
-## Fitting it to a 3x3 grid (to decide)
+## Fitting it to a 3x3 grid (decided 31 October 2026: bundles, true amounts)
 
-One grid holds 9 stacks. The boards alone (about 3,700) exceed 9 full stacks, so the true amounts need either
-intermediate items crafted first ("bundles": for example a hull timber kit, a spar kit, a sail, a rigging coil, with the
-charter crafted from those), or the same proportions scaled down to fit one grid.
+One grid holds 9 stacks, and the boards alone exceed 9 full stacks. The user chose bundles that keep the true amounts.
+Each bundle is one full grid at vanilla stack sizes (boards 64, rope 16, nails and strips 32, resin 32, ingots 16; the
+bronze gun stacks one to a slot). Implemented in `assets/ships/itemtypes/shipkit.json` and
+`assets/ships/recipes/grid/shipkits.json`, checked by the self-test (`src/SelfTestCharter.cs`).
+
+| Bundle (`ships:shipkit-*`) | Grid | Charter takes |
+|---|---|---|
+| planking | 8 x 64 boards, 32 nails and strips | 7 |
+| frames | 8 x 36 support beams, 32 nails and strips | 1 |
+| spars | 5 x 10 debarked logs, 4 iron ingots | 1 |
+| sails | 4 x 61 linen, 4 x 14 rope | 1 |
+| rigging | 8 x 15 rope, 8 iron ingots | 1 |
+| battery | 5 bronze guns | 2 |
+
+The charter (`ships:shipdeed-caravel`) also takes 64 resin (2 x 32) and 64 flax fibres. In all, one charter takes
+3,584 boards, 288 support beams, 50 debarked logs, 244 linen, 176 rope, 10 bronze guns (240 bronze ingots through the
+gun recipe), 256 nails and strips, 12 iron ingots, 64 resin and 64 flax fibres. The charter stays in the creative
+inventory as well.
