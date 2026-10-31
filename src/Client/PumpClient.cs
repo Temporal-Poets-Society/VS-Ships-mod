@@ -9,8 +9,8 @@ namespace Hansa
     /// <summary>
     /// The water a ship's bilge pump brings up (the user's note 39): while someone works it and it really takes water out
     /// of her hold (the server's PumpedRate, shared by the pumps being worked: none while her hold is dry), water gushes
-    /// out of its spout as a connected laminar stream, with a few splashes only where it lands; and vanilla's pouring sound once a
-    /// stroke. A dry pump only clanks (the server's pump sound, quieter). Worked out each frame on the main thread
+    /// out of its spout as a connected laminar stream, with a few splashes only where it lands. Owned sounds stop when
+    /// work stops; a dry pump only clanks, quieter. Worked out each frame on the main thread
     /// (<see cref="Update"/>, as the renderer draws her) and spawned on vanilla's particle thread.
     /// </summary>
     public class PumpClient : IDisposable, IRenderer
@@ -20,6 +20,7 @@ namespace Hansa
 
         readonly ICoreClientAPI capi;
         readonly ShipClientSystem sys;
+        readonly PumpAudio audio;
         bool disposed;
 
         /// <summary>One spout for the particle thread: where it is and which way the water leaves it, where it lands, how fast she moves.</summary>
@@ -37,7 +38,6 @@ namespace Hansa
         {
             public double LastX = double.NaN, LastY, LastZ;
             public float VX, VY, VZ;
-            public double LastPhase = -1;
         }
 
         volatile Jet[] jets = Array.Empty<Jet>();
@@ -55,6 +55,11 @@ namespace Hansa
         {
             this.capi = capi;
             this.sys = sys;
+            audio = new PumpAudio((location, pos, volume) => capi.World.LoadSound(new SoundParams
+            {
+                Location = new AssetLocation(location), ShouldLoop = true, DisposeOnFinish = false,
+                Position = pos, Range = 16, Volume = volume
+            }));
             splash = new SimpleParticleProperties
             {
                 MinPos = new Vec3d(), AddPos = new Vec3d(0.24, 0.02, 0.24),
@@ -70,23 +75,25 @@ namespace Hansa
         /// <summary>
         /// Every frame (main thread): each pump that's worked and brings water up, near enough: its spout, the water's way
         /// and where it lands, in the world as drawn; how fast it moves (frame to frame: her way, her turning, her
-        /// rolling); how much comes out now (the stroke's gush); the pour's sound once a stroke.
+        /// rolling); how much comes out now (the stroke's gush); the owned mechanical and pouring sounds.
         /// </summary>
         public void Update(EntityPlayer ep, ShipRenderer renderer, float dt)
         {
-            if (disposed || ep == null) return;
+            if (disposed) return;
+            if (ep == null) { audio.Retain(new HashSet<string>()); jets = Array.Empty<Jet>(); return; }
             var list = new List<Jet>();
             var seen = new HashSet<string>();
+            var audible = new HashSet<string>();
             var cam = ep.CameraPos;
             foreach (var ship in sys.Ships)
             {
-                if (ship.Def == null || ship.GoneDown || ship.PumpedRate <= 0 || string.IsNullOrEmpty(ship.PumpsWorked)) continue;
+                if (ship.Def == null || ship.GoneDown || ship.LaidUp || string.IsNullOrEmpty(ship.PumpsWorked)) continue;
                 Vec3d o = null;
                 foreach (var f in ship.Def.Fixtures)
                 {
                     if (f.Type != "pump" || f.Pos == null) continue;
+                    if (!Array.Exists(ship.PumpsWorked.Split(','), code => code == f.Code)) continue;
                     double flow = PumpJet.FlowAt(f.Code, ship.PumpsWorked, ship.PumpedRate);
-                    if (flow <= 0) continue;
                     o ??= renderer.RenderOrigin(ship, ep);
                     PumpJet.Spout(f, out var at, out var dir);
                     float life = (float)PumpJet.Landing(f, out var land);
@@ -94,9 +101,12 @@ namespace Hansa
                     sx += o.X; sy += o.Y; sz += o.Z;
                     double cx = sx - cam.X, cy = sy - cam.Y, cz = sz - cam.Z;
                     if (cx * cx + cy * cy + cz * cz > Range * Range) continue;
+                    string key = ship.EntityId + ":" + f.Code;
+                    audible.Add(key);
+                    audio.Update(key, new Vec3f((float)sx, (float)sy, (float)sz), flow > 0, PumpJet.Volume(flow));
+                    if (flow <= 0) continue;
                     ShipFrame.ToWorld(ship.Pos.Yaw, ship.Pitch, ship.Roll, dir.X, dir.Y, dir.Z, out double dx, out double dy, out double dz);
                     ShipFrame.ToWorld(ship.Pos.Yaw, ship.Pitch, ship.Roll, land.X, land.Y, land.Z, out double lx, out double ly, out double lz);
-                    string key = ship.EntityId + ":" + f.Code;
                     seen.Add(key);
                     if (!tracks.TryGetValue(key, out var tr)) tracks[key] = tr = new Track();
                     // how the spout moves, as drawn (eased over a few frames)
@@ -112,11 +122,6 @@ namespace Hansa
                     tr.LastX = sx; tr.LastY = sy; tr.LastZ = sz;
                     double stroke = Math.Max(0.2, ship.DamageParts?.D.PumpStroke ?? 1);
                     double secs = capi.World.ElapsedMilliseconds / 1000.0;
-                    // the pour, once a stroke, as the brake comes to the end of its swing (where the gush is strongest)
-                    double phase = (secs / stroke + 0.75) % 1;
-                    if (tr.LastPhase >= 0 && phase < tr.LastPhase)
-                        capi.World.PlaySoundAt(new AssetLocation("sounds/effect/water-pour"), sx, sy, sz, null, true, 16, PumpJet.Volume(flow));
-                    tr.LastPhase = phase;
                     int color = capi.World.ApplyColorMapOnRgba("climateWaterTint", null, ColorUtil.WhiteArgb, (int)sx, (int)sy, (int)sz);
                     list.Add(new Jet
                     {
@@ -128,6 +133,7 @@ namespace Hansa
                 }
             }
             foreach (string key in new List<string>(tracks.Keys)) if (!seen.Contains(key)) tracks.Remove(key);
+            audio.Retain(audible);
             jets = list.ToArray();
         }
 
@@ -207,8 +213,11 @@ namespace Hansa
             disposed = true;
             jets = Array.Empty<Jet>();
             tracks.Clear();
+            audio.Dispose();
             foreach(var stream in streams.Values) stream.Mesh.Dispose();streams.Clear();
             capi.Event.UnregisterRenderer(this,EnumRenderStage.Opaque);
         }
+
+        public void RemoveShip(long ship) => audio.RemoveShip(ship);
     }
 }

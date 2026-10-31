@@ -106,6 +106,7 @@ namespace Hansa
         {
             if(ship.Def.Code!="caravel") return;
             Notes151Aboard(ship);
+            Notes157Aboard(ship);
             var lantern=sapi.World.GetBlock(new AssetLocation("game:lantern-small-down"));
             if(lantern!=null && lantern.Id!=0)
             {

@@ -25,6 +25,9 @@
     <Compile Include="Notes135Tests.cs" />
     <Compile Include="Notes151Tests.cs" />
     <Compile Include="Notes153Tests.cs" />
+    <Compile Include="Notes157Tests.cs" />
+    <Compile Include="..\..\src\Ship\PumpActivity.cs" Link="Ship\PumpActivity.cs" />
+    <Compile Include="..\..\src\Client\PumpAudio.cs" Link="Client\PumpAudio.cs" />
     <Compile Include="..\..\src\Ship\CreatureDeckMotion.cs" Link="Ship\CreatureDeckMotion.cs" />
     <Compile Include="..\..\src\Ship\HullWindows.cs" Link="Ship\HullWindows.cs" />
     <Compile Include="..\..\src\Ship\OpeningFrames.cs" Link="Ship\OpeningFrames.cs" />

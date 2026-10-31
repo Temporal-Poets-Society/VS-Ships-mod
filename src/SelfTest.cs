@@ -133,13 +133,14 @@ namespace Hansa
                 }
                 if (cfg.Only == "flooding") { StormFlooding(mod, def, spawn, y0); return; }
                 if (cfg.Only == "grid") { GridLaunch(mod, spawn, y0, Finish); return; }
-                if(cfg.Only=="notes135" || cfg.Only=="notes151" || cfg.Only=="notes153")
+                if(cfg.Only=="notes135" || cfg.Only=="notes151" || cfg.Only=="notes153" || cfg.Only=="notes157")
                 {
                     var type=sapi.World.GetEntityType(new AssetLocation("ships:caravel"));
                     var ship=(EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
                     double level=EntityShip.FindWaterSurface(sapi.World,new BlockPos(spawn.X,y0+5,spawn.Z,0),2,6);
                     ship.Pos.SetPos(spawn.X,level,spawn.Z);sapi.World.SpawnEntity(ship);
-                    if(cfg.Only=="notes151" || cfg.Only=="notes153") { Notes151Aboard(ship);RuntimeLoadingAboard(ship,ship.Def.Fixtures.First(f=>f.Type=="gun"));if(cfg.Only=="notes153") Notes135Aboard(ship); }
+                    if(cfg.Only=="notes157") Notes157Aboard(ship);
+                    else if(cfg.Only=="notes151" || cfg.Only=="notes153") { Notes151Aboard(ship);RuntimeLoadingAboard(ship,ship.Def.Fixtures.First(f=>f.Type=="gun"));if(cfg.Only=="notes153") Notes135Aboard(ship); }
                     else Notes135Aboard(ship);
                     sapi.Event.RegisterCallback(_=>Finish(),2500);
                     return;
@@ -1919,9 +1920,10 @@ namespace Hansa
                         ship.PumpStroke("selftest-a", pump);
                         ship.PumpStroke("selftest-b", pump);
                         ship.PumpStroke("selftest-c", pump);   // (a third can't get at the brake)
-                        if (++strokes < 10) return;
+                        // (note 157: held work is a client heartbeat every 150 ms, released after 450 ms without one)
+                        if (++strokes < 100) return;
                         sapi.Event.UnregisterGameTickListener(pid);
-                        WaitFor(() => false, 0.5, w05 =>
+                        WaitFor(() => true, 0.5, w05 =>
                         {
                             Check(ship.Pumpers == 2 && ship.Water < w0 - 0.12 && ship.WaterRate < -0.012,
                                 $"two at the pump bring the water down ({w0:0.0} → {ship.Water:0.0} t in 10 s, {ship.WaterRate * 1000:0} l/s; a third can't get at the brake)");
@@ -1976,7 +1978,7 @@ namespace Hansa
                                 });
                             });
                         });
-                    }, 1000);
+                    }, 100);
                 });
             });
         }

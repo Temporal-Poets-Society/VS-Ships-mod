@@ -644,8 +644,11 @@ namespace Hansa
         /// <summary>Body against the swept oriented leaves, never their union or walking voxels.
         /// Half-degree samples are closer than 5 mm at a one-block leaf tip; the body's volume is tested by SAT.</summary>
         public static bool BodyInSwing(double[] box,int dir,bool doubleLeaf,bool glazed,double[] body)
+            => BodyInSwing(box, dir, doubleLeaf, glazed, new PieceVolume { Box = body });
+
+        public static bool BodyInSwing(double[] box,int dir,bool doubleLeaf,bool glazed,PieceVolume target)
         {
-            var target=new PieceVolume {Box=body};
+            var body = target.Bounds;
             foreach(var leaf in Leaves(box,dir,doubleLeaf)) {
                 if(body[leaf.Axis+3]<=leaf.Box[leaf.Axis] || body[leaf.Axis]>=leaf.Box[leaf.Axis+3]) continue;
                 var parts=LeafParts(leaf,glazed);
@@ -656,6 +659,20 @@ namespace Hansa
                 }
             }
             return false;
+        }
+
+        /// <summary>A native entity's world-axis collision box, in the ship frame. Rotate the whole body, not just its feet.</summary>
+        public static PieceVolume WorldBody(double[] relativeBox, double lx, double ly, double lz, double yaw, double pitch, double roll)
+        {
+            var pose = new float[16]; pose[15] = 1;
+            pose[12] = (float)lx; pose[13] = (float)ly; pose[14] = (float)lz;
+            for (int axis = 0; axis < 3; axis++)
+            {
+                ShipFrame.ToLocal(yaw, pitch, roll, axis == 0 ? 1 : 0, axis == 1 ? 1 : 0, axis == 2 ? 1 : 0,
+                    out double x, out double y, out double z);
+                pose[4 * axis] = (float)x; pose[4 * axis + 1] = (float)y; pose[4 * axis + 2] = (float)z;
+            }
+            return new PieceVolume { Box = relativeBox, Pose = pose };
         }
 
         public static List<ModularPart> CoamingParts(double[] box, double height)

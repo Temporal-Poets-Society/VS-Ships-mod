@@ -129,7 +129,7 @@ namespace Hansa
         long lastContactMs;
         EntityShip shipContact;
         Vec3d shipContactAt;
-        readonly Dictionary<string, Dictionary<string, long>> pumping = new();
+        readonly PumpActivity pumping = new();
 
         // client: what's drawn eases toward the synced values
         double sinkShown = double.NaN, listShown, trimShown;
@@ -967,36 +967,34 @@ namespace Hansa
             return false;
         }
 
-        /// <summary>Server: a pump's brake worked once (held right-click at it: a stroke a second).</summary>
+        /// <summary>Server: refresh a player's held work at the pump; the stroke rate controls flow, not this heartbeat.</summary>
         public void PumpStroke(IServerPlayer player, FixtureDef pump) => PumpStroke(player?.PlayerUID ?? "?", pump);
 
         public void PumpStroke(string who, FixtureDef pump)
         {
             if (pump == null || GoneDown || !Mod.Config.Damage) return;
-            if (!pumping.TryGetValue(pump.Code, out var at)) pumping[pump.Code] = at = new Dictionary<string, long>();
-            at[who] = World.ElapsedMilliseconds;
-            LocalToWorld(pump.Pos[0], pump.Pos[1] + 1, pump.Pos[2], out double x, out double y, out double z);
-            World.PlaySoundAt(new AssetLocation("sounds/block/pump"), x, y, z, null, true, 16, Water > 0.01 ? 1f : 0.4f);
+            int before = Pumpers; string worked = PumpsWorked;
+            pumping.Touch(pump.Code, who, World.ElapsedMilliseconds);
             Pumpers = CountPumpers();
+            if (before != Pumpers || worked != PumpsWorked) SaveState(true);
         }
 
-        /// <summary>Everyone who worked a pump within the last stroke and a half, at most PumpersPerPump at each.</summary>
+        public void StopPumping(string who)
+        {
+            pumping.Stop(who);
+            Pumpers = CountPumpers();
+            if (Pumpers == 0) PumpedRate = 0;
+            SaveState(true);
+        }
+
+        /// <summary>Active hands, capped per pump. Missing release/disconnect expires within 450 ms.</summary>
         int CountPumpers()
         {
             var d = DamageParts?.D;
             if (d == null) return 0;
-            long now = World.ElapsedMilliseconds, keep = (long)(1500 * Math.Max(0.2, d.PumpStroke));
-            int n = 0;
-            string worked = "";
-            foreach (var pa in pumping)
-            {
-                var at = pa.Value;
-                foreach (var kv in at.ToArray()) if (now - kv.Value > keep) at.Remove(kv.Key);
-                n += Math.Min(at.Count, d.PumpersPerPump);
-                if (at.Count > 0) worked = worked.Length == 0 ? pa.Key : worked + "," + pa.Key;
-            }
-            PumpsWorked = worked;
-            return n;
+            var active = pumping.Read(World.ElapsedMilliseconds, d.PumpersPerPump);
+            PumpsWorked = active.Worked;
+            return active.Count;
         }
 
         // ------------------------------------------------------------------ repairs (server)

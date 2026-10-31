@@ -236,6 +236,7 @@ namespace Hansa
 
         public override void Dispose()
         {
+            StopPumpWork();
             if (capi != null)
             {
                 capi.Event.UnregisterRenderer(this, EnumRenderStage.Before);
@@ -324,6 +325,8 @@ namespace Hansa
 
         public void OnShipUnloaded(EntityShip ship)
         {
+            if (work?.Ship == ship) StopPumpWork();
+            Pumps?.RemoveShip(ship.EntityId);
             Ships.Remove(ship);
             mod.Dry.Set(Ships);
             renderer?.RemoveShip(ship);
@@ -1036,10 +1039,10 @@ namespace Hansa
                 }
                 var hit = FindLookedAtFixture(ep);
                 if(hit.Ship!=null && hit.Fixture.Type=="hitch" && capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack?.Collectible is Vintagestory.GameContent.ItemRope) return;
-                // a pump: its brake is worked while right-click is held, a stroke a second
+                // A pump: refresh held work independently of the mechanical stroke's duration.
                 if (hit.Ship != null && hit.Fixture.Type == "pump" && !hit.Ship.GoneDown)
                 {
-                    work = new Work { Ship = hit.Ship, Pump = hit.Fixture, Started = capi.World.ElapsedMilliseconds, LastStroke = capi.World.ElapsedMilliseconds };
+                    work = new Work { Ship = hit.Ship, Pump = hit.Fixture, Started = capi.World.ElapsedMilliseconds, LastStroke = capi.World.ElapsedMilliseconds, PumpSeat = ep.MountedOn };
                     channel.SendPacket(new FixturePacket { ShipId = hit.Ship.EntityId, Fixture = hit.Fixture.Index });
                     handled = EnumHandling.PreventDefault;
                     return;
@@ -1183,6 +1186,7 @@ namespace Hansa
         /// <summary>The gun this player is laying (holding right mouse by it), and when the server was last told.</summary>
         (EntityShip Ship, FixtureDef Gun) laying;
         long layingSent;
+        (long Ship, int Gun, long Ms) gunMountRequest;
         /// <summary>(0.3.27) Left mouse was down the last frame while laying (a press fires it).</summary>
         bool layLeftWas;
         /// <summary>The gun this player laid last, and till when a left-click fires it without it in the crosshair.</summary>
@@ -1193,8 +1197,8 @@ namespace Hansa
 
         /// <summary>
         /// A click by the guns (<see cref="GunButtons"/>): right mouse down on one (it in the crosshair within reach of its
-        /// breech, or at its gun captain's place with nothing in hand that has a right-click of its own) starts laying it,
-        /// Ctrl + right-click on one stands to it; a left-click fires the one being laid (or laid a moment ago, still by it),
+        /// breech) stands behind it; once mounted, holding right mouse starts relative aiming, unless an item has its own use.
+        /// A left-click fires the one being laid (or laid a moment ago, still by it),
         /// the one in the crosshair within reach, or the one whose gun captain this player is. True: the click was the guns'
         /// (nothing else gets it: no swing at her, no block broken, no item used).
         /// </summary>
@@ -1207,11 +1211,16 @@ namespace Hansa
             {
                 if (laying.Ship != null) return true;             // (the game repeats it while it's held)
                 if (work != null || rightSwallowed) return false; // pumping, mending, lighting the hearth: theirs
+                // Do this before Ctrl, loading or mounting can send a request or alter local aim.
+                if (seat == null && inSight.Ship != null && !inSight.Ship.ByGun(inSight.Gun, ep, LayReach))
+                {
+                    capi.TriggerIngameError(this, "ships-gun", Lang.Get("ships:gun-far"));
+                    return true;
+                }
                 bool ctrl = ep.Controls.CtrlKey || ep.MountedOn is ShipSeat ss && ss.Controls.CtrlKey;
                 if (ctrl && seat == null && inSight.Ship != null)
                 {
-                    // Ctrl + right-click: stand to it (the gun captain's place)
-                    channel.SendPacket(new FixturePacket { ShipId = inSight.Ship.EntityId, Fixture = inSight.Gun.Index, Ctrl = true });
+                    RequestGunMount(inSight.Ship, inSight.Gun);
                     return true;
                 }
                 bool sneak = ep.Controls.Sneak || ep.Controls.ShiftKey || ep.MountedOn is ShipSeat sk && sk.Controls.Sneak;
@@ -1260,8 +1269,12 @@ namespace Hansa
                     capi.TriggerIngameError(this, "ships-gun", Lang.Get("ships:gun-off"));
                     return true;
                 }
+                if (seat?.Ship != gun.Ship || seat.Fixture != gun.Gun)
+                {
+                    RequestGunMount(gun.Ship, gun.Gun);
+                    return true;
+                }
                 laying = gun;
-                gun.Ship.LookAlongGun(gun.Gun);
                 gun.Ship.BeginLayingHere(gun.Gun);
                 gun.Ship.LayingHere = gun.Gun;
                 layingSent = capi.World.ElapsedMilliseconds;
@@ -1291,10 +1304,14 @@ namespace Hansa
         /// </summary>
         void UpdateLaying(EntityPlayer ep)
         {
+            // A mount is server-authoritative. Begin relative aiming only once that seat arrives here.
+            if (laying.Ship == null && ep.MountedOn is GunSeat && capi.Input.InWorldMouseButton.Right)
+                GunClick(ep, EnumEntityAction.InWorldRightMouseDown);
             if (laying.Ship == null) return;
             long now = capi.World.ElapsedMilliseconds;
             bool held = GunButtons.LayHeld(capi.Input.InWorldMouseButton.Left, capi.Input.InWorldMouseButton.Right);
-            bool by = laying.Ship.ByGun(laying.Gun, ep, LayReach + 0.5) && laying.Ship.CannonsOn && !laying.Ship.GoneDown && Ships.Contains(laying.Ship);
+            bool by = ep.MountedOn is GunSeat seat && seat.Ship == laying.Ship && seat.Fixture == laying.Gun &&
+                laying.Ship.CannonsOn && !laying.Ship.GoneDown && Ships.Contains(laying.Ship);
             if (held && by)
             {
                 // ((0.3.27) the relative aim this client lays it to, ten times a second)
@@ -1318,6 +1335,14 @@ namespace Hansa
             lastLaid = laying;
             lastLaidUntil = now + 4000;
             laying = default;
+        }
+
+        void RequestGunMount(EntityShip ship, FixtureDef gun)
+        {
+            long now = capi.World.ElapsedMilliseconds;
+            if (gunMountRequest.Ship == ship.EntityId && gunMountRequest.Gun == gun.Index && now - gunMountRequest.Ms < 1000) return;
+            gunMountRequest = (ship.EntityId, gun.Index, now);
+            channel.SendPacket(new FixturePacket { ShipId = ship.EntityId, Fixture = gun.Index, Ctrl = true });
         }
 
         /// <summary>
@@ -1350,6 +1375,7 @@ namespace Hansa
             /// <summary>Mending: the part the crosshair is on (its selection box index). Pumping: the pump.</summary>
             public int Part;
             public FixtureDef Pump;
+            public IMountableSeat PumpSeat;
             /// <summary>Lighting the hearth: it, what's held to it (<see cref="EntityShip.Igniter"/>), the firestarter's animation, its sound played.</summary>
             public FixtureDef Hearth;
             public int Igniter;
@@ -1457,7 +1483,7 @@ namespace Hansa
         }
 
         /// <summary>
-        /// Every frame: the work in hand goes on while right-click is held on what it's for (a pump: a stroke a second to
+        /// Every frame: the work in hand goes on while right-click is held on what it's for (a pump: held-work heartbeats to
         /// the server; mending: done after its seconds, then the server mends it). Returns what the HUD says, or null.
         /// </summary>
         string UpdateWork()
@@ -1468,9 +1494,9 @@ namespace Hansa
             if (work.Hearth != null) return UpdateLighting(now, held);
             if (work.Pump != null)
             {
-                if (!held || lookedAt.Ship != work.Ship || lookedAt.Fixture != work.Pump || work.Ship.GoneDown) { work = null; return null; }
-                float stroke = 1000 * Math.Max(0.2f, work.Ship.DamageParts?.D.PumpStroke ?? 1);
-                if (now - work.LastStroke >= stroke)
+                if (!held || lookedAt.Ship != work.Ship || lookedAt.Fixture != work.Pump || work.Ship.GoneDown || work.Ship.LaidUp ||
+                    capi.World.Player.Entity.MountedOn != work.PumpSeat) { StopPumpWork(); return null; }
+                if (now - work.LastStroke >= PumpActivity.HeartbeatMs)
                 {
                     work.LastStroke = now;
                     channel.SendPacket(new FixturePacket { ShipId = work.Ship.EntityId, Fixture = work.Pump.Index });
@@ -1487,6 +1513,13 @@ namespace Hansa
                 return null;
             }
             return Lang.Get("ships:hud-mending", work.What, (int)(f * 100));
+        }
+
+        void StopPumpWork()
+        {
+            if (work?.Pump == null) return;
+            channel.SendPacket(new FixturePacket { ShipId = work.Ship.EntityId, Fixture = work.Pump.Index, PumpStop = true });
+            work = null;
         }
 
         GuiDialogShipCrew crewDialog;

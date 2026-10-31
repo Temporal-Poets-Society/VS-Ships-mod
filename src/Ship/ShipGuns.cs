@@ -252,10 +252,25 @@ namespace Hansa
         /// <summary>Is someone by this gun (within reach of its breech, on its deck), or at its gun captain's place?</summary>
         public bool ByGun(FixtureDef gun, Entity who, double reach)
         {
-            if (gun == null || who == null || Def == null) return false;
+            if (gun == null || who == null || Def == null || who.Pos.Dimension != Pos.Dimension) return false;
             if ((who as EntityAgent)?.MountedOn is GunSeat gs && gs.Ship == this && gs.Fixture == gun) return true;
-            var l = WorldToLocal(who.Pos.X, who.Pos.Y, who.Pos.Z);
+            // Mounted players' world positions are advanced by the engine separately from deck-state packets.
+            var l = (who as EntityAgent)?.MountedOn is ShipSeat seat && seat.Ship == this
+                ? seat.LocalPos : WorldToLocal(who.Pos.X, who.Pos.Y, who.Pos.Z);
             return GunLaying.InReach(gun, GunLayNow(gun), l.X, l.Y, l.Z, reach);
+        }
+
+        /// <summary>Server: stand behind a gun only from within reach, without changing the player's view.</summary>
+        public string ManGun(FixtureDef gun, EntityPlayer who)
+        {
+            if (gun?.Type != "gun" || who?.Alive != true || GunAbsent(gun)) return "ships:gun-cannot";
+            if (GoneDown) return "ships:gone-down";
+            if (!Mod.Config.Cannons) return "ships:gun-off";
+            if (!ByGun(gun, who, LayReach)) return "ships:gun-far";
+            var seat = GunSeatOf(gun);
+            if (seat == null) return "ships:gun-cannot";
+            if (!seat.CanMount(who)) return "ships:gun-seat-taken";
+            return who.MountedOn == seat || who.TryMount(seat) ? null : "ships:gun-cannot";
         }
 
         /// <summary>How far from a gun's breech a player may lay it (blocks): the client's 2.5, and a little for the lag.</summary>
@@ -455,19 +470,6 @@ namespace Hansa
 
         /// <summary>How much of a difference is more than its allowance (0 within it).</summary>
         static double Beyond(double diff, double allowance) => Math.Abs(diff) <= allowance ? 0 : diff - Math.Sign(diff) * allowance;
-
-        /// <summary>Client: this player has just stood to a gun: they look along it as it's laid (as it's drawn).</summary>
-        public void LookAlongGun(FixtureDef gun)
-        {
-            if (Api is not ICoreClientAPI capi || capi.World.Player?.Entity is not EntityPlayer ep) return;
-            GunLaying.MuzzleLocal(gun, GunLayNow(gun), out _, out var d);
-            GunLaying.LookAlong(LocalDirToWorld(d.X, d.Y, d.Z), out float yaw, out float pitch);
-            pitch = GameMath.Clamp(pitch, 1.5857964f, 4.697389f);
-            ep.Pos.Yaw = yaw;
-            ep.Pos.Pitch = pitch;
-            capi.Input.MouseYaw = yaw;
-            capi.World.Player.CameraPitch = pitch;
-        }
 
         /// <summary>Seconds till this gun can fire again (0: ready). Server: its own clock; clients: from the shot they saw.</summary>
         public double GunReloading(FixtureDef gun)

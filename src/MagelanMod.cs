@@ -568,6 +568,7 @@ namespace Hansa
             // (0.3.18, note 165) a hearth or an oven put aboard is used through its stand-in fixture (a piece's index)
             var f = p.Fixture >= 0 && p.Fixture < ship.Def.Fixtures.Length ? ship.Def.Fixtures[p.Fixture] : ship.FixtureByIndex(p.Fixture);
             if (f?.Pos == null || f.Type == "piece") return;
+            if (p.PumpStop && f.Type == "pump") { ship.StopPumping(player.PlayerUID); return; }
             ship.LocalToWorld(f.Pos[0], f.Pos[1], f.Pos[2], out double wx, out double wy, out double wz);
             if (ep.Pos.SquareDistanceTo(wx, wy, wz) > 8 * 8) return;
             // (not through her hull or decks: a chest in her from outside, 0.3.10)

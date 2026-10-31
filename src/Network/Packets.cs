@@ -116,6 +116,8 @@ namespace Hansa
         [ProtoMember(3)] public bool Sneak;
         /// <summary>Ctrl held: a gun: stand to it (the gun captain's place) instead of firing it.</summary>
         [ProtoMember(4)] public bool Ctrl;
+        /// <summary>Released a pump: remove only this player's work, even after looking away.</summary>
+        [ProtoMember(5)] public bool PumpStop;
     }
 
     /// <summary>

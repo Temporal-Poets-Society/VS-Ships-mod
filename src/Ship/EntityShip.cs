@@ -929,17 +929,14 @@ namespace Hansa
                     ToggleFitting(player, f);
                     break;
                 case "pump":
-                    // a stroke of the brake (the client sends one a second while right-click is held)
+                    // Held work, refreshed while right-click stays on the pump.
                     PumpStroke(player, f);
                     break;
                 case "gun":
                 {
                     // (0.3.21, step C) a gun place without its gun: nothing to work
                     if (GunAbsent(f)) { Notify(player, "ships:gunplace-no-gun"); return; }
-                    // fire it along its lay (it's laid by holding right mouse by it: ShipGuns; the client sends this on a left-click); Ctrl: stand to it instead,
-                    // at the gun captain's place behind its breech. (Loading comes later: for now it's ready again when
-                    // it has cooled down.)
-                    var gs = GunSeatOf(f);
+                    // Left-click fires along its lay. The client's right-click sends Ctrl to stand behind the breech.
                     // Shift: run it in and shut its port
                     if (sneak && !ctrl && f.Lid != null)
                     {
@@ -947,11 +944,10 @@ namespace Hansa
                         if (herr != null) player.SendIngameError("ships-gun", Lang.GetL(player.LanguageCode, herr));
                         break;
                     }
-                    if (ctrl && gs != null && ep.MountedOn != gs)
+                    if (ctrl)
                     {
-                        if (gs.Passenger != null && gs.Passenger != ep && gs.Passenger.Alive) { Notify(player, "ships:gun-seat-taken"); return; }
-                        if (!Mod.Config.Cannons) { player.SendIngameError("ships-gun", Lang.GetL(player.LanguageCode, "ships:gun-off")); return; }
-                        ep.TryMount(gs);
+                        string mountError = ManGun(f, ep);
+                        if (mountError != null) player.SendIngameError("ships-gun", Lang.GetL(player.LanguageCode, mountError));
                         break;
                     }
                     // ((0.1.0-dev.7) by it: within reach of its breech, or its gun captain)

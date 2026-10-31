@@ -307,9 +307,8 @@ namespace Hansa
     }
 
     /// <summary>
-    /// The gun captain's place at a gun (config Cannons), an extra to laying a gun standing by it: Ctrl + right-click a gun
-    /// to stand to it, on the deck just behind its breech, facing out along it. There, as by the gun, holding right mouse
-    /// lays it toward where you look (<see cref="EntityShip.GunsTick"/>), a left-click fires it; Shift leaves it. You stay
+    /// The gun captain's place at a gun (config Cannons): right-click within reach to stand behind its breech.
+    /// Holding right mouse lays it relative to the current view (<see cref="EntityShip.GunsTick"/>), a left-click fires it; Shift leaves it. You stay
     /// behind the breech as it's trained, and step back as it runs back at you. The seat's facing stays the gun's own
     /// (square out of her side): it doesn't turn the view as the gun is trained, which would lay it further.
     /// </summary>
@@ -319,6 +318,12 @@ namespace Hansa
 
         public override Vec3d LocalPos => Ship.GunSeatLocal(Fixture);
         public override AnimationMetaData SuggestedAnimation => PassengerAnim("idle");
+
+        public override void DidUnmount(EntityAgent entityAgent)
+        {
+            base.DidUnmount(entityAgent);
+            if (Ship.Api.Side == EnumAppSide.Server && entityAgent is EntityPlayer player) Ship.StopLaying(Fixture, player);
+        }
 
         public override Matrixf RenderTransform
         {
@@ -331,13 +336,6 @@ namespace Hansa
             }
         }
 
-        public override void DidMount(EntityAgent entityAgent)
-        {
-            bool fresh = Passenger?.EntityId != entityAgent.EntityId;
-            base.DidMount(entityAgent);
-            // this client's own gun captain: looking along the gun as it's laid, so it isn't laid somewhere else at once
-            if (fresh && Ship.Api is ICoreClientAPI capi && entityAgent == capi.World.Player?.Entity) Ship.LookAlongGun(Fixture);
-        }
     }
 
     public class BunkSeat : FixtureSeat
