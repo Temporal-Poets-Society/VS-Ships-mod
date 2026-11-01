@@ -12,7 +12,7 @@ namespace Hansa
         void Notes135Aboard(EntityShip ship)
         {
             if(ship.Def.Code!="caravel") return;
-            sapi.Event.RegisterCallback(_=>TethersAboard(ship),1500);
+            sapi.Event.RegisterCallback(_=>{TethersAboard(ship);FluteAboard(ship);},1500);
             var boards=sapi.World.GetItem(new AssetLocation("game:plank-oak"));
             var beam=sapi.World.GetBlock(new AssetLocation("game:supportbeam-oak"));
             var mast=sapi.World.GetBlock(new AssetLocation("game:debarkedlog-oak-ud"));

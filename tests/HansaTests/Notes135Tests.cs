@@ -148,11 +148,12 @@ namespace HansaTests
             File.WriteAllText(Path.Combine(outDir,"pump-stream.json"),JsonConvert.SerializeObject(new {textures=new[]{"game:block/liquid/waterportion"},groups=new Dictionary<string,List<float[]>>{{"pump-stream",jet.Select(q=>{var r=(float[])q.Clone();for(int k=0;k<4;k++){r[1+8*k]+=(float)spout.X;r[2+8*k]+=(float)spout.Y;r[3+8*k]+=(float)spout.Z;}return r;}).ToList()}}}));
 
             var floor=new VoxelGrid(0,0,0,24,20,24,.25,new byte[(24*20*24+7)/8]);floor.Fill(new[]{0.0,0,0,6,.25,6});
-            var elk=new CreatureDeckMotion(3,2,3,.45,1.8,.6);
+            var elk=new CreatureDeckMotion(3,2,3,1.2,1.8,.9);
             for(int i=0;i<100;i++) elk.Move(floor,0,-.04,0);
-            Check(elk.OnGround && Math.Abs(elk.Y-.25)<1e-8,"elk: a full creature collision box lands and stands on the deck");
+            Check(elk.OnGround && Math.Abs(elk.Y-.25)<1e-8 && Math.Abs(elk.HalfX-.45)<1e-9 && Math.Abs(elk.HalfZ-.6)<1e-9,"elk: a full creature collision box lands and stands on the deck");
             floor.Fill(new[]{2.0,0,2,4,.25,4},false);
             Check(!elk.Move(floor,0,-.5,0),"elk: removing the deck lets the creature fall through the real opening");
+            Creatures(def);
             Check(!def.Fixtures.Any(f=>f.Type=="hitch"),"155: hitching is supplied by placed native fence posts, not a fixed fixture");
             Console.WriteLine(failures==before?"notes135 ALL OK":$"notes135 {failures-before} FAILED");
         }

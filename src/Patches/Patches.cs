@@ -183,6 +183,15 @@ namespace Hansa
                 harmony.Patch(AccessTools.Method(typeof(EntityBehaviorControlledPhysics),"HandleRemotePhysics"),
                     postfix:new HarmonyMethod(typeof(Patches),nameof(CreatureRemoteAfter)));
             });
+            // ((1 November 2026) her heave isn't a creature climbing: it stepped back and forth on her deck in a storm)
+            Try("creatures' step on a heaving deck", () => harmony.Patch(AccessTools.Method(typeof(EntityShapeRenderer),"updateStepPitch"),
+                prefix:new HarmonyMethod(typeof(DeckCreatures),nameof(DeckCreatures.StepPitchBefore))));
+            // ((1 November 2026) the flute calls an elk aboard to its owner's side)
+            Try("the flute aboard", () =>
+            {
+                harmony.Patch(AccessTools.Method(typeof(AiTaskComeToOwner),nameof(AiTaskComeToOwner.StartExecute)),postfix:new HarmonyMethod(typeof(CreatureCalls),nameof(CreatureCalls.StartAfter)));
+                harmony.Patch(AccessTools.Method(typeof(AiTaskStayCloseToEntity),"findDecentTeleportPos"),prefix:new HarmonyMethod(typeof(CreatureCalls),nameof(CreatureCalls.TeleportPos)));
+            });
             Try("leads on ship posts", () =>
             {
                 harmony.Patch(AccessTools.Method(typeof(ItemRope),"OnHeldInteractStart"),prefix:new HarmonyMethod(typeof(ShipRopes),nameof(ShipRopes.HeldBefore)),postfix:new HarmonyMethod(typeof(ShipRopes),nameof(ShipRopes.HeldAfter)));
