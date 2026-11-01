@@ -1,0 +1,27 @@
+{
+  "model": "assets\\ships\\config\\shipmeshes\\caravel.json",
+  "modelSha256": "c8d501be6166cf269ae237068b30dcf675e2740aa3965b62b2e1d0d2df3a10ec",
+  "group": "part:wheel",
+  "quads": 522,
+  "renderedTriangles": 434,
+  "centre": [
+    -8.77,
+    4.975,
+    0.0
+  ],
+  "materials": {
+    "4": "game:block/wood/debarked/oak",
+    "9": "game:block/metal/plate/tinbronze"
+  },
+  "geometry": "Exact existing mesh, without alterations",
+  "render": "Orthographic view; native textures; original code-rendered logo composition",
+  "size": [
+    480,
+    480
+  ],
+  "masterSize": [
+    1920,
+    1920
+  ],
+  "script": "tools/render_publishing_logo.py"
+}

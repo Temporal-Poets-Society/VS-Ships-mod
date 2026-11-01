@@ -51,34 +51,35 @@ namespace Hansa
                 ship.Mod.Config.Cannons = ship.Mod.Config.Damage = true;
                 ship.Mod.Config.CannonsNeedShot = false;
                 hatch.Open = false;
-                var deck = ship.GetOrCreateDeckSeat(player.PlayerUID, -6.8, 1.125, .965);
+                // (1 November 2026, chalk note 158: the hatch one block toward the main mast, over x -5..-3; the places with it)
+                var deck = ship.GetOrCreateDeckSeat(player.PlayerUID, -5.8, 1.125, .965);
                 Check(ep.TryMount(deck) && ep.MountedOn == deck, "157 hatch: a real headless EntityPlayer mounts the server DeckSeat");
                 typeof(HansaMod).GetMethod("ApplyDeckState", flags).Invoke(ship.Mod, new object[] { player, deck,
-                    new DeckStatePacket { ShipId = ship.EntityId, X = -6.7f, Y = 1.125f, Z = .965f, Flags = DeckSeat.FlagOnGround }, sapi.World.ElapsedMilliseconds });
-                Check(Math.Abs(deck.StoredLocal.X + 6.7) < 1e-5 && deck.AcceptedFitVersion == ship.FitVersion,
+                    new DeckStatePacket { ShipId = ship.EntityId, X = -5.7f, Y = 1.125f, Z = .965f, Flags = DeckSeat.FlagOnGround }, sapi.World.ElapsedMilliseconds });
+                Check(Math.Abs(deck.StoredLocal.X + 5.7) < 1e-5 && deck.AcceptedFitVersion == ship.FitVersion,
                     "157 hatch: the actual deck packet validation accepts and retains the recorded near-coaming location");
                 // Native mounted world Pos may still be from a different tick. It must never be counted a second time.
-                WorldAt(-5, 1.125, 0);
+                WorldAt(-4, 1.125, 0);
                 Check(ship.ToggleHatch(player, hatch) && hatch.Open && ship.ToggleHatch(player, hatch) && !hatch.Open,
                     "157 hatch: server uses DeckSeat.LocalPos once, even with this player's stale world Pos inside the swing");
-                WorldAt(-6.7, 1.125, .965);
+                WorldAt(-5.7, 1.125, .965);
                 ship.UsePiece(player, hatch.Id);
                 Check(hatch.Open, "157 hatch: the real player UsePiece path opens the recorded closed hatch");
                 ship.UsePiece(player, hatch.Id);
                 Check(!hatch.Open, "157 hatch: the real player UsePiece path closes from beside the coaming");
-                deck.SetLocal(-5, 1.125, 0, DeckSeat.FlagOnGround);
+                deck.SetLocal(-4, 1.125, 0, DeckSeat.FlagOnGround);
                 Check(!ship.ToggleHatch(null, hatch), "157 hatch: the same player's real body in the leaves refuses opening");
                 ep.TryUnmount();
 
                 var nativeType = sapi.World.GetEntityType(new AssetLocation("game:chicken-hen"));
                 native = sapi.World.ClassRegistry.CreateEntity(nativeType) as EntityAgent;
                 ship.Pos.Yaw = 0;
-                ship.LocalToWorld(-6.5, 1.125, 0, out double nx, out double ny, out double nz);
+                ship.LocalToWorld(-5.5, 1.125, 0, out double nx, out double ny, out double nz);
                 native.Pos.SetPos(nx, ny, nz); sapi.World.SpawnEntity(native);
                 native.CollisionBox.Set(-.6f, 0, -.1f, .6f, 1, .1f);
                 Check(ship.ToggleHatch(null, hatch) && ship.ToggleHatch(null, hatch),
                     "157 hatch: actual World.GetEntitiesAround rotates an elongated native body's box and clears the hatch end");
-                ship.LocalToWorld(-5, 1.125, 0, out nx, out ny, out nz); native.Pos.SetPos(nx, ny, nz);
+                ship.LocalToWorld(-4, 1.125, 0, out nx, out ny, out nz); native.Pos.SetPos(nx, ny, nz);
                 Check(!ship.ToggleHatch(null, hatch), "157 hatch: actual native entity inside the swing still blocks");
                 native.Die(EnumDespawnReason.Removed); native = null;
                 ship.Pos.Yaw = yaw;

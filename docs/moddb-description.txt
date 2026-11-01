@@ -1,0 +1,123 @@
+Sail, explore and make a home aboard an ocean-going ship.
+
+Ships brings walkable sailing ships to Vintage Story: take the helm, work the sails, carry cargo, arrange life aboard and keep your vessel afloat when the sea turns rough. It was developed primarily for journeys across Earth, with Sea providing wind and waves.
+
+Early development release: 0.1.0. The current main vessel is the caravel. A larger carrack is on the roadmap, and substantial work remains on construction, historical detail, handling and multiplayer testing.
+
+THE CARAVEL
+
+The caravel is inspired by the Caravel “Boa Esperança”. Its hull, lateen rig and overall character provide the reference for a small ship capable of serious sea voyages.
+
+The overall target is historically accurate ocean-going ships. This is still a work in progress. The current vessel includes departures from its historical inspiration for gameplay, usable interior space, controls, equipment and Vintage Story's building system. It is a game adaptation, rather than an exact reconstruction of Boa Esperança.
+
+SAILING AND WORKING ABOARD
+
+- A walkable vessel: move around the deck and below, use stairs, ladders and ratlines, and work aboard while the ship sails.
+
+- Wind-driven sailing: course, wind and sail setting affect progress. Reef or furl sails when conditions change, steer from the helm and use the anchor when stopping.
+
+- Wave motion: the ship rises, pitches and rolls on Sea's shared wave surface.
+
+- Cargo and a home at sea: use the hold and supported storage, furnishings and blocks aboard. Building and interior arrangement are still being developed.
+
+- Damage, water and repairs: grounding, collisions, wear and combat can damage a ship. Leaks and water coming aboard can lead to flooding; maintain the hull, close openings and work the pump.
+
+- Shipboard guns: operate cannons and gun ports. Loading and damage options can be configured for the world.
+
+- Shared voyages: crew permissions, ship naming and a ship-bound spawn system support life aboard with other players.
+
+The caravel's wheel, deck arrangement and equipment are part of the current gameplay interpretation. Historical accuracy is a direction for continued development, and deviations will be reviewed as the models and mechanics improve.
+
+WHAT CHANGES FOR THE VANILLA RAFT AND SAILBOAT?
+
+The vanilla raft and sailboat remain available. The changes below are supplied by Sea, which Ships requires. They also work with Sea alone, without Ships installed.
+
+- Following the waves: both vanilla boats rise, pitch and roll with the surface. Their seats and interaction targets move with them.
+
+- Wind-driven sailboat: wind direction and strength replace the vanilla sailboat's constant sail propulsion. It can tack from about 45° off the wind, with no sail drive directly into the wind. The normal furled, half-sail and full-sail controls remain; furl the sail to row.
+
+- Moving sail and yard: Sea automatically braces the vanilla sailboat's yard and sail to the wind.
+
+- Storm flooding: waves overtopping the gunwale add water to the vanilla sailboat. It sits lower as water accumulates and can eventually sink, whether occupied or unattended. Water aboard is saved with the boat.
+
+- Bailing: sneak and right-click the vanilla sailboat's hull with an empty bucket to throw water overboard. The bucket stays empty, there is a short cooldown, and the boat's information text shows its water level. Bail it dry before picking it up.
+
+- The mounted view: underwater effects and breathing follow the displaced waves. A dry rider in a trough is no longer treated as underwater simply because the camera is below the flat water level.
+
+Without Sea, vanilla boats keep their normal vanilla behavior. Ships itself needs Sea to load. The larger Ships vessels use their own sailing, damage and pumping systems; the empty-bucket controls above describe the vanilla sailboat.
+
+STARTING A VOYAGE
+
+Install Ships and Sea on the server and every client, using compatible releases. In singleplayer, put the ZIP files in your Mods folder without extracting them.
+
+Craft the caravel charter from material bundles. Six bundles (planking, frames, spars, sails, rigging and battery) represent approximately the wood, sails, rigging, guns and other materials needed to build the ship. This is the current survival construction method; a proper, staged shipbuilding process is planned for later.
+
+To launch the caravel: hold the charter, face clear open water and hold right-click for about two seconds. The water should be at least three blocks deep across the whole hull, with enough room for the full ship and extra clearance where possible. Launching checks both the water beneath the keel and whether the hull would hit terrain.
+
+Look up the caravel charter and its material-bundle recipes in the handbook. The charter is also available in the creative inventory's Earth+ tab.
+
+Ships is primarily intended for Earth, but Earth is optional. If you use Earth, install its required data parts and companions according to Earth's own instructions. Earlier Hansa or Magelan ship saves are not automatically converted by this release.
+
+RECOMMENDED COMPANIONS
+
+- Sea — required: waves, wind access, water rendering and dry-hull services. Sea 0.5.1 removes its experimental wakes; breaking-wave foam remains.
+
+- Earth — strongly recommended: real geography, regional climates and changing winds for long-distance exploration.
+
+- World Map: charts and navigation across distant regions.
+
+- Astra Terra for Earth: longitude-dependent daylight, astronomy and the sky above your voyage.
+
+- Sea Monsters — optional: Kraken encounters for more dangerous seas. This is also an early development release.
+
+ROADMAP
+
+- A carrack / nao inspired by Nao Victoria: a larger ocean-going vessel, with its hull, rig, working spaces and life aboard developed from historical references. It is planned content, not a finished ship included in this release.
+
+- More historically accurate ships: refine the current caravel and expand the range of vessels, keeping gameplay adaptations explicit.
+
+- Shipbuilding and repair: develop the current material-bundle charter into a proper staged building process, removable structural parts, fittings and interior arrangement.
+
+- Better sailing and life aboard: refine handling, wave response, damage, flooding, performance and multiplayer behavior.
+
+- Voyages and discoveries: develop the connected Hansa voyage quest line with the map and content mods, alongside Vintage Story's main story.
+
+POSSIBLE SHARED DEVELOPMENT WITH HOBLIN
+
+We have discussed future collaboration with hoblin, the author of Rough Seas. We may bring ship development together in a single project. This is a future possibility, rather than an integration included in the current Ships release.
+
+For the supporting sea simulation, the plan is to merge Rough Seas and Sea into a single mod. For now, Sea is released in its current form primarily for Earth, and the merged implementation is not included. Earth will continue to own its climate, wind and weather; Sea supplies waves and water rendering. The current separate Sea and Rough Seas implementations are not supported together.
+
+SETTINGS AND USEFUL COMMANDS
+
+Advanced ship settings are in VintagestoryData/ModConfig/ships.json. They include speed, sailing by wind, damage, wear, leakage and cannon options. On-screen interaction hints describe the fixture you are looking at.
+
+- /ships info — inspect the nearest ship's state.
+
+- /ships board — board the nearest ship (creative mode or admins).
+
+- /ships spawn caravel — launch a caravel for development testing; requires game-mode permission.
+
+DEVELOPMENT AND FEEDBACK
+
+This is an early release, with substantial further development planned. Historical accuracy, construction and balancing are ongoing. Client, multiplayer and mod-combination testing remain important; the complete linked campaign is not yet finished.
+
+When reporting a problem, include the game, Ships and Sea versions, other installed mods, the vessel, wind and sea conditions, the steps to reproduce it, relevant logs and screenshots.
+
+CREDITS AND REFERENCES
+
+Caravel inspiration: Boa Esperança. Carrack roadmap reference: Nao Victoria, documented by Fundación Nao Victoria. These are historical references, not an affiliation or endorsement.
+
+The Ships logo uses the wheel from our own caravel model, rendered with its wooden and bronze fittings. Ships continues the earlier Magelan/Hansa development work.
+
+CONTACT AND DEVELOPMENT
+
+You can contact me on Discord: ifeelveryunlucky.
+
+Anyone who would like to join forces on development is welcome. If you would like to contribute to the ships, models or mechanics, get in touch!
+
+AI USE AND LICENCE
+
+AI disclaimer: AI tools are used in development. The ideas and design are mine, and I put extensive work into testing, refining and improving the mod.
+
+Licensed under GPL-3.0.

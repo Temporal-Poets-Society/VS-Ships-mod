@@ -17,11 +17,13 @@ namespace Hansa
                 var d=ship.LocalDirToWorld(look.X,look.Y,look.Z);
                 return ship.RayHit(new Vec3d(x,y,z),d,5,null,out var hit) && hit.Part.Kind==ShipPartKind.Piece && hit.Part.Index==hatch.Id;
             }
-            Check(!hatch.Open && Pick(new Vec3d(-6.552,2.827,.919),new Vec3d(.6448,-.6503,-.4016)),"152: exact note ray selects the hatch instead of Woodwork");
-            Check(ShipPieceSet.SeenPiece(ship.DesignGrid,new Vec3d(-6.552,2.827,.919),hatch),"152: server use visibility accepts the exact player's eye above the closed hatch");
+            // (1 November 2026, chalk note 158: "move hatch and stairs one block to main mast") the hatch over x -5..-3: the
+            // notes' eyes and bodies moved with it, one block forward
+            Check(!hatch.Open && Pick(new Vec3d(-5.552,2.827,.919),new Vec3d(.6448,-.6503,-.4016)),"152: exact note ray selects the hatch instead of Woodwork");
+            Check(ShipPieceSet.SeenPiece(ship.DesignGrid,new Vec3d(-5.552,2.827,.919),hatch),"152: server use visibility accepts the exact player's eye above the closed hatch");
             bool closed=hatch.Mounts.All(id=>!ship.CellOpen(ship.SlotLayout.IndexOf(id.Substring(5))));
             Check(ship.ToggleHatch(null,hatch) && hatch.Open && hatch.Mounts.All(id=>ship.CellOpen(ship.SlotLayout.IndexOf(id.Substring(5)))) &&
-                !ship.Grid.SolidAt(-5,1.45,0),"152: new ship's double hatch opens, unseals both cells and clears the hold stair");
+                !ship.Grid.SolidAt(-4,1.45,0),"152: new ship's double hatch opens, unseals both cells and clears the hold stair");
             bool openPicked=true;
             foreach(var b in hatch.PlacementBoxes) {
                 var c=new Vec3d((b[0]+b[3])/2,(b[1]+b[4])/2,(b[2]+b[5])/2);
@@ -39,20 +41,20 @@ namespace Hansa
             var actorType=sapi.World.GetEntityType(new AssetLocation("game:chicken-hen"));
             var actor=actorType==null?null:sapi.World.ClassRegistry.CreateEntity(actorType) as EntityAgent;
             if(actor!=null) {
-                ship.LocalToWorld(-6.7,1.125,.965,out double ax,out double ay,out double az);actor.Pos.SetPos(ax,ay,az);sapi.World.SpawnEntity(actor);
-                var seat=ship.GetOrCreateDeckSeat("notes153-hatch-body",-6.7,1.125,.965);
+                ship.LocalToWorld(-5.7,1.125,.965,out double ax,out double ay,out double az);actor.Pos.SetPos(ax,ay,az);sapi.World.SpawnEntity(actor);
+                var seat=ship.GetOrCreateDeckSeat("notes153-hatch-body",-5.7,1.125,.965);
                 try {
                     bool mounted=actor.TryMount(seat), toggled=mounted;
-                    foreach(var at in new[]{new[]{-6.7,.965},new[]{-5.0,.925},new[]{-5.0,-.925},new[]{-6.425,0.0},new[]{-3.575,0.0},new[]{-6.425,-.925},new[]{-6.425,.925},new[]{-3.575,-.925},new[]{-3.575,.925}}) {
+                    foreach(var at in new[]{new[]{-5.7,.965},new[]{-4.0,.925},new[]{-4.0,-.925},new[]{-5.425,0.0},new[]{-2.575,0.0},new[]{-5.425,-.925},new[]{-5.425,.925},new[]{-2.575,-.925},new[]{-2.575,.925}}) {
                         seat.SetLocal(at[0],1.125,at[1],DeckSeat.FlagOnGround);
                         toggled &= ship.ToggleHatch(null,hatch) && hatch.Open && ship.ToggleHatch(null,hatch) && !hatch.Open;
                     }
                     Check(toggled,"153: actual server opens and closes with a body at the recorded location, both sides, ends and all coaming corners");
-                    seat.SetLocal(-5,1.125,0,DeckSeat.FlagOnGround);
+                    seat.SetLocal(-4,1.125,0,DeckSeat.FlagOnGround);
                     Check(!ship.ToggleHatch(null,hatch) && !hatch.Open,"153: opening refuses a body really standing on the leaves");
                     hatch.Open=true;
                     Check(!ship.ToggleHatch(null,hatch) && hatch.Open,"153: closing refuses a body really in the leaf swing");
-                    seat.SetLocal(-6.7,1.125,.965,DeckSeat.FlagOnGround);
+                    seat.SetLocal(-5.7,1.125,.965,DeckSeat.FlagOnGround);
                     ship.ToggleHatch(null,hatch);
                 } finally {actor.TryUnmount();actor.Die(Vintagestory.API.Common.EnumDespawnReason.Removed);}
             } else Check(false,"153: native body actor available");

@@ -18,7 +18,16 @@ namespace HansaTests
         /// </summary>
         static void HandPutBack(ShipDefinition md, MountLayout l, ShipPieceSet set, VoxelGrid grid, MountPoint foot, int up, PieceBlock block, string label)
         {
-            var feet = PiecePlanner.StairPoint(foot, up, -1.3, 0);
+            // (1 November 2026, chalk note 158: the caravel's hold stair one block toward the main mast; its landing is the one cell
+            // before the mast) the player 1.3 before the foot, or nearer on the landing where her collision (the mast) stands there
+            double back = -1.3;
+            foreach (double u in new[] { -1.3, -1.0, -0.7, -0.5 })
+            {
+                var f = PiecePlanner.StairPoint(foot, up, u, 0);
+                back = u;
+                if (!grid.SolidAt(f[0], f[1] + 1.62, f[2]) && !grid.SolidAt(f[0], f[1] + 0.9, f[2])) break;
+            }
+            var feet = PiecePlanner.StairPoint(foot, up, back, 0);
             var eye = new Vec3d(feet[0], feet[1] + 1.62, feet[2]);
             var aim = PiecePlanner.StairPoint(foot, up, 0.5, 0);
             var d = new Vec3d(aim[0] - eye.X, aim[1] - eye.Y, aim[2] - eye.Z);
@@ -53,7 +62,7 @@ namespace HansaTests
                 }
             }
             string oldSays = old == null ? "" : old.Error != null ? $"; the 0.3.22 packet (its way up) was refused: {old.Error}" : old.Dir != up ? $"; the 0.3.22 packet planned it climbing {MountLayout.DirCode[old.Dir]}" : "";
-            Check(why == null, $"{md.Code}: {label} put back by hand (aimed at {foot.Id} from before it, the client's plan sent as its Toward){(why != null ? ": " + why : "")}{oldSays}");
+            Check(why == null, $"{md.Code}: {label} put back by hand (aimed at {foot.Id} from {-back:0.0} before it, the client's plan sent as its Toward){(why != null ? ": " + why : "")}{oldSays}");
         }
 
         /// <summary>

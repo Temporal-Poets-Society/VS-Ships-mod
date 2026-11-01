@@ -12,17 +12,19 @@ namespace HansaTests
             int before=failures;
             var (def,file)=LoadHullDesign(root,"caravel");
             var entry=def.ModularPieces.Single(e=>e.Code=="hatch-main");
-            var cells=def.Slots.Rect(entry.At[1],-6,-.5,-4,.5);
+            // (1 November 2026, chalk note 158: "move hatch and stairs one block to main mast") the hatch over x -5..-3 now: the
+            // note's eye and rays moved with it, one block forward
+            var cells=def.Slots.Rect(entry.At[1],-5,-.5,-3,.5);
             var plan=HatchPlanner.Plan(def.Slots,cells,false,entry.Hinge,entry.Coaming,entry.DoubleLeaf);
             var hatch=ShipPiece.From(plan,1,null);var pieces=new ShipPieceSet();pieces.Add(hatch);
-            var eye=new Vec3d(-6.552,2.827,.919);var look=new Vec3d(.6448,-.6503,-.4016).Normalize();
+            var eye=new Vec3d(-5.552,2.827,.919);var look=new Vec3d(.6448,-.6503,-.4016).Normalize();
             var grid=def.Grid.Clone();foreach(var b in hatch.Solids) grid.Fill(b);
             double coarse=grid.Raycast(eye,look,5);
             Check(pieces.Pick(eye,look,5,out double exact)==hatch && exact>coarse+.02 && ShipPieceSet.HatchVoxelHit(hatch,grid,eye,look,coarse),
                 $"152: exact player ray finds hatch at {exact:0.000}, ahead of its own voxel at {coarse:0.000}");
             Check(ShipPieceSet.SeenPiece(grid,eye,hatch),"152: server visibility accepts the note's eye despite the hatch's rounded collision");
-            var blocked=grid.Clone();blocked.Fill(new double[]{-6.75,-2,-2,-6.5,5,2});
-            Check(!ShipPieceSet.SeenPiece(blocked,new Vec3d(-7,2.8,1),hatch),"152: unrelated timber still blocks use through it");
+            var blocked=grid.Clone();blocked.Fill(new double[]{-5.75,-2,-2,-5.5,5,2});
+            Check(!ShipPieceSet.SeenPiece(blocked,new Vec3d(-6,2.8,1),hatch),"152: unrelated timber still blocks use through it");
             foreach(bool open in new[]{false,true}) {
                 hatch.Open=open;bool all=true;
                 foreach(var leaf in HatchPlanner.Leaves(hatch.Box,hatch.Dir,hatch.DoubleLeaf)) {
@@ -38,8 +40,8 @@ namespace HansaTests
                 }
                 Check(all,$"152: both {(open?"open":"closed")} leaves picked from either face, oblique and 0.6–4.25 blocks away");
             }
-            Check(pieces.Pick(new Vec3d(-5,3,0),new Vec3d(0,-1,0),4,out _)==null,"152: open leaves leave the hatchway clear, including its former closed plane");
-            Check(!def.Grid.SolidAt(-5,1.1,0) && cells.All(c=>def.Slots.Slots[c].Start=="empty"),"152: exported deck collision has no solid lid over the stair opening");
+            Check(pieces.Pick(new Vec3d(-4,3,0),new Vec3d(0,-1,0),4,out _)==null,"152: open leaves leave the hatchway clear, including its former closed plane");
+            Check(!def.Grid.SolidAt(-4,1.1,0) && cells.All(c=>def.Slots.Slots[c].Start=="empty"),"152: exported deck collision has no solid lid over the stair opening");
             bool InTriangle(float[] q,int a,int b,int c,double x,double z) {
                 double X(int i)=>q[1+8*i];
                 double Z(int i)=>q[3+8*i];
@@ -56,7 +58,7 @@ namespace HansaTests
                     int owner=refs[2*i],facing=refs[2*i+1];
                     if(owner>=0 && !states.Filled(owner) || facing>=0 && states.Filled(facing)) continue;
                 }
-                foreach(double x in new[]{-5.75,-5.25,-4.75,-4.25}) foreach(double z in new[]{-.3,0,.3})
+                foreach(double x in new[]{-4.75,-4.25,-3.75,-3.25}) foreach(double z in new[]{-.3,0,.3})
                     if(InTriangle(q,0,1,2,x,z)||InTriangle(q,0,2,3,x,z)) covered++;
             }
             Check(covered==0,"152: the exported game mesh draws no deck top across the hatchway");

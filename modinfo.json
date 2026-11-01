@@ -2,7 +2,7 @@
   "type": "code",
   "modid": "ships",
   "name": "Ships",
-  "version": "0.1.0-dev.21",
+  "version": "0.1.0",
   "description": "Build, sail and live aboard your own ships. A caravel built from a block-grid master model: sailing, building aboard, cargo, guns, damage and repairs.",
   "authors": [
     "Andris"
@@ -13,6 +13,6 @@
   "requiredOnServer": true,
   "dependencies": {
     "game": "1.22.0",
-    "sea": "0.3.5"
+    "sea": "0.5.1"
   }
 }

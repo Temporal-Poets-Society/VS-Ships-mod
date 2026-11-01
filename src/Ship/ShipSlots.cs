@@ -517,15 +517,16 @@ namespace Hansa
         public bool ToggleHatch(IServerPlayer player, ShipPiece p)
         {
             if (p?.Role != PieceRole.Hatch) return false;
-            if (HatchSwingBlocker(p, out string who, out double[] at))
+            if (HatchSwingBlocker(p, out string who, out string detail, out double[] at))
             {
-                World.Logger.Notification("[ships] hatch {0} on ship {1} (box {2}, dir {3}): {4} in its swing at local {5}", p.Id, EntityId,
-                    string.Join(" ", p.Box.Select(v => v.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))), p.Dir, who,
+                // ((1 November 2026, chalk note 157 of 1 November) the details in the debug log; the chat names who's in the way only)
+                World.Logger.Debug("[ships] hatch {0} on ship {1} (box {2}, dir {3}): {4} in its swing at local {5}", p.Id, EntityId,
+                    string.Join(" ", p.Box.Select(v => v.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))), p.Dir, who + " " + detail,
                     string.Join(" ", at.Select(v => v.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))));
                 var ep = player?.Entity;
                 var mounted = ep?.MountedOn;
                 var deck = mounted as DeckSeat;
-                World.Logger.Notification("[ships] hatch state: coaming {0}, doubleLeaf {1}, glazed {2}; user {3}, mount {4}, deck local {5}, deck state age {6} ms, user world-local {7}",
+                World.Logger.Debug("[ships] hatch state: coaming {0}, doubleLeaf {1}, glazed {2}; user {3}, mount {4}, deck local {5}, deck state age {6} ms, user world-local {7}",
                     p.Coaming, p.DoubleLeaf, p.Slots > 0, player?.PlayerName ?? "test", mounted?.SeatId ?? "none",
                     deck?.StoredLocal?.ToString() ?? "none", deck == null ? -1 : World.ElapsedMilliseconds - deck.StateMs,
                     ep == null ? "none" : WorldToLocal(ep.Pos.X, ep.Pos.Y, ep.Pos.Z).ToString());
@@ -540,13 +541,13 @@ namespace Hansa
         }
 
         /// <summary>The first body in a hatch's leaf swing: its name and its ship-local box (for the refusal and the log).</summary>
-        bool HatchSwingBlocker(ShipPiece p, out string who, out double[] at)
+        bool HatchSwingBlocker(ShipPiece p, out string who, out string detail, out double[] at)
         {
             foreach(var seat in Seats.OfType<ShipSeat>()) {
                 if(seat.Passenger is not Vintagestory.API.Common.EntityAgent agent || !agent.Alive || agent.MountedOn!=seat) continue;
                 var l=seat.LocalPos;
                 var body=new[]{l.X-DeckMover.HalfWidth,l.Y,l.Z-DeckMover.HalfWidth,l.X+DeckMover.HalfWidth,l.Y+DeckMover.Height,l.Z+DeckMover.HalfWidth};
-                if(HatchPlanner.BodyInSwing(p.Box,p.Dir,p.DoubleLeaf,p.Slots>0,body)) { who=agent.GetName()+" ("+seat.SeatId+")"; at=body; return true; }
+                if(HatchPlanner.BodyInSwing(p.Box,p.Dir,p.DoubleLeaf,p.Slots>0,body)) { who=agent.GetName(); detail="("+seat.SeatId+")"; at=body; return true; }
             }
             // Native creatures and people standing aboard without a deck seat also have real bodies.
             foreach(var entity in World.GetEntitiesAround(Pos.XYZ,20,10,e=>e is Vintagestory.API.Common.EntityAgent && e.Alive && e.Pos.Dimension==Pos.Dimension)) {
@@ -556,9 +557,9 @@ namespace Hansa
                 if (pos.Dimension != Pos.Dimension) continue;
                 var l=WorldToLocal(pos.X,pos.Y,pos.Z); var b=entity.CollisionBox;
                 var body=b==null?null:HatchPlanner.WorldBody(new double[]{b.X1,b.Y1,b.Z1,b.X2,b.Y2,b.Z2},l.X,l.Y,l.Z,Pos.Yaw,Pitch,Roll);
-                if(body!=null && HatchPlanner.BodyInSwing(p.Box,p.Dir,p.DoubleLeaf,p.Slots>0,body)) { who=entity.GetName()+" ("+entity.Code+", "+(agent.MountedOn?.GetType().Name??"not mounted")+")"; at=body.Bounds; return true; }
+                if(body!=null && HatchPlanner.BodyInSwing(p.Box,p.Dir,p.DoubleLeaf,p.Slots>0,body)) { who=entity.GetName(); detail="("+entity.Code+", "+(agent.MountedOn?.GetType().Name??"not mounted")+")"; at=body.Bounds; return true; }
             }
-            who=null; at=null; return false;
+            who=null; detail=null; at=null; return false;
         }
 
         /// <summary>(0.3.20) What her deck cells are now, for <c>.ships slots</c>.</summary>

@@ -33,7 +33,9 @@ namespace HansaTests
             int before = failures;
             var (def, _) = LoadHullDesign(root, "caravel");
             var entry = def.ModularPieces.Single(e => e.Code == "hatch-main");
-            var cells = def.Slots.Rect(entry.At[1], -6, -.5, -4, .5);
+            // (1 November 2026, chalk note 158: "move hatch and stairs one block to main mast") the hatch over x -5..-3: the
+            // bodies moved with it, one block forward
+            var cells = def.Slots.Rect(entry.At[1], -5, -.5, -3, .5);
             foreach (bool glazed in new[] { false, true })
             {
                 var hatch = ShipPiece.From(HatchPlanner.Plan(def.Slots, cells, glazed, entry.Hinge, entry.Coaming, entry.DoubleLeaf), 1, null);
@@ -42,17 +44,17 @@ namespace HansaTests
                 Check(saved.Box.SequenceEqual(hatch.Box) && saved.Dir == 0 && saved.DoubleLeaf && saved.Coaming == .25 && saved.Slots == (glazed ? 1 : 0),
                     "157 hatch: save/load retains the actual box, hinge, coaming, double leaves and glazing " + glazed);
                 bool clear = true;
-                foreach (var at in new[] { new[] { -6.425, 0.0 }, new[] { -3.575, 0.0 }, new[] { -5.0, -.925 }, new[] { -5.0, .925 }, new[] { -6.7, .965 } })
+                foreach (var at in new[] { new[] { -5.425, 0.0 }, new[] { -2.575, 0.0 }, new[] { -4.0, -.925 }, new[] { -4.0, .925 }, new[] { -5.7, .965 } })
                     clear &= !HatchPlanner.BodyInSwing(saved.Box, saved.Dir, saved.DoubleLeaf, saved.Slots > 0,
                         new[] { at[0] - .3, 1.125, at[1] - .3, at[0] + .3, 2.975, at[1] + .3 });
                 Check(clear, "157 hatch: saved " + (glazed ? "glazed" : "solid") + " leaves clear bodies at both ends and sides");
                 var relative = new[] { -.6, 0, -.1, .6, 1, .1 };
-                var native = HatchPlanner.WorldBody(relative, -6.5, 1.125, 0, 0, 0, 0);
-                bool wrong = HatchPlanner.BodyInSwing(saved.Box, saved.Dir, true, glazed, new[] { -7.1, 1.125, -.1, -5.9, 2.125, .1 });
+                var native = HatchPlanner.WorldBody(relative, -5.5, 1.125, 0, 0, 0, 0);
+                bool wrong = HatchPlanner.BodyInSwing(saved.Box, saved.Dir, true, glazed, new[] { -6.1, 1.125, -.1, -4.9, 2.125, .1 });
                 Check(wrong && !HatchPlanner.BodyInSwing(saved.Box, saved.Dir, true, glazed, native),
                     "157 hatch: a world-axis body beside the end clears; the old unrotated box falsely blocked it");
                 Check(HatchPlanner.BodyInSwing(saved.Box, saved.Dir, true, glazed,
-                    HatchPlanner.WorldBody(relative, -5, 1.125, 0, .7, 0, 0)), "157 hatch: a native body really through the leaves still blocks");
+                    HatchPlanner.WorldBody(relative, -4, 1.125, 0, .7, 0, 0)), "157 hatch: a native body really through the leaves still blocks");
             }
 
             bool lays = true, reaches = true, seats = true;

@@ -1,31 +1,46 @@
-# Hansa: The Last Voyage
+# Ships
 
-A separate grid-based rebuild of Magelan, started 14 October 2026.
+Publication materials: [HTML description](docs/moddb-description.html), [publishing information](docs/moddb-publishing-info.txt),
+[local preview](docs/moddb-preview.html) and [wheel logo](docs/publishing-assets/ships-logo-moddb-480.png).
+The public release focuses on the Boa Esperança-inspired caravel. The overall goal is historically accurate
+ocean-going ships, with gameplay deviations stated explicitly; the planned carrack/nao references
+[Nao Victoria](https://www.fundacionnaovictoria.org/history-nao-victoria/). Possible shared ship development with
+hoblin remains a future possibility. The earlier construction/carrack notes below describe previous prototypes,
+not additional finished ships in the current public package.
 
-The sailing, waves, walking aboard, crew, working vanilla blocks, cooking,
-guns, flooding, repairs and persistence code is preserved in the independent
-`hansa` mod. The ship geometry is being rebuilt around a data-defined block grid.
+**Current package: Ships 0.1.0** (first public release, 1 November 2026). The experimental rowing boat is
+withdrawn from crafting, creative inventory and the handbook at the author's request. Existing saved boats keep
+their item/entity/model support. The caravel and its charter, crafted from six material bundles, remain.
+Ships requires Sea `0.5.1`. Build against a Sea checkout's existing Release DLL:
+`dotnet build -c Release -p:SeaRoot="<Sea checkout>"`.
 
-## Current status
+Ships began on 14 October 2026 as Hansa, a separate grid-based rebuild of Magelan; it was renamed Ships (mod ID
+`ships`) at 0.1.0-dev.18, and the C# namespace stays `Hansa`. The sailing, waves, walking aboard, crew, working
+vanilla blocks, cooking, guns, flooding, repairs and persistence code came from Magelan; the ship geometry is
+rebuilt around a data-defined block grid.
+
+## Earlier construction prototype status
 
 The first grid prototype (two-bay slice, Python compiler, canvas preview, `Hansa.Grid`)
 is archived under `archive/gpt-grid-prototype` as superseded reference and is not built.
 The replacement ship-design model is described in `docs/proposals/ship-design-architecture.md`;
 its section 8 lists the agreed decisions. Milestone M1, the construction core, lives in
 `src/Construction`: a pure C# library (no game types) that turns a few-KB design
-(`assets/hansa/config/shipdesigns/two-bay.json`) and the block kind library
-(`assets/hansa/config/construction/kinds.json`) into one master block per cell, with
+(`assets/ships/config/shipdesigns/two-bay.json`) and the block kind library
+(`assets/ships/config/construction/kinds.json`) into one master block per cell, with
 geometry, collision, support rules, grey-guide queries and saves, plus walls and doors on cell
 faces and two-cell ladder-stairs. It is compiled into the mod
 but not yet connected to the game. The inherited carrack remains a reference design under
 Hansa's independent identity.
 
-## Try it in game
+Ideas taken from other walking-deck and sea mods (proposals only): `docs/ideas-from-other-mods.md`.
+
+## Earlier carrack prototype notes
 
 The **Hansa carrack**, `hansa-carrack`, is carrack-m as Magelan's generator builds it, adjusted to
 stand on the block grid (`tools/shipgen/carrack.py` with `HANSA_MODULAR=1 HANSA_SHIP=hansa-carrack`;
-the changes are listed in `docs/carrack-m-inventory.md`). In creative mode take "Charter of a Hansa
-carrack" and hold right-click facing open water. She has everything carrack-m has: its stairs,
+the changes are listed in `docs/carrack-m-inventory.md`). Her charter is no longer in the creative
+inventory (Ships 0.1.0 publishes the caravel only). She has everything carrack-m has: its stairs,
 companionway, cabins, fittings and mechanics. Each hull panel is one block. Her ribs, beams, keel and
 the other fixed structure can't be edited yet.
 

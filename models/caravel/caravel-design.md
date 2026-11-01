@@ -578,6 +578,12 @@ shrouds only, as the mod does. `python tools/caravel/game_view.py <shots.json> <
 - **The waist**: one clear block (−4) between the mast and the hatch, now −7..−4; the hold's stair on the centreline in
   −5, rising forward. Carlings beside the hatch run from the nearest whole beam aft of it to the nearest forward (notes
   93, 94: they stopped at the opening's ends).
+  (1 November 2026, chalk note 158: "move hatch and stairs one block to main mast"; on the clear cell, the user: "Not keep
+  one cell clear. Ideally player could move himself but current placement of stairs is janky") the hatch and the hold stair
+  one block forward, the clear block dropped: `"stairs": {"hold": -5}`, the hatch over cells −5 and −4 (X −5..−3, its
+  forward headledge against the mast's after face), the stair in −5 rising aft onto cell −6 of the main deck, its foot's
+  landing cell −4 in the hold before the mast. Rib −4's deck beam is cut by the opening now and rib −6's is whole; the
+  carlings run from rib −6 to rib −2. Views: `docs/views/note158-*.png`.
 - **The quarterdeck's stair against her starboard side** (the user: "Stairs to castle we could place on right side next to
   hull. At least on Nao Victoria it is done like that"), in −7 at z +2, its head the quarterdeck's front. The cap rail
   narrows to 330 inboard beside it (over 1 m), so its head isn't under the cap; through the castle's break, where the

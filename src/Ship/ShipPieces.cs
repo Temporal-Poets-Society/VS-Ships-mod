@@ -834,7 +834,7 @@ namespace Hansa
         /// top hooked over the deck above at the head cell's far edge (about 63° for a rise of 3). Climbed as a ladder
         /// (<see cref="StairLadder"/>), through a 2-cell well in the deck above (the climber's room checked:
         /// <see cref="StairClimbRoom"/>). It takes the foot's place and the places over both cells; the head's own place
-        /// under its high end stays free (note 158: a chest under it). Dir: the way up.
+        /// under its high end stays free (chalk note 157 of 1 November: a chest under it). Dir: the way up.
         /// </summary>
         static PiecePlan LadderStair(MountLayout layout, MountPoint m, PieceBlock b, PiecePlan p, int look)
         {
@@ -1923,6 +1923,30 @@ namespace Hansa
             foreach (var p in ById.Values)
                 if (AimPlace.PieceFace(p,o,d,range,out double t,out _) && t < dist) { dist=t; best=p; }
             return best;
+        }
+
+        /// <summary>
+        /// (1 November 2026, chalk note 157 of 1 November: "when clicking in middle area of hatch then it does not register and open") The piece the
+        /// crosshair is on (ship-local ray, d normalised) with her collision as it is (grid, the pieces' solids in it), and how
+        /// far; wall: where the ray met her collision. The client's choice (DecoClient), shared so the offline tests replay it.
+        /// </summary>
+        public static ShipPiece Aimed(ShipPieceSet pieces, VoxelGrid grid, Vintagestory.API.MathTools.Vec3d o, Vintagestory.API.MathTools.Vec3d d, double range, out double tp, out double wall)
+        {
+            wall = grid.Raycast(o, d, range + 1);
+            var piece = pieces.Pick(o, d, range, out tp);
+            // (0.3.10: not behind her decks, sides or masts: "a reading of items below deck or through the mast". A
+            // piece's own cells are in her grid, up to half a cell outside its box)
+            // (0.3.12, note 123: a partition or a door put aboard is picked as a sheet on its line, its collision the quarter
+            // block on one side of it: from that side the collision came first and a door opened only from the other)
+            double slack = piece?.Kind == MountKind.Border ? 0.3 : 0.15;
+            // (0.3.24, note 177: "from this angle cannot open doors") unless what the ray met first is the piece's own
+            // collision (a door's quarter-block layer, seen slanting from its side)
+            // ((1 November 2026, chalk note 157 of 1 November) or a shut hatch's own walking voxels: a quarter-block grid rounds its leaves' top (1.5) up to
+            // 1.625, so from a standing eye the middle of the lid was dropped; the server (SeenPiece, PieceRay) already allowed them)
+            if (piece != null && tp > wall + slack && !OwnHit(piece, o, d, wall) && !HatchVoxelHit(piece, grid, o, d, wall)) { piece = null; tp = double.MaxValue; }
+            // ((25 October 2026, notes 95, 96) her collision met first is a piece's own body (its pick sheet elsewhere): that piece
+            if ((piece == null || tp > wall + 0.02) && wall < range && pieces.SolidHit(o, d, wall) is ShipPiece body) { piece = body; tp = wall; }
+            return piece;
         }
 
         public void ToTree(ITreeAttribute t)

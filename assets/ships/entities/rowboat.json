@@ -533,10 +533,6 @@
 				"code": "interpolateposition"
 			},
 			{
-				"code": "hidewatersurface",
-				"hideWaterElement": "ORIGIN/hideWater/*"
-			},
-			{
 				"code": "selectionboxes"
 			},
 			{

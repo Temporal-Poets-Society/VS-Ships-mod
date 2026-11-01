@@ -1253,6 +1253,12 @@ def main():
     D["hooks"] = hooks
     D["startPieces"] = start
     D["modularPieces"] = modular
+    # (1 November 2026, chalk note 158, the user: "move hatch and stairs one block to main mast", "Not keep one cell
+    # clear") layout revision 1: a caravel launched before keeps her hold hatch and stair where they were (her pieces are
+    # her own, by code); her deck cells there keep their old starts: the old opening's after cell out, the new opening's
+    # forward cell in, and rib -6's middle beam length (under her old opening) out
+    D["layoutRev"] = 1
+    D["layoutBefore"] = [{"rev": 1, "cells": {"main:-6:-1": "empty", "main:-4:-1": "filled", "beam:main:-6:-1": "empty"}}]
     D["waterClip"] = water_clip
     # (24 October 2026, chalk note 82, the user: no panel places on the caravel; the build-place session's design flag)
     D["panelPlaces"] = False

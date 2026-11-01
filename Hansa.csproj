@@ -55,6 +55,7 @@
 
   <ItemGroup>
     <None Include="modinfo.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="modicon.png" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <!-- (the user, 18 October 2026) the release carries the caravel, not the carracks: their ship files stay in the repo
        (tests read them, and work on the carrack resumes later) but are left out of the Release build. -->

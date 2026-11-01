@@ -236,7 +236,8 @@ namespace Hansa
 
         public override void Dispose()
         {
-            StopPumpWork();
+            // (1 November 2026, release review) leaving a world mid-stroke: the channel may already be gone; the rest still unregisters
+            try { StopPumpWork(); } catch (Exception) { work = null; }
             if (capi != null)
             {
                 capi.Event.UnregisterRenderer(this, EnumRenderStage.Before);
@@ -1196,6 +1197,8 @@ namespace Hansa
         (long Ship, int Gun, long Ms) gunMountRequest;
         /// <summary>(0.3.27) Left mouse was down the last frame while laying (a press fires it).</summary>
         bool layLeftWas;
+        // (1 November 2026) the seat's arrival under a held right button starts laying once, not every frame
+        bool layStartTried;
         /// <summary>The gun this player laid last, and till when a left-click fires it without it in the crosshair.</summary>
         (EntityShip Ship, FixtureDef Gun) lastLaid;
         long lastLaidUntil;
@@ -1312,8 +1315,13 @@ namespace Hansa
         void UpdateLaying(EntityPlayer ep)
         {
             // A mount is server-authoritative. Begin relative aiming only once that seat arrives here.
-            if (laying.Ship == null && ep.MountedOn is GunSeat && capi.Input.InWorldMouseButton.Right)
+            bool right = capi.Input.InWorldMouseButton.Right;
+            if (!right) layStartTried = false;
+            if (laying.Ship == null && ep.MountedOn is GunSeat && right && !layStartTried)
+            {
+                layStartTried = true;
                 GunClick(ep, EnumEntityAction.InWorldRightMouseDown);
+            }
             if (laying.Ship == null) return;
             long now = capi.World.ElapsedMilliseconds;
             bool held = GunButtons.LayHeld(capi.Input.InWorldMouseButton.Left, capi.Input.InWorldMouseButton.Right);

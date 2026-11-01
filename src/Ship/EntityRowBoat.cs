@@ -13,11 +13,12 @@ namespace Hansa
     /// rudder, a block shorter, a thwart in the middle with a pair of oars). Vanilla's <see cref="EntityBoat"/> does the
     /// rest: sitting in her and rowing (W/S, A/D), the places for chests, vessels, baskets and boat seats, Shift +
     /// right-click to pick her up. This adds the oars' stroke while she moves, keeps her out of ships' hulls, and holds
-    /// the waves down under her (Sea), so they don't show inside.
+    /// a dry water cut under her (Sea). Sea also supplies the native boat's wave motion and moving seats.
     /// </summary>
     public class EntityRowBoat : EntityBoat
     {
         HansaMod mod;
+        RowboatWaterClip clipDefinition;
 
         /// <summary>
         /// Her outline, to keep out of hulls: points round her waterline and her gunwale, in her own frame (the frame
@@ -47,6 +48,9 @@ namespace Hansa
         {
             base.Initialize(properties, api, InChunkIndex3d);
             mod = api.ModLoader.GetModSystem<HansaMod>();
+            clipDefinition = api.Assets.Get(new AssetLocation("ships", "config/rowboat-waterclip.json")).ToObject<RowboatWaterClip>();
+            if (clipDefinition?.DryProfile?.Length != Sea.WaterShader.DryStations * Sea.WaterShader.DryLevels)
+                throw new InvalidOperationException("The rowing boat's fitted water outline is missing or invalid.");
             mod?.Client?.RowBoats.Add(this);
         }
 
@@ -198,31 +202,30 @@ namespace Hansa
         /// <summary>
         /// Her footprint for Sea: no water drawn inside her outline (a dry cut, as the ships have), from under her keel to
         /// over her gunwale, so the waves don't show inside (vanilla's boats hide only still water). The waves run on
-        /// round her as they are: she doesn't ride them, and holding them down to her level round her (as till 0.3.5)
-        /// showed as a ring of water standing too low or too high when a crest or a trough went by.
+        /// round her as they are. Sea's vanilla-boat integration supplies her heave and tilt; the dry outline follows
+        /// that same pose, rather than holding the surrounding waves down to the old still-water level.
         /// </summary>
         public Sea.WaterClipBox WaterClip(Vec3d at)
         {
-            return new Sea.WaterClipBox
+            var def = clipDefinition ?? throw new InvalidOperationException("The rowing boat is not initialized.");
+            var clip = new Sea.WaterClipBox
             {
-                X = at.X, Z = at.Z, WaterY = at.Y + 0.55, Yaw = Pos.Yaw,
-                HalfLength = (float)HalfLen + 0.15f, CentreOffset = (float)-MidZ, HalfWidth = (float)HalfBeam + 0.15f,
-                Profile = ClipProfile,
-                Dry = true, DryInset = 0.15f, DryDepth = 0.8f, DryHeight = 1.2f
+                X = at.X + Math.Cos(Pos.Yaw) * def.CentreRight,
+                Z = at.Z - Math.Sin(Pos.Yaw) * def.CentreRight,
+                WaterY = at.Y + def.WaterY, Yaw = Pos.Yaw,
+                HalfLength = def.HalfLength, CentreOffset = def.CentreOffset, HalfWidth = def.HalfWidth,
+                Profile = def.Profile, DryProfile = def.DryProfile,
+                DryLevel0 = def.DryLevel0, DryLevelStep = def.DryLevelStep,
+                Dry = true, DryDepth = def.DryDepth, DryHeight = def.DryHeight
             };
+            Sea.BoatWaves.ApplyToClip(this, ref clip);
+            return clip;
         }
 
-        static readonly float[] ClipProfile = BuildProfile();
-
-        static float[] BuildProfile()
+        public class RowboatWaterClip
         {
-            var p = new float[Sea.WaterShader.ProfileStations];
-            for (int i = 0; i < p.Length; i++)
-            {
-                double u = -1 + 2.0 * i / (p.Length - 1);
-                p[i] = (float)(HalfBeam * Math.Sqrt(Math.Max(0, 1 - Math.Pow(Math.Abs(u), 3))) + 0.2);
-            }
-            return p;
+            public float WaterY, CentreOffset, CentreRight, HalfLength, HalfWidth, DryDepth, DryHeight, DryLevel0, DryLevelStep;
+            public float[] Profile, DryProfile;
         }
     }
 }

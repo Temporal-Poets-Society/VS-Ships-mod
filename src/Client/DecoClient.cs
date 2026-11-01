@@ -168,18 +168,8 @@ namespace Hansa
             {
                 if (ship.Def == null || ship.Mounts == null || ship.Pos.SquareDistanceTo(eye.X, eye.Y, eye.Z) > 50 * 50) continue;
                 ship.RayToLocal(eye, dir, out var o, out var d);
-                double wall = ship.Grid.Raycast(o, d, range + 1);
-                var piece = ship.Pieces.Pick(o, d, range, out double tp);
-                // (0.3.10: not behind her decks, sides or masts: "a reading of items below deck or through the mast". A
-                // piece's own cells are in her grid, up to half a cell outside its box)
-                // (0.3.12, note 123: a partition or a door put aboard is picked as a sheet on its line, its collision the quarter
-                // block on one side of it: from that side the collision came first and a door opened only from the other)
-                double slack = piece?.Kind == MountKind.Border ? 0.3 : 0.15;
-                // (0.3.24, note 177: "from this angle cannot open doors") unless what the ray met first is the piece's own
-                // collision (a door's quarter-block layer, seen slanting from its side)
-                if (piece != null && tp > wall + slack && !ShipPieceSet.OwnHit(piece, o, d, wall)) { piece = null; tp = double.MaxValue; }
-                // ((25 October 2026, notes 95, 96) her collision met first is a piece's own body (its pick sheet elsewhere): that piece
-                if ((piece == null || tp > wall + 0.02) && wall < range && ship.Pieces.SolidHit(o, d, wall) is ShipPiece body) { piece = body; tp = wall; }
+                // (not behind her woodwork, a piece's own collision aside: ShipPieceSet.Aimed, which the offline tests replay)
+                var piece = ShipPieceSet.Aimed(ship.Pieces, ship.Grid, o, d, range, out double tp, out double wall);
                 // from outside her (the water, a dock, another ship): nothing inside through her side or deck, even where a
                 // piece's box reaches into her planking (0.3.10: "trying to open chests placed inside" while mending her)
                 bool outside = !(ep.MountedOn is ShipSeat on && on.Ship == ship);

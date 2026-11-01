@@ -80,14 +80,7 @@
 	"maxstacksize": 1,
 	"materialDensity": 1,
 	"liquidSelectable": 1,
-	"creativeinventory": {
-		"general": [
-			"*"
-		], "earthplus": ["*"],
-		"items": [
-			"*"
-		]
-	},
+	"creativeinventory": {},
 	"guiTransform": {
 		"translation": {
 			"x": 3.0,
@@ -141,5 +134,10 @@
 			"z": 0.5
 		},
 		"scale": 0.28
+	},
+	"attributes": {
+		"handbook": {
+			"exclude": true
+		}
 	}
 }

@@ -41,6 +41,11 @@ LAYOUTS = {
     # quarterdeck's stair to starboard against her side (the user: "At least on Nao Victoria it is done like that"), a
     # bulwark round the quarterdeck instead of its railing and no carriage guns there (note 103); the pump forward of
     # the main mast
+    # (1 November 2026, chalk note 158: "move hatch and stairs one block to main mast"; asked about the clear cell, the
+    # user: "Not keep one cell clear. Ideally player could move himself but current placement of stairs is janky") the
+    # clear cell is dropped, all one block forward: the hold stair in cell -5 (x -5..-4; its foot's landing cell -4 of
+    # the hold, out onto cell -6 of the main deck), the hatch over cells -5 and -4, its forward end on the main mast's
+    # cell's after face; rib -4's deck beam stops at the hatch now and rib -6's is whole again
     "D": {"longer": 2.0, "qd_front": -7.0, "mizzen": -11, "wheel": [-9, 0], "qd_guns": [-13, -11], "main": -3,
           "pump": [-2, 0], "qd_bulwark": True, "swivels": [], "swivel_reach": 1.05, "bumpkin_out": 2.8,
           # (25 October 2026, note 102, the user: the rudder about an upright axis, a level tiller under the quarterdeck;
@@ -60,7 +65,7 @@ LAYOUTS = {
           # sail to its yard's end. The mizzen's tack 0.5 aft of the sketch's, 1.2 aft of the main's clew (they met)
           "sails": {"main": {"tack": [8.1, 6.5], "peak": [-10.2, 29.8], "clew": [-6.4, 9.1]},
                     "mizzen": {"tack": [-7.6, 9.35], "peak": [-13.6, 27.5], "clew": ["bumpkin", 9.25]}},
-          "stairs": {"quarterdeck": -7, "hold": -6}, "stairs_y": {"quarterdeck": -2.0, "hold": 0.0},
+          "stairs": {"quarterdeck": -7, "hold": -5}, "stairs_y": {"quarterdeck": -2.0, "hold": 0.0},
           "hold_up": "aft", "hatch_cells": 2},
     "C": {"longer": 2.0, "qd_front": -7.0, "mizzen": -11, "wheel": [-9, 0], "qd_guns": [-14, -12],
           "stairs": {"quarterdeck": -7, "hold": -5}},

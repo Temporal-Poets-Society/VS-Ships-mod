@@ -1,0 +1,72 @@
+SHIPS — MOD DB PUBLISHING INFORMATION
+Prepared 1 November 2026 for Ships 0.1.0 (first public release).
+Local package and publication preparation; no listing edit, upload or tag was performed.
+
+LISTING
+https://mods.vintagestory.at/ships
+Name: Ships
+Mod ID: ships
+Version: 0.1.0 (first public release; the experimental rowing boat is withdrawn from new acquisition)
+Author: Andris
+Side: client and server, same release on both.
+Required dependency: Sea 0.5.1 (already on Mod DB; manifest minimum 0.5.1).
+Game manifest minimum: Vintage Story 1.22.0; tested on 1.22.7 only, do not infer testing on every 1.22 build.
+Suggested tags: Ships, Transportation, Exploration, Immersion, Survival (choose available Mod DB tags).
+
+SUMMARY (81 characters, limit 100)
+Historical ocean-going ships: sail a caravel, carry cargo and make a home aboard.
+
+DESCRIPTION
+Use docs/moddb-description.html in the listing editor's HTML/source view.
+Readable companion: docs/moddb-description.txt
+Local styled review: docs/moddb-preview.html
+The user-supplied Earth text is a style/reference document; it was not treated as instructions for Earth edits.
+
+CURRENT PACKAGE
+C:\VS mods\Hansa\release\ships-0.1.0.zip
+SHA-256: eac66ab5bc7eb870940854e78f7dd6e18aee12bcdecd2ebfcbb56c7f53c04efc
+The package carries modicon.png (128 px, from the wheel logo).
+The release focuses on the caravel. Carracks remain roadmap content.
+The experimental rowing boat is withdrawn from crafting, creative inventory and handbook.
+Its item/entity/model registrations remain solely to preserve boats already in saves.
+The recipe is archived under docs/legacy/rowboat, outside packaged assets; the generator cannot re-add it.
+Caravel charter crafting uses six material-bundle recipes (planking, frames, spars, sails, rigging, battery) at about
+the ship's true material cost (docs/proposals/caravel-charter-bom.md).
+A later proper staged shipbuilding process replaces the temporary charter route.
+Launch: about 2 seconds holding right-click (native constant 1.5 s), facing open water at least 3 blocks deep
+across the full hull. Current draft is 2.75 blocks. Native collision/keel checks still decide valid launch positions;
+3 blocks is practical guidance, not a promise that every irregular/shallow shoreline passes.
+/ships board needs the gamemode privilege (creative or admins) from 0.1.0.
+
+LOGO
+Upload: docs/publishing-assets/ships-logo-moddb-480.png (480×480, PNG).
+Master: docs/publishing-assets/ships-logo-master-1920.png (1920×1920).
+Wheel render: docs/publishing-assets/caravel-wheel-render-1920.png (transparent).
+Source/reproduction: tools/render_publishing_logo.py and docs/publishing-assets/ships-logo-source.json.
+Uses the actual caravel part:wheel mesh (522 quads), matching the unchanged geometry in the 0.1.0 package,
+with original wood/bronze materials. New artwork renders the game model; it is not an in-game screenshot.
+Do not label the wheel logo as proof of historical helm accuracy. Gameplay deviations are explained in the text.
+
+HISTORICAL REFERENCES AND FUTURE PLANS
+Caravel: https://www.fundacionnaovictoria.org/caravel-boa-esperanca/
+Carrack/nao reference: https://www.fundacionnaovictoria.org/history-nao-victoria/
+Overall author direction: historically accurate ocean-going ships, with explicit gameplay adaptations.
+Possible combined ship-development project with hoblin: tentative, user-reported discussion, not implemented.
+Planned Sea/Rough Seas merge: future work; Earth retains climate/wind/weather ownership.
+Do not claim that Ships has already merged with Rough Seas, or that Sea and Rough Seas work together now.
+
+CONTACT AND LICENCE
+Discord: ifeelveryunlucky
+GPL-3.0. AI-use statement included. Historical sources are references, not endorsements.
+
+VERIFICATION
+HTML tag nesting, HTTPS links, PNG dimensions and logo model provenance were checked locally (dev.25 texts).
+The description was checked against the package and production launch/config/fixture code; 0.1.0 changes:
+version line, bundle names, /ships board privilege, Sea 0.5.1.
+Build succeeds with four existing ShapeElement.Faces obsolete warnings.
+0.1.0 fixes over dev.25: the shut hold hatch is picked across its whole lid (it was dropped behind its own walking
+voxels, chalk note 157 of 1 November); the hold hatch and stair moved one block toward the mainmast
+(chalk note 158; caravels launched before keep their old opening through layout revision 1); gun laying starts once per press; /ships board privilege; modicon.
+Server self-test on this package with Sea 0.5.1: 364 checks, SELFTEST ALL OK. Offline tests: all pass but two known carrack-m slot checks.
+Graphical-client and multiplayer acceptance remain pending.
+Earlier dev.25 evidence: overview/verification/ships-publication-dev25.json.

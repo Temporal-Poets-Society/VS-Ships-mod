@@ -1,0 +1,12 @@
+[
+  {
+    "op": "add",
+    "file": "game:config/creativetabs.json",
+    "path": "/tabConfigs/-",
+    "value": {
+      "code": "earthplus",
+      "listOrder": 0.05
+    },
+    "side": "Client"
+  }
+]

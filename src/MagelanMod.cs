@@ -932,7 +932,9 @@ namespace Hansa
                     })
                 .EndSubCommand()
                 .BeginSubCommand("board")
-                    .WithDescription("Climb aboard the nearest ship")
+                    .WithDescription("Climb aboard the nearest ship (creative / admins)")
+                    // (1 November 2026, release review) a teleport onto any ship within 48 blocks: not for survival players
+                    .RequiresPrivilege(Privilege.gamemode)
                     .HandleWith(args =>
                     {
                         var ep = args.Caller.Player.Entity;

@@ -765,7 +765,7 @@ namespace Hansa
         static double def_beam(EntityShip s) => s.Def?.Beam ?? 9;
 
         /// <summary>
-        /// The rowing boat (vanilla's sailboat made one): entity, item and recipe there; a new one is empty (so she can
+        /// The withdrawn rowing boat: legacy entity/item retained, no recipe or creative entry; a new one is empty (so she can
         /// be picked up); the item won't put her in the water inside a ship; put against the carrack's side she's moved
         /// out of the hull.
         /// </summary>
@@ -774,7 +774,11 @@ namespace Hansa
             var loc = new AssetLocation("ships", "rowboat-oak");
             var type = sapi.World.GetEntityType(loc);
             Check(type != null && sapi.World.GetItem(loc) is ItemRowBoat, "the rowing boat: entity and item registered");
-            Check(sapi.World.GridRecipes.Any(r => r.Output?.Code?.Path?.StartsWith("rowboat-") == true), "and a recipe for her");
+            var legacyBoatItem = sapi.World.GetItem(loc);
+            Check(!sapi.World.GridRecipes.Any(r => r.Output?.Code?.Domain == "ships" && r.Output.Code.Path.StartsWith("rowboat-"))
+                && (legacyBoatItem?.CreativeInventoryTabs == null || legacyBoatItem.CreativeInventoryTabs.Length == 0)
+                && legacyBoatItem?.Attributes?["handbook"]["exclude"].AsBool() == true,
+                "withdrawn rowing boat has no crafting/creative/handbook entry; existing saves retain entity/item support");
             if (type == null) return;
             double cy = carrack.Pos.Yaw;
             // alongside the carrack's starboard side, overlapping it by half a block, heading the same way

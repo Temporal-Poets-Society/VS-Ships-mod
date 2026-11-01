@@ -56,10 +56,13 @@ namespace HansaTests
             var noteEye=new Vec3d(-8.844,2.815,1.759);var noteDir=new Vec3d(.6915,-.3756,-.617);noteDir.Normalize();
             Console.WriteLine("142 exact note ray: "+(doors.Pick(noteEye,noteDir,4,out double rayT)==door?"door at "+rayT:"misses the leaf after the corrected fit"));
             Check(def.ModularPieces.All(e=>e.Code!="window-cabin-starboard") && def.ModularPieces.Any(e=>e.Kind=="partition" && Math.Abs(e.At[0]+7)<.01 && Math.Abs(e.At[1]-2.125)<.01 && Math.Abs(e.At[2]-2)<.01),"143: the default cabin-front window is a wall");
-            var beam=def.Slots.Get("beam:main:-4:-1");
+            // (1 November 2026, chalk note 158: the hatch one block toward the main mast, over x -5..-3) the marked whole beam beside
+            // the hatch is rib -6's at its after end now (rib -4's is cut by the opening): the note's eye moved with it, 2 aft
+            var beam=def.Slots.Get("beam:main:-6:-1");
             Check(beam?.IsBeam==true && beam.Mat.Block=="game:supportbeam-oak","145: the marked beam is a replaceable support-beam length");
+            if(beam==null) return;
             var states=new SlotStates(def.Slots);int bi=beam.Index;
-            var beamEye=new Vec3d(-3.141,-.18,-1.27);var beamLook=new Vec3d(-.4161,.459,.785);beamLook.Normalize();
+            var beamEye=new Vec3d(-5.141,-.18,-1.27);var beamLook=new Vec3d(-.4161,.459,.785);beamLook.Normalize();
             double beamHit=def.Grid.RaycastCell(beamEye,beamLook,4,out int vi,out int vj,out int vk,out _);
             Check(beamHit<4 && def.Slots.AtVoxel(def.Grid,vi,vj,vk)==bi,"145: the exact note ray selects the marked removable beam length");
             foreach(int cover in def.Slots.BesideOf[bi]) states.Set(cover,SlotState.Empty);
@@ -74,7 +77,12 @@ namespace HansaTests
                 "146: drawn partitions cannot extend below their own cell into the hold");
 
             var stair=def.ModularPieces.Single(e=>e.Code=="stair-hold");var hatch=def.ModularPieces.Single(e=>e.Code=="hatch-main");
-            Check(stair.Up=="-x" && hatch.Size.SequenceEqual(new[]{2,1}) && hatch.At[0]+hatch.Size[0]/2<=-4,"147: hold stairs descend toward the bow; the opening preserves the clear cell beside the mast");
+            // (1 November 2026, chalk note 158: "move hatch and stairs one block to main mast"; the user on note 147's clear cell:
+            // "Not keep one cell clear. Ideally player could move himself but current placement of stairs is janky") the opening
+            // ends on the main mast's cell's after face (x -3), the stair in the cell aft of the hatch's forward cell
+            int mainCell=-3;
+            Check(stair.Up=="-x" && hatch.Size.SequenceEqual(new[]{2,1}) && Math.Abs(hatch.At[0]+hatch.Size[0]/2.0-mainCell)<1e-6 && Math.Abs(stair.At[0]-(hatch.At[0]-.5))<1e-6,
+                "147/158: hold stairs descend toward the bow; the opening reaches the main mast's cell (note 158: no clear cell)");
             var cells=def.Slots.Rect(hatch.At[1],hatch.At[0]-1,-.5,hatch.At[0]+1,.5);
             var hp=HatchPlanner.Plan(def.Slots,cells,false,hatch.Hinge,hatch.Coaming,hatch.DoubleLeaf);
             var leaves=HatchPlanner.Leaves(hp.Box,hp.Dir,hp.DoubleLeaf);

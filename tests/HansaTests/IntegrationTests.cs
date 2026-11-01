@@ -67,7 +67,9 @@ namespace HansaTests
 
             var states=new SlotStates(def.Slots);
             Check(OpeningFrames.Build(def,states).Count==0,"new ships add no duplicate opening frames");
-            foreach(var scenario in new[]{new[]{"beam:main:0:-1"},new[]{"beam:main:0:-1","beam:main:2:-1"},new[]{"beam:main:0:-1","beam:main:0:0"},new[]{"beam:main:-8:-2"},new[]{"beam:main:-4:-1"}}) {
+            // (1 November 2026, chalk note 158: the hatch one block toward the main mast, over x -5..-3) the whole centreline beam
+            // beside the hatch is rib -6's now (rib -4's is cut by the opening): its length, not -4's
+            foreach(var scenario in new[]{new[]{"beam:main:0:-1"},new[]{"beam:main:0:-1","beam:main:2:-1"},new[]{"beam:main:0:-1","beam:main:0:0"},new[]{"beam:main:-8:-2"},new[]{"beam:main:-6:-1"}}) {
                 states=new SlotStates(def.Slots);var empty=new List<string>();
                 foreach(var id in scenario) {
                     int n=def.Slots.IndexOf(id);states.Set(n,SlotState.Empty);empty.Add(id);
@@ -80,7 +82,7 @@ namespace HansaTests
                 File.WriteAllText(Path.Combine(root,"tmp/integrate-views/"+name+".json"),JsonConvert.SerializeObject(new {textures=new[]{"game:block/wood/debarked/oak"},groups=new Dictionary<string,List<float[]>>{{"runtime-frame",q}}}));
                 File.WriteAllText(Path.Combine(root,"tmp/integrate-views/"+name+"-state.json"),JsonConvert.SerializeObject(new {emptyDeck=empty}));
             }
-            foreach(string id in new[]{"beam:main:-8:-2","beam:main:-4:-1"}) {
+            foreach(string id in new[]{"beam:main:-8:-2","beam:main:-6:-1"}) {
                 int n=def.Slots.IndexOf(id);var original=new SlotStates(def.Slots);var g=def.Grid.Clone();
                 original.Set(n,SlotState.Empty);original.Apply(g);var b=def.DeckSlots[n].Box;
                 Check(!g.SolidAt((b[0]+b[3])/2,(b[1]+b[4])/2,(b[2]+b[5])/2),"112/114: the marked beam length owns removable collision: "+id);

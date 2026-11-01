@@ -1,0 +1,402 @@
+{
+ "design": "hansa-carrack-prof",
+ "unit": "m² (a block is 1 m)",
+ "zones": [
+  {
+   "code": "wales",
+   "name": "Wales, and the hull's sides from the waterline up to them",
+   "kind": "moulding",
+   "default": "tarred",
+   "quads": 1290,
+   "voxelFaces": 0,
+   "area": 170.02
+  },
+  {
+   "code": "topsides",
+   "name": "Topsides above the wales, up to the waist's rail (outside, with the gates and the gun ports' lids)",
+   "kind": "panel",
+   "default": "tarred",
+   "quads": 1473,
+   "voxelFaces": 0,
+   "area": 137.34
+  },
+  {
+   "code": "frieze",
+   "name": "Frieze: the top strake under each level rail cap (outside)",
+   "kind": "band",
+   "default": "tarred",
+   "quads": 678,
+   "voxelFaces": 0,
+   "area": 25.86
+  },
+  {
+   "code": "sterncastle-sides",
+   "name": "Sterncastle's sides above the waist rail, and the poop overhang's underside",
+   "kind": "panel",
+   "default": "tarred",
+   "quads": 2315,
+   "voxelFaces": 0,
+   "area": 175.84
+  },
+  {
+   "code": "forecastle-sides",
+   "name": "Forecastle's sides above the waist rail, and its underside over the bow",
+   "kind": "panel",
+   "default": "tarred",
+   "quads": 1113,
+   "voxelFaces": 0,
+   "area": 91.46
+  },
+  {
+   "code": "castle-mouldings",
+   "name": "Mouldings along the castles' deck levels outside, and the knees under the poop",
+   "kind": "moulding",
+   "default": "tarred",
+   "quads": 360,
+   "voxelFaces": 0,
+   "area": 35.22
+  },
+  {
+   "code": "rail-caps",
+   "name": "Rail caps (waist, castles, castle breaks, the gates' pieces)",
+   "kind": "moulding",
+   "default": "oak",
+   "quads": 1096,
+   "voxelFaces": 0,
+   "area": 91.98
+  },
+  {
+   "code": "side-windows",
+   "name": "Castles' side windows (outside): casings, sashes, pilasters, cornice and sill rail",
+   "kind": "moulding",
+   "default": "timber",
+   "quads": 1752,
+   "voxelFaces": 0,
+   "area": 43.24
+  },
+  {
+   "code": "stern-gallery",
+   "name": "Stern gallery: frames, sashes, cornices and sill rails of the lights",
+   "kind": "moulding",
+   "default": "timber",
+   "quads": 294,
+   "voxelFaces": 0,
+   "area": 25.01
+  },
+  {
+   "code": "stern-carvings",
+   "name": "Stern carvings: pilasters and capitals, the gallery's balustrade, taffrail, name board's frame",
+   "kind": "carving",
+   "default": "timber",
+   "quads": 1000,
+   "voxelFaces": 0,
+   "area": 38.94
+  },
+  {
+   "code": "nameboard",
+   "name": "Name board (the mod paints her name on it)",
+   "kind": "board",
+   "default": "tarred",
+   "quads": 10,
+   "voxelFaces": 0,
+   "area": 2.55
+  },
+  {
+   "code": "waist-bulwarks",
+   "name": "Inside of the waist's bulwarks (with the gates' and the gun ports' lids' insides, the ports' linings)",
+   "kind": "panel",
+   "default": "oak",
+   "quads": 1766,
+   "voxelFaces": 0,
+   "area": 63.74
+  },
+  {
+   "code": "castle-bulwarks",
+   "name": "Inside of the castle decks' bulwarks (quarterdeck, poop deck, forecastle deck)",
+   "kind": "panel",
+   "default": "oak",
+   "quads": 1194,
+   "voxelFaces": 0,
+   "area": 112.54
+  },
+  {
+   "code": "bulwark-frames",
+   "name": "Frames (ribs) standing inside the waist's bulwarks",
+   "kind": "moulding",
+   "default": "timber",
+   "quads": 474,
+   "voxelFaces": 0,
+   "area": 56.21
+  },
+  {
+   "code": "castle-frames",
+   "name": "Frames (ribs) standing inside the castle decks' bulwarks",
+   "kind": "moulding",
+   "default": "timber",
+   "quads": 526,
+   "voxelFaces": 0,
+   "area": 27.23
+  },
+  {
+   "code": "great-cabin-front",
+   "name": "Great cabin's front toward the waist (its boards)",
+   "kind": "panel",
+   "default": null,
+   "quads": 0,
+   "voxelFaces": 0,
+   "area": 0.0
+  },
+  {
+   "code": "poop-cabin-front",
+   "name": "Poop cabin's front toward the quarterdeck (its boards)",
+   "kind": "panel",
+   "default": null,
+   "quads": 0,
+   "voxelFaces": 0,
+   "area": 0.0
+  },
+  {
+   "code": "forecastle-front",
+   "name": "Forecastle's bulkhead toward the waist (its boards)",
+   "kind": "panel",
+   "default": null,
+   "quads": 0,
+   "voxelFaces": 0,
+   "area": 0.0
+  },
+  {
+   "code": "front-mouldings",
+   "name": "Cabin fronts' mouldings: pilasters with their bases and capitals, cornice, sill rail, panel mouldings, window casings",
+   "kind": "moulding",
+   "default": null,
+   "quads": 0,
+   "voxelFaces": 0,
+   "area": 0.0
+  },
+  {
+   "code": "window-casings",
+   "name": "Cabin fronts' windows: casings, sills, mullions and transoms (both faces)",
+   "kind": "moulding",
+   "default": null,
+   "quads": 0,
+   "voxelFaces": 0,
+   "area": 0.0
+  },
+  {
+   "code": "door-casings",
+   "name": "Great cabin's door casing (its middle door, both faces)",
+   "kind": "moulding",
+   "default": null,
+   "quads": 0,
+   "voxelFaces": 0,
+   "area": 0.0
+  },
+  {
+   "code": "door-casings-companion",
+   "name": "Companion's door casings: its door in the great cabin's front, the stairwell's door (both faces)",
+   "kind": "moulding",
+   "default": null,
+   "quads": 0,
+   "voxelFaces": 0,
+   "area": 0.0
+  },
+  {
+   "code": "door-casings-forecastle",
+   "name": "Forecastle's door casing (both faces)",
+   "kind": "moulding",
+   "default": null,
+   "quads": 0,
+   "voxelFaces": 0,
+   "area": 0.0
+  },
+  {
+   "code": "door-casings-poopcabin",
+   "name": "Poop cabin's door casing (both faces)",
+   "kind": "moulding",
+   "default": null,
+   "quads": 0,
+   "voxelFaces": 0,
+   "area": 0.0
+  },
+  {
+   "code": "balusters",
+   "name": "Balusters of the castle fronts' railings, the stairs' and the companion's",
+   "kind": "carving",
+   "default": null,
+   "quads": 0,
+   "voxelFaces": 0,
+   "area": 0.0
+  },
+  {
+   "code": "balustrade-rails",
+   "name": "Railings' plinths, handrails, caps and newel posts, and the stairs' stringers (castle fronts, stairs, the companion)",
+   "kind": "moulding",
+   "default": null,
+   "quads": 0,
+   "voxelFaces": 0,
+   "area": 0.0
+  },
+  {
+   "code": "great-cabin-walls",
+   "name": "Great cabin's walls (the sides, the inside of its front and of the transom)",
+   "kind": "panel",
+   "default": "oak",
+   "quads": 704,
+   "voxelFaces": 0,
+   "area": 101.22
+  },
+  {
+   "code": "poop-cabin-walls",
+   "name": "Poop cabin's walls",
+   "kind": "panel",
+   "default": "oak",
+   "quads": 664,
+   "voxelFaces": 0,
+   "area": 74.07
+  },
+  {
+   "code": "cabin-trim",
+   "name": "Cabins' trim: the stern timbers, the side windows' casings inside",
+   "kind": "moulding",
+   "default": "timber",
+   "quads": 462,
+   "voxelFaces": 0,
+   "area": 20.79
+  },
+  {
+   "code": "cabin-frames",
+   "name": "Cabins' frames (ribs): the riders, their knees, the inlays down the walls",
+   "kind": "moulding",
+   "default": "timber",
+   "quads": 274,
+   "voxelFaces": 0,
+   "area": 21.85
+  },
+  {
+   "code": "cabin-ceilings",
+   "name": "Cabins' ceilings: the deck above's underside (great cabin, poop cabin)",
+   "kind": "ceiling",
+   "default": "deck",
+   "quads": 100,
+   "voxelFaces": 404,
+   "area": 161.51
+  },
+  {
+   "code": "cabin-beams",
+   "name": "Cabins' beams: the deck beams under the deck above, the carlings and headers",
+   "kind": "ceiling",
+   "default": "timber",
+   "quads": 943,
+   "voxelFaces": 0,
+   "area": 479.05
+  },
+  {
+   "code": "forecastle-room",
+   "name": "Forecastle's walls: the inside planking, the inside of its bulkhead",
+   "kind": "panel",
+   "default": "oak",
+   "quads": 376,
+   "voxelFaces": 0,
+   "area": 51.17
+  },
+  {
+   "code": "forecastle-frames",
+   "name": "Forecastle's frames (ribs): the riders, their knees, the inlays down the walls",
+   "kind": "moulding",
+   "default": "timber",
+   "quads": 58,
+   "voxelFaces": 0,
+   "area": 6.51
+  },
+  {
+   "code": "forecastle-beams",
+   "name": "Forecastle's beams under the forecastle deck",
+   "kind": "ceiling",
+   "default": "timber",
+   "quads": 144,
+   "voxelFaces": 0,
+   "area": 56.62
+  },
+  {
+   "code": "forecastle-ceiling",
+   "name": "Forecastle's ceiling: the forecastle deck's underside, the grating",
+   "kind": "ceiling",
+   "default": "deck",
+   "quads": 124,
+   "voxelFaces": 186,
+   "area": 50.07
+  },
+  {
+   "code": "lower-deck",
+   "name": "Lower deck's walls: the inside planking",
+   "kind": "panel",
+   "default": "oak",
+   "quads": 1284,
+   "voxelFaces": 0,
+   "area": 251.46
+  },
+  {
+   "code": "lower-deck-frames",
+   "name": "Lower deck's frames (ribs): the riders, their knees, the inlays down the walls",
+   "kind": "moulding",
+   "default": "timber",
+   "quads": 192,
+   "voxelFaces": 0,
+   "area": 28.44
+  },
+  {
+   "code": "lower-deck-beams",
+   "name": "Lower deck's beams: the main deck's beams, the carlings and headers round its openings",
+   "kind": "ceiling",
+   "default": "timber",
+   "quads": 2384,
+   "voxelFaces": 0,
+   "area": 1265.79
+  },
+  {
+   "code": "lower-deck-ceiling",
+   "name": "Lower deck's ceiling: the main deck's underside",
+   "kind": "ceiling",
+   "default": "deck",
+   "quads": 438,
+   "voxelFaces": 776,
+   "area": 349.39
+  },
+  {
+   "code": "hold",
+   "name": "Hold's walls: the inside planking",
+   "kind": "panel",
+   "default": "oak",
+   "quads": 1430,
+   "voxelFaces": 0,
+   "area": 263.12
+  },
+  {
+   "code": "hold-frames",
+   "name": "Hold's frames (ribs): the riders, their knees, the inlays down the walls",
+   "kind": "moulding",
+   "default": "timber",
+   "quads": 156,
+   "voxelFaces": 0,
+   "area": 29.18
+  },
+  {
+   "code": "hold-beams",
+   "name": "Hold's beams: the lower deck's beams, the carlings between them and round its openings",
+   "kind": "ceiling",
+   "default": "timber",
+   "quads": 1914,
+   "voxelFaces": 0,
+   "area": 1319.68
+  },
+  {
+   "code": "hold-ceiling",
+   "name": "Hold's ceiling: the lower deck's underside",
+   "kind": "ceiling",
+   "default": "deck",
+   "quads": 522,
+   "voxelFaces": 734,
+   "area": 302.82
+  }
+ ]
+}

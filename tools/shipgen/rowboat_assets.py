@@ -117,7 +117,8 @@ def entity():
             "texturesByType": TEXTURES,
             "behaviors": [
                 {"code": "ellipsoidalrepulseagents"}, {"code": "passivephysicsmultibox"}, {"code": "interpolateposition"},
-                {"code": "hidewatersurface", "hideWaterElement": "ORIGIN/hideWater/*"}, {"code": "selectionboxes"},
+                # Sea owns the fitted volumetric cut. A second, depth-writing flat mask cuts the surrounding water.
+                {"code": "selectionboxes"},
                 {"code": "rideableaccessories"}, {"code": "creaturecarrier"}, {"code": "writingsurface"},
             ],
         },
@@ -142,7 +143,8 @@ def item():
         "maxstacksize": 1,
         "materialDensity": 1,
         "liquidSelectable": 1,
-        "creativeinventory": {"general": ["*"], "items": ["*"]},
+        "creativeinventory": {},  # withdrawn from release; old items/entities still load
+        "attributes": {"handbook": {"exclude": True}},
         "guiTransform": {"translation": {"x": 3.0, "y": 6.0, "z": 0.0}, "rotation": {"x": -32.0, "y": -35.0, "z": -180.0},
                          "origin": {"x": 0.5, "y": 0.0, "z": 0.5}, "scale": 0.68},
         "groundTransform": {"translation": {"x": 0, "y": 0, "z": 0}, "rotation": {"x": 0, "y": 0, "z": 0},
@@ -167,8 +169,8 @@ def recipe():
 
 
 def main():
-    for rel, obj in (("entities/rowboat.json", entity()), ("itemtypes/rowboat.json", item()),
-                     ("recipes/grid/rowboat.json", recipe())):
+    # recipe() is historical prototype data; the release deliberately does not emit a craft recipe.
+    for rel, obj in (("entities/rowboat.json", entity()), ("itemtypes/rowboat.json", item())):
         path = os.path.join(ASSETS, *rel.split("/"))
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as fh:
