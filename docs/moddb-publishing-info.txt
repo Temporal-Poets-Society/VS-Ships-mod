@@ -24,7 +24,7 @@ The user-supplied Earth text is a style/reference document; it was not treated a
 
 CURRENT PACKAGE
 C:\VS mods\Hansa\release\ships-0.1.0.zip
-SHA-256: 62f6d7271831e98343278c3eaa9effdb35bf182c3bb6b7231c2aefc1d72d1cf3
+SHA-256: cce3235d502566db083c435a4ea35ae50b4d29ea917bf1c3bac755d56f2b8b4e
 The package carries modicon.png (128 px, from the wheel logo).
 The release focuses on the caravel. Carracks remain roadmap content.
 The experimental rowing boat is withdrawn from crafting, creative inventory and handbook.
@@ -70,6 +70,6 @@ voxels, chalk note 157 of 1 November); the hold hatch and stair moved one block 
 After in-game testing (1 November): an animal aboard has a body as long as its vanilla box and half as wide, turned with it, so a led
 elk passes her 0.82 entry ports and squares itself to a gap; it hops from the quay onto her sill when a swell lifts her; the
 flute calls an elk onto her deck beside an owner aboard; animals no longer pitch with her heave in a storm.
-Server self-test on this package with Sea 0.5.1: 369 checks, SELFTEST ALL OK. Offline tests: all pass but two known carrack-m slot checks.
+Server self-test on this package with Sea 0.5.1: 383 checks, SELFTEST ALL OK. Offline tests: all pass but two known carrack-m slot checks.
 Graphical-client and multiplayer acceptance remain pending.
 Earlier dev.25 evidence: overview/verification/ships-publication-dev25.json.

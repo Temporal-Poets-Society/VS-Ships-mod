@@ -10,8 +10,8 @@ namespace Hansa
     /// <summary>What a wreck block's cells are made of (a byte; 0 is none).</summary>
     public static class WreckMat
     {
-        public const byte None = 0, Oak = 1, Tarred = 2, Pine = 3, Copper = 4, Iron = 5;
-        public const int Count = 6;
+        public const byte None = 0, Oak = 1, Tarred = 2, Pine = 3, Copper = 4, Iron = 5, Brass = 6, Lead = 7;
+        public const int Count = 8;
 
         /// <summary>The texture code in the wreck block's JSON (blocktypes/wreck.json) for a material.</summary>
         public static string Texture(byte m) => m switch
@@ -20,6 +20,8 @@ namespace Hansa
             Pine => "pine",
             Copper => "copper",
             Iron => "iron",
+            Brass => "brass",
+            Lead => "lead",
             _ => "oak"
         };
 
@@ -30,13 +32,15 @@ namespace Hansa
             Pine => "game:block/wood/debarked/aged",
             Copper => "game:block/metal/tarnished/tarnished-copper",
             Iron => "game:block/metal/tarnished/rusty-iron",
+            Brass => "game:block/metal/tarnished/brass",
+            Lead => "game:block/metal/tarnished/tarnished-lead",
             _ => "game:block/wood/planks/aged/aged1"
         };
 
         /// <summary>Lang code of its name ("ships:wreckmat-tarred").</summary>
         public static string Lang(byte m) => "ships:wreckmat-" + Texture(m);
 
-        public static bool Metal(byte m) => m == Copper || m == Iron;
+        public static bool Metal(byte m) => m == Copper || m == Iron || m == Brass || m == Lead;
     }
 
     /// <summary>
@@ -476,6 +480,17 @@ namespace Hansa
             {
                 new WreckDrop("game:metalplate-copper", 0.35f, 0.15f),
                 new WreckDrop("game:metalbit-copper", 2, 1),
+            },
+            // ((1 November 2026) a brass- or lead-sheathed bottom: as copper)
+            [WreckMat.Brass] = new[]
+            {
+                new WreckDrop("game:metalplate-brass", 0.35f, 0.15f),
+                new WreckDrop("game:metalbit-brass", 2, 1),
+            },
+            [WreckMat.Lead] = new[]
+            {
+                new WreckDrop("game:metalplate-lead", 0.35f, 0.15f),
+                new WreckDrop("game:metalbit-lead", 2, 1),
             },
             [WreckMat.Iron] = new[]
             {

@@ -597,6 +597,22 @@ namespace Hansa
                         used = ship.AddCladdingPlates(1000);
                         Check(ship.Clad && ship.CladPlates == def.CladdingPlates && used == def.CladdingPlates - 10, "sheathed once all plates are on, no plate wasted");
                         Check(ship.WatchedAttributes.GetTreeAttribute("hansaFit")?.GetInt("clad") == def.CladdingPlates, "sheathing saved");
+                        // ((1 November 2026, the user: "we can have all of them") copper dissolves: half worn in half its life, kept
+                        // clean; renewed; worn through it falls away. Lead never wears, but her bottom fouls under it.
+                        var cuLife = ShipFittings.SheathingOf("copper").LifeDays;
+                        ship.AgeBottom(cuLife / 2, 1);
+                        int renewN = ship.RenewPlates;
+                        Check(Math.Abs(ship.CladWear - 0.5f) < 0.01f && ship.Fouling == 0 && renewN == (int)Math.Ceiling(def.CladdingPlates / 2.0 - 1e-6),
+                            $"copper half its life on: half worn ({ship.CladWear:0.00}), her bottom clean ({ship.Fouling:0.00}), {renewN} plates to renew");
+                        Check(ship.RenewCladding(1000) == renewN && ship.CladWear == 0 && ship.RenewPlates == 0, "worn copper renewed with that many plates");
+                        ship.AgeBottom(cuLife + 1, 1);
+                        Check(!ship.Clad && ship.CladPlates == 0 && ship.CladWear == 0, "copper worn through falls away");
+                        ship.CladMetal = "lead";
+                        ship.AddCladdingPlates(1000);
+                        ship.AgeBottom(10, 1);
+                        Check(ship.Clad && ship.CladWear == 0 && ship.Fouling > 0, $"lead sheathing doesn't wear, but her bottom fouls under it ({ship.Fouling:0.000})");
+                        // as before: sheathed in copper, clean
+                        ship.CladPlates = 0; ship.CladMetal = "copper"; ship.AddCladdingPlates(1000);
 
                         // the wind comes round to right ahead: with all sail set she can't sail into it and loses her way
                         sea?.SetOverride(new Sea.WindOverride { FromDegrees = 90, Strength = 0.6, StartHours = sea.Hours - 24 });

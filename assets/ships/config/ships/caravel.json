@@ -813175,8 +813175,6 @@
    "yaw": 0.0
   }
  ],
- "layoutRev": 1,
- "layoutBefore": [{"rev": 1, "cells": {"main:-6:-1": "empty", "main:-4:-1": "filled", "beam:main:-6:-1": "empty"}}],
  "modularPieces": [
   {
    "kind": "stair",
@@ -813519,6 +813517,17 @@
    "coaming": 0.25,
    "doubleLeaf": true,
    "hinge": "x"
+  }
+ ],
+ "layoutRev": 1,
+ "layoutBefore": [
+  {
+   "rev": 1,
+   "cells": {
+    "main:-6:-1": "empty",
+    "main:-4:-1": "filled",
+    "beam:main:-6:-1": "empty"
+   }
   }
  ],
  "panelPlaces": false,

@@ -29,6 +29,8 @@ namespace Hansa
         public float[] Hurt;
         /// <summary>Sheathed in copper: her bottom's outside cells are copper.</summary>
         public bool Clad;
+        /// <summary>(1 November 2026) What in: "copper", "brass" or "lead".</summary>
+        public string CladMetal = "copper";
         /// <summary>
         /// (0.3.20, step B) Her deck cells that differ from her design (slot id → state: 2 taken up): a cell taken up isn't
         /// in her wreck (its planks went to whoever took it up), one laid over a design opening is. Null: as designed. A
@@ -331,7 +333,7 @@ namespace Hansa
                                 if (y > stump[mast]) continue;
                                 mat = WreckMat.Pine;
                             }
-                            else if (map.IsOuterSkin(i, j, k)) mat = w.Clad && y < copperTop ? WreckMat.Copper : WreckMat.Tarred;
+                            else if (map.IsOuterSkin(i, j, k)) mat = w.Clad && y < copperTop ? (w.CladMetal == "brass" ? WreckMat.Brass : w.CladMetal == "lead" ? WreckMat.Lead : WreckMat.Copper) : WreckMat.Tarred;
                             else mat = WreckMat.Oak;
                             plan.CellsDesign++;
                             if (w.Decay && mast < 0 && Decays(i, j, k, x, y, z, castle, sternFalls))
@@ -845,7 +847,7 @@ namespace Hansa
                 foreach (long k in cells.Keys.OrderBy(k => k))
                 {
                     WreckPlan.Unkey(k, out int x, out int y, out int z);
-                    if (!cells[k].Any(m => m is WreckMat.Oak or WreckMat.Tarred or WreckMat.Copper) || At(x, y - 1, z) != WreckGround.Ground) continue;
+                    if (!cells[k].Any(m => m is WreckMat.Oak or WreckMat.Tarred or WreckMat.Copper or WreckMat.Brass or WreckMat.Lead) || At(x, y - 1, z) != WreckGround.Ground) continue;
                     foreach (var (nx, nz) in new[] { (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1) })
                     {
                         long nk = WreckPlan.Key(nx, y, nz);

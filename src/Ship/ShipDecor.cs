@@ -691,6 +691,14 @@ namespace Hansa
                     break;
                 // (0.3.20, step B) a hatch over an opening in her deck
                 case PieceRole.Hatch:
+                    // ((1 November 2026) an open hatch, a lead in hand to an animal aboard: sling it through)
+                    if (p.Open && LedAnimal(player) is EntityAgent animal)
+                    {
+                        string why = DeckCreatures.Sling(this, animal, p);
+                        if (why != null) player.SendIngameError("ships-sling", Lang.GetL(player.LanguageCode, why));
+                        else player.SendMessage(GlobalConstants.InfoLogChatGroup, Lang.GetL(player.LanguageCode, DeckCreatures.SlungDown(animal) ? "ships:sling-down" : "ships:sling-up", animal.GetName()), EnumChatType.Notification);
+                        break;
+                    }
                     ToggleHatch(player, p);
                     break;
                 // (0.3.18) a hearth or an oven put aboard: as the design's (its stand-in fixture)
@@ -703,6 +711,17 @@ namespace Hansa
                     if (p.Stack?.Block is Block wb && VanillaPieceBlock.IsWorkstation(wb)) player.SendIngameError("ships-ashore", Lang.GetL(player.LanguageCode, "ships:piece-ashore-only", p.Stack.GetName()));
                     break;
             }
+        }
+
+        /// <summary>The animal aboard her at the other end of the lead in the player's hand, or null.</summary>
+        public EntityAgent LedAnimal(IServerPlayer player)
+        {
+            int id = player.InventoryManager.ActiveHotbarSlot?.Itemstack?.Attributes.GetInt("clothId") ?? 0;
+            var rope = id == 0 ? null : Api.ModLoader.GetModSystem<ClothManager>().GetClothSystem(id);
+            if (rope == null) return null;
+            var other = rope.FirstPoint.PinnedToEntity == player.Entity ? rope.LastPoint.PinnedToEntity :
+                        rope.LastPoint.PinnedToEntity == player.Entity ? rope.FirstPoint.PinnedToEntity : null;
+            return other is EntityAgent a && DeckCreatures.ShipOf(a) == this ? a : null;
         }
 
         /// <summary>A door put aboard opened or shut (its block's own sounds); it won't shut on someone in the doorway.</summary>

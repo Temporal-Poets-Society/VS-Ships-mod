@@ -284,10 +284,12 @@ namespace Hansa
                     plan.refs = SlotRefs(file, kv.Key);
                     plan.hullRefs = kv.Key.StartsWith("slot:hull");
                     plan.part = PartOf(kv.Key);
+                    // ((1 November 2026) her bottom's panels (tar, copper) in no row, whatever their edges' height)
+                    bool bottom = kv.Key.StartsWith("slot:hull:bottom");
                     for (int i = 0; i + 2 < r.Length; i += 3)
                     {
                         int zone = r[i + 2];
-                        if (zone < 0 || zone >= nz) continue;
+                        if (zone < 0 || zone >= nz || bottom && plan.Zones[zone]?.Rows == true) continue;
                         for (int q = Math.Max(0, r[i]); q < Math.Min(quads.Length, r[i + 1]); q++)
                         {
                             // ((0.1.0-dev.9) a zone painted by rows: the row the quad is in, a hair inside it from its face)

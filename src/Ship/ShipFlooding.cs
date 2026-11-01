@@ -42,6 +42,8 @@ namespace Hansa
         public string PumpsWorked = "";
         /// <summary>How foul her bottom is (0 clean .. 1): slower. Copper sheathing keeps it clean.</summary>
         public float Fouling;
+        /// <summary>(1 November 2026) How worn her sheathing is (0 whole .. 1, then it's gone): copper and brass dissolve.</summary>
+        public float CladWear;
         public SinkStage Stage;
         /// <summary>Resting on the bottom (flooded in shallow water, or sunk).</summary>
         public bool OnBottom;
@@ -234,6 +236,7 @@ namespace Hansa
             w.Float("pumped", PumpedRate, 0.01f);
             w.Str("pumpsAt", PumpsWorked ?? "");
             w.Float("foul", Fouling, 0.001f);
+            w.Float("cladWear", CladWear, 0.001f);
             w.Int("stage", (int)Stage);
             w.Bool("onBottom", OnBottom);
             w.Bool("dmgOn", DamageOn);
@@ -256,6 +259,7 @@ namespace Hansa
             PumpedRate = t.GetFloat("pumped");
             PumpsWorked = t.GetString("pumpsAt") ?? "";
             Fouling = t.GetFloat("foul");
+            CladWear = t.GetFloat("cladWear");
             Stage = (SinkStage)t.GetInt("stage");
             OnBottom = t.GetBool("onBottom");
             DamageOn = t.GetBool("dmgOn", true);
@@ -551,8 +555,8 @@ namespace Hansa
             var l = DamageParts;
             if (l == null || PartDamage == null) return;
             foreach (var p in l.Parts)
-                if (p.Kind == DamageKind.Hull) PartDamage.Wear[p.Index] = (float)Math.Clamp(PartDamage.Wear[p.Index] + days / l.D.SeamWearDays * p.WearRate, 0, 1);
-            if (!Clad) Fouling = (float)Math.Clamp(Fouling + days / l.D.FoulingDays, 0, 1);
+                if (p.Kind == DamageKind.Hull) PartDamage.Wear[p.Index] = (float)Math.Clamp(PartDamage.Wear[p.Index] + days / l.D.SeamWearDays * p.WearRate * SheathedWear(p), 0, 1);
+            AgeBottom(days, 1);
             SaveDamage(true);
             SaveState(true);
         }
@@ -777,6 +781,28 @@ namespace Hansa
 
         long founderNoticeMs = -60000;
 
+        /// <summary>(1 November 2026) A part's seam wear under her sheathing (her bottom's, the worm kept out), else 1.</summary>
+        float SheathedWear(DamagePart p) => Clad && p.Center.Y < Def.Waterline ? ShipFittings.SheathedSeamWear : 1;
+
+        /// <summary>
+        /// (1 November 2026) Her bottom this many days on (k: the server's wear factor): it fouls as bare planking or as its
+        /// sheathing lets it, and copper or brass dissolves till it's worn through and falls away.
+        /// </summary>
+        internal void AgeBottom(double days, float k)
+        {
+            var d = DamageParts.D;
+            var sh = Clad ? ShipFittings.SheathingOf(CladMetal) : null;
+            float foulRate = sh?.FoulRate ?? 1;
+            if (foulRate > 0) Fouling = (float)Math.Min(1, Fouling + days / Math.Max(0.1, d.FoulingDays) * foulRate * k * Math.Max(0, Mod.Config.Fouling));
+            if (sh == null || sh.LifeDays <= 0) return;
+            CladWear = (float)Math.Min(1, CladWear + days / sh.LifeDays * k);
+            if (CladWear < 1) return;
+            NotifyAboard("ships:cladding-gone", "ships:cladmetal-" + CladMetal);
+            CladPlates = 0;
+            CladWear = 0;
+            FittingsChanged();
+        }
+
         /// <summary>
         /// Seams age while she's afloat (more in a seaway), each panel at its own rate; an unsheathed bottom fouls; sails
         /// set in a strong wind wear. Game time, counted only while she's loaded (a jump of more than an hour is left out).
@@ -800,8 +826,8 @@ namespace Hansa
             double seam = dh / (24 * Math.Max(0.1, d.SeamWearDays)) * (1 + hs / 2) * k * Math.Max(0, cfg.SeamWear);
             if (seam > 0)
                 foreach (var p in l.Parts)
-                    if (p.Kind == DamageKind.Hull) PartDamage.Wear[p.Index] = (float)Math.Min(1, PartDamage.Wear[p.Index] + seam * p.WearRate);
-            if (!Clad) Fouling = (float)Math.Min(1, Fouling + dh / (24 * Math.Max(0.1, d.FoulingDays)) * k * Math.Max(0, cfg.Fouling));
+                    if (p.Kind == DamageKind.Hull) PartDamage.Wear[p.Index] = (float)Math.Min(1, PartDamage.Wear[p.Index] + seam * p.WearRate * SheathedWear(p));
+            AgeBottom(dh / 24, k);
             // the sails: chafe while they're set (tearing in a gale or taken aback is the strain's, in real seconds:
             // SailStrainTick, 0.3.12)
             double set = SailFraction;

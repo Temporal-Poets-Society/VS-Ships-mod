@@ -1445,10 +1445,13 @@ namespace Hansa
                 steps = fb.Take(Math.Max(0, fb.Count - 1));
             }
             var boxes = plan.Role == PieceRole.Ladder ? plan.Room : plan.Role == PieceRole.Stair ? (steps ?? plan.Solids.Take(Math.Max(0, plan.Solids.Count - 1))).Concat(plan.Room) : plan.Solids.Concat(plan.Sel).Concat(plan.Room);
+            // (a stair's two landings, its room's last boxes: stepped onto over a coaming or a sill)
+            var landings = plan.Role == PieceRole.Stair && plan.Room.Count >= 2 ? plan.Room.Skip(plan.Room.Count - 2).ToList() : null;
             foreach (var s0 in boxes)
             {
                 var s = ClipTo(s0, cells);
                 if (s == null) continue;
+                if (landings != null && landings.Contains(s0)) {if (StairLanding.Blocked(s, grid, ignore)) return s; continue;}
                 if (ignore == null || ignore.Count == 0 ? grid.Collides(s[0] + 0.03, s[1] + 0.03, s[2] + 0.03, s[3] - 0.03, s[4] - 0.03, s[5] - 0.03)
                                                        : CollidesExcept(grid, new[] { s[0] + 0.03, s[1] + 0.03, s[2] + 0.03, s[3] - 0.03, s[4] - 0.03, s[5] - 0.03 }, ignore)) return s;
             }

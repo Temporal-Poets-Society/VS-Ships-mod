@@ -248,7 +248,7 @@ namespace Hansa
                 job.Input = new WreckInput
                 {
                     Def = ship.Def, X = ship.Pos.X, Y = y, Z = ship.Pos.Z, Yaw = ship.Pos.Yaw, List = ship.ListAngle, Trim = ship.Trim,
-                    Hurt = ship.PartDamage?.Hurt, Clad = ship.Clad, Seed = Seed(ship.EntityId), WreckId = ship.EntityId,
+                    Hurt = ship.PartDamage?.Hurt, Clad = ship.Clad, CladMetal = ship.CladMetal, Seed = Seed(ship.EntityId), WreckId = ship.EntityId,
                     // ((0.3.20) her deck cells taken up stay out of her wreck)
                     // ((0.3.26) and her hull panels out: both families' differences)
                     Slots = MergeDeltas(ship.Slots?.Delta(), ship.HullPanels?.Delta()),
@@ -331,7 +331,7 @@ namespace Hansa
             ship.PieceLoot(list, loose, take);
             foreach (var kv in ship.Storages)
                 if (ship.Def.Fixture(kv.Key)?.Type != "attach" && !kv.Key.StartsWith("piece-")) loose.Items.AddRange(Contents(kv.Value, take));
-            if (!ship.Clad && ship.CladPlates > 0 && ship.World.GetItem(new AssetLocation("game:metalplate-copper")) is Item plate)
+            if (!ship.Clad && ship.CladPlates > 0 && ship.World.GetItem(new AssetLocation("game:metalplate-" + ship.CladMetal)) is Item plate)
                 loose.Items.Add(new ItemStack(plate, ship.CladPlates));
             if (take)
             {

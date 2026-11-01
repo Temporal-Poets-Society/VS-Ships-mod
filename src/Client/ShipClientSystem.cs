@@ -565,10 +565,12 @@ namespace Hansa
                 return Lang.Get("ships:hint-board-boat") + (ship.Def.PickUpItem != null ? " · " + Lang.Get("ships:hint-boat-pickup") : "");
             }
             var held = capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack;
-            // ((0.1.0-dev.9, note 101) copper plates, or copper sheets: two a plate)
+            // ((0.1.0-dev.9, note 101) copper plates, or copper sheets: two a plate; (1 November 2026) brass and lead too, worn sheathing renewed)
             if (ShipFittings.CladdingItemsPerPlate(held) > 0)
             {
-                return ship.Clad ? Lang.Get("ships:hint-clad-done") : Lang.Get("ships:hint-clad", ship.CladPlates, ship.Def.CladdingPlates);
+                string metal = Lang.Get("ships:cladmetal-" + ship.CladMetal);
+                return !ship.Clad ? Lang.Get("ships:hint-clad", ship.CladPlates, ship.Def.CladdingPlates)
+                    : ship.RenewPlates > 0 ? Lang.Get("ships:hint-clad-renew", metal, (int)Math.Round(ship.CladWear * 100), ship.RenewPlates) : Lang.Get("ships:hint-clad-done", metal);
             }
             return NearestOutsideLadder(ship, ep.Pos.XYZ, 5) != null ? Lang.Get("ships:hint-board-ladder") : Lang.Get("ships:hint-board-where");
         }

@@ -425,7 +425,9 @@ namespace Hansa
                         PieceRole.Bed => Lang.Get("ships:hint-piece-sleep"),
                         PieceRole.Seat => Lang.Get("ships:hint-piece-sit"),
                         PieceRole.Door => Lang.Get(t.Piece.Open ? "ships:hint-door-shut" : "ships:hint-door-open"),
-                        PieceRole.Hatch => Lang.Get(t.Piece.Open ? "ships:hint-hatch-shut" : "ships:hint-hatch-open"),
+                        // ((1 November 2026) a lead in hand at an open hatch: sling the animal through it)
+                        PieceRole.Hatch => Lang.Get(!t.Piece.Open ? "ships:hint-hatch-open" :
+                            (capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack?.Attributes.GetInt("clothId") ?? 0) > 0 ? "ships:hint-hatch-sling" : "ships:hint-hatch-shut"),
                         // (0.3.14) a working block aboard is the real block: vanilla's own clicks (ShipBlocks)
                         _ => ship.IsWorkingPiece(t.Piece.Id) ? Lang.Get(ShipBlocksClient.Loaded(capi, ship, t.Piece.Id) ? "ships:hint-piece-working" : "ships:hint-piece-working-notloaded") :
                              t.Piece.Stack?.Block is Block wb && VanillaPieceBlock.IsWorkstation(wb) ? Lang.Get("ships:hint-piece-ashore") : null

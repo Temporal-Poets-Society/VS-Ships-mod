@@ -21,7 +21,11 @@ namespace Hansa
             public EntityShip Ship;
             public CreatureDeckMotion Motion;
             public float ShipYaw;
+            /// <summary>(1 November 2026) In a sling through a hatch: its way (CreatureDeckMotion.Sling), the leg it's on and how far along it.</summary>
+            public List<double[]> Path;public int Leg;public double Along;
         }
+        /// <summary>How fast a slung animal is hoisted, swung and lowered (blocks a second).</summary>
+        public const double SlingSpeed=1.0;
         static readonly ConcurrentDictionary<long,Held> held=new();
         static readonly Dictionary<long,EntityAgent> client=new();
         static EntityShip[] ships=Array.Empty<EntityShip>();
@@ -57,18 +61,21 @@ namespace Hansa
         {
             if(e!=null && TestTrace.ContainsKey(e.EntityId)) TestTrace[e.EntityId]=$"physics: {e.State}, eligible {Eligible(e)}, ships {ships.Length}, motion {e.Pos.Motion}";
             if(e?.World?.Side!=EnumAppSide.Server || !Eligible(e) || before==null) return;
+            // (the flute: put on her deck beside its owner, from ashore or from elsewhere aboard)
+            if(expected.TryRemove(e.EntityId,out var put) && Usable(put.Ship) && e.World.ElapsedMilliseconds<put.Until)
+            {
+                var motion=Motion(e,put.At,put.Ship);
+                if(motion.Catch(put.Ship.Grid,LocalYaw(e,put.Ship)))
+                {
+                    motion.Move(put.Ship.Grid,0,-.05,0);
+                    var was=held.TryGetValue(e.EntityId,out var old)?old:null;
+                    if(was!=null) lock(was) {was.Path=null;was.Ship=put.Ship;was.Motion=motion;was.ShipYaw=put.Ship.Pos.Yaw;Place(was);}
+                    else {var n=new Held {Entity=(EntityAgent)e,Ship=put.Ship,Motion=motion,ShipYaw=put.Ship.Pos.Yaw};held[e.EntityId]=n;Place(n);}
+                    return;
+                }
+            }
             if(!held.TryGetValue(e.EntityId,out var h))
             {
-                if(expected.TryRemove(e.EntityId,out var put) && Usable(put.Ship) && e.World.ElapsedMilliseconds<put.Until)
-                {
-                    var motion=Motion(e,put.At,put.Ship);
-                    if(motion.Catch(put.Ship.Grid,LocalYaw(e,put.Ship)))
-                    {
-                        motion.Move(put.Ship.Grid,0,-.05,0);
-                        h=new Held {Entity=(EntityAgent)e,Ship=put.Ship,Motion=motion,ShipYaw=put.Ship.Pos.Yaw};
-                        held[e.EntityId]=h;Place(h);return;
-                    }
-                }
                 foreach(var ship in ships)
                 {
                     if(!Usable(ship) || ship.Pos.Dimension!=e.Pos.Dimension || e.Pos.SquareDistanceTo(ship.Pos)>1600) continue;
@@ -90,7 +97,10 @@ namespace Hansa
             }
             lock(h)
             {
-                if(!Usable(h.Ship) || e.Pos.Dimension!=h.Ship.Pos.Dimension || e.Pos.SquareDistanceTo(before)>36) {Release(h);return;}
+                if(!Usable(h.Ship) || e.Pos.Dimension!=h.Ship.Pos.Dimension) {Release(h);return;}
+                // (in the sling it goes where the tackle takes it: Tick)
+                if(h.Path!=null) {Place(h);return;}
+                if(e.Pos.SquareDistanceTo(before)>36) {Release(h);return;}
                 var d=h.Ship.WorldDirToLocal(e.Pos.X-before.X,e.Pos.Y-before.Y,e.Pos.Z-before.Z);
                 h.Motion.Turn(h.Ship.Grid,LocalYaw(e,h.Ship));
                 if(!h.Motion.Move(h.Ship.Grid,d.X,d.Y,d.Z)) {Release(h);return;}
@@ -109,8 +119,9 @@ namespace Hansa
                 foreach(var entity in api.World.GetEntitiesAround(ship.Pos.XYZ,35,35,e=>Eligible(e) && !held.ContainsKey(e.EntityId)))
                     if(entity.WatchedAttributes[Key] is ITreeAttribute t && t.GetLong("ship")==ship.EntityId)
                     {
+                        // ((1 November 2026) its body as it stood: turned, or squared either way to her timbers)
                         var m=Motion(entity,new Vec3d(t.GetDouble("x"),t.GetDouble("y"),t.GetDouble("z")),ship);
-                        if(!m.Stuck(ship.Grid) && m.Over(ship.Grid)) held[entity.EntityId]=new Held {Entity=(EntityAgent)entity,Ship=ship,Motion=m,ShipYaw=ship.Pos.Yaw};
+                        if(m.Catch(ship.Grid,LocalYaw(entity,ship))) held[entity.EntityId]=new Held {Entity=(EntityAgent)entity,Ship=ship,Motion=m,ShipYaw=ship.Pos.Yaw};
                         else entity.WatchedAttributes.RemoveAttribute(Key);
                     }
             }
@@ -118,9 +129,57 @@ namespace Hansa
                 lock(h)
                 {
                     if(!Eligible(h.Entity) || !Usable(h.Ship) || h.Entity.State==EnumEntityState.Despawned) {Release(h);continue;}
+                    if(h.Path!=null) Hoist(h,dt);
                     Place(h);
                 }
         }
+        /// <summary>Along its sling's way by dt; at its end it stands there, its body turned as the way says.</summary>
+        static void Hoist(Held h,double dt)
+        {
+            double left=dt*SlingSpeed;var m=h.Motion;var p=h.Path;
+            while(h.Leg<p.Count-1)
+            {
+                var a=p[h.Leg];var b=p[h.Leg+1];
+                double len=Math.Sqrt((b[0]-a[0])*(b[0]-a[0])+(b[1]-a[1])*(b[1]-a[1])+(b[2]-a[2])*(b[2]-a[2]));
+                double rest=len*(1-h.Along);
+                if(left<rest) {h.Along+=left/len;break;}
+                left-=rest;h.Leg++;h.Along=0;
+            }
+            if(h.Leg>=p.Count-1)
+            {
+                var end=p[^1];m.X=end[0];m.Y=end[1];m.Z=end[2];
+                m.Body(end.Length>3?end[3]:0,out m.HalfX,out m.HalfZ);m.OnGround=true;h.Path=null;return;
+            }
+            var s=p[h.Leg];var f=p[h.Leg+1];
+            m.X=s[0]+(f[0]-s[0])*h.Along;m.Y=s[1]+(f[1]-s[1])*h.Along;m.Z=s[2]+(f[2]-s[2])*h.Along;m.OnGround=false;
+        }
+        /// <summary>
+        /// (1 November 2026) Sling an animal aboard through an open hatch: down from the deck beside it, or up from under it.
+        /// Null when it's in the sling, else why not (a lang key).
+        /// </summary>
+        public static string Sling(EntityShip ship,EntityAgent animal,ShipPiece hatch)
+        {
+            if(animal==null || !held.TryGetValue(animal.EntityId,out var h) || h.Ship!=ship) return "ships:sling-not-aboard";
+            lock(h)
+            {
+                if(h.Path!=null) return "ships:sling-busy";
+                double deck=hatch.Box[1]-hatch.Coaming;
+                // hoisted clear of the coaming and its leaves standing open
+                double clear=hatch.Coaming+Math.Min(hatch.Box[3]-hatch.Box[0],hatch.Box[5]-hatch.Box[2])/2+.25;
+                var path=CreatureDeckMotion.Sling(ship.Grid,h.Motion,hatch.Box[0],hatch.Box[2],hatch.Box[3],hatch.Box[5],deck,clear,out string why);
+                if(path==null) return why;
+                h.Path=path;h.Leg=0;h.Along=0;
+            }
+            return null;
+        }
+        /// <summary>(self-test) Its sling moved on by dt, as Tick does; true while it's still in the sling.</summary>
+        internal static bool Hoisting(Entity e,double dt)
+        {
+            if(!held.TryGetValue(e.EntityId,out var h)) return false;
+            lock(h) {if(h.Path!=null) Hoist(h,dt);Place(h);return h.Path!=null;}
+        }
+        /// <summary>The slung animal's way down (true) or up, as Sling planned it: where it ends against where it started.</summary>
+        public static bool SlungDown(EntityAgent animal) => held.TryGetValue(animal.EntityId,out var h) && h.Path!=null && h.Path[^1][1]<h.Path[0][1];
         static void Place(Held h)
         {
             var e=h.Entity;var m=h.Motion;

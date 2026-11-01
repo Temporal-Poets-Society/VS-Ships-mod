@@ -189,6 +189,15 @@ namespace HansaTests
             Check(Per("game:metalplate-copper") == 1 && Per("game:metalsheet-copper-down") == 2 && Per("game:metalsheet-copper-north") == 2 &&
                   Per("game:metalplate-iron") == 0 && Per("game:metalsheet-iron-down") == 0 && Per("game:ingot-copper") == 0 && Per("ships:metalplate-copper") == 0,
                 "note 101: her bottom sheathed with copper plates or vanilla's copper sheets (two a plate: a sheet is one ingot, a plate two), nothing else");
+            Check(Per("game:metalplate-brass") == 1 && Per("game:metalsheet-brass-up") == 2 && Per("game:metalplate-tinbronze") == 0 &&
+                  ShipFittings.CladdingMetal(new ItemStack(new Item { Code = new AssetLocation("game:metalsheet-brass-down") })) == "brass" &&
+                  ShipFittings.CladdingMetal(new ItemStack(new Item { Code = new AssetLocation("game:metalplate-copper") })) == "copper",
+                "(1 November 2026, the user: \"copper sheeting my mind should accept brass\") brass plates and sheets sheathe her too, their metal known; bronze doesn't");
+            var cu = ShipFittings.SheathingOf("copper"); var br = ShipFittings.SheathingOf("brass"); var pb = ShipFittings.SheathingOf("lead");
+            Check(Per("game:metalplate-lead") == 1 && Per("game:metalsheet-lead-north") == 2 &&
+                  cu.FoulRate == 0 && cu.LifeDays > 0 && cu.Fast && br.FoulRate > 0 && br.FoulRate < 1 && br.LifeDays > cu.LifeDays && br.Fast &&
+                  pb.FoulRate == 1 && pb.LifeDays == 0 && !pb.Fast && ShipFittings.SheathedSeamWear < 1,
+                "(\"we can have all of them\") lead sheathes her too; copper keeps her clean but wears away, brass fouls a little and lasts longer, lead never wears but fouls and isn't faster; any keeps the worm off her bottom's seams");
 
             // (HANSA_TEST_CARAVEL_ROOT: another checkout's caravel, read in place: a new export checked before it's here)
             root = Environment.GetEnvironmentVariable("HANSA_TEST_CARAVEL_ROOT") is string other && other.Length > 0 ? other : root;
@@ -206,8 +215,8 @@ namespace HansaTests
             var rows = plan.Zones.Where(z => z.Parent == "topsides").OrderBy(z => z.Band).ToList();
             Console.WriteLine($"         {(theirs ? "her design's" : "with \"rows\" set here on")} topsides: floor band {plan.RowFloor} (waterline {def.Waterline} in band {plan.RowOf(def.Waterline)}); " +
                 string.Join(", ", rows.Select(z => $"band {z.Band} {plan.Area[plan.ZoneIndex(z.Code)]:0.0} m²")));
-            Check(plan.RowOf(def.Waterline) == 2 && plan.RowFloor == 3 && plan.RowOf(1.2) == 4 && plan.RowOf(def.DeckY + 1e-3) == 4,
-                "her rows are her hull slots' bands: the waterline in band 2, the margin band 3 (to her main deck's height), band 4 the first painted");
+            Check(plan.RowOf(def.Waterline) == 2 && plan.RowFloor == 2 && plan.RowOf(1.0) == 3 && plan.RowOf(1.2) == 4 && plan.RowOf(def.DeckY + 1e-3) == 4,
+                "her rows are her hull slots' bands: the waterline in band 2 (with her bottom, as built), band 3 (to her main deck's height) the first painted (1 November 2026: \"cannot pain bottom stripe above copper\")");
             int ti = plan.ZoneIndex("topsides");
             Check(rows.Count >= 2 && rows.All(z => z.Band > plan.RowFloor && plan.Area[plan.ZoneIndex(z.Code)] > 0) && plan.Area[ti] == 0,
                 $"her topsides a zone each band over the margin ({rows.Count}: {string.Join(", ", rows.Select(z => z.Band))}), the whole zone none of its own");
@@ -219,9 +228,9 @@ namespace HansaTests
                     if (zs[q] < 0 || plan.Zones[zs[q]].Parent != "topsides") continue;
                     var quad = file.Groups[g][q];
                     double top = Math.Max(Math.Max(quad[2], quad[10]), Math.Max(quad[18], quad[26]));
-                    if (top < def.DeckY - 0.01 || g.Contains("bottom")) low.Add($"{g} q{q} (top {top:0.00})");
+                    if (top < def.DeckY - 1 - 0.01 || g.Contains("bottom")) low.Add($"{g} q{q} (top {top:0.00})");
                 }
-            Check(low.Count == 0, $"no quad of her topsides' rows under band 4 or on her bottom ({low.Count}: {string.Join("; ", low.Take(3))})");
+            Check(low.Count == 0, $"no quad of her topsides' rows under band 3 or on her bottom ({low.Count}: {string.Join("; ", low.Take(3))})");
             bool bottomZoned = asBuilt.QuadZones.TryGetValue("slot:hull:bottom", out var bz) && bz.Any(z => z >= 0 && asBuilt.Zones[z].Code == "topsides");
             Check(!plan.QuadZones.TryGetValue("slot:hull:bottom", out var bz2) || bz2.All(z => z < 0 || plan.Zones[z].Parent != "topsides"),
                 $"her bottom's panels (slot:hull:bottom) in no band of her topsides (her mesh puts them in topsides as a whole: {bottomZoned})");

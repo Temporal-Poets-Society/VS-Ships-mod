@@ -24,6 +24,8 @@ namespace Hansa
             public readonly Dictionary<(string Group, int Chunk), MultiTextureMeshRef> Mesh = new();
             public readonly SortedSet<int> Pending = new();
             public int PaintVersion = int.MinValue;
+            /// <summary>(1 November 2026) Her sheathing's metal they were built with.</summary>
+            public string CladMetal;
             public bool Started;
             /// <summary>(0.3.26) Hull panels: each one's damage look as last built, the damage version and when it was looked at.</summary>
             public byte[] Looks;
@@ -104,14 +106,16 @@ namespace Hansa
                         states.TakeChanged();
                         for (int c = 0; c < sd.Plan.ChunkCount; c++) sc.Pending.Add(c);
                         sc.PaintVersion = ship.PaintVersion;
+                        sc.CladMetal = ship.CladMetal;
                         sc.Looks = SlotLooks(ship, fam, states.Count);
                         sc.DamageVersion = ship.DamageVersion;
                     }
                     else
                     {
                         foreach (int c in sd.Plan.Affected(states.TakeChanged())) sc.Pending.Add(c);
-                        if (sc.PaintVersion != ship.PaintVersion)
+                        if (sc.PaintVersion != ship.PaintVersion || sc.CladMetal != ship.CladMetal)
                         {
+                            sc.CladMetal = ship.CladMetal;
                             // (her paint changed: every chunk again; a deck's underside is a ceiling's zone)
                             sc.PaintVersion = ship.PaintVersion;
                             for (int c = 0; c < sd.Plan.ChunkCount; c++) sc.Pending.Add(c);
@@ -201,12 +205,15 @@ namespace Hansa
                 if (painted) plan.QuadZones.TryGetValue(g, out zones);
                 var (owners, facings) = sd.Plan.Refs[g];
                 bool inside = g == "slot:hull:interior" || g == "slot:deck:interior";
+                // ((1 November 2026) sheathed in brass: vanilla's brass sheets for her copper ones)
+                string clad = g == "slot:hull:bottomclad" && ship.CladMetal != "copper" ? ship.CladMetal : null;
                 var list = new float[idx.Count][];
                 for (int n = 0; n < idx.Count; n++)
                 {
                     int q = idx[n];
                     var quad = quads[q];
                     string name = null;
+                    if (clad != null && sd.TexNames[(int)quad[0]] is string own && own.Contains("/sheet/copper")) name = own.Replace("/sheet/copper", "/sheet/" + clad);
                     if (zones != null && q < zones.Length && zones[q] >= 0 && zones[q] < plan.Zones.Length &&
                         plan.PaintOf(ship.Paint, zones[q]) is string paint)
                         name = ShipPaint.Painted(sd.TexNames[(int)quads[q][0]], paint);

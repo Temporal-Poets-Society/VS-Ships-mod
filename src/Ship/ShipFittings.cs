@@ -114,10 +114,49 @@ namespace Hansa
         /// </summary>
         public static int CladdingItemsPerPlate(ItemStack stack)
         {
+            if (CladdingMetal(stack) is not string metal) return 0;
+            return stack.Collectible.Code.Path == "metalplate-" + metal ? 1 : 2;
+        }
+
+        /// <summary>
+        /// (1 November 2026, the user: "copper sheeting my mind should accept brass", "we can have all of them") The metals
+        /// her bottom is sheathed in, each as it served: lead (16th-century Iberian ships) keeps the worm out of her planking
+        /// and lasts, but weed grows on it; copper (from the 1760s) keeps her clean and fast by slowly dissolving, so it
+        /// wears away; brass (Muntz's yellow metal, 1830s) dissolves slower and fouls a little.
+        /// </summary>
+        public static readonly string[] CladdingMetals = { "copper", "brass", "lead" };
+
+        /// <summary>How a sheathing metal serves her bottom.</summary>
+        public sealed class Sheathing
+        {
+            /// <summary>How fast her bottom fouls under it, of bare planking's (0: never).</summary>
+            public float FoulRate;
+            /// <summary>Game days afloat it lasts before it's worn through and falls away (0: it doesn't wear).</summary>
+            public float LifeDays;
+            /// <summary>Smooth and clean: she has the design's sheathed speed bonus.</summary>
+            public bool Fast;
+        }
+
+        public static readonly Dictionary<string, Sheathing> Sheathings = new()
+        {
+            ["copper"] = new Sheathing { FoulRate = 0, LifeDays = 400, Fast = true },
+            ["brass"] = new Sheathing { FoulRate = 0.25f, LifeDays = 600, Fast = true },
+            ["lead"] = new Sheathing { FoulRate = 1, LifeDays = 0, Fast = false },
+        };
+
+        /// <summary>Her bottom's seams under any sheathing (the worm kept out) wear at this rate of bare planking's.</summary>
+        public const float SheathedSeamWear = 0.5f;
+
+        public static Sheathing SheathingOf(string metal) => metal != null && Sheathings.TryGetValue(metal, out var s) ? s : Sheathings["copper"];
+
+        /// <summary>The metal of a plate or sheet for her bottom ("copper", "brass"), or null.</summary>
+        public static string CladdingMetal(ItemStack stack)
+        {
             var code = stack?.Collectible?.Code;
-            if (code == null || code.Domain != "game") return 0;
-            if (code.Path == "metalplate-copper") return 1;
-            return code.Path.StartsWith("metalsheet-copper-") ? 2 : 0;
+            if (code == null || code.Domain != "game") return null;
+            foreach (string m in CladdingMetals)
+                if (code.Path == "metalplate-" + m || code.Path.StartsWith("metalsheet-" + m + "-")) return m;
+            return null;
         }
 
         /// <summary>

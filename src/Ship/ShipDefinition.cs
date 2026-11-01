@@ -113,9 +113,10 @@ namespace Hansa
         /// <summary>
         /// (0.1.0-dev.9, note 101: "hull below water line + some extra should not be paintable") The block rows over the
         /// waterline's row that a zone painted by rows (<see cref="PaintZoneDef.Rows"/>) leaves as built with her bottom
-        /// (tar, copper): the boot-top.
+        /// (tar, copper): the boot-top. ((1 November 2026, the user: "cannot pain bottom stripe above copper") none: the row
+        /// over the waterline's is painted as any other; the waterline's row and her bottom stay as built.)
         /// </summary>
-        public int PaintMarginRows = 1;
+        public int PaintMarginRows = 0;
         /// <summary>(0.3.14, notes 150–152) The generator's rig check: her standing rigging, which her sails are pressed against (<see cref="SailPress"/>).</summary>
         public RigCheckDef RigCheck;
         /// <summary>

@@ -468,25 +468,40 @@ def cut_height(tri, uvs, height, below):
 from functools import lru_cache
 
 
+# her waterlines once: each one's x, half-breadth and arclength along it (from x -4500)
+_HZ = [l["z"] for l in L["hull"]]
+_HL = []
+for _l in L["hull"]:
+    _p = _np.asarray(_l["pts"], float)
+    _s = _np.r_[0.0, _np.cumsum(_np.linalg.norm(_np.diff(_p, axis=0), axis=1))]
+    _HL.append((_p[:, 0], _p[:, 1], _s - _np.interp(-4500.0, _p[:, 0], _s)))
+
+
 @lru_cache(maxsize=None)
 def copper_uv(p):
     """Magelan's along-strake arclength, and distance round the section: 16 texels per physical metre."""
     x, y, z = p
     if abs(z - LV["underside"]) < 0.01:
         return (x / 1000 * 16, abs(y) / 1000 * 16)
-    lines = L["hull"]
-    def along(line):
-        pts = _np.asarray(line["pts"], float)
-        s = _np.r_[0.0, _np.cumsum(_np.linalg.norm(_np.diff(pts, axis=0), axis=1))]
-        return float(_np.interp(x, pts[:, 0], s) - _np.interp(-4500.0, pts[:, 0], s))
-    zs = [l["z"] for l in lines]
-    k = max(0, min(len(lines) - 2, int(_np.searchsorted(zs, z)) - 1))
-    u = float(_np.interp(z, zs[k:k + 2], [along(lines[k]), along(lines[k + 1])]))
-    section = _np.array([[l["z"], _np.interp(x, [q[0] for q in l["pts"]], [q[1] for q in l["pts"]])] for l in lines])
+    k = max(0, min(len(_HL) - 2, int(_np.searchsorted(_HZ, z)) - 1))
+    u = float(_np.interp(z, _HZ[k:k + 2], [_np.interp(x, _HL[k][0], _HL[k][2]), _np.interp(x, _HL[k + 1][0], _HL[k + 1][2])]))
+    section = _np.array([[zl, _np.interp(x, xs, ys)] for zl, (xs, ys, _s) in zip(_HZ, _HL)])
     ss = _np.r_[0.0, _np.cumsum(_np.linalg.norm(_np.diff(section, axis=0), axis=1))]
     # Continue across the flat floor from the keel to the bilge. Height alone has no distance across a flat face.
     v = abs(y) if abs(z - LV["underside"]) < 0.01 else float(section[0, 1] + _np.interp(z, section[:, 0], ss))
     return (u / 1000 * 16, v / 1000 * 16)
+
+
+def shell_uv(tri, n, uvs):
+    """(1 November 2026, the user: "ship outside textures are warped", "bow inside also has warp") Her planking, outside
+    and in, as her copper: along the strake by girth round the section, so a plank runs on unbroken from one triangle to
+    the next (each triangle's own plane, as wood_uv takes it, shifts the planks a few texels where her side curves); round
+    her bow into the stem too, the strakes' arclength following the curve. A face up or down (an edge, her floor), a cut
+    across her (a cell's border, flat in x) and her transom (aft, turned fore and aft) keep their own plane's."""
+    xs = [p[0] for p in tri]
+    if abs(n[2]) > 0.7 or max(xs) - min(xs) < 2.0 or (abs(n[0]) > 0.7 and min(xs) < -10000.0):
+        return uvs
+    return [copper_uv(tuple(p)) for p in tri]
 
 
 def hull_tri(body, tri, uvs, n, c3, own, fac):
@@ -561,6 +576,8 @@ for c in cells["cells"]:
             cy = sum(q[1] for q in tri) / 3
             cx = sum(q[0] for q in tri) / 3
             uvs = [uv_grain(q, n, origin, grain) for q in tri]
+            if body == "Shell":
+                uvs = shell_uv(tri, n, uvs)
             if dk is not None:
                 lit = deck_lit(n, (cx, cy, cz))
                 sg = "slot:deck" if lit else "slot:deck:interior"

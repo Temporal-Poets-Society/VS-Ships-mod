@@ -97,6 +97,8 @@ namespace Hansa
         public readonly Dictionary<string, ItemStack> Attached = new();
         /// <summary>Copper plates nailed on so far (sheathed once it reaches Def.CladdingPlates).</summary>
         public int CladPlates;
+        /// <summary>(1 November 2026) What they are: "copper", "brass" or "lead" (<see cref="ShipFittings.CladdingMetals"/>).</summary>
+        public string CladMetal = "copper";
         /// <summary>Her name, painted on the name board (null until someone names her).</summary>
         public string ShipName;
         /// <summary>The figurehead she carries (one of the figurehead fixture's options; null = the first).</summary>
@@ -1333,28 +1335,61 @@ namespace Hansa
         public int AddCladding(IServerPlayer player)
         {
             var slot = player?.InventoryManager.ActiveHotbarSlot;
-            if (slot?.Itemstack == null || Clad) return 0;
+            if (slot?.Itemstack == null) return 0;
             int per = ShipFittings.CladdingItemsPerPlate(slot.Itemstack);
             if (per == 0)
             {
                 Notify(player, "ships:cladding-needs-copper");
                 return 0;
             }
+            // ((1 November 2026) one metal: a bottom begun in copper is finished and renewed in copper
+            string metal = ShipFittings.CladdingMetal(slot.Itemstack);
+            if (CladPlates > 0 && metal != CladMetal)
+            {
+                player.SendIngameError("ships-cladding", Lang.GetL(player.LanguageCode, "ships:cladding-other-metal", Lang.GetL(player.LanguageCode, "ships:cladmetal-" + CladMetal)));
+                return 0;
+            }
+            // ((1 November 2026) sheathed: her worn plates renewed, none if it's whole)
+            bool renew = Clad;
+            if (renew && RenewPlates == 0)
+            {
+                Notify(player, "ships:cladding-whole");
+                return 0;
+            }
+            CladMetal = metal;
             bool creative = player.WorldData?.CurrentGameMode == EnumGameMode.Creative;
             if (!creative && slot.Itemstack.StackSize < per)
             {
                 Notify(player, "ships:cladding-sheets-pair");
                 return 0;
             }
-            int take = AddCladdingPlates(creative ? Def.CladdingPlates : slot.Itemstack.StackSize / per);
+            int have = creative ? Def.CladdingPlates : slot.Itemstack.StackSize / per;
+            int take = renew ? RenewCladding(have) : AddCladdingPlates(have);
             if (!creative)
             {
                 slot.TakeOut(take * per);
                 slot.MarkDirty();
             }
-            player.SendMessage(GlobalConstants.InfoLogChatGroup, Clad
-                ? Lang.GetL(player.LanguageCode, "ships:cladding-done")
-                : Lang.GetL(player.LanguageCode, "ships:cladding-progress", CladPlates, Def.CladdingPlates), EnumChatType.Notification);
+            string m = Lang.GetL(player.LanguageCode, "ships:cladmetal-" + CladMetal);
+            player.SendMessage(GlobalConstants.InfoLogChatGroup, renew
+                ? Lang.GetL(player.LanguageCode, "ships:cladding-renewed", m, take, (int)Math.Round(CladWear * 100))
+                : Clad
+                ? Lang.GetL(player.LanguageCode, "ships:cladding-done", m) + " " + Lang.GetL(player.LanguageCode, "ships:cladding-note-" + CladMetal)
+                : Lang.GetL(player.LanguageCode, "ships:cladding-progress", CladPlates, Def.CladdingPlates, Lang.GetL(player.LanguageCode, "ships:cladmetal-" + CladMetal)), EnumChatType.Notification);
+            return take;
+        }
+
+        /// <summary>(1 November 2026) Plates her worn sheathing needs to be whole again.</summary>
+        public int RenewPlates => Clad && CladWear > 1e-4f ? (int)Math.Ceiling(CladWear * Def.CladdingPlates - 1e-6) : 0;
+
+        /// <summary>(1 November 2026) Renew worn sheathing with up to this many plates. Returns the plates used.</summary>
+        public int RenewCladding(int plates)
+        {
+            int take = Math.Max(0, Math.Min(RenewPlates, plates));
+            if (take == 0) return 0;
+            CladWear = Math.Max(0, CladWear - (float)take / Def.CladdingPlates);
+            if (CladWear < 1e-4f) CladWear = 0;
+            SaveState(true);
             return take;
         }
 
@@ -1363,8 +1398,8 @@ namespace Hansa
             int take = Math.Max(0, Math.Min(Def.CladdingPlates - CladPlates, plates));
             if (take == 0) return 0;
             CladPlates += take;
-            // her bottom is scraped clean for the copper (and stays clean under it)
-            if (Clad && Fouling > 0) { Fouling = 0; SaveState(true); }
+            // her bottom is scraped clean for the sheathing (and stays clean under copper)
+            if (Clad) { Fouling = 0; CladWear = 0; SaveState(true); }
             FittingsChanged();
             return take;
         }
@@ -1447,6 +1482,7 @@ namespace Hansa
             var t = WatchedAttributes.GetOrAddTreeAttribute("hansaFit");
             t.SetString("open", string.Join(",", OpenFittings));
             t.SetInt("clad", CladPlates);
+            t.SetString("cladMetal", CladMetal);
             if (ShipName != null) t.SetString("name", ShipName); else t.RemoveAttribute("name");
             NameStyle.ToTree(t);
             if (Figurehead != null) t.SetString("figurehead", Figurehead); else t.RemoveAttribute("figurehead");
@@ -1463,6 +1499,7 @@ namespace Hansa
             OpenFittings.Clear();
             Attached.Clear();
             CladPlates = 0;
+            CladMetal = "copper";
             ShipName = null;
             Figurehead = null;
             NameStyle = NameStyle.FromTree(t);
@@ -1475,6 +1512,7 @@ namespace Hansa
             {
                 foreach (string s in (t.GetString("open") ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)) OpenFittings.Add(s);
                 CladPlates = t.GetInt("clad");
+                CladMetal = Array.IndexOf(ShipFittings.CladdingMetals, t.GetString("cladMetal")) >= 0 ? t.GetString("cladMetal") : "copper";
                 ShipName = t.GetString("name");
                 Figurehead = t.GetString("figurehead");
                 if (t.GetTreeAttribute("attach") is ITreeAttribute at)
@@ -1962,7 +2000,7 @@ namespace Hansa
             ServerLateens(dt);
             TrimRig(dt);
 
-            float maxSpeed = Def.MaxSpeed * cfg.SpeedMultiplier * (Clad ? 1 + Def.CladdingSpeedBonus : 1) * (float)SpeedFactorNow;
+            float maxSpeed = Def.MaxSpeed * cfg.SpeedMultiplier * (Clad && ShipFittings.SheathingOf(CladMetal).Fast ? 1 + Def.CladdingSpeedBonus : 1) * (float)SpeedFactorNow;
             if (maxSpeed != MaxSpeedNow || cfg.SailByWind != SailByWind || cfg.Cannons != CannonsOn || cfg.CannonsNeedShot != CannonsNeedShot || cfg.PointCloser != PointCloser)
             {
                 MaxSpeedNow = maxSpeed;

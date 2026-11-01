@@ -13,7 +13,9 @@
 		tarred: { base: "game:block/wood/planks/aged/veryaged1" },
 		pine: { base: "game:block/wood/debarked/aged" },
 		copper: { base: "game:block/metal/tarnished/tarnished-copper" },
-		iron: { base: "game:block/metal/tarnished/rusty-iron" }
+		iron: { base: "game:block/metal/tarnished/rusty-iron" },
+		brass: { base: "game:block/metal/tarnished/brass" },
+		lead: { base: "game:block/metal/tarnished/tarnished-lead" }
 	},
 	blockmaterial: "Wood",
 	drops: [],

@@ -157,11 +157,21 @@ namespace Hansa
             if (plan?.Role != PieceRole.Stair || grid == null || plan.Room.Count < 2) return false;
             for (int n = plan.Room.Count - 2; n < plan.Room.Count; n++)
             {
-                var s = plan.Room[n];
-                if (grid.Collides(s[0] + 0.03, s[1] + 0.03, s[2] + 0.03, s[3] - 0.03, s[4] - 0.03, s[5] - 0.03)) return true;
+                if (Blocked(plan.Room[n], grid, null)) return true;
             }
             return false;
         }
+
+        /// <summary>
+        /// Is a landing's box in her collision (but the ignored boxes' voxels)? ((1 November 2026) a hatch's coaming, a sill
+        /// is stepped over, as on deck: the box lifted up to half a block clear of it isn't.)
+        /// </summary>
+        public static bool Blocked(double[] s, VoxelGrid grid, List<double[]> ignore) =>
+            new[] { 0, 0.25, 0.5 }.All(up =>
+            {
+                var b = new[] { s[0] + 0.03, s[1] + up + 0.03, s[2] + 0.03, s[3] - 0.03, s[4] + up - 0.03, s[5] - 0.03 };
+                return ignore == null || ignore.Count == 0 ? grid.Collides(b[0], b[1], b[2], b[3], b[4], b[5]) : PiecePlanner.CollidesExcept(grid, b, ignore);
+            });
     }
 
     /// <summary>(0.3.28) What open deck cells refuse a piece (pure: the ship and the offline tests share it).</summary>
