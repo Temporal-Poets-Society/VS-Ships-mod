@@ -477,32 +477,64 @@ for _l in L["hull"]:
     _HL.append((_p[:, 0], _p[:, 1], _s - _np.interp(-4500.0, _p[:, 0], _s)))
 
 
+def _along(x, z):
+    """Arclength along her strakes at (x, z) (mm, from x -4500): between the waterlines over and under it."""
+    k = max(0, min(len(_HL) - 2, int(_np.searchsorted(_HZ, z)) - 1))
+    return float(_np.interp(z, _HZ[k:k + 2], [_np.interp(x, _HL[k][0], _HL[k][2]), _np.interp(x, _HL[k + 1][0], _HL[k + 1][2])]))
+
+
+@lru_cache(maxsize=None)
+def _section(x):
+    """Her section at x: the waterlines' heights, the half-breadth at the lowest, and the girth up to each."""
+    section = _np.array([[zl, _np.interp(x, xs, ys)] for zl, (xs, ys, _s) in zip(_HZ, _HL)])
+    ss = _np.r_[0.0, _np.cumsum(_np.linalg.norm(_np.diff(section, axis=0), axis=1))]
+    return section[:, 0], float(section[0, 1]), ss
+
+
+def _girth(x, z):
+    """Distance round her section at x from her keel (across the flat floor, then up the side) to height z (mm)."""
+    zs, y0, ss = _section(round(x, 1))
+    return y0 + float(_np.interp(z, zs, ss))
+
+
 @lru_cache(maxsize=None)
 def copper_uv(p):
     """Magelan's along-strake arclength, and distance round the section: 16 texels per physical metre."""
     x, y, z = p
     if abs(z - LV["underside"]) < 0.01:
         return (x / 1000 * 16, abs(y) / 1000 * 16)
-    k = max(0, min(len(_HL) - 2, int(_np.searchsorted(_HZ, z)) - 1))
-    u = float(_np.interp(z, _HZ[k:k + 2], [_np.interp(x, _HL[k][0], _HL[k][2]), _np.interp(x, _HL[k + 1][0], _HL[k + 1][2])]))
-    section = _np.array([[zl, _np.interp(x, xs, ys)] for zl, (xs, ys, _s) in zip(_HZ, _HL)])
-    ss = _np.r_[0.0, _np.cumsum(_np.linalg.norm(_np.diff(section, axis=0), axis=1))]
     # Continue across the flat floor from the keel to the bilge. Height alone has no distance across a flat face.
-    v = abs(y) if abs(z - LV["underside"]) < 0.01 else float(section[0, 1] + _np.interp(z, section[:, 0], ss))
-    return (u / 1000 * 16, v / 1000 * 16)
+    return (_along(x, z) / 1000 * 16, _girth(x, z) / 1000 * 16)
+
+
+TRANSOM_X = L["transomPlane"]["low"][0]
+# her midship section: where her main deck's waterline is broadest, her side at its plainest
+_MID_X = float(_HL[_HZ.index(LV["mainDeck"])][0][int(_np.argmax(_HL[_HZ.index(LV["mainDeck"])][1]))])
+
+
+def _strake(z):
+    """Her planking's height from her main deck's edge, measured round her midship section (mm): by height alone, so
+    every strake runs level with the deck the length of her, its width there its true one."""
+    return _girth(_MID_X, z) - _girth(_MID_X, LV["mainDeck"])
 
 
 def shell_uv(tri, n, uvs):
     """(1 November 2026, the user: "ship outside textures are warped", "bow inside also has warp") Her planking, outside
     and in, as her copper: along the strake by girth round the section, so a plank runs on unbroken from one triangle to
     the next (each triangle's own plane, as wood_uv takes it, shifts the planks a few texels where her side curves); round
-    her bow into the stem too, the strakes' arclength following the curve. A face up or down (an edge, her floor), a cut
-    across her (a cell's border, flat in x) and her transom (aft, turned fore and aft) keep their own plane's."""
+    her bow into the stem and her quarters into the transom too, the strakes' arclength following the curve. (The user:
+    "started parallel main deck and tile up and bottom ... now it looks bad half ended boards") The height is measured from
+    her main deck's edge, so a seam runs along it and the boards are whole there. It is measured round her midship
+    section, not each section's own: at her bow a section cuts her flaring side at a slant and ends at her stem, and
+    the strakes dipped and rose there (the user: "this does not look right yet"). A face up or down (an edge, her
+    floor), a cut across her (a cell's border, flat in x) and her flat transom keep their own plane's."""
     xs = [p[0] for p in tri]
-    if abs(n[2]) > 0.7 or max(xs) - min(xs) < 2.0 or (abs(n[0]) > 0.7 and min(xs) < -10000.0):
+    if abs(n[2]) > 0.7 or max(xs) - min(xs) < 2.0 or (abs(n[0]) > 0.7 and max(abs(x - TRANSOM_X) for x in xs) < 150.0):
         return uvs
-    return [copper_uv(tuple(p)) for p in tri]
-
+    out = []
+    for x, y, z in tri:
+        out.append((_along(x, z) / 1000 * 16, _strake(z) / 1000 * 16))
+    return out
 
 def hull_tri(body, tri, uvs, n, c3, own, fac):
     """A triangle of her side's planking (or a fixed piece's face toward a panel) for the hull's slot groups."""
