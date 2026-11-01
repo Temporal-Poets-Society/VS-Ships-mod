@@ -1562,6 +1562,20 @@ namespace Hansa
                 return PlacementMesh.Bounds(PlacementMesh.Corners(Box).Select(p=>DoorPoint(p)));
             }
         }
+        /// <summary>
+        /// (1 November 2026, the user: "Cannot close door from outside ships cabin") An open door seen from (x, z), on the side
+        /// its leaf swings away from: the leaf lies back against the wall beyond, hidden behind it, so there its doorway is
+        /// picked and seen as the door (vanilla's leaf stands out across its doorway and is seen from both sides).
+        /// </summary>
+        public bool DoorwayFrom(double x, double z)
+        {
+            if (OpenLeafBox is not double[] leaf || !Open) return false;
+            bool alongX = Box[3] - Box[0] > Box[5] - Box[2];
+            double mid = alongX ? (Box[2] + Box[5]) / 2 : (Box[0] + Box[3]) / 2;
+            double leafMid = alongX ? (leaf[2] + leaf[5]) / 2 : (leaf[0] + leaf[3]) / 2;
+            return ((alongX ? z : x) - mid) * (leafMid - mid) < 0;
+        }
+
         /// <summary>(25 October 2026, note 89) A door hung at its border's +x/+z end (its hinge past the middle of its box).</summary>
         public bool HingeHighEnd => Role == PieceRole.Door && Pivot != null && Box != null &&
                                     (Box[3] - Box[0] > Box[5] - Box[2] ? Pivot[0] > (Box[0] + Box[3]) / 2 : Pivot[2] > (Box[2] + Box[5]) / 2);
@@ -1863,7 +1877,7 @@ namespace Hansa
         /// <summary>Visibility of the leaves as drawn, allowing a hatch's own rounded walking collision.</summary>
         public static bool SeenPiece(VoxelGrid design, Vintagestory.API.MathTools.Vec3d eye, ShipPiece p)
         {
-            if(p?.Role!=PieceRole.Hatch) return Seen(design,eye,p?.SeenBox);
+            if(p?.Role!=PieceRole.Hatch) return Seen(design,eye,p?.SeenBox) || p!=null && p.DoorwayFrom(eye.X,eye.Z) && Seen(design,eye,p.Box);
             if(design==null) return true;
             foreach(var b in p.PickBoxes) for(int k=-1;k<8;k++) {
                 var q=new double[3];

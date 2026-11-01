@@ -99,9 +99,17 @@ namespace Hansa
                 var ro=new Vec3d(oo[0],oo[1],oo[2]);var rd=new Vec3d(end[0]-oo[0],end[1]-oo[1],end[2]-oo[2]);
                 var b=piece.Box;
                 double hit=ShipFittings.RayBox(ro,rd,new Cuboidd(b[0],b[1],b[2],b[3],b[4],b[5]));
-                if(hit<0 || hit>range) return false;
-                var n=BoxNormal(ro,rd,b);double c=Math.Cos(piece.DoorAngle),s=Math.Sin(piece.DoorAngle);
-                normal=new[]{c*n[0]+s*n[2],n[1],-s*n[0]+c*n[2]};t=hit;return true;
+                if(hit>=0 && hit<=range) {
+                    var n=BoxNormal(ro,rd,b);double c=Math.Cos(piece.DoorAngle),s=Math.Sin(piece.DoorAngle);
+                    normal=new[]{c*n[0]+s*n[2],n[1],-s*n[0]+c*n[2]};t=hit;
+                }
+                // (1 November 2026: "Cannot close door from outside ships cabin") from the side away from its leaf, its doorway
+                if(piece.DoorwayFrom(o.X,o.Z)) foreach(var sb in piece.Sel) {
+                    double h=ShipFittings.RayBox(o,d,new Cuboidd(sb[0],sb[1],sb[2],sb[3],sb[4],sb[5]));
+                    if(h<0 || h>range || h>=t) continue;
+                    t=h;normal=BoxNormal(o,d,sb);
+                }
+                return normal!=null;
             }
             foreach(var b in piece.PickBoxes) {
                 double hit=ShipFittings.RayBox(o,d,new Cuboidd(b[0],b[1],b[2],b[3],b[4],b[5]));

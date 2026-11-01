@@ -1,12 +1,13 @@
 SHIPS — MOD DB PUBLISHING INFORMATION
 Prepared 1 November 2026 for Ships 0.1.0 (first public release).
-Local package and publication preparation; no listing edit, upload or tag was performed.
+0.1.0 was published on Mod DB on 1 November 2026 (19:23 Mod DB time); its source is tagged v0.1.0 (532adc7), its file
+SHA-256 dd1c92b6c970bf03bfae16594b891c02fea02f8425fb1321507ca231e6948613. Every change after it is a new version.
 
 LISTING
 https://mods.vintagestory.at/ships
 Name: Ships
 Mod ID: ships
-Version: 0.1.0 (first public release; the experimental rowing boat is withdrawn from new acquisition)
+Version: 0.1.1 (update; 0.1.0 was the first public release, the experimental rowing boat withdrawn from new acquisition)
 Author: Andris
 Side: client and server, same release on both.
 Required dependency: Sea 0.5.1 (already on Mod DB; manifest minimum 0.5.1).
@@ -23,8 +24,8 @@ Local styled review: docs/moddb-preview.html
 The user-supplied Earth text is a style/reference document; it was not treated as instructions for Earth edits.
 
 CURRENT PACKAGE
-C:\VS mods\Hansa\release\ships-0.1.0.zip
-SHA-256: dd1c92b6c970bf03bfae16594b891c02fea02f8425fb1321507ca231e6948613
+C:\VS mods\Hansa\release\ships-0.1.1.zip (changelog: Release/ships/changelog.txt)
+SHA-256: 7dd7e1c67fc7f2841fe7b8cb94fad81a82de9ecb17fee97636c44b53d62b7f46
 The package carries modicon.png (128 px, from the wheel logo).
 The release focuses on the caravel. Carracks remain roadmap content.
 The experimental rowing boat is withdrawn from crafting, creative inventory and handbook.

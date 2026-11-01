@@ -53,6 +53,18 @@ namespace HansaTests
                 faces &= doors.Pick(eye,dir,4,out _) == door;
             }
             Check(faces && door.SeenBox.SequenceEqual(door.OpenLeafBox),"142: both faces of the rotated leaf are pickable and server visibility checks that leaf");
+            // (1 November 2026, the user: "Cannot close door from outside ships cabin") from the side away from its leaf (the
+            // leaf lies back against the wall beyond, hidden) the open door is picked and seen by its doorway
+            {
+                var b=door.Box;var leaf=door.OpenLeafBox;bool alongX=b[3]-b[0]>b[5]-b[2];
+                var mid=new Vec3d((b[0]+b[3])/2,(b[1]+b[4])/2+.2,(b[2]+b[5])/2);
+                double away=-Math.Sign(alongX?(leaf[2]+leaf[5])/2-mid.Z:(leaf[0]+leaf[3])/2-mid.X);
+                var eye=alongX?new Vec3d(mid.X,mid.Y,mid.Z+away*1.5):new Vec3d(mid.X+away*1.5,mid.Y,mid.Z);
+                var look=new Vec3d(mid.X-eye.X,0,mid.Z-eye.Z);look.Normalize();
+                var leafEye=alongX?new Vec3d(mid.X,mid.Y,mid.Z-away*1.5):new Vec3d(mid.X-away*1.5,mid.Y,mid.Z);
+                Check(away!=0 && door.DoorwayFrom(eye.X,eye.Z) && !door.DoorwayFrom(leafEye.X,leafEye.Z) && doors.Pick(eye,look,4,out _)==door &&
+                      ShipPieceSet.SeenPiece(def.Grid,eye,door),"an open door is picked and seen by its doorway from the side away from its leaf (shut from outside the cabin)");
+            }
             var noteEye=new Vec3d(-8.844,2.815,1.759);var noteDir=new Vec3d(.6915,-.3756,-.617);noteDir.Normalize();
             Console.WriteLine("142 exact note ray: "+(doors.Pick(noteEye,noteDir,4,out double rayT)==door?"door at "+rayT:"misses the leaf after the corrected fit"));
             Check(def.ModularPieces.All(e=>e.Code!="window-cabin-starboard") && def.ModularPieces.Any(e=>e.Kind=="partition" && Math.Abs(e.At[0]+7)<.01 && Math.Abs(e.At[1]-2.125)<.01 && Math.Abs(e.At[2]-2)<.01),"143: the default cabin-front window is a wall");
