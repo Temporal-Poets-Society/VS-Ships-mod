@@ -636,10 +636,14 @@ namespace Hansa
             grindAccum = 0;
             double hs = Waves.SignificantHeight * (SeaSys?.WaveFactorAt(Pos.X, Pos.Z) ?? 1);
             if (hs < 0.2 || PartDamage == null) return;
+            // ((2 November 2026, the user: "if ship is locked by ice - does it keep taking damage or just sit there?") held
+            // in ice she lies still: ice takes the swell out, and the waves (which don't know of it) don't grind her on it)
+            if (CheckPose(World, Def, Pos.X, FloatY, Pos.Z, Pos.Yaw, Pos.Dimension) == PoseState.Blocked &&
+                CheckPose(World, Def, Pos.X, FloatY, Pos.Z, Pos.Yaw, Pos.Dimension, withIce: false) != PoseState.Blocked) return;
             var touching = new List<int>();
             if (World.ElapsedMilliseconds - lastContactMs < 3000) touching.AddRange(lastContacts);
             var trough = new List<(int, long)>();
-            if (CheckPose(World, Def, Pos.X, FloatY - hs / 2, Pos.Z, Pos.Yaw, Pos.Dimension, new HashSet<long>(), trough) == PoseState.Blocked)
+            if (CheckPose(World, Def, Pos.X, FloatY - hs / 2, Pos.Z, Pos.Yaw, Pos.Dimension, new HashSet<long>(), trough, withIce: false) == PoseState.Blocked)
                 foreach (var (s, _) in trough) if (!touching.Contains(s)) touching.Add(s);
             if (touching.Count == 0) return;
             var d = DamageParts.D;
@@ -973,11 +977,12 @@ namespace Hansa
         {
             double baseY = double.IsNaN(BaseY) ? Pos.Y : BaseY;
             var ahead = new HashSet<long>();
-            var pose = CheckPose(World, Def, Pos.X, baseY - sinkage, Pos.Z, Pos.Yaw, Pos.Dimension, ahead);
+            // ((2 November 2026) not on ice: it's at the surface, and she settles through the water under it)
+            var pose = CheckPose(World, Def, Pos.X, baseY - sinkage, Pos.Z, Pos.Yaw, Pos.Dimension, ahead, withIce: false);
             if (pose == PoseState.Unloaded) return true;
             if (pose != PoseState.Blocked) return false;
             var here = new HashSet<long>();
-            CheckPose(World, Def, Pos.X, baseY - Sinkage, Pos.Z, Pos.Yaw, Pos.Dimension, here);
+            CheckPose(World, Def, Pos.X, baseY - Sinkage, Pos.Z, Pos.Yaw, Pos.Dimension, here, withIce: false);
             return !here.IsSupersetOf(ahead);
         }
 

@@ -129,6 +129,9 @@ namespace Hansa
         /// <summary>(0.1.0-dev.10) Server: loaded from the save (her chunk), till her first tick looks for anyone aboard.</summary>
         bool loadedFromSave;
         readonly HashSet<long> hitsAhead = new(), hitsHere = new();
+        /// <summary>Ice one block thick in her way at the pose PoseToward last tried (BreakIce on): broken as she moves there.</summary>
+        readonly List<BlockPos> iceAhead = new();
+        float stillSweepAccum;
         double weedX = double.NaN, weedZ, weedYaw;
         double targetY = double.NaN;
         readonly Dictionary<string, PendingPassenger> pendingPassengers = new();
@@ -2111,6 +2114,13 @@ namespace Hansa
                     // (review H3-9: as running aground, with the next sync)
                     // (review H4-7: not while she's on the bottom, where she's aground all the same)
                     if (Aground && !OnBottom) { Aground = false; SaveState(false); }
+                    // (2 November 2026, BreakIce) thin ice in her way breaks, and takes some of her way from her
+                    if (iceAhead.Count > 0)
+                    {
+                        foreach (var ice in iceAhead) ThawIce(World, ice, true);
+                        Speed *= Math.Max(0.3f, 1 - 0.08f * iceAhead.Count);
+                        iceAhead.Clear();
+                    }
                     Pos.X = nx;
                     Pos.Z = nz;
                     Pos.Yaw = GameMath.Mod((float)newYaw, GameMath.TWOPI);
@@ -2170,8 +2180,13 @@ namespace Hansa
         /// Hull sample points hitting solid blocks (Blocked) or reaching into chunks that aren't loaded yet (Unloaded).
         /// hits: if given, every block hit goes in it (not just the first).
         /// </summary>
+        /// <remarks>
+        /// (2 November 2026, the user: "break 1 block ice or not") Ice lies in the fluid layer (vanilla's lake ice, Cylinder
+        /// World's sea ice): it stops her as a shore does. thinIce: if given (she may break ice), ice one block thick she
+        /// meets goes in it instead, not blocking her.
+        /// </remarks>
         public static PoseState CheckPose(IWorldAccessor world, ShipDefinition def, double x, double y, double z, double yaw, int dim,
-            HashSet<long> hits = null, List<(int sample, long block)> sampleHits = null)
+            HashSet<long> hits = null, List<(int sample, long block)> sampleHits = null, List<BlockPos> thinIce = null, bool withIce = true)
         {
             var ba = world.BlockAccessor;
             var bp = new BlockPos(dim);
@@ -2185,8 +2200,14 @@ namespace Hansa
                 bp.Set((int)Math.Floor(px), (int)Math.Floor(py), (int)Math.Floor(pz));
                 if (ba.GetChunkAtBlockPos(bp) == null) { unloaded = true; continue; }
                 var block = ba.GetBlock(bp, BlockLayersAccess.Solid);
-                if (block != null && block.Id != 0 && block.CollisionBoxes != null && block.CollisionBoxes.Length > 0 &&
-                    InCollision(block.GetCollisionBoxes(ba, bp), px - bp.X, py - bp.Y, pz - bp.Z))
+                bool hit = block != null && block.Id != 0 && block.CollisionBoxes != null && block.CollisionBoxes.Length > 0 &&
+                    InCollision(block.GetCollisionBoxes(ba, bp), px - bp.X, py - bp.Y, pz - bp.Z);
+                if (!hit && withIce && IsIce(ba.GetBlock(bp, BlockLayersAccess.Fluid)) && InCollision(WholeBlock, px - bp.X, py - bp.Y, pz - bp.Z))
+                {
+                    if (thinIce != null && ThinIce(ba, bp)) { if (!thinIce.Contains(bp)) thinIce.Add(bp.Copy()); }
+                    else hit = true;
+                }
+                if (hit)
                 {
                     if (hits == null) return PoseState.Blocked;
                     blocked = true;
@@ -2212,6 +2233,42 @@ namespace Hansa
             return false;
         }
 
+        static readonly Cuboidf[] WholeBlock = { new Cuboidf(0, 0, 0, 1, 1, 1) };
+
+        /// <summary>Ice on the water: a fluid-layer block of ice (vanilla's lake ice, Cylinder World's sea ice).</summary>
+        public static bool IsIce(Block fluid) => fluid != null && fluid.Id != 0 && fluid.BlockMaterial == EnumBlockMaterial.Ice;
+
+        /// <summary>Ice one block thick: no ice over or under it (a glacier's or a second layer's).</summary>
+        public static bool ThinIce(IBlockAccessor ba, BlockPos at)
+        {
+            foreach (int dy in new[] { -1, 1 })
+            {
+                var p = at.AddCopy(0, dy, 0);
+                if (IsIce(ba.GetBlock(p, BlockLayersAccess.Fluid)) || ba.GetBlock(p, BlockLayersAccess.Solid)?.BlockMaterial == EnumBlockMaterial.Ice) return false;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// Ice turned back to the water under it (still water of its kind: salt under sea ice; fresh if there's none to
+        /// copy), with its breaking sound and specks if broken. Not vanilla's own breaking: that drops items and wants a player.
+        /// </summary>
+        public static void ThawIce(IWorldAccessor world, BlockPos at, bool broken)
+        {
+            var ba = world.BlockAccessor;
+            var ice = ba.GetBlock(at, BlockLayersAccess.Fluid);
+            if (!IsIce(ice)) return;
+            var under = ba.GetBlock(at.DownCopy(), BlockLayersAccess.Fluid);
+            var water = under != null && under.IsLiquid() && under.LiquidCode != null
+                ? world.GetBlock(new AssetLocation(under.Code.Domain, under.LiquidCode + "-still-7")) : null;
+            water ??= world.GetBlock(new AssetLocation("game:water-still-7"));
+            ba.SetBlock(water?.Id ?? 0, at, BlockLayersAccess.Fluid);
+            ba.TriggerNeighbourBlockUpdate(at);
+            if (!broken) return;
+            if (ice.Sounds?.Break.Location is AssetLocation sound) world.PlaySoundAt(sound, at.X + 0.5, at.Y + 0.5, at.Z + 0.5, (IPlayer)null, true, 24);
+            ice.SpawnBlockBrokenParticles(at, null);
+        }
+
         /// <summary>
         /// Whether she can go from where she lies to this pose (at her still-water level): Blocked if a hull sample would
         /// be in a solid block. If she's already lying against something (the water fell under her, she was turned into
@@ -2222,10 +2279,11 @@ namespace Hansa
         {
             hitsAhead.Clear();
             contactsAhead.Clear();
+            iceAhead.Clear();
             blockedByShip = false;
             // (at the level she floats at now: water in her puts her deeper)
             double floatY = FloatY;
-            var pose = CheckPose(World, Def, nx, floatY, nz, newYaw, Pos.Dimension, hitsAhead, contactsAhead);
+            var pose = CheckPose(World, Def, nx, floatY, nz, newYaw, Pos.Dimension, hitsAhead, contactsAhead, Mod?.Config?.BreakIce == true ? iceAhead : null);
             if (pose != PoseState.Blocked)
             {
                 // ships and boats don't pass through each other (unless they're already tangled: then they may part)
@@ -2309,11 +2367,13 @@ namespace Hansa
         void ClearPlantsInHull(float dt)
         {
             weedAccum += dt;
+            stillSweepAccum += dt;
             if (weedAccum < 0.5f || Def.DryMask == null) return;
             weedAccum = 0;
-            // only when she has moved (or turned) since the last sweep
+            // only when she has moved (or turned) since the last sweep; lying still, every 10 s for ice freezing in her
             if (!double.IsNaN(weedX) && Math.Abs(Pos.X - weedX) + Math.Abs(Pos.Z - weedZ) < 0.3 &&
-                Math.Abs(GameMath.AngleRadDistance((float)weedYaw, Pos.Yaw)) < 0.02) return;
+                Math.Abs(GameMath.AngleRadDistance((float)weedYaw, Pos.Yaw)) < 0.02 && stillSweepAccum < 10) return;
+            stillSweepAccum = 0;
             weedX = Pos.X; weedZ = Pos.Z; weedYaw = Pos.Yaw;
             SweepPlants();
         }
@@ -2330,6 +2390,9 @@ namespace Hansa
             double r = Math.Max(Math.Max(Math.Abs(g.OX), Math.Abs(g.MaxX)), Math.Max(Math.Abs(g.OZ), Math.Abs(g.MaxZ))) + 1;
             int y0 = (int)Math.Floor(Pos.Y + g.OY), y1 = (int)Math.Floor(Pos.Y + Def.DeckY);
             int x0 = (int)Math.Floor(Pos.X - r), x1 = (int)Math.Floor(Pos.X + r), z0 = (int)Math.Floor(Pos.Z - r), z1 = (int)Math.Floor(Pos.Z + r);
+            // ice where she lies now: her pose was clear of it when she came here, so it froze (or was put) in her place.
+            // Ice she is pressed against isn't in it: thawing that would let her creep through ice, a block every sweep
+            HashSet<long> lying = null;
             for (int bx = x0; bx <= x1; bx++)
                 for (int bz = z0; bz <= z1; bz++)
                 {
@@ -2339,6 +2402,15 @@ namespace Hansa
                     for (int by = y0; by <= y1; by++)
                     {
                         bp.Set(bx, by, bz);
+                        // ((2 November 2026) ice freezing where her hull is, lying still on a freezing lake or sea: her
+                        // hull keeps the water out there, so it can't freeze; it would show in her hold and stop her crew.
+                        // Round her it freezes on: she is frozen in until it's cut away or BreakIce lets her break out)
+                        if (IsIce(ba.GetBlock(bp, BlockLayersAccess.Fluid)) && IceInHull(g, bx, by, bz, ref lying))
+                        {
+                            ThawIce(World, bp.Copy(), false);
+                            cleared++;
+                            continue;
+                        }
                         var block = ba.GetBlock(bp, BlockLayersAccess.Solid);
                         if (block == null || block.Id == 0 || block.CollisionBoxes?.Length > 0) continue;
                         if (block.BlockMaterial != EnumBlockMaterial.Plant && !(ba.GetBlock(bp, BlockLayersAccess.Fluid)?.IsLiquid() ?? false)) continue;
@@ -2348,6 +2420,19 @@ namespace Hansa
                     }
                 }
             return cleared;
+        }
+
+        /// <summary>Is this ice where her hull is: overlapping her shell as she lies now, or its centre inside her?</summary>
+        bool IceInHull(VoxelGrid inside, int bx, int by, int bz, ref HashSet<long> lying)
+        {
+            if (lying == null)
+            {
+                lying = new HashSet<long>();
+                CheckPose(World, Def, Pos.X, FloatY, Pos.Z, Pos.Yaw, Pos.Dimension, lying);
+            }
+            if (lying.Contains(((long)bx << 38) ^ ((long)by << 26) ^ (bz & 0x3FFFFFF))) return true;
+            WorldToLocal(bx + 0.5, by + 0.5, bz + 0.5, out double lx, out double ly, out double lz);
+            return inside.SolidAt(lx, ly, lz);
         }
 
         /// <summary>Does any corner or the centre of this world block lie inside the hull (the design's inside mask)?</summary>
@@ -2386,7 +2471,8 @@ namespace Hansa
             {
                 if (ba.GetChunkAtBlockPos(bp) == null) return double.NaN;
                 var fluid = ba.GetBlock(bp, BlockLayersAccess.Fluid);
-                if (fluid != null && fluid.IsLiquid()) return bp.Y + 0.875;
+                // ((2 November 2026) ice is the water's top block frozen: the water stands as high under it)
+                if (fluid != null && (fluid.IsLiquid() || IsIce(fluid))) return bp.Y + 0.875;
             }
             return double.NaN;
         }
@@ -2399,7 +2485,7 @@ namespace Hansa
             for (int i = 0; i < searchUp + searchDown; i++, bp.Y--)
             {
                 var fluid = ba.GetBlock(bp, BlockLayersAccess.Fluid);
-                if (fluid != null && fluid.IsLiquid()) return bp.Y + 0.875;
+                if (fluid != null && (fluid.IsLiquid() || IsIce(fluid))) return bp.Y + 0.875;
             }
             return double.NaN;
         }

@@ -239,7 +239,7 @@ namespace Hansa
                 double y = ship.Pos.Y;
                 for (int n = 0; n < 256 && y + ship.Def.KeelY > 1; n++)
                 {
-                    var st = EntityShip.CheckPose(sapi.World, ship.Def, ship.Pos.X, y - 0.25, ship.Pos.Z, ship.Pos.Yaw, dim);
+                    var st = EntityShip.CheckPose(sapi.World, ship.Def, ship.Pos.X, y - 0.25, ship.Pos.Z, ship.Pos.Yaw, dim, withIce: false);
                     if (st == EntityShip.PoseState.Unloaded) return false;
                     if (st == EntityShip.PoseState.Blocked) break;
                     y -= 0.25;

@@ -62,6 +62,12 @@ namespace Hansa
         public bool CannonsBreakBlocks = false;
         /// <summary>How hard running aground and into each other hurts (a factor).</summary>
         public float GroundingDamage = 1;
+        /// <summary>
+        /// (2 November 2026, the user: "break 1 block ice or not. Realistic would be not break it") A ship under way breaks
+        /// ice one block thick (a frozen lake's, the sea's seasonal ice), losing way to it. Off, as she really would: her
+        /// planking isn't built for it, and ice stops her as a shore does. Thicker ice stops her either way.
+        /// </summary>
+        public bool BreakIce = false;
         /// <summary>How fast water comes in through damage and worn seams (a factor).</summary>
         public float Leaks = 1;
         /// <summary>How fast seams, sails and an unsheathed bottom wear and foul with time (a factor; 0: no wear). The ones

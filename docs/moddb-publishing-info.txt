@@ -25,7 +25,7 @@ The user-supplied Earth text is a style/reference document; it was not treated a
 
 CURRENT PACKAGE
 C:\VS mods\Hansa\release\ships-0.1.1.zip (changelog: Release/ships/changelog.txt)
-SHA-256: 7dd7e1c67fc7f2841fe7b8cb94fad81a82de9ecb17fee97636c44b53d62b7f46
+SHA-256: c84f12cb60e756f3813e18e98e2403facb91ab6a7f5e6145c49c5a78db48a91c
 The package carries modicon.png (128 px, from the wheel logo).
 The release focuses on the caravel. Carracks remain roadmap content.
 The experimental rowing boat is withdrawn from crafting, creative inventory and handbook.

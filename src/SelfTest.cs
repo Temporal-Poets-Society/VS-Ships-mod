@@ -132,6 +132,7 @@ namespace Hansa
                     return;
                 }
                 if (cfg.Only == "flooding") { StormFlooding(mod, def, spawn, y0); return; }
+                if (cfg.Only == "ice-scene") { IceScene(mod, def, spawn, y0, x0, x1, z0, z1); return; }
                 if (cfg.Only == "grid") { GridLaunch(mod, spawn, y0, Finish); return; }
                 if(cfg.Only=="notes135" || cfg.Only=="notes151" || cfg.Only=="notes153" || cfg.Only=="notes157")
                 {
@@ -725,6 +726,49 @@ namespace Hansa
                 $"seaweed inside her hull is cleared, the water stays ({cleared} cleared)");
             Check(ba.GetBlock(weedOut, BlockLayersAccess.Solid).Id == weed.Id, "seaweed beside her stays");
             ba.SetBlock(0, weedOut, BlockLayersAccess.Solid);
+            GroundingIce(def, ship, At);
+        }
+
+        /// <summary>
+        /// (2 November 2026, the user: "break 1 block ice or not. Realistic would be not break it"; "if ship is locked by ice -
+        /// does it keep taking damage or just sit there?") Vanilla's lake ice on the water beside her: it holds her as a shore
+        /// does; with BreakIce, ice one block thick is broken instead (not two); the water's level is found through it; ice
+        /// frozen where her hull is turns back to water; her bottom (grinding, settling) never rests on it.
+        /// </summary>
+        void GroundingIce(ShipDefinition def, EntityShip ship, System.Func<double, double, double, BlockPos> At)
+        {
+            var ba = sapi.World.BlockAccessor;
+            var ice = sapi.World.GetBlock(new AssetLocation("game", "lakeice"));
+            // a hull sample in the water's top block, on her starboard side near her middle
+            double top = Math.Floor(ship.BaseY);
+            var sample = def.HullSamples.Where(p => Math.Floor(ship.BaseY + p[1]) == top && Math.Abs(p[2]) > 1).OrderBy(p => Math.Abs(p[0])).FirstOrDefault();
+            Check(ice != null && sample != null, "vanilla lake ice, and a hull sample in the water's top block" + (sample == null ?
+                $" (none: her samples' heights {string.Join(",", def.HullSamples.Select(p => p[1]).Distinct().OrderBy(h => h).Take(12))}, she floats at {ship.BaseY:0.###})" : ""));
+            if (ice == null || sample == null) return;
+            var at = At(sample[0], sample[1], sample[2]);
+            var under = ba.GetBlock(at, BlockLayersAccess.Fluid);
+            Check(under.IsLiquid() && Math.Abs(at.Y + 0.875 - ship.BaseY) < 0.01, $"that block is her water's top ({under.Code} at {at.Y}, she floats at {ship.BaseY:0.###})");
+            ba.SetBlock(ice.Id, at, BlockLayersAccess.Fluid);
+            EntityShip.PoseState Pose(List<BlockPos> thin = null, bool withIce = true) =>
+                EntityShip.CheckPose(sapi.World, def, ship.Pos.X, ship.BaseY, ship.Pos.Z, ship.Pos.Yaw, ship.Pos.Dimension, null, null, thin, withIce);
+            Check(Pose() == EntityShip.PoseState.Blocked && Pose(withIce: false) == EntityShip.PoseState.Clear, "ice beside her holds her as a shore does (and only the ice: her bottom's checks pass through it)");
+            var thin = new List<BlockPos>();
+            Check(Pose(thin) == EntityShip.PoseState.Clear && thin.Count == 1 && thin[0].Equals(at), "with BreakIce it's ice one block thick to break, not a shore");
+            var below = at.DownCopy();
+            ba.SetBlock(ice.Id, below, BlockLayersAccess.Fluid);
+            thin.Clear();
+            Check(Pose(thin) == EntityShip.PoseState.Blocked && thin.Count == 0, "ice two blocks thick holds her even with BreakIce");
+            EntityShip.ThawIce(sapi.World, below, false);
+            Check(ship.WaterSurfaceY(at.X + 0.5, ship.BaseY, at.Z + 0.5) is double wy && Math.Abs(wy - ship.BaseY) < 0.01,
+                "the water's level is found through ice: she floats as high in it");
+            EntityShip.ThawIce(sapi.World, at, true);
+            var back = ba.GetBlock(at, BlockLayersAccess.Fluid);
+            Check(back.IsLiquid() && back.LiquidCode == under.LiquidCode && Pose() == EntityShip.PoseState.Clear, $"broken, it's her water again ({back.Code})");
+            // ice frozen in her own place (she lay still on a freezing lake): her hull keeps the water out, so it goes
+            var inHull = At(0.5, sample[1], 0.0);
+            ba.SetBlock(ice.Id, inHull, BlockLayersAccess.Fluid);
+            ship.SweepPlants();
+            Check(ba.GetBlock(inHull, BlockLayersAccess.Fluid).IsLiquid(), "ice frozen inside her hull turns back to water (it would show in her hold)");
         }
 
         /// <summary>
