@@ -312,6 +312,28 @@ namespace Hansa
             return false;
         }
 
+        /// <summary>Is there a <c>seacontracts:seastate</c> with the sea's own wind (<c>at</c>) on this side?</summary>
+        public bool HasSeaWind => Member<Func<double, double, double, (double Height, double Period, double DirX, double DirZ, double WindX, double WindZ, double Storm)>>(Entry(SeaStateKey), "at") != null;
+
+        /// <summary>
+        /// <c>seastate.at</c>'s wind at (x, z) and total game hours, m/s toward (X, Z): the wind the sea owner raises its
+        /// waves by (Sea's own wind model when no mod publishes the weather). False: none, or no answer.
+        /// </summary>
+        public bool SeaWind(double x, double z, double hours, out double windX, out double windZ)
+        {
+            windX = windZ = 0;
+            var f = Member<Func<double, double, double, (double Height, double Period, double DirX, double DirZ, double WindX, double WindZ, double Storm)>>(Entry(SeaStateKey), "at");
+            if (f == null) return false;
+            try
+            {
+                var st = f(x, z, hours);
+                if (double.IsFinite(st.WindX) && double.IsFinite(st.WindZ)) { windX = st.WindX; windZ = st.WindZ; return true; }
+                Fail("seastate.at gave the wind " + (st.WindX, st.WindZ));
+            }
+            catch (Exception ex) { Fail("seastate.at failed: " + ex.Message); }
+            return false;
+        }
+
         public double Shelter(double x, double z)
         {
             var shelter = Member<Func<double, double, double>>(Entry(SeaStateKey), "shelter");
@@ -329,7 +351,7 @@ namespace Hansa
 
         void Fail(string what)
         {
-            if (System.Threading.Interlocked.Exchange(ref warned, 1) == 0) warn?.Invoke("[ships] sea contracts: " + what + "; calm water for it (logged once)");
+            if (System.Threading.Interlocked.Exchange(ref warned, 1) == 0) warn?.Invoke("sea contracts: " + what + "; calm water for it (logged once)");
         }
     }
 }

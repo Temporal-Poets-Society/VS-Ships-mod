@@ -25,8 +25,8 @@ sea's waves at 3 × 3 points over her waterplane (Sea's `WavePlace.HeightAt` wit
 eased over 0.4 s; off the coast nothing of it is worked out. On the server she drifts with Sea's longshore current
 (`CurrentAt`, or `seastate.current`) except at anchor, aground or on the bottom; clients follow her synced position. A
 contract surface with no trains but a `pose` gives her attitude from the pose. Without Sea's typed API the wind is
-`seacontracts:weather`'s (m/s ÷ 25) and the chalk's sea state `seastate.at`. `dotnet run -c Release -- sea-coast`
-checks the surf, current, pose and contract wind offline; nothing of it is tested in game yet.
+`seacontracts:weather`'s (m/s ÷ 25), else the wind the sea follows (`seastate.at`'s), and the chalk's sea state
+`seastate.at`. `dotnet run -c Release -- sea-coast` checks the surf, current, pose and contract wind offline.
 
 **Sea is optional (7 November 2026).** The game (1.22.7) has no optional dependencies, and an assembly naming Sea's
 types can't load them without Sea.dll, so Ships.dll has no reference to Sea at all and `sea` is no longer in
@@ -40,7 +40,8 @@ with `Assembly.LoadFrom` (once per process) and binds it per side, getting Ships
 
 - **With Sea**: as before. Sea's wind, waves, sea state, dry places and water cut (the hulls' clips go to Sea every frame
   through the bridge, unchanged); the self-tests reach Sea through the same link.
-- **Without Sea**: one note in the log. The wind is `seacontracts:weather`'s if some mod publishes it, else vanilla's
+- **Without Sea**: one note in the log. The wind is `seacontracts:weather`'s if some mod publishes it, else the wind of
+  a `seacontracts:seastate` owner's sea (`at`'s `WindX`, `WindZ`), so sails and waves agree, else vanilla's
   wind just above sea level (vanilla gives only an east-west strength, so it is always from the west or the east). On
   vanilla's wind Ships warns that there is no wind model: a chat line to the player when the world is up, a warning in
   the client's and server's logs, and an orange line on the wind panel ("No wind model: vanilla wind, east or west
@@ -56,9 +57,15 @@ with `Assembly.LoadFrom` (once per process) and binds it per side, getting Ships
   cut: from above, no water surface inside her; with the eyes below the still-water level in her hold (her lower deck)
   the water's surface still shows overhead (a lid is not a cut); a sea higher than the lid (another mod's waves,
   or her settling while she floods) shows inside her.
-- **Not tested in game**: everything without Sea (vanilla wind under sail, the lids, the breathing and camera
-  patches, the contract hull records, the rowing boat's lid), and the bridge binding inside the game (checked offline
-  against the Sea build only). `dotnet run -c Release -- sea-bridge` in `tests/HansaTests` (after a Release build)
+- **Development switch**: `ModConfig/ships-dev.json` with `{ "SeaBridge": false }` makes Ships ignore an installed Sea's
+  typed API and read it through the open contracts only, as another mod's boat would (one warning in the log). Absent
+  in play.
+- **Tested in game (7 November 2026, AgentBridge bench, singleplayer)**: with Sea, the bridge binds and she sails as
+  before. With the switch off, the caravel's hull is cut through `seacontracts:hulls` (dry deck from above) and the
+  wind panel shows Sea's wind from `seastate.at` (before this fix it showed vanilla's). Without Sea, the warning is in
+  the log, in chat (5 s after the world is up, so it isn't lost while the chat starts) and in orange on the wind panel.
+  **Not tested in game**: vanilla wind under sail at length, the lids, the breathing and camera patches, the rowing
+  boat's lid, and multiplayer. `dotnet run -c Release -- sea-bridge` in `tests/HansaTests` (after a Release build)
   checks offline that Ships.dll names nothing of Sea, that without Sea its code takes the contracts or vanilla's wind,
   the contract surface or calm, and the hull owner (Ships.dll loaded where Sea can't be found, and never asked for),
   that the bridge's every reference into Sea resolves against the Sea build, the clip copy and the contract record, and

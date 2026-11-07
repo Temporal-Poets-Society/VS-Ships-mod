@@ -77,17 +77,26 @@ namespace Hansa
         /// </summary>
         public static ISeaLink Bind(ICoreAPI api, ILogger log)
         {
+            // (development) ModConfig/ships-dev.json { "SeaBridge": false }: run as without Sea even with Sea installed, so
+            // Ships reads Sea only through the open contracts, as another mod's boat would (for checking them in game)
+            ShipsDevConfig dev = null;
+            try { dev = api?.LoadModConfig<ShipsDevConfig>("ships-dev.json"); } catch (Exception) { }
+            if (dev != null && !dev.SeaBridge)
+            {
+                if (Once("dev")) log?.Warning("ships-dev.json: SeaBridge is off, so Ships reads Sea only through the open sea contracts (a development setting).");
+                return null;
+            }
             var sea = api?.ModLoader?.GetMod(SeaModId);
             if (sea == null)
             {
-                if (Once("absent")) log?.Notification("[ships] Sea is not installed: the wind is the open sea contracts' (seacontracts:weather) or vanilla's, " +
+                if (Once("absent")) log?.Notification("Sea is not installed: the wind is the open sea contracts' (seacontracts:weather) or vanilla's, " +
                     "the waves the contracts' (seacontracts:surface) or calm, and the water in her hull is hidden by a seacontracts:hulls owner or Ships' own lids.");
                 return null;
             }
             string version = sea.Info?.Version;
             if (!VersionOk(version, out string why))
             {
-                if (Once("old")) log?.Warning("[ships] Sea is installed, but {0}: Ships runs as without Sea (update Sea to bind to it).", why);
+                if (Once("old")) log?.Warning("Sea is installed, but {0}: Ships runs as without Sea (update Sea to bind to it).", why);
                 return null;
             }
             lock (sync)
@@ -105,7 +114,7 @@ namespace Hansa
             }
             if (bridge == null)
             {
-                if (Once("unloadable")) log?.Error("[ships] Sea {0} is installed, but Ships' bridge to it can't be loaded ({1}): Ships runs as without Sea.", version, bridgeError);
+                if (Once("unloadable")) log?.Error("Sea {0} is installed, but Ships' bridge to it can't be loaded ({1}): Ships runs as without Sea.", version, bridgeError);
                 return null;
             }
             try
@@ -114,19 +123,29 @@ namespace Hansa
                     ?? throw new MissingMethodException(BridgeType, BindMethod);
                 if (bind.Invoke(null, new object[] { api }) is ISeaLink link)
                 {
-                    log?.Notification("[ships] bound to Sea {0} through {1}", link.SeaVersion, BridgeFile);
+                    log?.Notification("bound to Sea {0} through {1}", link.SeaVersion, BridgeFile);
                     return link;
                 }
-                log?.Warning("[ships] Sea {0} is installed, but its mod system isn't running on this side: Ships runs as without Sea here.", version);
+                log?.Warning("Sea {0} is installed, but its mod system isn't running on this side: Ships runs as without Sea here.", version);
                 return null;
             }
             catch (Exception e)
             {
                 var inner = e is TargetInvocationException t && t.InnerException != null ? t.InnerException : e;
-                if (Once("unbound")) log?.Error("[ships] Sea {0} is installed, but Ships' bridge to it doesn't bind ({1}: {2}): Ships runs as without Sea.",
+                if (Once("unbound")) log?.Error("Sea {0} is installed, but Ships' bridge to it doesn't bind ({1}: {2}): Ships runs as without Sea.",
                     version, inner.GetType().Name, inner.Message);
                 return null;
             }
         }
+    }
+}
+
+namespace Hansa
+{
+    /// <summary>ModConfig/ships-dev.json, for development only (absent in play): see <see cref="SeaBridgeLoader.Bind"/>.</summary>
+    public class ShipsDevConfig
+    {
+        /// <summary>False: don't bind to Sea's typed API; read Sea through the open sea contracts only.</summary>
+        public bool SeaBridge = true;
     }
 }

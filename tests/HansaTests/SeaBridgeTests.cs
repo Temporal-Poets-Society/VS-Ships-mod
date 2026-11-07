@@ -206,6 +206,17 @@ namespace HansaTests
             };
             var c2 = W(windHere, 100, 200);
             Check(c2.X == 0.4 && c2.Z == 0, "a contract wind with no answer (NaN): vanilla's again");
+            // (7 November, seen on the bench) no weather owner but a sea owner: its own wind, before vanilla's
+            cache["seacontracts:seastate"] = new Dictionary<string, object>
+            {
+                ["at"] = (System.Func<double, double, double, (double, double, double, double, double, double, double)>)((x, z, h) => (1.5, 6, 1, 0, -7.5, 2.5, 0)),
+            };
+            var c3 = W(windHere, 100, 200);
+            bool vanillaOnly = (bool)modType.GetProperty("VanillaWindOnly").GetValue(hansa);
+            cache.Remove("seacontracts:seastate"); cache.Remove("seacontracts:weather");
+            bool vanillaOnlyAfter = (bool)modType.GetProperty("VanillaWindOnly").GetValue(hansa);
+            Check(Math.Abs(c3.X + 0.3) < 1e-12 && Math.Abs(c3.Z - 0.1) < 1e-12 && !vanillaOnly && vanillaOnlyAfter,
+                $"no weather owner, a sea owner: its sea's wind (-7.5, 2.5 m/s → {c3.X:0.###}, {c3.Z:0.###}), no 'no wind model' warning; without either, the warning");
 
             // the waves: the contracts' surface, else calm (no trains)
             var waves = Activator.CreateInstance(contractsType, cache, (Action<string>)(_ => { }));

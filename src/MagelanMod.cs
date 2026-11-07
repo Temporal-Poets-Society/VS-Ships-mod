@@ -225,20 +225,21 @@ namespace Hansa
                 {
                     if (!VanillaWindOnly) return;
                     Mod.Logger.Warning(NoWindModelLog);
-                    wcapi.ShowChatMessage(Lang.Get("ships:vanilla-wind-warning"));
+                    // (the chat isn't up yet at LevelFinalize: a line shown then is lost, as seen on the bench)
+                    wcapi.Event.RegisterCallback(_ => { if (VanillaWindOnly) wcapi.ShowChatMessage(Lang.Get("ships:vanilla-wind-warning")); }, 5000);
                 };
             else if (api is ICoreServerAPI wsapi)
                 wsapi.Event.ServerRunPhase(EnumServerRunPhase.RunGame, () => { if (VanillaWindOnly) Mod.Logger.Warning(NoWindModelLog); });
         }
 
-        const string NoWindModelLog = "[ships] No wind model: neither Sea nor any mod publishing seacontracts:weather is installed. " +
+        const string NoWindModelLog = "No wind model: neither Sea nor any mod publishing seacontracts:weather or seacontracts:seastate is installed. " +
             "Ships sail by vanilla's wind, which blows only from the east or the west and follows no weather systems.";
 
         /// <summary>
         /// True while the wind is vanilla's on this side: no Sea, and no mod publishing <c>seacontracts:weather</c>. Vanilla's
         /// wind blows only along X (east or west) and has no weather systems, so sailing by it is a stand-in, not a model.
         /// </summary>
-        public bool VanillaWindOnly => SeaLink == null && Contracts?.HasWind != true;
+        public bool VanillaWindOnly => SeaLink == null && Contracts?.HasWind != true && Contracts?.HasSeaWind != true;
 
         /// <summary>
         /// Without Sea, every couple of seconds: keep this side's dry places with the <c>seacontracts:hulls</c> owner (one
@@ -261,13 +262,17 @@ namespace Hansa
 
         /// <summary>
         /// The wind without Sea: the <c>seacontracts:weather</c> wind at a place now, in Sea's units; without one (or with no
-        /// answer from it) vanilla's wind there (<see cref="VanillaWind"/>).
+        /// answer from it) the sea owner's wind (<c>seastate.at</c>); else vanilla's wind there (<see cref="VanillaWind"/>).
         /// </summary>
         public Wind FallbackWind(double x, double z)
         {
             var c = Contracts;
             var cal = api?.World?.Calendar;
             if (c != null && cal != null && c.Wind(x, z, cal.TotalHours, out double wx, out double wz))
+                return new Wind(wx / Sailing.WindUnit, wz / Sailing.WindUnit);
+            // (no weather owner: the sea owner's own wind, which raises its waves; seen on the bench with Sea read only
+            // through the contracts, where ships otherwise sailed by vanilla's wind beside Sea's storm)
+            if (c != null && cal != null && c.SeaWind(x, z, cal.TotalHours, out wx, out wz))
                 return new Wind(wx / Sailing.WindUnit, wz / Sailing.WindUnit);
             return VanillaWind(x, z);
         }

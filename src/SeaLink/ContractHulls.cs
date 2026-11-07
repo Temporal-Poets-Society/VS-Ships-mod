@@ -125,7 +125,7 @@ namespace Hansa
         {
             if (warned) return;
             warned = true;
-            log?.Invoke("[ships] sea contracts: " + what + "; Ships keeps its own dry places (logged once)");
+            log?.Invoke("sea contracts: " + what + "; Ships keeps its own dry places (logged once)");
         }
 
         /// <summary>
