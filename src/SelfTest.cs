@@ -66,6 +66,7 @@ namespace Hansa
             }
             var def = mod.GetShip(cfg.Ship);
             if (cfg.Only == "wave-sway") { WaveSwayRun(mod, def); return; }
+            if (cfg.Only == "sea-contracts") { SeaContractsRun(mod); return; }
             Check(def != null, $"{cfg.Ship} definition loaded");
             Check(sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship)) != null, $"{cfg.Ship} entity type registered");
             Check(sapi.World.GetItem(new AssetLocation("ships", "shipdeed-" + cfg.Ship)) != null, "charter item registered");

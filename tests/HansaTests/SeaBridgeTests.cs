@@ -418,6 +418,38 @@ namespace HansaTests
             Check(agree == cases && nearEdge < points / 500,
                 $"a dry hull's contract record (footprint less the inset, its 16 widths resampled) cuts what Sea cuts for its own clip: {cases - agree} of {cases} cases off, " +
                 $"{nearEdge} of {points} points differ only within 0.06 of the edge");
+
+            // the detailed record, for an owner that publishes recordLength (Sea since 7 November): Sea reads back exactly
+            // the clip Ships hands its typed API, detailed outline, rake, inset and calm ring included, and cuts the same
+            int detailedCases = 0, detailedSame = 0, detailedPoints = 0, detailedOff = 0;
+            foreach (bool dryOutline in new[] { false, true })
+                foreach (bool flooded in new[] { false, true })
+                {
+                    var c = full;
+                    c.Flooded = flooded;
+                    if (!dryOutline) c.DryProfile = null;
+                    if (!flooded) c.FloodY = 0;   // (a flood height without a flood is no field of the record)
+                    var r = ContractHulls.ToRecord(c, detailed: true);
+                    var own = c.ToSea();
+                    detailedCases++;
+                    if (!Sea.SeaContractMath.ToClip(r, out var fromRecord)) continue;
+                    var asShips = fromRecord.ToShips();
+                    bool fields = typeof(HullWaterClip).GetFields().All(f => f.FieldType.IsArray
+                        ? (f.GetValue(c) is float[] a ? f.GetValue(asShips) is float[] b && a.SequenceEqual(b) : f.GetValue(asShips) == null)
+                        : Equals(f.GetValue(c), f.GetValue(asShips)));
+                    int off = 0;
+                    for (int i = 0; i < 4000; i++)
+                    {
+                        double x = c.X + (rnd.NextDouble() * 2 - 1) * 24, z = c.Z + (rnd.NextDouble() * 2 - 1) * 24, y = c.WaterY + (rnd.NextDouble() * 2 - 1) * 6;
+                        detailedPoints++;
+                        if (own.InDryHull(x, y, z) != fromRecord.InDryHull(x, y, z)) off++;
+                    }
+                    detailedOff += off;
+                    if (fields && off == 0 && r.Length == (dryOutline ? ContractHulls.DetailedWithDryProfile : ContractHulls.DetailedLength)) detailedSame++;
+                }
+            Check(detailedSame == detailedCases && Sea.SeaContractMath.HullRecordWithDryProfile == ContractHulls.DetailedWithDryProfile
+                && Sea.SeaContractMath.HDryProfile == ContractHulls.HDryProfile,
+                $"a detailed contract record is Sea's typed clip field for field and cuts the same: {detailedCases - detailedSame} of {detailedCases} cases off, {detailedOff} of {detailedPoints} points differ");
         }
     }
 }
