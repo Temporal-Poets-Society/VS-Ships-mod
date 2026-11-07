@@ -562,6 +562,12 @@ namespace Hansa
                     double f = sea.WaveFactorAt(x, z);
                     s.Waves = new NoteWaves { Height = R(st.Height * f, 2), Period = R(st.Period, 1), Factor = R(f, 2), Surface = R(sea.WaveHeightAt(x, z), 2) };
                 }
+                // without Sea: the open sea contracts' seastate.at, shelter and drawn surface
+                else if (ship.Mod?.Contracts is { } c && c.SeaState(x, z, ship.World.Calendar.TotalHours, out double hs, out double period))
+                {
+                    double f = c.Shelter(x, z);
+                    s.Waves = new NoteWaves { Height = R(hs * f, 2), Period = R(period, 1), Factor = R(f, 2), Surface = R(c.Height(x, z), 2) };
+                }
             }
             catch (Exception) { }
             try

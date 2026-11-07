@@ -32,7 +32,7 @@ namespace Hansa
         public void OnRenderFrame(float dt, EnumRenderStage stage)
         {
             var client = sys.Hansa?.Client;
-            if (failed || client == null || !client.Comfort.Pennants || client.Ships.Count == 0 || sys.Sea == null) return;
+            if (failed || client == null || !client.Comfort.Pennants || client.Ships.Count == 0) return;
             var ep = capi.World.Player?.Entity;
             if (ep == null) return;
             IStandardShaderProgram prog = null;
@@ -49,7 +49,7 @@ namespace Hansa
                     if (def?.Masts == null || ship.GoneDown || !ship.MastUp) continue;
                     double ddx = ship.Pos.X - cam.X, ddz = ship.Pos.Z - cam.Z;
                     if (ddx * ddx + ddz * ddz > Range * Range) continue;
-                    var w = sys.Sea.WindAt(ship.Pos.X, ship.Pos.Z);
+                    var w = ship.WindHere(ship.Pos.X, ship.Pos.Z);
                     Sailing.Apparent(w.X, w.Z, ship.Pos.Yaw, ship.Speed, out double ax, out double az);
                     for (int m = 0; m < def.Masts.Length; m++)
                     {

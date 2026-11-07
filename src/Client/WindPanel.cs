@@ -57,9 +57,10 @@ namespace Hansa
             composed = true;
         }
 
-        /// <summary>Is the panel up for this seat (switched on, aboard and awake, Sea's wind there)?</summary>
+        /// <summary>Is the panel up for this seat (switched on, aboard and awake, a wind there: Sea's, or the open sea contracts')?</summary>
         public static bool ShownFor(ShipClientSystem sys, ShipSeat seat) =>
-            sys != null && sys.Comfort.WindPanel && seat != null && seat is not BunkSeat && seat.Ship.Def != null && seat.Ship.SeaSys != null;
+            sys != null && sys.Comfort.WindPanel && seat != null && seat is not BunkSeat && seat.Ship.Def != null &&
+            (seat.Ship.SeaSys != null || seat.Ship.Mod?.Contracts?.HasWind == true);
 
         /// <summary>Every frame from ShipClientSystem: aboard (and not asleep) and switched on, it shows.</summary>
         public void Update(Vintagestory.API.Common.EntityPlayer ep)

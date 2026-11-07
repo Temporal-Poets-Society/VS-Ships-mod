@@ -111,6 +111,7 @@
     <Compile Include="..\..\src\Ship\WaveTrains.cs" Link="Ship\WaveTrains.cs" />
     <Compile Include="..\..\src\Ship\SeaWaveTrains.cs" Link="Ship\SeaWaveTrains.cs" />
     <Compile Include="WaveTrainTests.cs" />
+    <Compile Include="SeaCoastTests.cs" />
     <Compile Include="..\..\src\Ship\Sailing.cs" Link="Ship\Sailing.cs" />
     <Compile Include="..\..\src\Ship\PartMotion.cs" Link="Ship\PartMotion.cs" />
     <Compile Include="..\..\src\Ship\SwivelGun.cs" Link="Ship\SwivelGun.cs" />
@@ -156,6 +157,8 @@
     <Compile Include="..\..\src\Ship\ModularGeometry.cs" Link="Ship\ModularGeometry.cs" />
     <!-- Sea's waves, which the ship rides -->
     <Compile Include="$(SeaRoot)\src\Water\WaveField.cs" Link="Sea\WaveField.cs" />
+    <!-- (Sea 0.6.0) the coast under a place's water: surf and breakers (WaveField reads it) -->
+    <Compile Include="$(SeaRoot)\src\Coast\CoastMath.cs" Link="Sea\CoastMath.cs" />
     <Compile Include="$(SeaRoot)\src\Water\WaterShader.cs" Link="Sea\WaterShader.cs" />
     <Compile Include="$(SeaRoot)\src\Wind\Wind.cs" Link="Sea\Wind.cs" />
     <Compile Include="$(SeaRoot)\src\Wind\WorldShape.cs" Link="Sea\WorldShape.cs" />

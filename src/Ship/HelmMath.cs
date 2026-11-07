@@ -44,6 +44,19 @@ namespace Hansa
         }
 
         /// <summary>
+        /// (Sea 0.6.0) <see cref="Advance"/> in moving water: she goes with it, the current's (m/s, +X east, +Z south)
+        /// displacement over dt added to her own way and leeway. No current: exactly <see cref="Advance"/>.
+        /// </summary>
+        public static void Advance(double x, double z, double yaw, double nextYaw, double speed, double leeway,
+            double dt, double pivotX, double currentX, double currentZ, out double nx, out double nz)
+        {
+            Advance(x, z, yaw, nextYaw, speed, leeway, dt, pivotX, out nx, out nz);
+            if (currentX == 0 && currentZ == 0) return;
+            nx += currentX * dt;
+            nz += currentZ * dt;
+        }
+
+        /// <summary>
         /// A world direction (x, z) relative to her bow, as an angle (radians) clockwise seen from above: 0 right ahead,
         /// +π/2 to starboard, -π/2 to port, ±π right astern. What the wind panel turns its arrows by.
         /// </summary>

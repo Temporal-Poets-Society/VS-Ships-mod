@@ -98,6 +98,115 @@ namespace Hansa
         }
 
         /// <summary>
+        /// The waves at a ship from her source, as <c>EntityShip.WaveMotion</c> rides them:
+        /// sampled into <paramref name="waves"/> at (x, z), then <see cref="Waves"/> under the source's shelter there.
+        /// Two additions, each worked out only where it applies (off the coast, with trains, the answer is exactly
+        /// <see cref="Waves"/>'s):
+        ///  - (Sea 0.6.0) over coastal water, the beach's surf (<see cref="WaveTrains.Surf"/>) as a plane fitted over the
+        ///    waterplane, in <paramref name="surf"/>: the caller eases it (<see cref="EaseSurf"/>) and adds it (<see cref="AddSurf"/>);
+        ///  - a contract surface that gives no trains but a <c>pose</c> (section 9 of the open sea contracts): she lies as
+        ///    the pose says (<see cref="FromPose"/>).
+        /// </summary>
+        /// <param name="halfLength">half the waterplane's length (<see cref="ShipDefinition.Waterplane"/>)</param>
+        /// <param name="centreX">its centre along the keel (the flotation centre)</param>
+        public static ShipAttitude Ride(IWaveTrainSource source, WaveTrains waves, double x, double z, double yaw, double speed,
+            double halfLength, double halfBeam, double centreX, MotionDef m, double steady, out ShipAttitude surf)
+        {
+            surf = default;
+            if (source == null || m == null) return default;
+            if (!source.Sample(waves, x, z)) return PoseOf(source, x, z, yaw, halfLength, halfBeam, centreX, m);
+            if (waves.Count == 0 && source is ContractWaves { HasPose: true }) return PoseOf(source, x, z, yaw, halfLength, halfBeam, centreX, m);
+            var a = Waves(waves, source.Shelter(x, z), waves.Time, x, z, yaw, speed, halfLength, halfBeam, centreX, m, steady);
+            if (waves.Surf != null) surf = Surf(waves.Surf, x, z, yaw, halfLength, halfBeam, centreX, m);
+            return a;
+        }
+
+        static ShipAttitude PoseOf(IWaveTrainSource source, double x, double z, double yaw, double halfLength, double halfBeam,
+            double centreX, MotionDef m)
+        {
+            if (source is not ContractWaves c) return default;
+            double s = Math.Sin(yaw), co = Math.Cos(yaw);
+            // the pose's yaw turns the shape's +X axis to (−sin, −cos) of it: half a turn more puts that axis on her bow
+            // (sin yaw, cos yaw), and the shape's +Z on her starboard side (−cos yaw, sin yaw)
+            if (!c.Pose(x + s * centreX, z + co * centreX, yaw + Math.PI, 2 * halfLength, 2 * halfBeam, out var p)) return default;
+            return FromPose(p.Hold, p.Lift, p.Roll, p.Pitch, centreX, m);
+        }
+
+        /// <summary>
+        /// A contract <c>pose</c> (Rough Seas' <c>PoseOf</c>: lift, roll about the length, pitch about the beam) of her
+        /// waterplane, asked with her bow on the shape's +X axis, as her attitude. With the bow on +X and starboard on +Z,
+        /// <c>Pitch</c> = atan(rise toward the bow) is her pitch bow up, and <c>Roll</c> = −atan(rise toward starboard) is
+        /// her roll starboard down (the water rising to starboard lifts starboard). Soft-capped like the waves; Hold 0 is
+        /// no swell drawn (she lies still).
+        /// </summary>
+        public static ShipAttitude FromPose(double hold, double lift, double roll, double pitch, double centreX, MotionDef m)
+        {
+            if (!(hold > 0)) return default;
+            double p = SoftCap(pitch, m.MaxPitch * Math.PI / 180);
+            double r = SoftCap(roll, m.MaxRoll * Math.PI / 180);
+            // the pose is for the waterplane's centre; the origin sits centreX behind it
+            return new ShipAttitude(lift - Math.Sin(p) * centreX, p, r);
+        }
+
+        /// <summary>Gauss–Legendre stations and weights on [−1, 1]: a plane fitted over them is the waterplane's own best fit.</summary>
+        static readonly double[] SurfAt = { -Math.Sqrt(0.6), 0, Math.Sqrt(0.6) }, SurfWeight = { 5 / 9.0, 8 / 9.0, 5 / 9.0 };
+
+        /// <summary>
+        /// (Sea 0.6.0) The beach's surf under her: the plane best fitted to <paramref name="excess"/> (the drawn surface less
+        /// the open sea's waves, <see cref="WaveTrains.Surf"/>) at 3 × 3 points over the waterplane, as heave (its mean),
+        /// pitch (its slope toward the bow) and roll (its slope toward starboard, which lifts starboard). The water's own
+        /// shape, without the hull's inertia (<see cref="EaseSurf"/> smooths it); soft-capped like the waves. Default when
+        /// any point has no answer.
+        /// </summary>
+        public static ShipAttitude Surf(Func<double, double, double> excess, double x, double z, double yaw,
+            double halfLength, double halfBeam, double centreX, MotionDef m)
+        {
+            if (excess == null) return default;
+            double s = Math.Sin(yaw), c = Math.Cos(yaw);
+            double cx = x + s * centreX, cz = z + c * centreX;
+            double l = halfLength * m.WaterplaneFraction, b = halfBeam * m.WaterplaneFraction;
+            double sw = 0, mean = 0, su = 0, suu = 0, sv = 0, svv = 0;
+            for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+            {
+                double u = SurfAt[i] * l, v = SurfAt[j] * b, w = SurfWeight[i] * SurfWeight[j];
+                // along the keel toward the bow (sin, cos), across toward starboard (−cos, sin)
+                double h = excess(cx + s * u - c * v, cz + c * u + s * v);
+                if (!double.IsFinite(h)) return default;
+                sw += w; mean += w * h;
+                su += w * u * h; suu += w * u * u;
+                sv += w * v * h; svv += w * v * v;
+            }
+            mean /= sw;
+            double p = SoftCap(Math.Atan(suu > 0 ? su / suu : 0), m.MaxPitch * Math.PI / 180);
+            double r = SoftCap(-Math.Atan(svv > 0 ? sv / svv : 0), m.MaxRoll * Math.PI / 180);
+            return new ShipAttitude(mean - Math.Sin(p) * centreX, p, r);
+        }
+
+        /// <summary>Seconds the surf's push takes to move her (a light first-order lag on <see cref="Surf"/>).</summary>
+        public const double SurfResponse = 0.4;
+
+        /// <summary>
+        /// Ease her surf attitude toward <paramref name="target"/> over dt seconds (<see cref="SurfResponse"/>). Back at
+        /// rest off the coast it settles to exactly zero, so the open sea's motion is untouched again.
+        /// </summary>
+        public static ShipAttitude EaseSurf(ShipAttitude eased, ShipAttitude target, double dt)
+        {
+            if (IsZero(eased) && IsZero(target)) return default;
+            double k = dt > 0 ? 1 - Math.Exp(-dt / SurfResponse) : 0;
+            var n = new ShipAttitude(eased.Heave + (target.Heave - eased.Heave) * k, eased.Pitch + (target.Pitch - eased.Pitch) * k,
+                eased.Roll + (target.Roll - eased.Roll) * k);
+            if (IsZero(target) && Math.Abs(n.Heave) < 1e-4 && Math.Abs(n.Pitch) < 1e-5 && Math.Abs(n.Roll) < 1e-5) return default;
+            return n;
+        }
+
+        /// <summary>The waves' attitude with the surf's added; exactly the waves' when there is no surf.</summary>
+        public static ShipAttitude AddSurf(ShipAttitude waves, ShipAttitude surf) =>
+            IsZero(surf) ? waves : new ShipAttitude(waves.Heave + surf.Heave, waves.Pitch + surf.Pitch, waves.Roll + surf.Roll);
+
+        static bool IsZero(ShipAttitude a) => a.Heave == 0 && a.Pitch == 0 && a.Roll == 0;
+
+        /// <summary>
         /// Wave-frequency yaw, in rad/s (+ port). The transverse orbital velocity varies along the keel:
         /// its first moment turns the hull, while the immersed lateral area and rudder resist it. A first-order
         /// inertia/damping response, not a spring to an arbitrary compass heading. Uniform beam or head waves

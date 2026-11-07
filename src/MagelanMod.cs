@@ -156,6 +156,11 @@ namespace Hansa
         /// <summary>The inside of this side's ships' hulls, where Sea treats the water as dry (the hold, the lower deck).</summary>
         public readonly ShipDrySpaces Dry = new();
         Sea.SeaSystem sea;
+        /// <summary>
+        /// The open sea contracts on this side (Sea's docs/open-sea-contracts.md): the wind (<c>seacontracts:weather</c>),
+        /// sea state and drawn surface where Sea's typed API isn't there.
+        /// </summary>
+        public ContractWaves Contracts { get; private set; }
 
         public override double ExecuteOrder() => 0.2;
 
@@ -190,6 +195,22 @@ namespace Hansa
             // below the waterline the hulls are dry: no water, fog or breath bar in the hold and on the lower deck
             sea = api.ModLoader.GetModSystem<Sea.SeaSystem>();
             sea?.AddDrySpaces(Dry);
+            Contracts = new ContractWaves(api.ObjectCache, m => Mod.Logger.Warning(m));
+        }
+
+        /// <summary>
+        /// The wind at a place (the same on every side): Sea's, or without Sea the <c>seacontracts:weather</c> wind with its
+        /// gusts (m/s, as Sea's units: 1 is <see cref="Sailing.WindUnit"/> m/s); calm with neither.
+        /// </summary>
+        public Sea.Wind WindHere(double x, double z) => sea != null ? sea.WindAt(x, z) : ContractWind(x, z);
+
+        /// <summary>The <c>seacontracts:weather</c> wind at a place now, in Sea's units; calm without one.</summary>
+        public Sea.Wind ContractWind(double x, double z)
+        {
+            var c = Contracts;
+            var cal = api?.World?.Calendar;
+            if (c == null || cal == null || !c.Wind(x, z, cal.TotalHours, out double wx, out double wz)) return default;
+            return new Sea.Wind(wx / Sailing.WindUnit, wz / Sailing.WindUnit);
         }
 
         public override void AssetsLoaded(ICoreAPI api)
@@ -320,13 +341,13 @@ namespace Hansa
             var bp = new BlockPos((int)Math.Floor(x), (int)Math.Floor(y), (int)Math.Floor(z), dim);
             double still = EntityShip.FindWaterSurface(sapi.World, bp, 2, 3);
             if (double.IsNaN(still)) return double.NaN;
-            return still + (sea?.WaveHeightAt(x, z) ?? 0);
+            return still + (sea != null ? sea.WaveHeightAt(x, z) : Contracts?.Height(x, z) ?? 0);
         }
 
         /// <summary>Sea's wind at a place as a velocity (blocks a second, level): what drifts a gun's smoke away.</summary>
         public Vec3d WindAt(double x, double z)
         {
-            var w = sea != null ? sea.WindAt(x, z) : default;
+            var w = WindHere(x, z);
             // (Sea's wind units: 1 is 25 m/s; smoke drifts at most of the wind's speed)
             return new Vec3d(w.X * 20, 0, w.Z * 20);
         }

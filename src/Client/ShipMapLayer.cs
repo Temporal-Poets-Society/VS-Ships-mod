@@ -232,9 +232,10 @@ namespace Hansa
 
         void DrawWind(GuiElementMap map, IShaderProgram prog, EntityPlayer ep)
         {
-            var sea = Sys?.Sea;
-            if (sea == null || !Aboard(ep)) return;
-            var w = sea.WindAt(ep.Pos.X, ep.Pos.Z);
+            var hansa = Sys?.Hansa;
+            if (hansa == null || !Aboard(ep)) return;
+            // (Sea's wind, or without Sea the open sea contracts': HansaMod.WindHere)
+            var w = hansa.WindHere(ep.Pos.X, ep.Pos.Z);
             double strength = w.Strength;
             if (strength < 0.02) return;
             windArrow ??= capi.Render.UploadMesh(ArrowMesh());
@@ -271,13 +272,13 @@ namespace Hansa
                     WindPanel.Speed(Math.Abs(s.Speed))) + (s.Loaded ? "" : " · " + Lang.Get("ships:map-ship-lastseen")));
             }
             var ep = capi.World.Player?.Entity;
-            var sea = sys.Sea;
-            if (ep != null && sea != null && Aboard(ep))
+            var hansa = sys.Hansa;
+            if (ep != null && hansa != null && Aboard(ep))
             {
                 Screen(map, ep.Pos.X, ep.Pos.Z, out float px, out float py);
                 if (Math.Abs(args.X - px) < 40 * GuiElement.scaled(1) && Math.Abs(args.Y - py) < 40 * GuiElement.scaled(1))
                 {
-                    var w = sea.WindAt(ep.Pos.X, ep.Pos.Z);
+                    var w = hansa.WindHere(ep.Pos.X, ep.Pos.Z);
                     if (w.Strength >= 0.02) hoverText.AppendLine(WindPanel.WindLine(w));
                 }
             }

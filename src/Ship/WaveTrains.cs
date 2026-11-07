@@ -23,6 +23,13 @@ namespace Hansa
         // the producer's own surface height (x, z, t), when it draws more than the plain sum (Sea's crest shaping)
         Func<double, double, double, double> surface;
 
+        /// <summary>
+        /// (Sea 0.6.0, surf) Near a coast: how far the drawn surface stands above the open sea's waves at (x, z) now, in
+        /// blocks, shelter included (the beach's surf: trains turning shoreward, shoaling and breaking over the bottom). Null
+        /// off the coast, where the trains are the whole of it; <see cref="ShipMotion.Surf"/> fits a plane to it.
+        /// </summary>
+        public Func<double, double, double> Surf;
+
         /// <summary>Significant height (4σ) of what's running here now, as Sea's <c>WavePlace.SignificantHeight</c>.</summary>
         public double SignificantHeight
         {
@@ -50,15 +57,24 @@ namespace Hansa
             return y;
         }
 
+        /// <summary>The plain sum of the trains at (x, z) at <see cref="Time"/>, before shelter: the open sea as the contract's trains give it.</summary>
+        public double OpenHeightAt(double x, double z)
+        {
+            double y = 0, t = Time;
+            for (int i = 0; i < Count; i++) y += Amp[i] * Math.Sin(Kx[i] * x + Kz[i] * z - Omega[i] * t + Phase[i]);
+            return y;
+        }
+
         /// <summary>Use the producer's own surface (x, z, t) for <see cref="HeightAt(double, double, double)"/>; null: the plain sum.</summary>
         public void SetSurface(Func<double, double, double, double> height) => surface = height;
 
-        /// <summary>No trains (calm), at wave time t; the plain sum from here on.</summary>
+        /// <summary>No trains (calm), at wave time t; the plain sum from here on, and no surf.</summary>
         public void Clear(double t)
         {
             Time = t;
             Count = 0;
             surface = null;
+            Surf = null;
         }
 
         /// <summary>Take exactly these trains at wave time t (the plain sum for the surface).</summary>
@@ -85,6 +101,12 @@ namespace Hansa
 
         /// <summary>The share of the open sea's waves that reaches (x, z), 0–1.</summary>
         double Shelter(double x, double z);
+
+        /// <summary>
+        /// (Sea 0.6.0) The water's own drift at (x, z) now, m/s (+X east, +Z south): the longshore current in a beach's surf
+        /// zone; (0, 0) elsewhere or when the source doesn't know one.
+        /// </summary>
+        (double X, double Z) Current(double x, double z) => (0, 0);
     }
 
     /// <summary>
@@ -96,7 +118,9 @@ namespace Hansa
     /// </summary>
     public sealed class ContractWaves : IWaveTrainSource
     {
-        public const string SurfaceKey = "seacontracts:surface", SeaStateKey = "seacontracts:seastate";
+        public const string SurfaceKey = "seacontracts:surface", SeaStateKey = "seacontracts:seastate", WeatherKey = "seacontracts:weather";
+        /// <summary>The contract's depth off the coast (<c>seastate.surf</c>: 32 blocks or more there).</summary>
+        public const double OpenDepth = 32;
 
         readonly IDictionary<string, object> cache;
         readonly Action<string> warn;
@@ -147,6 +171,7 @@ namespace Hansa
                         !double.IsFinite(into.Phase[i]) || !double.IsFinite(into.Amp[i]))
                     { Fail("surface.trains gave a non-finite train"); into.Clear(t); return false; }
                 into.Count = n;
+                SurfOver(into, x, z);
                 return true;
             }
             catch (Exception ex)
@@ -155,6 +180,127 @@ namespace Hansa
                 into.Clear(t);
                 return false;
             }
+        }
+
+        /// <summary>
+        /// (Sea 0.6.0) Over coastal water (<c>seastate.surf</c> shallower than <see cref="OpenDepth"/>) with a drawn surface
+        /// (<c>surface.height</c>): the surf is the drawn height less the trains' plain sum under the shelter here.
+        /// </summary>
+        void SurfOver(WaveTrains into, double x, double z)
+        {
+            var height = Member<Func<double, double, double>>(Entry(SurfaceKey), "height");
+            var surf = Member<Func<double, double, (double Depth, double Breaking, double Foam)>>(Entry(SeaStateKey), "surf");
+            if (height == null || surf == null) return;
+            double depth;
+            try { depth = surf(x, z).Depth; }
+            catch (Exception ex) { Fail("seastate.surf failed: " + ex.Message); return; }
+            if (!(depth < OpenDepth)) return;     // (NaN too: no answer, the open sea's waves alone)
+            double shelter = Shelter(x, z);
+            into.Surf = (px, pz) =>
+            {
+                try
+                {
+                    double d = height(px, pz) - shelter * into.OpenHeightAt(px, pz);
+                    if (double.IsFinite(d)) return d;
+                    Fail("surface.height gave " + d);
+                }
+                catch (Exception ex) { Fail("surface.height failed: " + ex.Message); }
+                return double.NaN;
+            };
+        }
+
+        /// <summary>(Sea 0.6.0) <c>seastate.current</c> at (x, z) now, m/s; (0, 0) when there is none or no answer.</summary>
+        public (double X, double Z) Current(double x, double z)
+        {
+            var current = Member<Func<double, double, (double X, double Z)>>(Entry(SeaStateKey), "current");
+            if (current == null) return (0, 0);
+            try
+            {
+                var v = current(x, z);
+                if (double.IsFinite(v.X) && double.IsFinite(v.Z)) return v;
+                Fail("seastate.current gave " + v);
+            }
+            catch (Exception ex) { Fail("seastate.current failed: " + ex.Message); }
+            return (0, 0);
+        }
+
+        /// <summary>Is there a <c>surface.pose</c> on this side (for a surface owner that gives no trains)?</summary>
+        public bool HasPose => Member<Func<double, double, double, double, double, (double Hold, double Lift, double Roll, double Pitch)>>(Entry(SurfaceKey), "pose") != null;
+
+        /// <summary>
+        /// <c>surface.pose</c>: how a hull of length by beam centred at (x, z) lies on the drawn water now, in Rough Seas'
+        /// <c>PoseOf</c> meaning (yaw as the renderer turns a shape whose length runs along its X axis). False: none, or no answer.
+        /// </summary>
+        public bool Pose(double x, double z, double yaw, double length, double beam, out (double Hold, double Lift, double Roll, double Pitch) pose)
+        {
+            pose = default;
+            var f = Member<Func<double, double, double, double, double, (double Hold, double Lift, double Roll, double Pitch)>>(Entry(SurfaceKey), "pose");
+            if (f == null) return false;
+            try
+            {
+                pose = f(x, z, yaw, length, beam);
+                if (double.IsFinite(pose.Hold) && double.IsFinite(pose.Lift) && double.IsFinite(pose.Roll) && double.IsFinite(pose.Pitch)) return true;
+                Fail("surface.pose gave " + pose);
+            }
+            catch (Exception ex) { Fail("surface.pose failed: " + ex.Message); }
+            pose = default;
+            return false;
+        }
+
+        /// <summary><c>surface.height</c>: the drawn surface above still water at (x, z) now (m, shelter included); 0 without one.</summary>
+        public double Height(double x, double z)
+        {
+            var f = Member<Func<double, double, double>>(Entry(SurfaceKey), "height");
+            if (f == null) return 0;
+            try
+            {
+                double h = f(x, z);
+                if (double.IsFinite(h)) return h;
+                Fail("surface.height gave " + h);
+            }
+            catch (Exception ex) { Fail("surface.height failed: " + ex.Message); }
+            return 0;
+        }
+
+        /// <summary>Is there a <c>seacontracts:weather</c> wind on this side?</summary>
+        public bool HasWind => Member<Func<double, double, double, bool, (double X, double Z)>>(Entry(WeatherKey), "wind") != null;
+
+        /// <summary>
+        /// <c>weather.wind</c> with its gusts at (x, z) and total game hours, m/s toward (X, Z); false: none, or no answer
+        /// (calm).
+        /// </summary>
+        public bool Wind(double x, double z, double hours, out double windX, out double windZ)
+        {
+            windX = windZ = 0;
+            var f = Member<Func<double, double, double, bool, (double X, double Z)>>(Entry(WeatherKey), "wind");
+            if (f == null) return false;
+            try
+            {
+                var v = f(x, z, hours, true);
+                if (double.IsFinite(v.X) && double.IsFinite(v.Z)) { windX = v.X; windZ = v.Z; return true; }
+                Fail("weather.wind gave " + v);
+            }
+            catch (Exception ex) { Fail("weather.wind failed: " + ex.Message); }
+            return false;
+        }
+
+        /// <summary>
+        /// <c>seastate.at</c>: the open sea at (x, z) and total game hours: significant height (m), peak period (s); false:
+        /// none, or no answer.
+        /// </summary>
+        public bool SeaState(double x, double z, double hours, out double height, out double period)
+        {
+            height = period = 0;
+            var f = Member<Func<double, double, double, (double Height, double Period, double DirX, double DirZ, double WindX, double WindZ, double Storm)>>(Entry(SeaStateKey), "at");
+            if (f == null) return false;
+            try
+            {
+                var st = f(x, z, hours);
+                if (double.IsFinite(st.Height) && double.IsFinite(st.Period)) { height = st.Height; period = st.Period; return true; }
+                Fail("seastate.at gave " + st);
+            }
+            catch (Exception ex) { Fail("seastate.at failed: " + ex.Message); }
+            return false;
         }
 
         public double Shelter(double x, double z)

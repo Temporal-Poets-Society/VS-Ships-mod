@@ -17,6 +17,17 @@ Ships reads the waves through its own `WaveTrains` (`src/Ship/WaveTrains.cs`): f
 is loaded, otherwise from the open sea contracts' `seacontracts:surface` (`trains`, `seconds`) and
 `seacontracts:seastate` (`shelter`); `ShipMotion` works from `WaveTrains` alone
 (`dotnet run -c Release -- wave-trains` in `tests/HansaTests` pins it bit for bit to the earlier arithmetic).
+Near a beach (Sea 0.6.0's surf) the trains are still the open sea's; over coastal water (Sea's `CoastAt(...).Coastal`,
+or the contract's `seastate.surf` shallower than 32) `ShipMotion.Surf` fits a plane to the drawn surface less the open
+sea's waves at 3 × 3 points over her waterplane (Sea's `WavePlace.HeightAt` with and without its coast, or
+`surface.height` less the sheltered trains) and adds its mean, slope along and slope across to her heave, pitch and roll,
+eased over 0.4 s; off the coast nothing of it is worked out. On the server she drifts with Sea's longshore current
+(`CurrentAt`, or `seastate.current`) except at anchor, aground or on the bottom; clients follow her synced position. A
+contract surface with no trains but a `pose` gives her attitude from the pose. Without Sea's typed API the wind is
+`seacontracts:weather`'s (m/s ÷ 25) and the chalk's sea state `seastate.at`. Ships still requires Sea.dll: the
+game (1.22.7) has no optional dependencies, and Sea's types sit in the renderer, the dry spaces, the rowing boat's
+water clip and the wind's public signatures (assessed 7 November 2026; not changed). `dotnet run -c Release -- sea-coast`
+checks the surf, current, pose and contract wind offline; nothing of it is tested in game yet.
 
 Ships began on 14 October 2026 as Hansa, a separate grid-based rebuild of Magelan; it was renamed Ships (mod ID
 `ships`) at 0.1.0-dev.18, and the C# namespace stays `Hansa`. The sailing, waves, walking aboard, crew, working

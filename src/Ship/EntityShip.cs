@@ -385,15 +385,36 @@ namespace Hansa
         /// The motion the waves give the ship at this place and heading now, at full strength. Every side gets the
         /// same answer from the same inputs (the waves are Sea's shared ones, the wave clock is shared).
         /// </summary>
-        public ShipAttitude WaveMotion(double x, double z, double yaw)
+        public ShipAttitude WaveMotion(double x, double z, double yaw) => WaveMotion(x, z, yaw, out _);
+
+        /// <summary>
+        /// The same, and (Sea 0.6.0) over coastal water the beach's surf under her (<see cref="ShipMotion.Surf"/>, not yet
+        /// eased or added); default off the coast. A contract surface with no trains but a pose: the pose (ShipMotion.Ride).
+        /// </summary>
+        public ShipAttitude WaveMotion(double x, double z, double yaw, out ShipAttitude surf)
         {
+            surf = default;
             var source = WaveSource;
-            if (source == null || Def == null || !source.Sample(waves, x, z)) return default;
+            if (source == null || Def == null) return default;
             Def.Waterplane(out double halfLength, out double halfBeam, out double centreX);
             centreX = WaveHull.FlotationCentre;
             double steady = ShipMotion.SailSteadiness(SailsDrawing, WindHere(x, z).Strength);
             // (the water in her slows her roll: MotionNow; the heave and pitch are the design's, alike everywhere)
-            return ShipMotion.Waves(waves, source.Shelter(x, z), waves.Time, x, z, yaw, Speed, halfLength, halfBeam, centreX, MotionNow, steady);
+            return ShipMotion.Ride(source, waves, x, z, yaw, Speed, halfLength, halfBeam, centreX, MotionNow, steady, out surf);
+        }
+
+        /// <summary>Her surf attitude, eased (<see cref="ShipMotion.EaseSurf"/>); each side its own. Zero off the coast.</summary>
+        ShipAttitude surfEased;
+
+        /// <summary>
+        /// <see cref="WaveMotion(double, double, double)"/> with the beach's surf eased over dt and added: what she rides
+        /// each server tick and client frame. Off the coast exactly the waves' motion.
+        /// </summary>
+        ShipAttitude RideNow(double x, double z, double yaw, double dt)
+        {
+            var mo = WaveMotion(x, z, yaw, out var surf);
+            surfEased = ShipMotion.EaseSurf(surfEased, surf, dt);
+            return ShipMotion.AddSurf(mo, surfEased);
         }
 
         /// <summary>The waves at the ship as of the last sample (<see cref="WaveMotion"/>, the wave yaw), for reports and tests.</summary>
@@ -2085,10 +2106,13 @@ namespace Hansa
                     Pos.X, Pos.Z, Pos.Yaw, Speed, WaveHull, RudderAnswers);
 
             double newYaw = Pos.Yaw + YawRate * dt;
-            HelmMath.Advance(Pos.X, Pos.Z, Pos.Yaw, newYaw, Speed, Leeway, dt, WaveHull.LateralCentre, out double nx, out double nz);
+            // (Sea 0.6.0) she goes with the water: a beach's longshore current carries her (not at anchor, aground or on
+            // the bottom; here on the server only, clients follow her position)
+            var current = !Anchored && !OnBottom && !Aground && WaveSource is { } currentSource ? currentSource.Current(Pos.X, Pos.Z) : (X: 0.0, Z: 0.0);
+            HelmMath.Advance(Pos.X, Pos.Z, Pos.Yaw, newYaw, Speed, Leeway, dt, WaveHull.LateralCentre, current.X, current.Z, out double nx, out double nz);
 
-            // (review H1-8: leeway alone moves her too, as clients reckon it)
-            if (Math.Abs(Speed) + Math.Abs(Leeway) > 1e-4 || Math.Abs(YawRate) > 1e-5)
+            // (review H1-8: leeway alone moves her too, as clients reckon it; and the current)
+            if (Math.Abs(Speed) + Math.Abs(Leeway) > 1e-4 || Math.Abs(YawRate) > 1e-5 || Math.Abs(current.X) + Math.Abs(current.Z) > 1e-4)
             {
                 var pose = PoseToward(nx, nz, newYaw);
                 if (pose == PoseState.Unloaded)
@@ -2163,7 +2187,7 @@ namespace Hansa
             {
                 BaseY += GameMath.Clamp(targetY - BaseY, -0.5 * dt, 0.5 * dt);
             }
-            seaAttitude = WaveMotion(Pos.X, Pos.Z, Pos.Yaw);
+            seaAttitude = RideNow(Pos.X, Pos.Z, Pos.Yaw, dt);
             Heave = seaAttitude.Heave;
             // her lean in the wind, following it as slowly as clients draw it
             {
@@ -2615,7 +2639,7 @@ namespace Hansa
         {
             EaseFlood(dt);
             // on the bottom the waves don't reach her; going down they let go of her
-            var mo = Stage == SinkStage.Sunk ? default : WaveMotion(RenderPos.X, RenderPos.Z, RenderYaw);
+            var mo = Stage == SinkStage.Sunk ? default : RideNow(RenderPos.X, RenderPos.Z, RenderYaw, dt);
             if (Stage == SinkStage.Sinking) mo = mo.Scaled(Math.Max(0, 1 - sinkShown / 6));
             fullHeave = mo.Heave;
             double heel = 0;
@@ -2712,8 +2736,11 @@ namespace Hansa
             LeeShown = LateenRig.Ease(LeeShown, Lee, LateenRig.DipSeconds(Def), dt);
         }
 
-        /// <summary>Sea's wind at a place (the same on every side); calm if Sea isn't there.</summary>
-        public Sea.Wind WindHere(double x, double z) => SeaSys != null ? SeaSys.WindAt(x, z) : default;
+        /// <summary>
+        /// Sea's wind at a place (the same on every side); without Sea the open sea contracts' <c>seacontracts:weather</c>
+        /// wind (m/s, in Sea's units here: <see cref="HansaMod.ContractWind"/>); calm with neither.
+        /// </summary>
+        public Sea.Wind WindHere(double x, double z) => SeaSys != null ? SeaSys.WindAt(x, z) : Mod?.ContractWind(x, z) ?? default;
 
         public override string GetName() => ShipName ?? Def?.Name ?? base.GetName();
     }
