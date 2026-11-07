@@ -1,5 +1,7 @@
 # Ships
 
+[Wiki](https://github.com/Temporal-Poets-Society/VS-Ships-mod/wiki): with and without Sea, the wind, the open sea contracts and in-game test results (7 November 2026).
+
 Publication materials: [HTML description](docs/moddb-description.html), [publishing information](docs/moddb-publishing-info.txt),
 [local preview](docs/moddb-preview.html) and [wheel logo](docs/publishing-assets/ships-logo-moddb-480.png).
 The public release focuses on the Boa Esperança-inspired caravel. The overall goal is historically accurate
