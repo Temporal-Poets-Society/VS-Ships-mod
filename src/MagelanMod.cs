@@ -218,7 +218,27 @@ namespace Hansa
                 CheckHullCut();
                 api.Event.RegisterGameTickListener(_ => CheckHullCut(), 2000);
             }
+            // No wind model (no Sea, no seacontracts:weather): say so once the world is up, when every mod has published
+            // what it will. The client tells its player; the server writes it to its log.
+            if (api is Vintagestory.API.Client.ICoreClientAPI wcapi)
+                wcapi.Event.LevelFinalize += () =>
+                {
+                    if (!VanillaWindOnly) return;
+                    Mod.Logger.Warning(NoWindModelLog);
+                    wcapi.ShowChatMessage(Lang.Get("ships:vanilla-wind-warning"));
+                };
+            else if (api is ICoreServerAPI wsapi)
+                wsapi.Event.ServerRunPhase(EnumServerRunPhase.RunGame, () => { if (VanillaWindOnly) Mod.Logger.Warning(NoWindModelLog); });
         }
+
+        const string NoWindModelLog = "[ships] No wind model: neither Sea nor any mod publishing seacontracts:weather is installed. " +
+            "Ships sail by vanilla's wind, which blows only from the east or the west and follows no weather systems.";
+
+        /// <summary>
+        /// True while the wind is vanilla's on this side: no Sea, and no mod publishing <c>seacontracts:weather</c>. Vanilla's
+        /// wind blows only along X (east or west) and has no weather systems, so sailing by it is a stand-in, not a model.
+        /// </summary>
+        public bool VanillaWindOnly => SeaLink == null && Contracts?.HasWind != true;
 
         /// <summary>
         /// Without Sea, every couple of seconds: keep this side's dry places with the <c>seacontracts:hulls</c> owner (one

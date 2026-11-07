@@ -2860,7 +2860,7 @@ namespace Hansa
             Line($"Hansa flood mesh: built={f?.Built == true}, failed={floodFailed}, level={f?.Level ?? double.NaN:0.000}, world dy={f?.WorldDy ?? double.NaN:0.000}");
             var link = sys.Hansa?.SeaLink;
             if (link != null) sb.AppendLine(link.RendererReport());
-            else Line($"Sea: not installed; hull cut by {(sys.Hansa?.Hulls?.Owner is string owner ? "seacontracts:hulls (" + owner + ")" : "Ships' own lids")}");
+            else Line($"Sea: not installed; wind {(sys.Hansa?.VanillaWindOnly == true ? "vanilla's (no wind model)" : "seacontracts:weather")}; hull cut by {(sys.Hansa?.Hulls?.Owner is string owner ? "seacontracts:hulls (" + owner + ")" : "Ships' own lids")}");
             if (ship.Def?.WaterClip == null) { sb.Append("No waterClip in this ship's definition."); return sb.ToString(); }
             var o = RenderOrigin(ship, ep);
             float calm = Calm();

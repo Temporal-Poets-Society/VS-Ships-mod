@@ -339,6 +339,8 @@
 	"sails-strain-gale": "The wind's too strong for the sail she has set: the sails are straining. Shorten sail, or in a few minutes they'll tear.",
 	"sails-strain-storm": "A storm: the sails are straining even as she'd be reefed. Furl them, or in a few minutes they'll tear.",
 	"sails-strain-close": "The sails are about to tear: shorten sail now!",
+	"vanilla-wind-warning": "Ships: no wind model installed. Ships sail by vanilla's wind, which blows only from the east or the west and follows no weather. Install Sea, or a mod that provides wind through the open sea contracts, for real wind.",
+	"windpanel-warn-vanilla": "No wind model: vanilla wind, east or west only",
 	"windpanel-on": "Wind panel on (Ctrl+U or .ships wind to hide it).",
 	"windpanel-off": "Wind panel off (Ctrl+U or .ships wind to show it).",
 	"hotkey-windpanel": "Ships: wind panel aboard",

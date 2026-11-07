@@ -41,8 +41,10 @@ with `Assembly.LoadFrom` (once per process) and binds it per side, getting Ships
 - **With Sea**: as before. Sea's wind, waves, sea state, dry places and water cut (the hulls' clips go to Sea every frame
   through the bridge, unchanged); the self-tests reach Sea through the same link.
 - **Without Sea**: one note in the log. The wind is `seacontracts:weather`'s if some mod publishes it, else vanilla's
-  wind just above sea level (vanilla gives only an east-west strength, so it is always from the west or the east); the
-  wind panel shows either. The waves are `seacontracts:surface`'s, else calm (she floats level on still water). The water
+  wind just above sea level (vanilla gives only an east-west strength, so it is always from the west or the east). On
+  vanilla's wind Ships warns that there is no wind model: a chat line to the player when the world is up, a warning in
+  the client's and server's logs, and an orange line on the wind panel ("No wind model: vanilla wind, east or west
+  only") while the sails need no other warning. The waves are `seacontracts:surface`'s, else calm (she floats level on still water). The water
   in her hull: if some mod publishes `seacontracts:hulls`, Ships registers each hull there as a record (`register`;
   the footprint less its inset, no detailed outline) and its dry places (`registerDry`, both sides), checked every 2 s.
   Otherwise Ships does it itself: no drowning in her hold (a postfix on vanilla's breathing check), no underwater fog

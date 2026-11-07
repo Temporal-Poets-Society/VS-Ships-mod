@@ -122,6 +122,8 @@ namespace Hansa
                 SingleComposer.GetDynamicText("text").SetNewText(text);
             }
             int level = SailWarning(ship, w, out string warn);
+            // (no wind model installed: vanilla's wind, east or west only) in orange while the sails don't need a warning
+            if (level == 0 && sys.Hansa?.VanillaWindOnly == true) { level = 1; warn = Lang.Get("ships:windpanel-warn-vanilla"); }
             warn ??= "";
             if (warn != lastWarn || level != lastWarnLevel)
             {
