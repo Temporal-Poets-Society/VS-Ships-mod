@@ -183,9 +183,18 @@ namespace Hansa
         }
 
         /// <summary>
-        /// (Sea 0.6.0) Over coastal water (<c>seastate.surf</c> shallower than <see cref="OpenDepth"/>) with a drawn surface
-        /// (<c>surface.height</c>): the surf is the drawn height less the trains' plain sum under the shelter here.
+        /// (Sea 0.6.0) Over coastal water (<c>seastate.surf</c> shallower than <see cref="OpenDepth"/>), or in the lee of land
+        /// (<c>seastate.lee</c> under 1, deep water too), with a drawn surface (<c>surface.height</c>): the surf is the drawn
+        /// height less the trains' plain sum under the shelter here.
         /// </summary>
+        bool InLee(double x, double z)
+        {
+            var lee = Member<Func<double, double, double>>(Entry(SeaStateKey), "lee");
+            if (lee == null) return false;
+            try { return lee(x, z) < 0.999; }
+            catch (Exception ex) { Fail("seastate.lee failed: " + ex.Message); return false; }
+        }
+
         void SurfOver(WaveTrains into, double x, double z)
         {
             var height = Member<Func<double, double, double>>(Entry(SurfaceKey), "height");
@@ -194,7 +203,7 @@ namespace Hansa
             double depth;
             try { depth = surf(x, z).Depth; }
             catch (Exception ex) { Fail("seastate.surf failed: " + ex.Message); return; }
-            if (!(depth < OpenDepth)) return;     // (NaN too: no answer, the open sea's waves alone)
+            if (!(depth < OpenDepth) && !InLee(x, z)) return;     // (NaN too: no answer, the open sea's waves alone)
             double shelter = Shelter(x, z);
             into.Surf = (px, pz) =>
             {

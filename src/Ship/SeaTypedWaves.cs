@@ -6,8 +6,8 @@ namespace Hansa
     /// Sea's typed API as a wave source: <see cref="Sea.SeaSystem.SampleWaves(Sea.WavePlace, double, double)"/> into a
     /// place of its own, copied into the ship's <see cref="WaveTrains"/>, and <see cref="Sea.SeaSystem.WaveFactorAt"/>
     /// for the shelter. The default whenever Sea is loaded: exactly what Ships read before the contracts.
-    /// (Sea 0.6.0) Over coastal water (<see cref="Sea.SeaSystem.CoastAt"/>) the trains also carry the beach's surf, and
-    /// <see cref="Current"/> is Sea's longshore current there.
+    /// (Sea 0.6.0) Over coastal water and in the lee of land (<see cref="Sea.SeaSystem.CoastAt"/>) the trains also carry
+    /// what the coast does to the waves, and <see cref="Current"/> is Sea's surf current there (longshore and rips).
     /// </summary>
     public sealed class SeaTypedWaves : IWaveTrainSource
     {
@@ -32,8 +32,8 @@ namespace Hansa
             SeaSys.SampleWaves(place, x, z);
             sampledX = x; sampledZ = z; sampledT = place.Time;
             into.CopyFrom(place, height);
-            // (0.6.0) the beach's surf, only over coastal water: off the coast nothing more is worked out
-            if (place.Coast != null && SeaSys.CoastAt(x, z).Coastal)
+            // (0.6.0) the beach's surf, only over coastal water or in the lee of land: elsewhere nothing more is worked out
+            if (place.Coast != null && SeaSys.CoastAt(x, z).Affects)
             {
                 surfShelter = SeaSys.WaveFactorAt(x, z);
                 into.Surf = surf;
