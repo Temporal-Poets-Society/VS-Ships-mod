@@ -384,14 +384,14 @@ namespace Hansa
         /// </summary>
         void RideOutAStorm(EntityShip ship, double surface, Action then)
         {
-            var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
-            if (sea?.Model == null || sea.Spectrum == null)
+            var sea = sapi.ModLoader.GetModSystem<HansaMod>()?.SeaLink;
+            if (sea?.ModelReady != true || !sea.SpectrumReady)
             {
                 Check(false, "Sea's waves are ready on the server");
                 then();
                 return;
             }
-            sea.SetOverride(new Sea.WindOverride { FromDegrees = 0, Strength = 1.2, StartHours = sea.Hours - 24 });
+            sea.SetWindOverride(0, 1.2);
             double lo = double.MaxValue, hi = double.MinValue, worstApplied = 0, worstAgain = 0, t0 = sea.WaveTime;
             int n = 0;
             long id = 0;
@@ -424,7 +424,7 @@ namespace Hansa
                 for (int i = 0; i < 2000; i++) ship.WaveMotion(ship.Pos.X, ship.Pos.Z, ship.Pos.Yaw + i * 1e-4);
                 double us = sw.Elapsed.TotalMilliseconds * 1000 / 2000;
                 Check(us < 50, $"riding the waves costs {us:0.0} µs a tick");
-                sea.SetOverride(null);
+                sea.ClearWindOverride();
                 then();
             }, 100);
         }
@@ -485,8 +485,8 @@ namespace Hansa
         {
             mod.Config.StopWhenUnmanned = false;
             // sailing by the wind: a strong breeze from the north puts it on her port beam as she heads east
-            var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
-            sea?.SetOverride(new Sea.WindOverride { FromDegrees = 0, Strength = 0.6, StartHours = sea.Hours - 24 });
+            var sea = sapi.ModLoader.GetModSystem<HansaMod>()?.SeaLink;
+            sea?.SetWindOverride(0, 0.6);
             var w0 = ship.WindHere(ship.Pos.X, ship.Pos.Z);
             double beamAngle = Sailing.WindAngle(w0.X, w0.Z, ship.Pos.Yaw, out int beamSide);
             double beamTarget = Sailing.TargetSpeed(w0.X, w0.Z, ship.Pos.Yaw, 1, def.MaxSpeed, def.Sailing);
@@ -616,7 +616,7 @@ namespace Hansa
                         ship.CladPlates = 0; ship.CladMetal = "copper"; ship.AddCladdingPlates(1000);
 
                         // the wind comes round to right ahead: with all sail set she can't sail into it and loses her way
-                        sea?.SetOverride(new Sea.WindOverride { FromDegrees = 90, Strength = 0.6, StartHours = sea.Hours - 24 });
+                        sea?.SetWindOverride(90, 0.6);
                         float before = ship.Speed;
                         int t4 = 0;
                         long id4 = 0;
@@ -631,7 +631,7 @@ namespace Hansa
                             Check(before > 1 && ship.Speed < before - 1 && ship.Speed < Math.Max(.5, before - def.Deceleration * 6) + .1, $"head to wind she loses her way ({before:0.0} → {ship.Speed:0.0} b/s in 6 s)");
                             Check(tree?.GetBool("byWind") == true && Math.Abs(tree.GetFloat("maxSpeed") - def.MaxSpeed * mod.Config.SpeedMultiplier * (1 + def.CladdingSpeedBonus) * ship.SpeedFactorNow) < .011,
                                 "clients know she sails by the wind and her top speed (sheathed)");
-                            sea?.SetOverride(null);
+                            sea?.ClearWindOverride();
                             ship.Die(EnumDespawnReason.Removed);
                             Flooding(mod, def, spawn, sx, sz, wy);
                         }, 100);
@@ -1694,7 +1694,7 @@ namespace Hansa
         /// </summary>
         void DryHold(EntityShip ship, ShipDefinition def)
         {
-            var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
+            var sea = sapi.ModLoader.GetModSystem<HansaMod>()?.SeaLink;
             EntityProperties type = null;
             foreach (string code in new[] { "chicken-rooster", "chicken-hen", "chicken-adult", "chicken-baby" })
                 if ((type = sapi.World.GetEntityType(new AssetLocation("game", code))) != null) break;
@@ -1886,8 +1886,8 @@ namespace Hansa
         /// </summary>
         void Flooding(HansaMod mod, ShipDefinition def, BlockPos spawn, double sx, double sz, double wy)
         {
-            var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
-            sea?.SetOverride(new Sea.WindOverride { FromDegrees = 0, Strength = 0.02, StartHours = sea.Hours - 24 });
+            var sea = sapi.ModLoader.GetModSystem<HansaMod>()?.SeaLink;
+            sea?.SetWindOverride(0, 0.02);
             var type = sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship));
             var ship = (EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
             ship.Pos.SetPos(sx, wy, sz);
@@ -1938,7 +1938,7 @@ namespace Hansa
                         spots++;
                         if (!sea.IsDry(sx2, fy - 0.15, sz2) && sea.IsDry(sx2, fy + 0.15, sz2)) level++;
                         var clip = ShipWater.Clip(def, ship.Pos.X, ship.Pos.Y, ship.Pos.Z, ship.Pos.Yaw, 0, 0, 0, 1.5f, fy);
-                        if (!clip.InDryHull(sx2, fy - 0.15, sz2) && clip.InDryHull(sx2, fy + 0.15, sz2)) cut++;
+                        if (!sea.CutAt(clip, sx2, fy - 0.15, sz2).Inside && sea.CutAt(clip, sx2, fy + 0.15, sz2).Inside) cut++;
                     }
                     ShipWater.Plane(0, 0, out double fAlong, out double fAcross);
                     var surface = ShipWater.Surface(def, ship.FloodLevel, fAlong, fAcross, ShipWater.DefaultInset);
@@ -2057,7 +2057,7 @@ namespace Hansa
         {
             bool wrecks = mod.Config.Wrecks;
             mod.Config.Wrecks = false;
-            var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
+            var sea = sapi.ModLoader.GetModSystem<HansaMod>()?.SeaLink;
             var water = sapi.World.GetBlock(new AssetLocation("game", "water-still-7"));
             var stone = sapi.World.GetBlock(new AssetLocation("game", "rock-granite"));
             var ba = sapi.World.BlockAccessor;
@@ -2169,7 +2169,7 @@ namespace Hansa
                         spawns?.Registry.Players.Remove("ships-selftest-sunk");
                         foreach (var e in new Entity[] { sailor, sapi.World.GetEntityById(ship.ReleasedBoats.FirstOrDefault()), ship })
                             if (e != null && e.Alive) e.Die(EnumDespawnReason.Removed);
-                        sea?.SetOverride(null);
+                        sea?.ClearWindOverride();
                         CrawlHarbour(mod, spawn, wy, () => Gunnery(mod, def, spawn, wy));
                     });
                 });
@@ -2193,8 +2193,8 @@ namespace Hansa
             var type = sapi.World.GetEntityType(new AssetLocation("ships", "carrack-m")) ?? sapi.World.GetEntityType(new AssetLocation("ships", this.cfg.Ship));
             if (type == null) { Check(false, "0.3.25: a ship to crawl"); next(); return; }
             Log($"0.3.25: under the sweeps: {type.Code}");
-            var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
-            sea?.SetOverride(new Sea.WindOverride { FromDegrees = 0, Strength = 0.6, StartHours = sea.Hours - 24 });
+            var sea = sapi.ModLoader.GetModSystem<HansaMod>()?.SeaLink;
+            sea?.SetWindOverride(0, 0.6);
             mod.Config.StopWhenUnmanned = false;
             BuildGunPool(spawn, wy);
             var ship = (EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
@@ -2206,7 +2206,7 @@ namespace Hansa
             {
                 ship.CrawlTestInput = null;
                 if (ship.Alive) ship.Die(EnumDespawnReason.Removed);
-                sea?.SetOverride(null);
+                sea?.ClearWindOverride();
                 next();
             }
             WaitFor(() => false, 2, _ =>
@@ -2302,8 +2302,8 @@ namespace Hansa
         /// </summary>
         void Gunnery(HansaMod mod, ShipDefinition def, BlockPos spawn, double wy)
         {
-            var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
-            sea?.SetOverride(new Sea.WindOverride { FromDegrees = 0, Strength = 0.02, StartHours = sea.Hours - 24 });
+            var sea = sapi.ModLoader.GetModSystem<HansaMod>()?.SeaLink;
+            sea?.SetWindOverride(0, 0.02);
             var water = sapi.World.GetBlock(new AssetLocation("game", "water-still-7"));
             var stone = sapi.World.GetBlock(new AssetLocation("game", "rock-granite"));
             var planks = sapi.World.GetBlock(new AssetLocation("game", "planks-oak-ud"));
@@ -2350,7 +2350,7 @@ namespace Hansa
             {
                 Log($"{def.Code} has no guns laid ({guns.Length}): the gunnery, laying and broadside checks are for ships with guns a side");
                 foreach (var e in new Entity[] { shooter, target }) if (e.Alive) e.Die(EnumDespawnReason.Removed);
-                sea?.SetOverride(null);
+                sea?.ClearWindOverride();
                 MadeUpWreck(mod, def, spawn, wy, () => CrewWorks(mod, def, spawn, wy, () => LoadedUnmanned(mod, spawn, wy, () => SailStrainWorks(mod, def, spawn, wy, () => HearthWorks(mod, def, spawn, wy, () => WorkingBlocksWorks(mod, def, spawn, wy, () => HullPanelsWorks(mod, spawn, wy, Finish)))))));
                 return;
             }
@@ -2668,7 +2668,7 @@ namespace Hansa
         /// other moved a frame space along between them, so they hole a new place each time), till the other goes down.
         /// </summary>
         void Broadsides(HansaMod mod, ShipDefinition def, EntityShip shooter, EntityShip target, FixtureDef[] guns,
-            System.Func<EntityShip, FixtureDef, Vec3d, double> lay, double wy, Sea.SeaSystem sea, BlockPos spawn)
+            System.Func<EntityShip, FixtureDef, Vec3d, double> lay, double wy, ISeaLink sea, BlockPos spawn)
         {
             var l = def.DamageParts;
             var shots = mod.Shots;
@@ -2765,7 +2765,7 @@ namespace Hansa
                     WreckChecks(mod, def, target, had, asThemselves, wy, () =>
                     {
                         foreach (var e in new Entity[] { shooter, target }) if (e.Alive) e.Die(EnumDespawnReason.Removed);
-                        sea?.SetOverride(null);
+                        sea?.ClearWindOverride();
                         MadeUpWreck(mod, def, spawn, wy, () => CrewWorks(mod, def, spawn, wy, () => LoadedUnmanned(mod, spawn, wy, () => SailStrainWorks(mod, def, spawn, wy, () => HearthWorks(mod, def, spawn, wy, () => WorkingBlocksWorks(mod, def, spawn, wy, () => HullPanelsWorks(mod, spawn, wy, Finish)))))));
                     });
                 });
@@ -3221,13 +3221,13 @@ namespace Hansa
         /// </summary>
         void SailStrainWorks(HansaMod mod, ShipDefinition def, BlockPos spawn, double wy, Action then)
         {
-            var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
+            var sea = sapi.ModLoader.GetModSystem<HansaMod>()?.SeaLink;
             var type = sapi.World.GetEntityType(new AssetLocation("ships", cfg.Ship));
             var ship = (EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
             ship.Pos.SetPos(spawn.X - 25.5, wy, spawn.Z + 0.5);
             ship.Pos.Yaw = (float)(Math.PI / 2);
             sapi.World.SpawnEntity(ship);
-            sea?.SetOverride(new Sea.WindOverride { FromDegrees = 0, Strength = 1.5, StartHours = sea.Hours - 24 });
+            sea?.SetWindOverride(0, 1.5);
             WaitFor(() => ship.PartDamage != null, 3, ready =>
             {
                 var l = def.DamageParts;
@@ -3250,7 +3250,7 @@ namespace Hansa
                 Check(ship.SailStrain == 0 && ship.WatchedAttributes.GetTreeAttribute("ships")?.GetFloat("sailStrain", -1) == 0 &&
                       Math.Abs((ship.WatchedAttributes.GetTreeAttribute("ships")?.GetFloat("sailGaleW", 0) ?? 0) - SailWear.ForceFloor(mod.Config.SailStrainForce > 0 ? mod.Config.SailStrainForce : 9)) < 0.01,
                     "furled, the strain eases right off in a minute and a half, and clients know (and the server's sail limits: 0.3.24)");
-                sea?.SetOverride(null);
+                sea?.ClearWindOverride();
                 ship.Die(EnumDespawnReason.Removed);
                 then();
             });

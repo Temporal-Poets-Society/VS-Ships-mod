@@ -109,7 +109,14 @@
     <Compile Include="..\..\src\Ship\ShipWater.cs" Link="Ship\ShipWater.cs" />
     <Compile Include="..\..\src\Ship\ShipMotion.cs" Link="Ship\ShipMotion.cs" />
     <Compile Include="..\..\src\Ship\WaveTrains.cs" Link="Ship\WaveTrains.cs" />
-    <Compile Include="..\..\src\Ship\SeaWaveTrains.cs" Link="Ship\SeaWaveTrains.cs" />
+    <Compile Include="..\..\sea-bridge\SeaWaveTrains.cs" Link="SeaBridge\SeaWaveTrains.cs" />
+    <!-- (7 November 2026) Ships without Sea.dll: its own wind and clip types, the contract's hull records, the bridge's
+         clip copy; sea-bridge: Ships.dll has no Sea reference, the bridge binds against Sea, the without-Sea path -->
+    <Compile Include="..\..\src\Ship\Wind.cs" Link="Ship\Wind.cs" />
+    <Compile Include="..\..\src\SeaLink\HullWaterClip.cs" Link="SeaLink\HullWaterClip.cs" />
+    <Compile Include="..\..\src\SeaLink\ContractHulls.cs" Link="SeaLink\ContractHulls.cs" />
+    <Compile Include="..\..\sea-bridge\SeaClips.cs" Link="SeaBridge\SeaClips.cs" />
+    <Compile Include="SeaBridgeTests.cs" />
     <Compile Include="WaveTrainTests.cs" />
     <Compile Include="SeaCoastTests.cs" />
     <Compile Include="..\..\src\Ship\Sailing.cs" Link="Ship\Sailing.cs" />
@@ -166,6 +173,13 @@
     <!-- (21 October 2026) Sea 0.4's wave field takes its hours from the server's anchors -->
     <Compile Include="$(SeaRoot)\src\SeaConfig.cs" Link="Sea\SeaConfig.cs" />
     <Compile Include="$(SeaRoot)\src\Wind\WindModel.cs" Link="Sea\WindModel.cs" />
+    <!-- (Sea 0.6.0) the contracts' hull record as Sea reads it -->
+    <Compile Include="$(SeaRoot)\src\Contracts\ContractMath.cs" Link="Sea\ContractMath.cs" />
+  </ItemGroup>
+  <!-- where the sea-bridge group finds the Sea build the bridge was built against, and the game -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute"><_Parameter1>SeaRoot</_Parameter1><_Parameter2>$(SeaRoot)</_Parameter2></AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute"><_Parameter1>VintageStoryPath</_Parameter1><_Parameter2>$(VintageStoryPath)</_Parameter2></AssemblyAttribute>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="$(NetCoreRuntimeDir)\System.*.dll" Exclude="$(NetCoreRuntimeDir)\System.Private.*.dll;$(NetCoreRuntimeDir)\System.IO.Compression.Native.dll" Private="false" />

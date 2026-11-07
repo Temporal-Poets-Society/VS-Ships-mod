@@ -101,8 +101,8 @@ namespace Hansa
                     $"Hansa carrack: afloat after 8 s (stage {ship.Stage}, water {ship.Water:0.00} t, y moved {ship.Pos.Y - y:0.00})");
                 // sailing: a strong breeze from the north on her port beam as she heads east, sails set
                 mod.Config.StopWhenUnmanned = false;
-                var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
-                sea?.SetOverride(new Sea.WindOverride { FromDegrees = 0, Strength = 0.6, StartHours = sea.Hours - 24 });
+                var sea = sapi.ModLoader.GetModSystem<HansaMod>()?.SeaLink;
+                sea?.SetWindOverride(0, 0.6);
                 ship.Anchored = false;
                 ship.SailSet = 2;
                 var start = ship.Pos.XYZ;

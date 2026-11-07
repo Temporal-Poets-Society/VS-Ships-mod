@@ -5,7 +5,8 @@ namespace Hansa
     /// <summary>
     /// Sea's typed API as a wave source: <see cref="Sea.SeaSystem.SampleWaves(Sea.WavePlace, double, double)"/> into a
     /// place of its own, copied into the ship's <see cref="WaveTrains"/>, and <see cref="Sea.SeaSystem.WaveFactorAt"/>
-    /// for the shelter. The default whenever Sea is loaded: exactly what Ships read before the contracts.
+    /// for the shelter. The default whenever Sea is loaded: exactly what Ships read before the contracts. Lives in the bridge
+    /// (ShipsSea.dll), which hands it to Ships as an <see cref="IWaveTrainSource"/> (<see cref="ISeaLink.NewWaveSource"/>).
     /// (Sea 0.6.0) Over coastal water and in the lee of land (<see cref="Sea.SeaSystem.CoastAt"/>) the trains also carry
     /// what the coast does to the waves, and <see cref="Current"/> is Sea's surf current there (longshore and rips).
     /// </summary>

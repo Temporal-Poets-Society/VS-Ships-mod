@@ -71,13 +71,13 @@ namespace Hansa
     public static class Sailing
     {
         /// <summary>Blocks per second of wind for one vanilla wind unit.</summary>
-        public const double WindUnit = Sea.Beaufort.MetersPerSecondPerUnit;
+        public const double WindUnit = Beaufort.MetersPerSecondPerUnit;
 
         /// <summary>
         /// Angle (degrees) of the wind off the bow, from where it comes: 0 right ahead, 180 right astern. side: +1
         /// from starboard, -1 from port.
         /// </summary>
-        /// <param name="windX">where the air goes (Sea.Wind X, Z)</param>
+        /// <param name="windX">where the air goes (Wind X, Z)</param>
         public static double WindAngle(double windX, double windZ, double yaw, out int side)
         {
             double s = Math.Sin(yaw), c = Math.Cos(yaw);

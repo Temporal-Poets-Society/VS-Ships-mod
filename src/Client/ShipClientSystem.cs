@@ -104,9 +104,17 @@ namespace Hansa
             Deco = new DecoClient(api, this, channel);
             Pumps = new PumpClient(api, this);
 
-            // Sea owns the water shaders; it asks the renderer where the hulls are and keeps the waves out
-            sea = api.ModLoader.GetModSystem<Sea.SeaSystem>();
-            sea?.AddWaterClipSource(renderer);
+            // Sea owns the water shaders; it asks the renderer where the hulls are and keeps the waves out (Ships' bridge)
+            if (mod.SeaLink != null) clipSource = mod.SeaLink.AddWaterClipSource(renderer.AddWaterClips);
+            else
+            {
+                // Without Sea: the hulls go to a seacontracts:hulls owner if some mod publishes one, else Ships hides the
+                // still water in her hold itself, depth-only, as vanilla's boats do (ShipWaterLids).
+                lids = new ShipWaterLids(api, this);
+                api.Event.RegisterRenderer(lids, EnumRenderStage.OIT, "ships-water-lids");
+                KeepHullCut();
+                hullCutTick = api.Event.RegisterGameTickListener(_ => KeepHullCut(), 2000);
+            }
 
             try { Comfort = api.LoadModConfig<HansaClientConfig>(ComfortFile) ?? new HansaClientConfig(); }
             catch (Exception e) { Mod.Logger.Error("Bad ModConfig/{0}, using defaults: {1}", ComfortFile, e.Message); Comfort = new HansaClientConfig(); }
@@ -232,7 +240,36 @@ namespace Hansa
         string ComfortText() => Lang.Get("ships:comfort-now", (int)Math.Round(SeaMotion * 100),
             Lang.Get(Comfort.SteadyHorizon ? "ships:comfort-steady-on" : "ships:comfort-steady-off"));
 
-        Sea.SeaSystem sea;
+        IDisposable clipSource;
+        ShipWaterLids lids;
+        long hullCutTick;
+        Func<double[][]> hullRecords;
+        readonly List<HullWaterClip> hullClips = new();
+
+        /// <summary>
+        /// Without Sea, every couple of seconds: this client's hulls registered with the seacontracts:hulls owner (one may
+        /// come, go or change), and Ships' own lids drawn only while nobody holds them.
+        /// </summary>
+        void KeepHullCut()
+        {
+            var hulls = mod?.Hulls;
+            bool held = hulls != null && hulls.KeepHulls(hullRecords ??= HullRecords);
+            if (lids != null) lids.Active = !held;
+        }
+
+        /// <summary>The hulls as the contract's records, asked for by its owner every frame before it draws water.</summary>
+        double[][] HullRecords()
+        {
+            lock (hullClips)
+            {
+                hullClips.Clear();
+                try { renderer?.AddWaterClips(hullClips); }
+                catch (Exception) { hullClips.Clear(); }
+                var r = new double[hullClips.Count][];
+                for (int i = 0; i < r.Length; i++) r[i] = ContractHulls.ToRecord(hullClips[i]);
+                return r;
+            }
+        }
 
         public override void Dispose()
         {
@@ -248,8 +285,14 @@ namespace Hansa
                     capi.Event.UnregisterRenderer(renderer, EnumRenderStage.ShadowNear);
                 }
                 capi.Input.InWorldAction -= OnInWorldAction;
+                if (lids != null) capi.Event.UnregisterRenderer(lids, EnumRenderStage.OIT);
+                if (hullCutTick != 0) capi.Event.UnregisterGameTickListener(hullCutTick);
             }
-            if (renderer != null) sea?.RemoveWaterClipSource(renderer);
+            clipSource?.Dispose();
+            clipSource = null;
+            hullCutTick = 0;
+            lids?.Dispose();
+            lids = null;
             if (ShipDryParticles.Dry == mod?.Dry) ShipDryParticles.Dry = null;
             renderer?.Dispose();
             Cannons?.Dispose();

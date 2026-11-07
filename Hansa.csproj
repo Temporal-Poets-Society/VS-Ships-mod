@@ -48,10 +48,22 @@
     <Reference Include="cairo-sharp"><HintPath>$(VintageStoryPath)\Lib\cairo-sharp.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
 
-  <!-- The Sea mod (wind, waves, the water shaders). Uses the existing Sea build; this project never builds or changes Sea. -->
-  <ItemGroup>
-    <Reference Include="Sea"><HintPath>$(SeaRoot)\bin\$(Configuration)\mod\Sea.dll</HintPath><Private>false</Private></Reference>
-  </ItemGroup>
+  <!-- The Sea mod (wind, waves, the water shaders) is optional: Ships.dll has no reference to Sea.dll. Everything typed
+       against Sea is in the bridge, sea-bridge/ShipsSea.csproj, built after Ships.dll against an existing Sea build (this
+       project never builds or changes Sea) and shipped as native/ShipsSea.dll, which Ships loads only when Sea is installed
+       (src/SeaLink/SeaBridgeLoader.cs). The game's mod loader leaves a mod's native/ folder alone. -->
+  <PropertyGroup>
+    <SeaRootFull>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '$(SeaRoot)'))))</SeaRootFull>
+    <ShipsDllFull>$([System.IO.Path]::GetFullPath($([System.IO.Path]::Combine('$(MSBuildProjectDirectory)', '$(OutputPath)', 'Ships.dll'))))</ShipsDllFull>
+    <SeaBridgeOut>$(MSBuildProjectDirectory)\sea-bridge\bin\$(Configuration)\</SeaBridgeOut>
+  </PropertyGroup>
+  <!-- (a Release package always carries the bridge; a Debug build without a Sea build is Ships alone, with a warning) -->
+  <Target Name="BuildSeaBridge" AfterTargets="Build" Condition="'$(Configuration)' == 'Release' Or Exists('$(SeaRootFull)\bin\$(Configuration)\mod\Sea.dll')">
+    <Error Condition="!Exists('$(SeaRootFull)\bin\$(Configuration)\mod\Sea.dll')" Text="No Sea build at $(SeaRootFull)\bin\$(Configuration)\mod\Sea.dll for the bridge (pass -p:SeaRoot=&lt;Sea checkout&gt;)" />
+    <Exec Command="dotnet build &quot;$(MSBuildProjectDirectory)\sea-bridge\ShipsSea.csproj&quot; -c $(Configuration) --nologo -v q -p:SeaRoot=&quot;$(SeaRootFull)&quot; -p:ShipsDll=&quot;$(ShipsDllFull)&quot; -p:OutputPath=&quot;$(SeaBridgeOut)&quot;" />
+    <MakeDir Directories="$(OutputPath)native" />
+    <Copy SourceFiles="$(SeaBridgeOut)ShipsSea.dll" DestinationFolder="$(OutputPath)native" />
+  </Target>
 
   <ItemGroup>
     <None Include="modinfo.json" CopyToOutputDirectory="PreserveNewest" />
@@ -76,10 +88,13 @@
 
   <!-- Release build also produces a ready-to-install zip in .\release, named with the version from modinfo.json
        (release\hansa-0.2.0.zip); older zips there are removed. -->
+  <Target Name="NoSeaBridge" AfterTargets="Build" Condition="'$(Configuration)' != 'Release' And !Exists('$(SeaRootFull)\bin\$(Configuration)\mod\Sea.dll')">
+    <Warning Text="No Sea build at $(SeaRootFull)\bin\$(Configuration)\mod\Sea.dll: Ships built without its bridge to Sea (runs as without Sea; pass -p:SeaRoot=&lt;Sea checkout&gt;)" />
+  </Target>
   <PropertyGroup>
     <ModVersion>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MSBuildProjectDirectory)\modinfo.json')), '"version"\s*:\s*"([^"]+)"').Groups[1].Value)</ModVersion>
   </PropertyGroup>
-  <Target Name="PackageMod" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+  <Target Name="PackageMod" AfterTargets="BuildSeaBridge" Condition="'$(Configuration)' == 'Release'">
     <Error Condition="'$(ModVersion)' == ''" Text="No version found in modinfo.json" />
     <MakeDir Directories="$(MSBuildProjectDirectory)\release" />
     <ZipDirectory SourceDirectory="$(OutputPath)" DestinationFile="$(MSBuildProjectDirectory)\release\ships-$(ModVersion).zip" Overwrite="true" />

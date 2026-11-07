@@ -57,10 +57,12 @@ namespace Hansa
             composed = true;
         }
 
-        /// <summary>Is the panel up for this seat (switched on, aboard and awake, a wind there: Sea's, or the open sea contracts')?</summary>
+        /// <summary>
+        /// Is the panel up for this seat (switched on, aboard and awake)? There is always a wind: Sea's, the open sea
+        /// contracts', or vanilla's (<see cref="EntityShip.WindHere"/>).
+        /// </summary>
         public static bool ShownFor(ShipClientSystem sys, ShipSeat seat) =>
-            sys != null && sys.Comfort.WindPanel && seat != null && seat is not BunkSeat && seat.Ship.Def != null &&
-            (seat.Ship.SeaSys != null || seat.Ship.Mod?.Contracts?.HasWind == true);
+            sys != null && sys.Comfort.WindPanel && seat != null && seat is not BunkSeat && seat.Ship.Def != null;
 
         /// <summary>Every frame from ShipClientSystem: aboard (and not asleep) and switched on, it shows.</summary>
         public void Update(Vintagestory.API.Common.EntityPlayer ep)
@@ -137,12 +139,12 @@ namespace Hansa
             Lang.Get(tenths ? "ships:speed" : "ships:speed-whole", ms * HelmMath.KnotsPerMetreSecond, ms);
 
         /// <summary>"Wind: force 8 gale, 36 kn from the SW", or "Wind: calm".</summary>
-        public static string WindLine(Sea.Wind w)
+        public static string WindLine(Wind w)
         {
             double strength = w.Strength;
             if (strength < 0.02) return Lang.Get("ships:windpanel-calm");
-            return Lang.Get("ships:windpanel-true", Sea.Beaufort.Force(strength), Sea.Beaufort.Name(strength),
-                HelmMath.WindSpeed(HelmMath.MetresPerSecond(strength)), Sea.Compass.Name(w.FromDegrees));
+            return Lang.Get("ships:windpanel-true", Beaufort.Force(strength), Beaufort.Name(strength),
+                HelmMath.WindSpeed(HelmMath.MetresPerSecond(strength)), WindCompass.Name(w.FromDegrees));
         }
 
         /// <summary>Where a wind going this way relative to her bow comes from: "right ahead", "on the port beam"...</summary>
@@ -157,7 +159,7 @@ namespace Hansa
         }
 
         /// <summary>"On her sails: 38 kn, on the port beam" (the apparent wind).</summary>
-        public static string OnSailsLine(EntityShip ship, Sea.Wind w)
+        public static string OnSailsLine(EntityShip ship, Wind w)
         {
             Sailing.Apparent(w.X, w.Z, ship.Pos.Yaw, ship.Speed, out double ax, out double az);
             return Lang.Get("ships:windpanel-apparent", HelmMath.WindSpeed(HelmMath.MetresPerSecond(Math.Sqrt(ax * ax + az * az))),
@@ -168,7 +170,7 @@ namespace Hansa
         /// At the helm of a ship sailing by the wind: how she lies to it ("Beam reach, port tack", "In irons", "Taken
         /// aback"), and the best she can make here under the sail she has set (or, furled, under full sail); null otherwise.
         /// </summary>
-        public static string HelmLines(EntityShip ship, Sea.Wind w, string join = "\n")
+        public static string HelmLines(EntityShip ship, Wind w, string join = "\n")
         {
             if (!ship.SailByWind || !ship.MastUp || w.Strength < 0.02 || ship.Def?.Sailing == null) return null;
             float sail = ship.SailSet >= 2 ? 1f : ship.SailSet == 1 ? 0.55f : 0f;
@@ -181,7 +183,7 @@ namespace Hansa
             return text + join + Lang.Get(sail > 0 ? "ships:windpanel-best" : "ships:windpanel-best-full", Speed(best));
         }
 
-        static string Text(EntityShip ship, ShipSeat seat, Sea.Wind w)
+        static string Text(EntityShip ship, ShipSeat seat, Wind w)
         {
             string text = WindLine(w);
             if (w.Strength >= 0.02) text += "\n" + OnSailsLine(ship, w);
@@ -197,7 +199,7 @@ namespace Hansa
         /// close, or tearing. The same load as the server's strain (<see cref="SailWear.Warning"/>), from the shared wind and
         /// her synced sail, way and strain; none where the server doesn't tear sails.
         /// </summary>
-        public static int SailWarning(EntityShip ship, Sea.Wind w, out string text)
+        public static int SailWarning(EntityShip ship, Wind w, out string text)
         {
             text = null;
             // (0.3.24) her limits as the server has them (SailStrainForce, SailTearForce)

@@ -53,6 +53,7 @@ namespace HansaTests
             if (Array.IndexOf(args, "wave-sway") >= 0) { WaveSway(root); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "wave-trains") >= 0) { WaveTrainTests(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "sea-coast") >= 0) { SeaCoastTests(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
+            if (Array.IndexOf(args, "sea-bridge") >= 0) { SeaBridgeTests(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "issue30") >= 0) { StormFloodTests(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "runtime-notes") >= 0) { RuntimeNotes(root); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "integrate") >= 0) { IntegrationNotes(root); return failures == 0 ? 0 : 1; }

@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Ships' bridge to the Sea mod: the only Ships assembly that references Sea.dll. Built by Hansa.csproj after Ships.dll
+       (target BuildSeaBridge) and shipped as native/ShipsSea.dll, where the game's mod loader leaves it alone; Ships loads
+       it itself when Sea is installed (src/SeaLink/SeaBridgeLoader.cs). Builds against an existing Sea build, never builds
+       or changes Sea. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>ShipsSea</AssemblyName>
+    <RootNamespace>ShipsSea</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <EnableDefaultItems>false</EnableDefaultItems>
+    <VintageStoryPath Condition="'$(VintageStoryPath)' == ''">$(VINTAGE_STORY)</VintageStoryPath>
+    <VintageStoryPath Condition="'$(VintageStoryPath)' == ''">$(APPDATA)\Vintagestory</VintageStoryPath>
+    <SeaRoot Condition="'$(SeaRoot)' == ''">..\..\Sea</SeaRoot>
+    <!-- Ships.dll as just built by Hansa.csproj (it passes its own output) -->
+    <ShipsDll Condition="'$(ShipsDll)' == ''">..\bin\$(Configuration)\mod\Ships.dll</ShipsDll>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <NetCoreRuntimeDir>$([System.IO.Directory]::GetDirectories('$(NetCoreRoot)shared\Microsoft.NETCore.App', '10.*')[0])</NetCoreRuntimeDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="$(NetCoreRuntimeDir)\System.*.dll" Exclude="$(NetCoreRuntimeDir)\System.Private.*.dll;$(NetCoreRuntimeDir)\System.IO.Compression.Native.dll" Private="false" />
+    <Reference Include="$(NetCoreRuntimeDir)\System.Private.CoreLib.dll" Private="false" />
+    <Reference Include="$(NetCoreRuntimeDir)\netstandard.dll" Private="false" />
+    <Reference Include="$(NetCoreRuntimeDir)\mscorlib.dll" Private="false" />
+    <Reference Include="VintagestoryAPI"><HintPath>$(VintageStoryPath)\VintagestoryAPI.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="VSEssentials"><HintPath>$(VintageStoryPath)\Mods\VSEssentials.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="VSSurvivalMod"><HintPath>$(VintageStoryPath)\Mods\VSSurvivalMod.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="protobuf-net"><HintPath>$(VintageStoryPath)\Lib\protobuf-net.dll</HintPath><Private>false</Private></Reference>
+    <Reference Include="Ships"><HintPath>$(ShipsDll)</HintPath><Private>false</Private></Reference>
+    <Reference Include="Sea"><HintPath>$(SeaRoot)\bin\$(Configuration)\mod\Sea.dll</HintPath><Private>false</Private></Reference>
+  </ItemGroup>
+
+</Project>

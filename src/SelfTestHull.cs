@@ -38,8 +38,8 @@ namespace Hansa
                 then();
                 return;
             }
-            var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
-            sea?.SetOverride(new Sea.WindOverride { FromDegrees = 0, Strength = 0.02, StartHours = sea.Hours - 24 });
+            var sea = sapi.ModLoader.GetModSystem<HansaMod>()?.SeaLink;
+            sea?.SetWindOverride(0, 0.02);
             bool wrecks = mod.Config.Wrecks;
             mod.Config.Wrecks = false;
             // the gun pool again, its water as it was
@@ -90,7 +90,7 @@ namespace Hansa
             {
                 foreach (var e in new[] { target, shooter, again, old }) if (e != null && e.Alive) e.Die(EnumDespawnReason.Removed);
                 mod.Config.Wrecks = wrecks;
-                sea?.SetOverride(null);
+                sea?.ClearWindOverride();
             }
             try
             {

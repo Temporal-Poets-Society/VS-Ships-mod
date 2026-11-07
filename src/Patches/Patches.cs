@@ -296,12 +296,27 @@ namespace Hansa
             ShipDryParticles.Patch(h, failed);
         }
 
+        static bool ownDryServer, ownDryClient;
+
+        /// <summary>
+        /// Without Sea only (HansaMod.Start, when Sea's typed API isn't bound): breathing (server) and the camera (client) in
+        /// her dry hold ask Ships' own dry places (<see cref="OwnDryPlaces"/>). Never applied when Sea is there.
+        /// </summary>
+        public static void ApplyOwnDry(EnumAppSide side, ILogger logger)
+        {
+            if (harmony == null) return;
+            log ??= logger;
+            if (side == EnumAppSide.Server && !ownDryServer) { ownDryServer = true; OwnDryPlaces.PatchServer(harmony, (what, e) => log?.Warning("Could not patch ({0}), that feature is off: {1}", what, e.Message)); }
+            if (side == EnumAppSide.Client && !ownDryClient) { ownDryClient = true; OwnDryPlaces.PatchClient(harmony, (what, e) => log?.Warning("Could not patch ({0}), that feature is off: {1}", what, e.Message)); }
+        }
+
         public static void Remove(ICoreAPI api)
         {
             if (--users > 0 || harmony == null) return;
             harmony.UnpatchAll(HarmonyId);
             harmony = null;
             clientPatched = false;
+            ownDryServer = ownDryClient = false;
         }
 
         static void Try(string what, Action patch)

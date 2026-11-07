@@ -14,8 +14,8 @@ namespace Hansa
         // the actual client frame path and renderer matrix. No game client, graphics context or player needed.
         void WaveSwayRun(HansaMod mod, ShipDefinition def)
         {
-            var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
-            if (def == null || sea?.Spectrum == null) { Check(false, "wave-sway: ship/Sea unavailable"); Finish(); return; }
+            var sea = sapi.ModLoader.GetModSystem<HansaMod>()?.SeaLink;
+            if (def == null || sea?.SpectrumReady != true) { Check(false, "wave-sway: ship/Sea unavailable"); Finish(); return; }
             mod.Config.StopWhenUnmanned = false;
             mod.Config.Damage = false;
             mod.Config.SailByWind = false; // fixed throttle in head seas too; wind heel and rig still sampled
@@ -57,19 +57,19 @@ namespace Hansa
             }, 100);
         }
 
-        void WaveSwayCase(HansaMod mod, ShipDefinition def, Sea.SeaSystem sea, double x, double y, double z, int n)
+        void WaveSwayCase(HansaMod mod, ShipDefinition def, ISeaLink sea, double x, double y, double z, int n)
         {
-            if (n == 8) { sea.SetOverride(null); Finish(); return; }
+            if (n == 8) { sea.ClearWindOverride(); Finish(); return; }
             bool storm = n >= 4, way = n % 4 >= 2, beam = n % 2 == 0;
             string name = $"{(storm ? "storm" : "moderate")}-{(way ? "way" : "rest")}-{(beam ? "beam" : "head")}";
-            sea.SetOverride(new Sea.WindOverride { FromDegrees = 0, Strength = storm ? 1.5 : 0.5, StartHours = sea.Hours - 24 });
+            sea.SetWindOverride(0, storm ? 1.5 : 0.5);
             var ship = (EntityShip)sapi.World.ClassRegistry.CreateEntity(sapi.World.GetEntityType(new AssetLocation("ships", def.Code)));
             double yaw0 = beam ? Math.PI / 2 : Math.PI;
             ship.Pos.SetPos(x, y, z); ship.Pos.Yaw = (float)yaw0;
             sapi.World.SpawnEntity(ship);
             ship.Anchored = false; ship.SailSet = way ? 1 : 0; ship.SailFraction = way ? 0.55f : 0;
             ship.Speed = way ? def.MaxSpeed * 0.55f : 0;
-            var client = new EntityShip { Def = def, Mod = mod, SeaSys = sea, DamageOn = false, BaseY = y };
+            var client = new EntityShip { Def = def, Mod = mod, SeaLink = sea, DamageOn = false, BaseY = y };
             client.ReceiveMotionPose(x, y, z, yaw0, sapi.World.ElapsedMilliseconds, true);
             var rows = new List<double[]>();
             var packets = new Queue<(long Time, double X, double Y, double Z, float Yaw, float Rate, float Speed)>();
@@ -132,7 +132,7 @@ namespace Hansa
                 catch (Exception e)
                 {
                     sapi.Event.UnregisterGameTickListener(tick); csv.Dispose();
-                    ship.Die(EnumDespawnReason.Removed); sea.SetOverride(null);
+                    ship.Die(EnumDespawnReason.Removed); sea.ClearWindOverride();
                     Check(false, "wave-sway: " + e); Finish();
                 }
             }, 33);

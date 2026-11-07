@@ -144,12 +144,12 @@ namespace Hansa
         }
 
         /// <summary>
-        /// Sea's water clip for a hull (<see cref="Sea.WaterClipBox"/>): her footprint and tilted waterline, dry inside her
+        /// The water clip for a hull (<see cref="HullWaterClip"/>, Sea's WaterClipBox field for field): her footprint and tilted waterline, dry inside her
         /// outline (a dry design), and when water's in her, its level (world y, level) under which the sea isn't cut away.
         /// o: where her origin is drawn; pitch, roll: as drawn; heel: her lean in the wind (the sea round her doesn't lean);
         /// calm: the ring the waves settle over; floodY: the water in her (world y), NaN when she's dry.
         /// </summary>
-        public static Sea.WaterClipBox Clip(ShipDefinition def, double ox, double oy, double oz, double yaw, double pitch, double roll, double heel,
+        public static HullWaterClip Clip(ShipDefinition def, double ox, double oy, double oz, double yaw, double pitch, double roll, double heel,
             float calm, double floodY)
         {
             var wc = def.WaterClip;
@@ -157,7 +157,7 @@ namespace Hansa
             // Sea rebuilds a rigid frame about this waterline point: rotate the point with the hull.
             ShipFrame.ToWorld(yaw, pitch, roll, 0, wc.Height, 0, out double hx, out double hy, out double hz);
             ShipFrame.WaterlinePlane(pitch, roll - heel, wc.Height, out _, out _, out double calmAcross);
-            return new Sea.WaterClipBox
+            return new HullWaterClip
             {
                 X = ox + hx, Z = oz + hz, WaterY = oy + hy, Yaw = yaw,
                 HalfLength = wc.HalfLength, HalfWidth = wc.HalfWidth, CentreOffset = wc.CenterX, Profile = wc.Profile,

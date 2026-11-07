@@ -248,7 +248,7 @@ namespace Hansa
         /// The lean from the wind in the sails (radians, starboard down +): full sail and a beam wind of strength 1
         /// give <see cref="MotionDef.HeelPerWind"/> degrees, less with less sail, head or following winds.
         /// </summary>
-        /// <param name="windX">where the true air goes (Sea.Wind X, Z), in vanilla wind units</param>
+        /// <param name="windX">where the true air goes (Wind X, Z), in vanilla wind units</param>
         /// <param name="speed">her own way (blocks/s): the sails feel the apparent wind, stronger and further forward
         /// close-hauled, weaker running before it</param>
         /// <param name="sail">how far the sails are set (0..1)</param>

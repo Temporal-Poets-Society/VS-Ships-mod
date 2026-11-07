@@ -309,7 +309,7 @@ namespace Hansa
     public class WaterClipDef
     {
         public const int Stations = 16;
-        /// <summary>The detailed dry outline's size, as Sea's water shader takes it (Sea.WaterShader.DryStations, DryLevels).</summary>
+        /// <summary>The detailed dry outline's size, as Sea's water shader takes it (Sea's WaterShader.DryStations, DryLevels).</summary>
         public const int DryStations = 32, DryLevels = 4;
 
         public float CenterX;
@@ -327,14 +327,14 @@ namespace Hansa
         /// </summary>
         public DryOutlineDef DryOutline;
         /// <summary>
-        /// The dry outline Sea cuts the water out of (Sea.WaterClipBox.DryProfile): Sea.WaterShader.DryLevels rows of
-        /// Sea.WaterShader.DryStations half-widths from stern to bow, row j at ship-local height DryRowY0 + j * DryRowDY.
+        /// The dry outline Sea cuts the water out of (HullWaterClip.DryProfile, Sea's WaterClipBox.DryProfile): DryLevels rows of
+        /// DryStations half-widths from stern to bow, row j at ship-local height DryRowY0 + j * DryRowDY.
         /// Fitted so Sea's interpolation between them never falls inside the hull.
         /// </summary>
         [JsonIgnore] public float[] DryProfile;
         [JsonIgnore] public float DryRowY0, DryRowDY;
         /// <summary>
-        /// The dry outline's stern end is a raked plane through the transom (Sea.WaterClipBox.DryRake): at the waterline
+        /// The dry outline's stern end is a raked plane through the transom (HullWaterClip.DryRake): at the waterline
         /// (Height) it's the first station, and it moves this far along the keel per block up (negative: aft).
         /// </summary>
         [JsonIgnore] public float DryRake;

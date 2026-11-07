@@ -81,8 +81,8 @@ namespace Hansa
                 sapi.World.SpawnEntity(ship);
                 mod.Config.StopWhenUnmanned = false;
                 mod.Config.BreakIce = false;
-                var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
-                sea?.SetOverride(new Sea.WindOverride { FromDegrees = 0, Strength = 0.6, StartHours = sea.Hours - 24 });
+                var sea = sapi.ModLoader.GetModSystem<HansaMod>()?.SeaLink;
+                sea?.SetWindOverride(0, 0.6);
                 ship.Anchored = false;
                 ship.SailSet = 2;
                 Log($"ice-scene t=0: caravel launched at x {ship.Pos.X - spawn.X:0.0} (relative to the thin band), sails set, BreakIce off");

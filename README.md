@@ -11,8 +11,9 @@ not additional finished ships in the current public package.
 **Current package: Ships 0.1.0** (first public release, 1 November 2026). The experimental rowing boat is
 withdrawn from crafting, creative inventory and the handbook at the author's request. Existing saved boats keep
 their item/entity/model support. The caravel and its charter, crafted from six material bundles, remain.
-Ships requires Sea `0.6.0-pre.1` (on this branch; 0.1.0 shipped against `0.5.1`). Build against a Sea
-checkout's existing Release DLL: `dotnet build -c Release -p:SeaRoot="<Sea checkout>"`.
+On this branch Sea is optional (0.1.0 required Sea `0.5.1`): Ships uses Sea `0.6.0-pre.1` or newer when it is
+installed and runs without it. Build against a Sea checkout's existing Release DLL:
+`dotnet build -c Release -p:SeaRoot="<Sea checkout>"` (the bridge below needs it; Ships.dll itself doesn't).
 Ships reads the waves through its own `WaveTrains` (`src/Ship/WaveTrains.cs`): from Sea's typed API whenever Sea
 is loaded, otherwise from the open sea contracts' `seacontracts:surface` (`trains`, `seconds`) and
 `seacontracts:seastate` (`shelter`); `ShipMotion` works from `WaveTrains` alone
@@ -24,10 +25,41 @@ sea's waves at 3 × 3 points over her waterplane (Sea's `WavePlace.HeightAt` wit
 eased over 0.4 s; off the coast nothing of it is worked out. On the server she drifts with Sea's longshore current
 (`CurrentAt`, or `seastate.current`) except at anchor, aground or on the bottom; clients follow her synced position. A
 contract surface with no trains but a `pose` gives her attitude from the pose. Without Sea's typed API the wind is
-`seacontracts:weather`'s (m/s ÷ 25) and the chalk's sea state `seastate.at`. Ships still requires Sea.dll: the
-game (1.22.7) has no optional dependencies, and Sea's types sit in the renderer, the dry spaces, the rowing boat's
-water clip and the wind's public signatures (assessed 7 November 2026; not changed). `dotnet run -c Release -- sea-coast`
+`seacontracts:weather`'s (m/s ÷ 25) and the chalk's sea state `seastate.at`. `dotnet run -c Release -- sea-coast`
 checks the surf, current, pose and contract wind offline; nothing of it is tested in game yet.
+
+**Sea is optional (7 November 2026).** The game (1.22.7) has no optional dependencies, and an assembly naming Sea's
+types can't load them without Sea.dll, so Ships.dll has no reference to Sea at all and `sea` is no longer in
+`modinfo.json`'s dependencies. Everything typed against Sea is in a bridge, `sea-bridge/` (ShipsSea.dll, references
+Sea.dll and Ships.dll), built by `Hansa.csproj` after Ships.dll and shipped in the zip as `native/ShipsSea.dll`: the
+game's mod loader leaves a mod's `native/` folder alone (any other `.dll` outside the root refuses the mod). In
+`HansaMod.Start` (order 0.2, after Sea's own Start at 0.15, all mods' assemblies already loaded)
+`src/SeaLink/SeaBridgeLoader.cs` looks for the mod `sea`; if it is there and at least `0.6.0-pre.1` it loads the bridge
+with `Assembly.LoadFrom` (once per process) and binds it per side, getting Ships' own `ISeaLink`. Ships' own types
+(`Wind`, `Beaufort`, `WindCompass`, `HullWaterClip`) are Sea's field for field and the bridge copies between them.
+
+- **With Sea**: as before. Sea's wind, waves, sea state, dry places and water cut (the hulls' clips go to Sea every frame
+  through the bridge, unchanged); the self-tests reach Sea through the same link.
+- **Without Sea**: one note in the log. The wind is `seacontracts:weather`'s if some mod publishes it, else vanilla's
+  wind just above sea level (vanilla gives only an east-west strength, so it is always from the west or the east); the
+  wind panel shows either. The waves are `seacontracts:surface`'s, else calm (she floats level on still water). The water
+  in her hull: if some mod publishes `seacontracts:hulls`, Ships registers each hull there as a record (`register`;
+  the footprint less its inset, no detailed outline) and its dry places (`registerDry`, both sides), checked every 2 s.
+  Otherwise Ships does it itself: no drowning in her hold (a postfix on vanilla's breathing check), no underwater fog
+  and tint for a camera in it (postfixes on the client's eyes-in-water checks), and a level lid drawn into the depth
+  buffer only just above the still water, inside her hull's outline as she lies, before the game draws its water (as
+  vanilla's boats hide their water: `EntityBehaviorHideWaterSurface`); the rowing boat gets vanilla's own
+  `hidewatersurface` behaviour with her shape's `hideWater` element. What a player sees without Sea and without a hull
+  cut: from above, no water surface inside her; with the eyes below the still-water level in her hold (her lower deck)
+  the water's surface still shows overhead (a lid is not a cut); a sea higher than the lid (another mod's waves,
+  or her settling while she floods) shows inside her.
+- **Not tested in game**: everything without Sea (vanilla wind under sail, the lids, the breathing and camera
+  patches, the contract hull records, the rowing boat's lid), and the bridge binding inside the game (checked offline
+  against the Sea build only). `dotnet run -c Release -- sea-bridge` in `tests/HansaTests` (after a Release build)
+  checks offline that Ships.dll names nothing of Sea, that without Sea its code takes the contracts or vanilla's wind,
+  the contract surface or calm, and the hull owner (Ships.dll loaded where Sea can't be found, and never asked for),
+  that the bridge's every reference into Sea resolves against the Sea build, the clip copy and the contract record, and
+  the lid's outline.
 
 Ships began on 14 October 2026 as Hansa, a separate grid-based rebuild of Magelan; it was renamed Ships (mod ID
 `ships`) at 0.1.0-dev.18, and the C# namespace stays `Hansa`. The sailing, waves, walking aboard, crew, working
@@ -65,7 +97,9 @@ offline only.
 ## Build and checks
 
 Requires the existing Vintage Story installation and .NET SDK used by Magelan.
-Hansa references the existing sibling Sea DLL; it does not build or alter Sea.
+Ships.dll references nothing of Sea; its bridge `sea-bridge/ShipsSea.csproj` (built by `Hansa.csproj`, shipped as
+`native/ShipsSea.dll`) references an existing Sea build (`-p:SeaRoot=<Sea checkout>`, default the sibling `..\Sea`);
+neither builds or alters Sea.
 
 ```powershell
 dotnet build Hansa.csproj

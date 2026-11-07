@@ -18,7 +18,7 @@ namespace Hansa
     /// With shadows on in the graphics settings she's drawn into the sun's shadow maps too (RenderShadows), and the
     /// standard shader shades her with them, like everything else.
     /// </summary>
-    public partial class ShipRenderer : IRenderer, IDisposable, Sea.IWaterClipSource
+    public partial class ShipRenderer : IRenderer, IDisposable
     {
         readonly ICoreClientAPI capi;
         readonly ShipClientSystem sys;
@@ -2811,17 +2811,18 @@ namespace Hansa
         }
 
         /// <summary>
-        /// Sea asks every frame where the hulls are, to keep the waves out of them. The water inside stays under the
+        /// Sea asks every frame where the hulls are, to keep the waves out of them (through Ships' bridge; without Sea a
+        /// <c>seacontracts:hulls</c> owner gets the same as hull records, see ShipClientSystem). The water inside stays under the
         /// hull's tilted waterline; the waves next to it settle to the level she rides at (without her lean in the
         /// wind) over a ring that's narrow while the hull follows the sea and wider when this player's SeaMotion
         /// setting keeps the ship steadier than the water.
         /// </summary>
-        public void AddWaterClips(List<Sea.WaterClipBox> clips)
+        public void AddWaterClips(List<HullWaterClip> clips)
         {
             var ep = capi.World.Player?.Entity;
             if (ep == null) return;
             AddBoatClips(clips, ep);
-            float calm = RidingCalmZone + (Sea.WaterShader.CalmZone - RidingCalmZone) * (1 - sys.SeaMotion);
+            float calm = Calm();
             foreach (var ship in sys.Ships)
             {
                 var wc = ship.Def?.WaterClip;
@@ -2831,7 +2832,13 @@ namespace Hansa
             }
         }
 
-        Sea.WaterClipBox ClipFor(EntityShip ship, EntityPlayer ep, float calm)
+        /// <summary>The calm ring round her for this player's SeaMotion setting, between riding and Sea's still-hull default.</summary>
+        float Calm() => RidingCalmZone + ((sys.Hansa?.SeaLink?.CalmZone ?? StillCalmZone) - RidingCalmZone) * (1 - sys.SeaMotion);
+
+        /// <summary>Sea's calm ring round a still hull (its WaterShader.CalmZone), for when Sea isn't there to ask.</summary>
+        public const float StillCalmZone = 4f;
+
+        HullWaterClip ClipFor(EntityShip ship, EntityPlayer ep, float calm)
         {
             var o = RenderOrigin(ship, ep);
             // The sea is deliberately left visible below stored floodwater.
@@ -2851,28 +2858,31 @@ namespace Hansa
             Line($"Pose: heave {ship.Heave:0.000}, pitch {ship.Pitch * 180 / Math.PI:0.000}, roll {ship.Roll * 180 / Math.PI:0.000}, heel {ship.Heel * 180 / Math.PI:0.000} deg");
             floods.TryGetValue(ship.EntityId, out var f);
             Line($"Hansa flood mesh: built={f?.Built == true}, failed={floodFailed}, level={f?.Level ?? double.NaN:0.000}, world dy={f?.WorldDy ?? double.NaN:0.000}");
-            Line($"Sea: water injected={Sea.WaterRenderer.Injected}, waves injected={Sea.WaterRenderer.WavesInjected}, dry injected={Sea.Hooks.DryHullsInjected}, fallback level={Sea.Hooks.WaterCodeLevel}");
+            var link = sys.Hansa?.SeaLink;
+            if (link != null) sb.AppendLine(link.RendererReport());
+            else Line($"Sea: not installed; hull cut by {(sys.Hansa?.Hulls?.Owner is string owner ? "seacontracts:hulls (" + owner + ")" : "Ships' own lids")}");
             if (ship.Def?.WaterClip == null) { sb.Append("No waterClip in this ship's definition."); return sb.ToString(); }
             var o = RenderOrigin(ship, ep);
-            float calm = RidingCalmZone + (Sea.WaterShader.CalmZone - RidingCalmZone) * (1 - sys.SeaMotion);
+            float calm = Calm();
             var c = ClipFor(ship, ep, calm);
-            Line($"Computed clip (omitted while GoneDown): dry={c.Dry}, detailed={c.HasDryProfile}, flooded={c.Flooded}, flood world y={(c.Flooded ? c.FloodY : double.NaN):0.000}");
-            Line($"Clip pivot: {c.X:0.000}, {c.WaterY:0.000}, {c.Z:0.000}; local band {ship.Def.WaterClip.Height - c.DryDepth:0.000}..{ship.Def.WaterClip.Height + c.DryHeight:0.000}");
             var eye = ep.CameraPos;
+            var cut = link?.CutAt(c, eye.X, eye.Y, eye.Z);
+            Line($"Computed clip (omitted while GoneDown): dry={c.Dry}, detailed={(cut?.Detailed.ToString() ?? "n/a")}, flooded={c.Flooded}, flood world y={(c.Flooded ? c.FloodY : double.NaN):0.000}");
+            Line($"Clip pivot: {c.X:0.000}, {c.WaterY:0.000}, {c.Z:0.000}; local band {ship.Def.WaterClip.Height - c.DryDepth:0.000}..{ship.Def.WaterClip.Height + c.DryHeight:0.000}");
             ShipFrame.ToLocal(ship.Pos.Yaw, ship.Pitch, ship.Roll, eye.X - o.X, eye.Y - o.Y, eye.Z - o.Z,
                 out double lx, out double ly, out double lz);
-            Line($"Camera: local {lx:0.000}, {ly:0.000}, {lz:0.000}; inside computed Sea cut={c.InDryHull(eye.X, eye.Y, eye.Z)}");
+            Line($"Camera: local {lx:0.000}, {ly:0.000}, {lz:0.000}; inside computed Sea cut={(cut?.Inside.ToString() ?? "n/a")}");
             foreach (var pass in new[] { EnumShaderProgram.Chunkliquid, EnumShaderProgram.Chunkliquiddepth })
             {
                 var prog = capi.Shader.GetProgram((int)pass);
-                Line($"{pass}: program={prog?.ProgramId ?? 0}, dry-outline uniform={prog?.HasUniform(Sea.WaterShader.DryOutlineUniform) == true}");
+                Line($"{pass}: program={prog?.ProgramId ?? 0}, dry-outline uniform={(link == null ? "n/a" : (prog?.HasUniform(link.DryOutlineUniform) == true).ToString())}");
             }
             sb.Append("Computed clip and program capabilities above; this does not read back GPU uniform values.");
             return sb.ToString();
         }
 
         /// <summary>The rowing boats nearby: the water held down under them (EntityRowBoat.WaterClip).</summary>
-        public void AddBoatClips(List<Sea.WaterClipBox> clips, EntityPlayer ep)
+        public void AddBoatClips(List<HullWaterClip> clips, EntityPlayer ep)
         {
             foreach (var boat in sys.RowBoats)
             {

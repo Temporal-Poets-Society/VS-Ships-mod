@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
+using Vintagestory.API.Datastructures;
+using Newtonsoft.Json.Linq;
 using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
@@ -49,15 +51,27 @@ namespace Hansa
             base.Initialize(properties, api, InChunkIndex3d);
             mod = api.ModLoader.GetModSystem<HansaMod>();
             clipDefinition = api.Assets.Get(new AssetLocation("ships", "config/rowboat-waterclip.json")).ToObject<RowboatWaterClip>();
-            if (clipDefinition?.DryProfile?.Length != Sea.WaterShader.DryStations * Sea.WaterShader.DryLevels)
+            if (clipDefinition?.DryProfile?.Length != WaterClipDef.DryStations * WaterClipDef.DryLevels)
                 throw new InvalidOperationException("The rowing boat's fitted water outline is missing or invalid.");
             mod?.Client?.RowBoats.Add(this);
+            // Without Sea nothing cuts the water out of her: vanilla's own way, as its sailboat does (her shape's hideWater
+            // element drawn depth-only over the still water inside her).
+            if (api.Side == EnumAppSide.Client && mod != null && mod.SeaLink == null)
+            {
+                hideWater = new EntityBehaviorHideWaterSurface(this);
+                hideWater.Initialize(properties, new JsonObject(new JObject { ["hideWaterElement"] = "ORIGIN/hideWater/*" }));
+                AddBehavior(hideWater);
+            }
         }
+
+        EntityBehaviorHideWaterSurface hideWater;
 
         public override void OnEntityDespawn(EntityDespawnData despawn)
         {
             base.OnEntityDespawn(despawn);
             mod?.Client?.RowBoats.Remove(this);
+            // (vanilla's behaviour leaves its renderer registered)
+            if (hideWater != null && Api is ICoreClientAPI capi) capi.Event.UnregisterRenderer(hideWater, EnumRenderStage.OIT);
         }
 
         protected override void updateBoatAngleAndMotion(float dt)
@@ -205,10 +219,10 @@ namespace Hansa
         /// round her as they are. Sea's vanilla-boat integration supplies her heave and tilt; the dry outline follows
         /// that same pose, rather than holding the surrounding waves down to the old still-water level.
         /// </summary>
-        public Sea.WaterClipBox WaterClip(Vec3d at)
+        public HullWaterClip WaterClip(Vec3d at)
         {
             var def = clipDefinition ?? throw new InvalidOperationException("The rowing boat is not initialized.");
-            var clip = new Sea.WaterClipBox
+            var clip = new HullWaterClip
             {
                 X = at.X + Math.Cos(Pos.Yaw) * def.CentreRight,
                 Z = at.Z - Math.Sin(Pos.Yaw) * def.CentreRight,
@@ -218,7 +232,7 @@ namespace Hansa
                 DryLevel0 = def.DryLevel0, DryLevelStep = def.DryLevelStep,
                 Dry = true, DryDepth = def.DryDepth, DryHeight = def.DryHeight
             };
-            Sea.BoatWaves.ApplyToClip(this, ref clip);
+            mod?.SeaLink?.ApplyBoatPose(this, ref clip);
             return clip;
         }
 

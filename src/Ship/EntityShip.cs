@@ -145,13 +145,15 @@ namespace Hansa
         /// </summary>
         public double Heave, Pitch, Roll, Heel;
         readonly WaveTrains waves = new();
-        SeaTypedWaves seaWaves;
+        IWaveTrainSource seaWaves;
+        ISeaLink seaWavesOf;
         ContractWaves contractWaves;
         ShipWaveHull waveHull;
         ShipDefinition waveHullOf;
         public ShipWaveHull WaveHull => waveHullOf == Def && waveHull != null ? waveHull :
             (waveHull = new ShipWaveHull(waveHullOf = Def));
-        public Sea.SeaSystem SeaSys;
+        /// <summary>Sea's typed API through Ships' bridge when Sea is installed (<see cref="HansaMod.SeaLink"/>), else null.</summary>
+        public ISeaLink SeaLink;
         double writtenY = double.NaN;
         double renderBaseY = double.NaN, fullHeave;
         long jumpMs;
@@ -197,7 +199,7 @@ namespace Hansa
         {
             base.Initialize(properties, api, InChunkIndex3d);
             Mod = api.ModLoader.GetModSystem<HansaMod>();
-            SeaSys = api.ModLoader.GetModSystem<Sea.SeaSystem>();
+            SeaLink = Mod?.SeaLink;
             string code = properties.Attributes?["ship"].AsString(HansaMod.DefaultShip) ?? HansaMod.DefaultShip;
             Def = Mod.GetShip(code);
             if (Def == null)
@@ -428,12 +430,11 @@ namespace Hansa
         {
             get
             {
-                var sea = SeaSys;
+                var sea = SeaLink;
                 if (sea != null)
                 {
-                    var typed = seaWaves;
-                    if (typed?.SeaSys != sea) seaWaves = typed = new SeaTypedWaves(sea);
-                    return typed;
+                    if (seaWavesOf != sea || seaWaves == null) { seaWaves = sea.NewWaveSource(); seaWavesOf = sea; }
+                    return seaWaves;
                 }
                 var api = Api;
                 if (api == null) return null;
@@ -2738,9 +2739,9 @@ namespace Hansa
 
         /// <summary>
         /// Sea's wind at a place (the same on every side); without Sea the open sea contracts' <c>seacontracts:weather</c>
-        /// wind (m/s, in Sea's units here: <see cref="HansaMod.ContractWind"/>); calm with neither.
+        /// wind, else vanilla's wind (<see cref="HansaMod.FallbackWind"/>).
         /// </summary>
-        public Sea.Wind WindHere(double x, double z) => SeaSys != null ? SeaSys.WindAt(x, z) : Mod?.ContractWind(x, z) ?? default;
+        public Wind WindHere(double x, double z) => SeaLink != null ? SeaLink.WindAt(x, z) : Mod?.FallbackWind(x, z) ?? default;
 
         public override string GetName() => ShipName ?? Def?.Name ?? base.GetName();
     }

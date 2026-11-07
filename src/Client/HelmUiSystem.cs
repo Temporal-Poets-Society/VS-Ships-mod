@@ -28,7 +28,6 @@ namespace Hansa
         ICoreClientAPI capi;
         ICoreServerAPI sapi;
         public HansaMod Hansa { get; private set; }
-        public Sea.SeaSystem Sea { get; private set; }
 
         public override double ExecuteOrder() => 0.5;
 
@@ -36,7 +35,6 @@ namespace Hansa
         {
             this.api = api;
             Hansa = api.ModLoader.GetModSystem<HansaMod>();
-            Sea = api.ModLoader.GetModSystem<Sea.SeaSystem>();
             // (after HansaMod's own types, the same order on both sides)
             if (api is ICoreClientAPI c)
                 c.Network.GetChannel(HansaMod.ChannelName).RegisterMessageType<ShipMapRequest>().RegisterMessageType<ShipMapPacket>();

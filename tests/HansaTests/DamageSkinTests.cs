@@ -425,9 +425,9 @@ namespace HansaTests
                         double py = 50 + fy + dy;
                         wx += 100; wz += 200;
                         samples++;
-                        if (dy < 0 && !clip.InDryHull(wx, py, wz)) under++;
-                        if (dy > 0 && clip.InDryHull(wx, py, wz)) over++;
-                        if (dy < 0 && dry.InDryHull(wx, py, wz)) dryUnder++;
+                        if (dy < 0 && !clip.ToSea().InDryHull(wx, py, wz)) under++;
+                        if (dy > 0 && clip.ToSea().InDryHull(wx, py, wz)) over++;
+                        if (dy < 0 && dry.ToSea().InDryHull(wx, py, wz)) dryUnder++;
                     }
             Check(clip.Flooded && Math.Abs(clip.FloodY - (50 + fy - ShipWater.FloodGap)) < 1e-9 && !dry.Flooded && under == samples / 2 && over == samples / 2 && dryUnder == samples / 2,
                 $"Sea is told the water's level in her ({ShipWater.FloodGap} under it as drawn): under it the sea isn't cut away ({under} of {samples / 2}), over it her hold is dry ({over}); dry, all of it's cut ({dryUnder})");

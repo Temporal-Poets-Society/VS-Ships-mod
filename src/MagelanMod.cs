@@ -36,10 +36,10 @@ namespace Hansa
         /// it. Off, the sails are a throttle (full sail = top speed whatever the wind).</summary>
         public bool SailByWind = true;
         /// <summary>
-        /// Degrees closer to the wind every ship points than her design (the carrack 67° off the true wind, the skiff 55°;
+        /// Degrees closer to the wind every ship points than her design (the carrack 67Â° off the true wind, the skiff 55Â°;
         /// negative: less close). Her speed on the wind comes with it. 0: historical; 7: the carrack as weatherly as the
-        /// best square-riggers ever (clippers, today's sail-training ships, about 60°); past 10 it's beyond any square rig.
-        /// Ships never point closer than 35°.
+        /// best square-riggers ever (clippers, today's sail-training ships, about 60Â°); past 10 it's beyond any square rig.
+        /// Ships never point closer than 35Â°.
         /// </summary>
         public float PointCloser = 0;
         /// <summary>Cabins keep rain, hail and cold out, and stoves warm the room.</summary>
@@ -155,12 +155,24 @@ namespace Hansa
         public DeckCreatures DeckCreatures;
         /// <summary>The inside of this side's ships' hulls, where Sea treats the water as dry (the hold, the lower deck).</summary>
         public readonly ShipDrySpaces Dry = new();
-        Sea.SeaSystem sea;
+        /// <summary>
+        /// Sea's typed API on this side through Ships' bridge (ShipsSea.dll, <see cref="SeaBridgeLoader"/>), or null: Sea
+        /// isn't installed (or is too old). Bound in <see cref="Start"/>.
+        /// </summary>
+        public ISeaLink SeaLink { get; private set; }
+        IDisposable seaDry;
         /// <summary>
         /// The open sea contracts on this side (Sea's docs/open-sea-contracts.md): the wind (<c>seacontracts:weather</c>),
         /// sea state and drawn surface where Sea's typed API isn't there.
         /// </summary>
         public ContractWaves Contracts { get; private set; }
+        /// <summary>Without Sea: the contracts' hull cut (<c>seacontracts:hulls</c>) if some mod publishes it (<see cref="CheckHullCut"/>).</summary>
+        public ContractHulls Hulls { get; private set; }
+        /// <summary>
+        /// Without Sea: true while no <c>seacontracts:hulls</c> owner holds this side's dry places, and Ships answers for
+        /// them itself (<see cref="OwnDryPlaces"/>; on clients also <see cref="ShipWaterLids"/>). Always false with Sea.
+        /// </summary>
+        public bool OwnHullCut { get; private set; }
 
         public override double ExecuteOrder() => 0.2;
 
@@ -192,25 +204,81 @@ namespace Hansa
                 .RegisterMessageType<DecorPacket>()
                 .RegisterMessageType<CrewPacket>();
             Patches.Apply(api, Mod.Logger);
-            // below the waterline the hulls are dry: no water, fog or breath bar in the hold and on the lower deck
-            sea = api.ModLoader.GetModSystem<Sea.SeaSystem>();
-            sea?.AddDrySpaces(Dry);
             Contracts = new ContractWaves(api.ObjectCache, m => Mod.Logger.Warning(m));
+            // Sea, when it's installed: its typed API through Ships' bridge (Sea's own Start, order 0.15, has run)
+            SeaLink = SeaBridgeLoader.Bind(api, Mod.Logger);
+            // below the waterline the hulls are dry: no water, fog or breath bar in the hold and on the lower deck
+            if (SeaLink != null) seaDry = SeaLink.AddDrySpaces(Dry);
+            else
+            {
+                // without Sea: a seacontracts:hulls owner, if any mod publishes one, else Ships' own (OwnDryPlaces)
+                Hulls = new ContractHulls(api.ObjectCache, m => Mod.Logger.Warning(m));
+                Patches.ApplyOwnDry(api.Side, Mod.Logger);
+                if (api is Vintagestory.API.Client.ICoreClientAPI capi) OwnDryPlaces.ClientInWorld = () => capi.World?.Player?.Entity?.Pos.Dimension == 0;
+                CheckHullCut();
+                api.Event.RegisterGameTickListener(_ => CheckHullCut(), 2000);
+            }
         }
 
         /// <summary>
-        /// The wind at a place (the same on every side): Sea's, or without Sea the <c>seacontracts:weather</c> wind with its
-        /// gusts (m/s, as Sea's units: 1 is <see cref="Sailing.WindUnit"/> m/s); calm with neither.
+        /// Without Sea, every couple of seconds: keep this side's dry places with the <c>seacontracts:hulls</c> owner (one
+        /// may come or go, or change), or answer for them ourselves (<see cref="OwnHullCut"/>).
         /// </summary>
-        public Sea.Wind WindHere(double x, double z) => sea != null ? sea.WindAt(x, z) : ContractWind(x, z);
+        void CheckHullCut()
+        {
+            if (SeaLink != null || Hulls == null) return;
+            OwnHullCut = !Hulls.KeepDry(dryFunc ??= Dry.IsDry);
+            if (api.Side == EnumAppSide.Server) OwnDryPlaces.Server = OwnHullCut ? Dry : null;
+            else OwnDryPlaces.Client = OwnHullCut ? Dry : null;
+        }
+        System.Func<double, double, double, bool> dryFunc;
 
-        /// <summary>The <c>seacontracts:weather</c> wind at a place now, in Sea's units; calm without one.</summary>
-        public Sea.Wind ContractWind(double x, double z)
+        /// <summary>
+        /// The wind at a place (the same on every side): Sea's; without Sea the <c>seacontracts:weather</c> wind with its
+        /// gusts (m/s, as Sea's units: 1 is <see cref="Sailing.WindUnit"/> m/s), else vanilla's (<see cref="FallbackWind"/>).
+        /// </summary>
+        public Wind WindHere(double x, double z) => SeaLink != null ? SeaLink.WindAt(x, z) : FallbackWind(x, z);
+
+        /// <summary>
+        /// The wind without Sea: the <c>seacontracts:weather</c> wind at a place now, in Sea's units; without one (or with no
+        /// answer from it) vanilla's wind there (<see cref="VanillaWind"/>).
+        /// </summary>
+        public Wind FallbackWind(double x, double z)
         {
             var c = Contracts;
             var cal = api?.World?.Calendar;
-            if (c == null || cal == null || !c.Wind(x, z, cal.TotalHours, out double wx, out double wz)) return default;
-            return new Sea.Wind(wx / Sailing.WindUnit, wz / Sailing.WindUnit);
+            if (c != null && cal != null && c.Wind(x, z, cal.TotalHours, out double wx, out double wz))
+                return new Wind(wx / Sailing.WindUnit, wz / Sailing.WindUnit);
+            return VanillaWind(x, z);
+        }
+
+        readonly Dictionary<(int, int), (Wind Wind, long Ms)> vanillaWinds = new();
+
+        /// <summary>
+        /// Vanilla's wind at a place (just above sea level, where its height doesn't strengthen it), as a vector: vanilla
+        /// gives only X a strength (and a mod that writes vanilla's wind as a vector, X east and Z south, both; contract
+        /// section 5). Its weather is looked up once a second per 32 blocks (it reads the region's weather and blends).
+        /// </summary>
+        public Wind VanillaWind(double x, double z)
+        {
+            var world = api?.World;
+            if (world?.BlockAccessor == null) return default;
+            var key = ((int)Math.Floor(x / 32), (int)Math.Floor(z / 32));
+            long now = world.ElapsedMilliseconds;
+            lock (vanillaWinds)
+            {
+                if (vanillaWinds.TryGetValue(key, out var w) && now - w.Ms < 1000 && now >= w.Ms) return w.Wind;
+                Wind wind = default;
+                try
+                {
+                    var v = world.BlockAccessor.GetWindSpeedAt(new Vec3d(x, world.SeaLevel + 1, z));
+                    if (v != null && double.IsFinite(v.X) && double.IsFinite(v.Z)) wind = new Wind(v.X, v.Z);
+                }
+                catch (Exception) { }
+                if (vanillaWinds.Count > 256) vanillaWinds.Clear();
+                vanillaWinds[key] = (wind, now);
+                return wind;
+            }
         }
 
         public override void AssetsLoaded(ICoreAPI api)
@@ -255,7 +323,11 @@ namespace Hansa
 
         public override void Dispose()
         {
-            sea?.RemoveDrySpaces(Dry);
+            seaDry?.Dispose();
+            seaDry = null;
+            Hulls?.Release();
+            if (api?.Side == EnumAppSide.Server) { if (OwnDryPlaces.Server == Dry) OwnDryPlaces.Server = null; }
+            else if (OwnDryPlaces.Client == Dry) { OwnDryPlaces.Client = null; OwnDryPlaces.ClientInWorld = null; }
             Wrecks?.Dispose();
             Patches.Remove(api);
         }
@@ -341,7 +413,7 @@ namespace Hansa
             var bp = new BlockPos((int)Math.Floor(x), (int)Math.Floor(y), (int)Math.Floor(z), dim);
             double still = EntityShip.FindWaterSurface(sapi.World, bp, 2, 3);
             if (double.IsNaN(still)) return double.NaN;
-            return still + (sea != null ? sea.WaveHeightAt(x, z) : Contracts?.Height(x, z) ?? 0);
+            return still + (SeaLink != null ? SeaLink.WaveHeightAt(x, z) : Contracts?.Height(x, z) ?? 0);
         }
 
         /// <summary>Sea's wind at a place as a velocity (blocks a second, level): what drifts a gun's smoke away.</summary>
@@ -981,7 +1053,7 @@ namespace Hansa
                         if (ship == null) return TextCommandResult.Error("No ship within 64 blocks.");
                         int crew = ship.Seats.Count(s => s.Passenger != null);
                         return TextCommandResult.Success(string.Format(
-                            "{0} #{1} at {2:0.0},{3:0.0},{4:0.0} heading {5:0}°, {6:0.0} b/s, sails {7} ({8:0%}), rudder {9:0.00}, {10}{11}, crew {12}; " +
+                            "{0} #{1} at {2:0.0},{3:0.0},{4:0.0} heading {5:0}Â°, {6:0.0} b/s, sails {7} ({8:0%}), rudder {9:0.00}, {10}{11}, crew {12}; " +
                             "afloat at y {13:0.00}, heaving {14:0.00} on waves of {15:0.0} blocks",
                             ship.GetName(), ship.EntityId, ship.Pos.X, ship.Pos.Y, ship.Pos.Z, HeadingDeg(ship.Pos.Yaw), ship.Speed,
                             ship.SailSet + (ship.Crawl ? " (under the sweeps)" : ""), ship.SailFraction, ship.Rudder, ship.Anchored ? "anchored" : "anchor up", ship.Aground ? ", aground" : "", crew,
@@ -1169,7 +1241,7 @@ namespace Hansa
                 if (st > worst) worst = st;
             }
             return string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                "{0}: water {1:0.0} t of {2:0} (reserve {3:0}), {4:+0.0;-0.0} l/s, sinkage {5:0.00}, list {6:0.0}°, {7}{8}; {9} of {10} parts hurt (worst {11}), foul {12:0%}, sail drive {13:0%}",
+                "{0}: water {1:0.0} t of {2:0} (reserve {3:0}), {4:+0.0;-0.0} l/s, sinkage {5:0.00}, list {6:0.0}Â°, {7}{8}; {9} of {10} parts hurt (worst {11}), foul {12:0%}, sail drive {13:0%}",
                 ship.Stage, ship.Water, l.Capacity, l.Reserve, ship.WaterRate * 1000, ship.Sinkage, ship.ListAngle * GameMath.RAD2DEG,
                 ship.Pumpers > 0 ? ship.Pumpers + " at the pumps" : "no one at the pumps", ship.OnBottom ? ", on the bottom" : "",
                 hurt, l.Count, worst, ship.Fouling, ship.SailDrive);

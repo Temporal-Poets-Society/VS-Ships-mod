@@ -10,7 +10,7 @@ namespace Hansa
     /// before a creature's head in water runs out of air. Registered on both sides; asked every tick and maybe from
     /// another thread, so it works from a snapshot of the ships and a lookup in each design's <see cref="ShipDefinition.DryMask"/>.
     /// </summary>
-    public class ShipDrySpaces : Sea.IDrySpaces
+    public class ShipDrySpaces
     {
         volatile EntityShip[] ships = Array.Empty<EntityShip>();
 

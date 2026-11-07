@@ -10,9 +10,9 @@ namespace Hansa
         // Only=flooding, Ship=caravel. Uses the installed Sea spectrum and its wind override; no game client.
         void StormFlooding(HansaMod mod, ShipDefinition def, BlockPos spawn, int y0)
         {
-            var sea = sapi.ModLoader.GetModSystem<Sea.SeaSystem>();
-            if (sea?.Spectrum == null) { Check(false, "storm flooding: Sea is ready"); Finish(); return; }
-            sea.SetOverride(new Sea.WindOverride { FromDegrees = 90, Strength = 1.5, StartHours = sea.Hours - 24 });
+            var sea = sapi.ModLoader.GetModSystem<HansaMod>()?.SeaLink;
+            if (sea?.SpectrumReady != true) { Check(false, "storm flooding: Sea is ready"); Finish(); return; }
+            sea.SetWindOverride(90, 1.5);
             double wy = EntityShip.FindWaterSurface(sapi.World, new BlockPos(spawn.X, y0 + 5, spawn.Z, 0), 2, 6);
             var type = sapi.World.GetEntityType(new AssetLocation("ships", def.Code));
             var ship = (EntityShip)sapi.World.ClassRegistry.CreateEntity(type);
@@ -36,15 +36,14 @@ namespace Hansa
                     def.Waterplane(out double hl, out double hb, out double cx);
                     (double hold, double pond, double maxHold) Run(double yaw, int people, double seconds)
                     {
-                        var waves = new Sea.WavePlace();
-                        var trains = new WaveTrains();
+                        // (the sea state and wind taken here, as above; Sea's spectrum through Ships' bridge)
+                        var waves = sea.Replay(ship.Pos.X, ship.Pos.Z);
                         double hold = 0, pond = 0, sink = 0, list = 0, maxHold = 0;
                         bool dry = true;
                         for (double t = 600; t < 600 + seconds; t += .25)
                         {
-                            waves.Update(sea.Spectrum, t, state, wind);
-                            var a = ShipMotion.Waves(trains.CopyFrom(waves), 1, t, ship.Pos.X, ship.Pos.Z, yaw, 0, hl, hb, cx, ShipFlood.Motion(l, def.Motion, hold));
-                            var pose = new FloodPose { X = ship.Pos.X, Y = a.Heave - sink, Z = ship.Pos.Z, Yaw = yaw, Pitch = a.Pitch, Roll = a.Roll + list, Surface = waves.HeightAt };
+                            var a = ShipMotion.Waves(waves.At(t), 1, t, ship.Pos.X, ship.Pos.Z, yaw, 0, hl, hb, cx, ShipFlood.Motion(l, def.Motion, hold));
+                            var pose = new FloodPose { X = ship.Pos.X, Y = a.Heave - sink, Z = ship.Pos.Z, Yaw = yaw, Pitch = a.Pitch, Roll = a.Roll + list, Surface = waves.Surface };
                             var f = DeckFlooding.Step(l, pose, ship.DownfloodOpen, .25, ref pond);
                             if (hold <= l.D.PumpResidual) dry = true;
                             else if (hold >= 3 * l.D.PumpResidual) dry = false;
@@ -84,7 +83,7 @@ namespace Hansa
                 catch (Exception e) { Check(false, "storm flooding exception: " + e); }
                 finally
                 {
-                    sea.SetOverride(null);
+                    sea.ClearWindOverride();
                     ship.Die(EnumDespawnReason.Removed);
                     Finish();
                 }

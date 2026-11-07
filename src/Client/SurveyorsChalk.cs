@@ -548,14 +548,14 @@ namespace Hansa
                 var w = ship.WindHere(x, z);
                 s.Wind = new NoteWind
                 {
-                    Strength = R(w.Strength, 3), Speed = R(w.Strength * Sea.Beaufort.MetersPerSecondPerUnit, 1),
-                    Force = Sea.Beaufort.Force(w.Strength), Name = Sea.Beaufort.Name(w.Strength), From = R(w.FromDegrees, 0)
+                    Strength = R(w.Strength, 3), Speed = R(w.Strength * Beaufort.MetersPerSecondPerUnit, 1),
+                    Force = Beaufort.Force(w.Strength), Name = Beaufort.Name(w.Strength), From = R(w.FromDegrees, 0)
                 };
             }
             catch (Exception) { }
             try
             {
-                var sea = ship.SeaSys;
+                var sea = ship.SeaLink;
                 if (sea != null)
                 {
                     var st = sea.SeaAt(x, z);

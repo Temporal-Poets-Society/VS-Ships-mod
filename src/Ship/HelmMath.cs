@@ -73,7 +73,7 @@ namespace Hansa
         /// the point of sail ("closehauled", "beamreach", "broadreach", "running"); tack: +1 starboard tack (the wind from
         /// starboard), -1 port tack.
         /// </summary>
-        /// <param name="windX">where the true air goes (Sea.Wind X, Z)</param>
+        /// <param name="windX">where the true air goes (Wind X, Z)</param>
         /// <param name="sail">how much sail she has set (0..1)</param>
         /// <param name="speed">her way (blocks/s, negative: sternway)</param>
         public static string PointOfSail(double windX, double windZ, double yaw, double sail, double speed, SailingDef d, out int tack)
