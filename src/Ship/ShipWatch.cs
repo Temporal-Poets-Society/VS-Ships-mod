@@ -58,7 +58,7 @@ namespace Hansa
                 pendingAlarm = null;
                 return;
             }
-            double hs = Waves.SignificantHeight * (SeaSys?.WaveFactorAt(Pos.X, Pos.Z) ?? 1);
+            double hs = Waves.SignificantHeight * WaveShelter(Pos.X, Pos.Z);
             bool starting = double.IsNaN(watchHs);
             if (starting) watchHs = hs;
 
@@ -106,7 +106,7 @@ namespace Hansa
         bool LandAhead()
         {
             double reach = Math.Clamp(Speed * Mod.Config.WatchAheadSeconds, 16, 96);
-            double hs = Waves.SignificantHeight * (SeaSys?.WaveFactorAt(Pos.X, Pos.Z) ?? 1);
+            double hs = Waves.SignificantHeight * WaveShelter(Pos.X, Pos.Z);
             double fx = Math.Sin(Pos.Yaw), fz = Math.Cos(Pos.Yaw);
             for (double d = 4; d <= reach + 0.01; d += 4)
             {

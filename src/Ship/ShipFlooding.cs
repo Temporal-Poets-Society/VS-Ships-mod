@@ -634,7 +634,7 @@ namespace Hansa
             if (grindAccum < 1) return;
             float step = grindAccum;
             grindAccum = 0;
-            double hs = Waves.SignificantHeight * (SeaSys?.WaveFactorAt(Pos.X, Pos.Z) ?? 1);
+            double hs = Waves.SignificantHeight * WaveShelter(Pos.X, Pos.Z);
             if (hs < 0.2 || PartDamage == null) return;
             // ((2 November 2026, the user: "if ship is locked by ice - does it keep taking damage or just sit there?") held
             // in ice she lies still: ice takes the swell out, and the waves (which don't know of it) don't grind her on it)
@@ -693,7 +693,7 @@ namespace Hansa
             floodAccum = 0;
             var d = l.D;
 
-            double factor = SeaSys?.WaveFactorAt(Pos.X, Pos.Z) ?? 1;
+            double factor = WaveShelter(Pos.X, Pos.Z);
             TruePose(out double pitch, out double roll);
             var pose = new FloodPose { X = Pos.X, Y = BaseY - Sinkage + Heave, Z = Pos.Z, Yaw = Pos.Yaw, Pitch = pitch, Roll = roll, Surface = (x, z) => SeaSurface(x, z, factor) };
             // leaks, by the head of water over each damaged panel outside and in
@@ -826,7 +826,7 @@ namespace Hansa
             var cfg = Mod.Config;
             float k = cfg.Wear;
             if (k <= 0) return;
-            double hs = Waves.SignificantHeight * (SeaSys?.WaveFactorAt(Pos.X, Pos.Z) ?? 1);
+            double hs = Waves.SignificantHeight * WaveShelter(Pos.X, Pos.Z);
             double seam = dh / (24 * Math.Max(0.1, d.SeamWearDays)) * (1 + hs / 2) * k * Math.Max(0, cfg.SeamWear);
             if (seam > 0)
                 foreach (var p in l.Parts)

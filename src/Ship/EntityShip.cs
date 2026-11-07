@@ -144,7 +144,9 @@ namespace Hansa
         /// player's SeaMotion setting; Roll includes the lean in the wind (Heel).
         /// </summary>
         public double Heave, Pitch, Roll, Heel;
-        readonly Sea.WavePlace waves = new();
+        readonly WaveTrains waves = new();
+        SeaTypedWaves seaWaves;
+        ContractWaves contractWaves;
         ShipWaveHull waveHull;
         ShipDefinition waveHullOf;
         public ShipWaveHull WaveHull => waveHullOf == Def && waveHull != null ? waveHull :
@@ -385,18 +387,41 @@ namespace Hansa
         /// </summary>
         public ShipAttitude WaveMotion(double x, double z, double yaw)
         {
-            var sea = SeaSys;
-            if (sea?.Spectrum == null || Def == null) return default;
-            sea.SampleWaves(waves, x, z);
+            var source = WaveSource;
+            if (source == null || Def == null || !source.Sample(waves, x, z)) return default;
             Def.Waterplane(out double halfLength, out double halfBeam, out double centreX);
             centreX = WaveHull.FlotationCentre;
             double steady = ShipMotion.SailSteadiness(SailsDrawing, WindHere(x, z).Strength);
             // (the water in her slows her roll: MotionNow; the heave and pitch are the design's, alike everywhere)
-            return ShipMotion.Waves(waves, sea.WaveFactorAt(x, z), waves.Time, x, z, yaw, Speed, halfLength, halfBeam, centreX, MotionNow, steady);
+            return ShipMotion.Waves(waves, source.Shelter(x, z), waves.Time, x, z, yaw, Speed, halfLength, halfBeam, centreX, MotionNow, steady);
         }
 
-        /// <summary>The waves at the ship as of the last <see cref="WaveMotion"/> (for reports and tests).</summary>
-        public Sea.WavePlace Waves => waves;
+        /// <summary>The waves at the ship as of the last sample (<see cref="WaveMotion"/>, the wave yaw), for reports and tests.</summary>
+        public WaveTrains Waves => waves;
+
+        /// <summary>
+        /// Where her waves come from, picked at every sample: Sea's typed API whenever Sea is loaded (as before the
+        /// contracts), otherwise the open sea contracts' <c>seacontracts:surface</c> on this side (calm if none).
+        /// </summary>
+        public IWaveTrainSource WaveSource
+        {
+            get
+            {
+                var sea = SeaSys;
+                if (sea != null)
+                {
+                    var typed = seaWaves;
+                    if (typed?.SeaSys != sea) seaWaves = typed = new SeaTypedWaves(sea);
+                    return typed;
+                }
+                var api = Api;
+                if (api == null) return null;
+                return contractWaves ??= new ContractWaves(api.ObjectCache, m => api.Logger.Warning(m));
+            }
+        }
+
+        /// <summary>The share of the open sea's waves that reaches (x, z): Sea's wave factor, the contract's shelter, or 1.</summary>
+        public double WaveShelter(double x, double z) => WaveSource?.Shelter(x, z) ?? 1;
 
         public RoomDef RoomAtLocal(Vec3d l) => Def?.RoomAt(l.X, l.Y + 0.5, l.Z);
 
@@ -2055,12 +2080,9 @@ namespace Hansa
 
             // Waves supply a small yaw moment, resisted by the hull and rudder. Anchored or under the sweeps,
             // the chain/oars hold her heading. All yaw (helm and sea) is authoritative and synced together.
-            if (!Anchored && !OnBottom && !Crawl && SeaSys?.Spectrum != null)
-            {
-                SeaSys.SampleWaves(waves, Pos.X, Pos.Z);
-                YawRate += (float)ShipMotion.WaveYawRate(waves, SeaSys.WaveFactorAt(Pos.X, Pos.Z), waves.Time,
+            if (!Anchored && !OnBottom && !Crawl && WaveSource is { } waveSource && waveSource.Sample(waves, Pos.X, Pos.Z))
+                YawRate += (float)ShipMotion.WaveYawRate(waves, waveSource.Shelter(Pos.X, Pos.Z), waves.Time,
                     Pos.X, Pos.Z, Pos.Yaw, Speed, WaveHull, RudderAnswers);
-            }
 
             double newYaw = Pos.Yaw + YawRate * dt;
             HelmMath.Advance(Pos.X, Pos.Z, Pos.Yaw, newYaw, Speed, Leeway, dt, WaveHull.LateralCentre, out double nx, out double nz);

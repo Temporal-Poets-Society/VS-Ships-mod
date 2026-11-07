@@ -37,12 +37,13 @@ namespace Hansa
                     (double hold, double pond, double maxHold) Run(double yaw, int people, double seconds)
                     {
                         var waves = new Sea.WavePlace();
+                        var trains = new WaveTrains();
                         double hold = 0, pond = 0, sink = 0, list = 0, maxHold = 0;
                         bool dry = true;
                         for (double t = 600; t < 600 + seconds; t += .25)
                         {
                             waves.Update(sea.Spectrum, t, state, wind);
-                            var a = ShipMotion.Waves(waves, 1, t, ship.Pos.X, ship.Pos.Z, yaw, 0, hl, hb, cx, ShipFlood.Motion(l, def.Motion, hold));
+                            var a = ShipMotion.Waves(trains.CopyFrom(waves), 1, t, ship.Pos.X, ship.Pos.Z, yaw, 0, hl, hb, cx, ShipFlood.Motion(l, def.Motion, hold));
                             var pose = new FloodPose { X = ship.Pos.X, Y = a.Heave - sink, Z = ship.Pos.Z, Yaw = yaw, Pitch = a.Pitch, Roll = a.Roll + list, Surface = waves.HeightAt };
                             var f = DeckFlooding.Step(l, pose, ship.DownfloodOpen, .25, ref pond);
                             if (hold <= l.D.PumpResidual) dry = true;

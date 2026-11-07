@@ -46,7 +46,7 @@ namespace Hansa
     }
 
     /// <summary>
-    /// A ship riding Sea's waves, as a pure function of the waves at its place, the wave clock and its own position,
+    /// A ship riding the sea's waves (<see cref="WaveTrains"/>, from Sea or the open sea contracts), as a pure function of the waves at its place, the wave clock and its own position,
     /// heading and speed, so the server and every client work out the same motion without sending it.
     ///
     /// Each wave train is a sine running over the waterplane. For each one:
@@ -58,8 +58,8 @@ namespace Hansa
     /// </summary>
     public static class ShipMotion
     {
-        /// <param name="waves">the waves at the ship (Sea.SeaSystem.SampleWaves at its origin)</param>
-        /// <param name="factor">how much of the open-sea waves reach here (Sea.SeaSystem.WaveFactorAt)</param>
+        /// <param name="waves">the waves at the ship, sampled at its origin (<see cref="IWaveTrainSource"/>)</param>
+        /// <param name="factor">how much of the open-sea waves reach here (<see cref="IWaveTrainSource.Shelter"/>)</param>
         /// <param name="t">wave clock time</param>
         /// <param name="x">origin (waterline midships) x</param>
         /// <param name="yaw">heading (an entity's yaw: the bow points (sin yaw, cos yaw))</param>
@@ -68,7 +68,7 @@ namespace Hansa
         /// <param name="halfBeam">half its width</param>
         /// <param name="centreX">where its centre is along the keel</param>
         /// <param name="steady">how much her sails steady her (0..1, <see cref="SailSteadiness"/>)</param>
-        public static ShipAttitude Waves(Sea.WavePlace waves, double factor, double t, double x, double z, double yaw, double speed,
+        public static ShipAttitude Waves(WaveTrains waves, double factor, double t, double x, double z, double yaw, double speed,
             double halfLength, double halfBeam, double centreX, MotionDef m, double steady = 0)
         {
             double rollDamping = m.RollDamping + m.SailRollDamping * Math.Clamp(steady, 0, 1);
@@ -103,7 +103,7 @@ namespace Hansa
         /// inertia/damping response, not a spring to an arbitrary compass heading. Uniform beam or head waves
         /// give no yaw moment; oblique trains in a real spectrum give a small, slow sheer.
         /// </summary>
-        public static double WaveYawRate(Sea.WavePlace waves, double factor, double t, double x, double z,
+        public static double WaveYawRate(WaveTrains waves, double factor, double t, double x, double z,
             double yaw, double speed, ShipWaveHull hull, double rudder = 1)
         {
             if (waves == null || factor <= 0 || hull == null) return 0;

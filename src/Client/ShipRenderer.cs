@@ -2865,7 +2865,7 @@ namespace Hansa
             foreach (var pass in new[] { EnumShaderProgram.Chunkliquid, EnumShaderProgram.Chunkliquiddepth })
             {
                 var prog = capi.Shader.GetProgram((int)pass);
-                Line($"{pass}: program={prog?.ProgramId ?? 0}, dry-outline uniform={prog?.HasUniform("seaDryE") == true}");
+                Line($"{pass}: program={prog?.ProgramId ?? 0}, dry-outline uniform={prog?.HasUniform(Sea.WaterShader.DryOutlineUniform) == true}");
             }
             sb.Append("Computed clip and program capabilities above; this does not read back GPU uniform values.");
             return sb.ToString();

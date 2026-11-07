@@ -964,7 +964,7 @@ namespace Hansa
                             "afloat at y {13:0.00}, heaving {14:0.00} on waves of {15:0.0} blocks",
                             ship.GetName(), ship.EntityId, ship.Pos.X, ship.Pos.Y, ship.Pos.Z, HeadingDeg(ship.Pos.Yaw), ship.Speed,
                             ship.SailSet + (ship.Crawl ? " (under the sweeps)" : ""), ship.SailFraction, ship.Rudder, ship.Anchored ? "anchored" : "anchor up", ship.Aground ? ", aground" : "", crew,
-                            ship.BaseY, ship.Heave, ship.Waves.SignificantHeight * (ship.SeaSys?.WaveFactorAt(ship.Pos.X, ship.Pos.Z) ?? 1)) +
+                            ship.BaseY, ship.Heave, ship.Waves.SignificantHeight * ship.WaveShelter(ship.Pos.X, ship.Pos.Z)) +
                             "\n" + DamageSummary(ship));
                     })
                 .EndSubCommand()

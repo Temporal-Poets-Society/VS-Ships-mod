@@ -40,7 +40,7 @@ namespace HansaTests
                 double x = x0 + Math.Sin(yaw) * v * (t - 600), z = z0 + Math.Cos(yaw) * v * (t - 600);
                 place.Update(spec, t, sea, wind);
                 // the server's attitude: as EntityShip.WaveMotion and TruePose
-                var a = ShipMotion.Waves(place, 1, t, x, z, yaw, v, hl, hb, cx, md, ShipMotion.SailSteadiness(sail, s));
+                var a = ShipMotion.Waves(place.ToTrains(), 1, t, x, z, yaw, v, hl, hb, cx, md, ShipMotion.SailSteadiness(sail, s));
                 double t0 = t;
                 var pose = new FloodPose
                 {

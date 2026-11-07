@@ -47,11 +47,11 @@ namespace HansaTests
                 {
                     double t = 600 + i / 30.0;
                     place.Update(spec, t, sea, wind, sea, wind);
-                    var a = ShipMotion.Waves(place, 1, t, x, z, yaw, speed, hl, hb, cx, def.Motion, steady);
+                    var a = ShipMotion.Waves(place.ToTrains(), 1, t, x, z, yaw, speed, hl, hb, cx, def.Motion, steady);
                     h[i] = a.Heave; p[i] = a.Pitch * 180 / Math.PI; r[i] = a.Roll * 180 / Math.PI;
                     y[i] = (yaw - initialYaw) * 180 / Math.PI;
                     csv.WriteLine(FormattableString.Invariant($"{i / 30.0:F3},{y[i]:F6},{p[i]:F6},{r[i]:F6},{h[i]:F6}"));
-                    double rate = ShipMotion.WaveYawRate(place, 1, t, x, z, yaw, speed, hull);
+                    double rate = ShipMotion.WaveYawRate(place.ToTrains(), 1, t, x, z, yaw, speed, hull);
                     HelmMath.Advance(x, z, yaw, yaw + rate / 30, speed, 0, 1 / 30.0, hull.LateralCentre, out x, out z);
                     yaw += rate / 30;
                 }
@@ -115,7 +115,7 @@ namespace HansaTests
                 for (double t = 0; t < 120; t += dt)
                 {
                     wave.SetTrains(t, 1, new[] { k / Math.Sqrt(2) }, new[] { k / Math.Sqrt(2) }, new[] { 2.0 }, new[] { 0.0 });
-                    double rate = ShipMotion.WaveYawRate(wave, 1, t, x, z, yaw0, speed, hull, rudder);
+                    double rate = ShipMotion.WaveYawRate(wave.ToTrains(), 1, t, x, z, yaw0, speed, hull, rudder);
                     if (t > dt && rate > 0 && previous <= 0) crosses.Add(t);
                     previous = rate;
                     yaw += rate * dt; lo = Math.Min(lo, yaw); hi = Math.Max(hi, yaw);
@@ -133,8 +133,8 @@ namespace HansaTests
             Check(intact < missing && intact < a30,
                 $"forward flow and intact centred rudder resist wave yaw ({intact * 180 / Math.PI:F4} vs {missing * 180 / Math.PI:F4}deg, at rest {a30 * 180 / Math.PI:F4})");
             wave.SetTrains(0, 1, new[] { 0.0 }, new[] { k }, new[] { 2.0 }, new[] { 0.0 });
-            Check(Math.Abs(ShipMotion.WaveYawRate(wave, 1, 0, 0, 0, 0, 0, hull)) < 1e-12 &&
-                  Math.Abs(ShipMotion.WaveYawRate(wave, 1, 0, 0, 0, Math.PI / 2, 0, hull)) < 1e-12,
+            Check(Math.Abs(ShipMotion.WaveYawRate(wave.ToTrains(), 1, 0, 0, 0, 0, 0, hull)) < 1e-12 &&
+                  Math.Abs(ShipMotion.WaveYawRate(wave.ToTrains(), 1, 0, 0, 0, Math.PI / 2, 0, hull)) < 1e-12,
                 "pure head and beam waves have no asymmetric yaw moment");
         }
     }

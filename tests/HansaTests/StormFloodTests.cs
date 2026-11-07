@@ -51,7 +51,7 @@ namespace HansaTests
                 for (double t = 600; t < 1200; t += .25)
                 {
                     waves.Update(spec, t, sea, wind);
-                    var a = ShipMotion.Waves(waves, 1, t, 1000, 2000, yaw, 0, hl, hb, cx, def.Motion);
+                    var a = ShipMotion.Waves(waves.ToTrains(), 1, t, 1000, 2000, yaw, 0, hl, hb, cx, def.Motion);
                     var pose = new FloodPose { X = 1000, Z = 2000, Y = a.Heave - sink, Yaw = yaw, Pitch = a.Pitch, Roll = a.Roll + list, Surface = waves.HeightAt };
                     double q = ShipFlood.Downflooding(l, pose, IsOpen);
                     rate += (q - rate) * .125;
@@ -140,7 +140,7 @@ namespace HansaTests
             {
                 waves.Update(spec, t, sea, wind);
                 var motion = ShipFlood.Motion(l, def.Motion, water);
-                var a = ShipMotion.Waves(waves, 1, t, 1000, 2000, yaw, 0, hl, hb, cx, motion);
+                var a = ShipMotion.Waves(waves.ToTrains(), 1, t, 1000, 2000, yaw, 0, hl, hb, cx, motion);
                 var pose = new FloodPose { X = 1000, Z = 2000, Y = a.Heave - sink, Yaw = yaw, Pitch = a.Pitch, Roll = a.Roll + list, Surface = waves.HeightAt };
                 var f = DeckFlooding.Step(l, pose, open, .25, ref deck);
                 double leak = holed ? ShipFlood.Leaks(l, st, water, pose, 1, out _) : 0;

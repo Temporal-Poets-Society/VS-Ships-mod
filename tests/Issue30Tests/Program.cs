@@ -186,7 +186,7 @@ class Program
                 csv.WriteLine("seconds,heave,pitch,roll,seaAtOrigin,water,rate");
                 for(double t=0;t<240;t+=.25) {
                     double x=TestX+Math.Sin(yaw)*speed*t,z=TestZ+Math.Cos(yaw)*speed*t;
-                    var a=ShipMotion.Waves(waves,1,t,x,z,yaw,speed,len,beam,center,def.Motion,0);
+                    var a=ShipMotion.Waves(waves.ToTrains(),1,t,x,z,yaw,speed,len,beam,center,def.Motion,0);
                     var pose=new FloodPose{X=x,Y=a.Heave,Z=z,Yaw=yaw,Pitch=a.Pitch,Roll=a.Roll,Surface=(px,pz)=>waves.HeightAt(px,pz,t)};
                     double rate=ShipFlood.Downflooding(def.DamageParts,pose,_=>false);
                     volume+=rate*.25;peak=Math.Max(peak,rate);if(volume>.5 && first<0)first=t;

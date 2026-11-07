@@ -51,6 +51,7 @@ namespace HansaTests
             if (Array.IndexOf(args,"notes151") >= 0) { Notes151(root); return failures==0?0:1; }
             if (Array.IndexOf(args,"notes135") >= 0) { Notes135(root); return failures==0?0:1; }
             if (Array.IndexOf(args, "wave-sway") >= 0) { WaveSway(root); return failures == 0 ? 0 : 1; }
+            if (Array.IndexOf(args, "wave-trains") >= 0) { WaveTrainTests(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "issue30") >= 0) { StormFloodTests(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "runtime-notes") >= 0) { RuntimeNotes(root); return failures == 0 ? 0 : 1; }
             if (Array.IndexOf(args, "integrate") >= 0) { IntegrationNotes(root); return failures == 0 ? 0 : 1; }
@@ -60,7 +61,7 @@ namespace HansaTests
             {
                 var groups = new[] { new[] { "design", "caravel" }, new[] { "gates" }, new[] { "swivels" }, new[] { "lateen" },
                                      new[] { "gunclick" }, new[] { "paint" }, new[] { "unmanned" }, new[] { "hull" }, new[] { "stairs" },
-                                     new[] { "slots" }, new[] { "partitions" }, new[] { "modular" }, new[] { "decor" }, new[] { "runtime-notes" }, new[] { "integrate" }, new[] { "notes135" }, new[] { "notes151" }, new[] { "notes153" }, new[] { "notes157" }, new[] { "notes158" }, new[] { "hearth" } };
+                                     new[] { "slots" }, new[] { "partitions" }, new[] { "modular" }, new[] { "decor" }, new[] { "runtime-notes" }, new[] { "integrate" }, new[] { "notes135" }, new[] { "notes151" }, new[] { "notes153" }, new[] { "notes157" }, new[] { "notes158" }, new[] { "hearth" }, new[] { "wave-trains" } };
                 var all = System.Diagnostics.Stopwatch.StartNew();
                 var rows = new System.Collections.Generic.List<string>();
                 int total = 0;
@@ -1125,7 +1126,7 @@ namespace HansaTests
                     p.SetTrains(t, 1, new[] { Math.Cos(d) * k }, new[] { Math.Sin(d) * k }, new[] { amp }, new[] { 0.3 });
                     x = Math.Sin(yaw) * speed * i / 20.0;
                     z = Math.Cos(yaw) * speed * i / 20.0;
-                    r[i] = ShipMotion.Waves(p, 1, t, x, z, yaw, speed, hl, hb, 0, md);
+                    r[i] = ShipMotion.Waves(p.ToTrains(), 1, t, x, z, yaw, speed, hl, hb, 0, md);
                     surface[i] = p.HeightAt(x, z);
                     // the surface's slope along the keel at the ship
                     slope[i] = (p.HeightAt(x + Math.Sin(yaw) * 0.01, z + Math.Cos(yaw) * 0.01) - p.HeightAt(x - Math.Sin(yaw) * 0.01, z - Math.Cos(yaw) * 0.01)) / 0.02;
@@ -1189,10 +1190,10 @@ namespace HansaTests
                 for (double t = 500; t < 560; t += 0.05)
                 {
                     server.Update(spec, t, storm, gale);
-                    var a = ShipMotion.Waves(server, 1, t, 1000, 2000, 1.3, 3, hl, hb, cx, md);
+                    var a = ShipMotion.Waves(server.ToTrains(), 1, t, 1000, 2000, 1.3, 3, hl, hb, cx, md);
                     while (tc + 1 / 144.0 < t) { tc += 1 / 144.0; client.Update(spec, tc, storm, gale); }
                     client.Update(spec, t, storm, gale);
-                    var b = ShipMotion.Waves(client, 1, t, 1000, 2000, 1.3, 3, hl, hb, cx, md);
+                    var b = ShipMotion.Waves(client.ToTrains(), 1, t, 1000, 2000, 1.3, 3, hl, hb, cx, md);
                     worst = Math.Max(worst, Math.Abs(a.Heave - b.Heave) + Math.Abs(a.Pitch - b.Pitch) + Math.Abs(a.Roll - b.Roll));
                     maxRoll = Math.Max(maxRoll, Math.Abs(a.Roll));
                     maxPitch = Math.Max(maxPitch, Math.Abs(a.Pitch));
@@ -1202,11 +1203,11 @@ namespace HansaTests
                 Check(maxRoll < md.MaxRoll * Math.PI / 180 && maxPitch < md.MaxPitch * Math.PI / 180,
                     $"a violent storm (4 blocks, beam on): roll up to {maxRoll * 180 / Math.PI:0} of {md.MaxRoll}°, pitch {maxPitch * 180 / Math.PI:0} of {md.MaxPitch}°, heave ±{maxHeave:0.0}");
                 // half a block apart (a client's smoothing) changes little
-                var c = ShipMotion.Waves(server, 1, 559.95, 1000.5, 2000, 1.3, 3, hl, hb, cx, md);
-                var d0 = ShipMotion.Waves(server, 1, 559.95, 1000, 2000, 1.3, 3, hl, hb, cx, md);
+                var c = ShipMotion.Waves(server.ToTrains(), 1, 559.95, 1000.5, 2000, 1.3, 3, hl, hb, cx, md);
+                var d0 = ShipMotion.Waves(server.ToTrains(), 1, 559.95, 1000, 2000, 1.3, 3, hl, hb, cx, md);
                 Check(Math.Abs(c.Heave - d0.Heave) < 0.15 && Math.Abs(c.Roll - d0.Roll) < 0.02, $"half a block off changes it a little (heave {Math.Abs(c.Heave - d0.Heave):0.000}, roll {Math.Abs(c.Roll - d0.Roll) * 180 / Math.PI:0.00}°)");
                 // sheltered water (a lake) gets a fifth, like the water shader draws it
-                var lake = ShipMotion.Waves(server, 0.2, 559.95, 1000, 2000, 1.3, 3, hl, hb, cx, md);
+                var lake = ShipMotion.Waves(server.ToTrains(), 0.2, 559.95, 1000, 2000, 1.3, 3, hl, hb, cx, md);
                 Check(Math.Abs(lake.Heave - 0.2 * d0.Heave) < 0.01 && Math.Abs(lake.Roll - 0.2 * d0.Roll) < 0.002,
                     $"on sheltered water she moves with the smaller waves drawn there (heave {lake.Heave:0.000} for {d0.Heave:0.000} on the open sea)");
             }
@@ -2403,7 +2404,7 @@ namespace HansaTests
                     {
                         double x = x0 + Math.Sin(yaw) * speed * (t - 600), z = z0 + Math.Cos(yaw) * speed * (t - 600);
                         place.Update(spec, t, sea, wind);
-                        var a = ShipMotion.Waves(place, 1, t, x, z, yaw, speed, hl, hb, cx, md, steady);
+                        var a = ShipMotion.Waves(place.ToTrains(), 1, t, x, z, yaw, speed, hl, hb, cx, md, steady);
                         rMax = Math.Max(rMax, Math.Abs(a.Roll)); pMax = Math.Max(pMax, Math.Abs(a.Pitch)); hMax = Math.Max(hMax, Math.Abs(a.Heave));
                         double roll = a.Roll + heelDeg * Math.PI / 180;
                         // the lee side (starboard, down with a positive lean) amidships, and the stern lights' corners

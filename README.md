@@ -11,8 +11,12 @@ not additional finished ships in the current public package.
 **Current package: Ships 0.1.0** (first public release, 1 November 2026). The experimental rowing boat is
 withdrawn from crafting, creative inventory and the handbook at the author's request. Existing saved boats keep
 their item/entity/model support. The caravel and its charter, crafted from six material bundles, remain.
-Ships requires Sea `0.5.1`. Build against a Sea checkout's existing Release DLL:
-`dotnet build -c Release -p:SeaRoot="<Sea checkout>"`.
+Ships requires Sea `0.6.0-pre.1` (on this branch; 0.1.0 shipped against `0.5.1`). Build against a Sea
+checkout's existing Release DLL: `dotnet build -c Release -p:SeaRoot="<Sea checkout>"`.
+Ships reads the waves through its own `WaveTrains` (`src/Ship/WaveTrains.cs`): from Sea's typed API whenever Sea
+is loaded, otherwise from the open sea contracts' `seacontracts:surface` (`trains`, `seconds`) and
+`seacontracts:seastate` (`shelter`); `ShipMotion` works from `WaveTrains` alone
+(`dotnet run -c Release -- wave-trains` in `tests/HansaTests` pins it bit for bit to the earlier arithmetic).
 
 Ships began on 14 October 2026 as Hansa, a separate grid-based rebuild of Magelan; it was renamed Ships (mod ID
 `ships`) at 0.1.0-dev.18, and the C# namespace stays `Hansa`. The sailing, waves, walking aboard, crew, working
