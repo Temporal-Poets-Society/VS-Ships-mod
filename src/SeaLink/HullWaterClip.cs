@@ -27,6 +27,8 @@ namespace Hansa
         public float[] DryProfile;
         public float DryLevel0, DryLevelStep;
         public float DryRake;
+        /// <summary>(8 November 2026) The cut's top at 16 stations from stern to bow over the dry outline, above the waterline; null = DryHeight all along.</summary>
+        public float[] DryTops;
         public bool Flooded;
         public double FloodY;
 

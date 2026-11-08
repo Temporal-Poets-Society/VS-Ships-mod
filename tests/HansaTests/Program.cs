@@ -125,6 +125,7 @@ namespace HansaTests
                 Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
                 return failures == 0 ? 0 : 1;
             }
+            if (Array.IndexOf(args, "drytop") >= 0) { DryTopProbe(root, args.Length > Array.IndexOf(args, "drytop") + 1 ? args[Array.IndexOf(args, "drytop") + 1] : "caravel"); return 0; }
             if (Array.IndexOf(args, "inspect") >= 0) { Inspect(root, args.Length > Array.IndexOf(args, "inspect") + 1 ? args[Array.IndexOf(args, "inspect") + 1] : "caravel"); return 0; }
             if (Array.IndexOf(args, "partition-views") >= 0) { int pv = Array.IndexOf(args, "partition-views"); PartitionViews(root, args[pv + 1], args[pv + 2]); return 0; }
             if (Array.IndexOf(args, "buildplace") >= 0) { CaravelBuildPlace(root); Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED"); return failures == 0 ? 0 : 1; }

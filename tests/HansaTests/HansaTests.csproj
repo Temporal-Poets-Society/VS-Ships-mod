@@ -119,6 +119,7 @@
     <Compile Include="SeaBridgeTests.cs" />
     <Compile Include="WaveTrainTests.cs" />
     <Compile Include="SeaCoastTests.cs" />
+    <Compile Include="DryTopProbe.cs" />
     <Compile Include="..\..\src\Ship\Sailing.cs" Link="Ship\Sailing.cs" />
     <Compile Include="..\..\src\Ship\PartMotion.cs" Link="Ship\PartMotion.cs" />
     <Compile Include="..\..\src\Ship\SwivelGun.cs" Link="Ship\SwivelGun.cs" />

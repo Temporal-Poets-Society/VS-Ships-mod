@@ -49,7 +49,8 @@ with `Assembly.LoadFrom` (once per process) and binds it per side, getting Ships
   the client's and server's logs, and an orange line on the wind panel ("No wind model: vanilla wind, east or west
   only") while the sails need no other warning. The waves are `seacontracts:surface`'s, else calm (she floats level on still water). The water
   in her hull: if some mod publishes `seacontracts:hulls`, Ships registers each hull there as a record (the detailed
-  record, every field of the clip, when the owner publishes `recordLength`, as Sea does; `register`;
+  record, every field of the clip, when the owner publishes `recordLength`, as Sea does, with the cut's tops along her
+  rail when it takes them; `register`;
   the footprint less its inset, no detailed outline) and its dry places (`registerDry`, both sides), checked every 2 s.
   Otherwise Ships does it itself: no drowning in her hold (a postfix on vanilla's breathing check), no underwater fog
   and tint for a camera in it (postfixes on the client's eyes-in-water checks), and a level lid drawn into the depth

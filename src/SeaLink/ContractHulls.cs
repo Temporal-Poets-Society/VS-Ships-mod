@@ -26,7 +26,9 @@ namespace Hansa
             // the detailed record (contract section 8, 7 November): calm level and ring, inset, rake, dry outline by levels
             HCalmSlopeAcross = RecordLength, HCalmZone = HCalmSlopeAcross + 1, HDryInset = HCalmZone + 1, HDryRake = HDryInset + 1,
             HDryLevel0 = HDryRake + 1, HDryLevelStep = HDryLevel0 + 1, HDryProfile = HDryLevelStep + 1,
-            DetailedLength = HDryProfile, DetailedWithDryProfile = HDryProfile + WaterClipDef.DryStations * WaterClipDef.DryLevels;
+            DetailedLength = HDryProfile, DetailedWithDryProfile = HDryProfile + WaterClipDef.DryStations * WaterClipDef.DryLevels,
+            // (8 November 2026) the dry outline's tops, for an owner whose recordLength takes them (Sea since 8 November)
+            HDryTops = DetailedWithDryProfile, DetailedWithDryTops = HDryTops + WaterClipDef.DryTopStations;
 
         readonly IDictionary<string, object> cache;
         readonly Action<string> log;
@@ -56,6 +58,9 @@ namespace Hansa
 
         /// <summary>Does the owner Ships registered its hulls with read the detailed record (its <c>recordLength</c>)?</summary>
         public bool Detailed { get; private set; }
+
+        /// <summary>(8 November 2026) Does that owner also read the dry outline's tops?</summary>
+        public bool ReadsTops { get; private set; }
 
         static bool ReadsDetail(IDictionary<string, object> e) =>
             e != null && e.TryGetValue("recordLength", out var o) && o is int n && n >= DetailedWithDryProfile;
@@ -103,6 +108,7 @@ namespace Hansa
             try
             {
                 Detailed = ReadsDetail(e);
+                ReadsTops = e != null && e.TryGetValue("recordLength", out var len) && len is int ln && ln >= DetailedWithDryTops;
                 register(Id, records);
                 hullsWith = e;
                 hullsFunc = records;
@@ -135,11 +141,12 @@ namespace Hansa
         /// the inset, its 16 half-widths resampled over the shorter length, the outline Sea's own shader cuts for a dry hull
         /// it doesn't give the detailed outline to.
         /// </summary>
-        public static double[] ToRecord(in HullWaterClip c, bool detailed)
+        public static double[] ToRecord(in HullWaterClip c, bool detailed, bool tops = false)
         {
             if (!detailed) return ToRecord(c);
             bool dryProfile = c.DryProfile != null && c.DryProfile.Length == WaterClipDef.DryStations * WaterClipDef.DryLevels && c.DryLevelStep > 0;
-            var r = new double[dryProfile ? DetailedWithDryProfile : DetailedLength];
+            bool withTops = tops && dryProfile && c.DryTops != null && c.DryTops.Length == WaterClipDef.DryTopStations;
+            var r = new double[dryProfile ? (withTops ? DetailedWithDryTops : DetailedWithDryProfile) : DetailedLength];
             r[HX] = c.X; r[HZ] = c.Z; r[HWaterY] = c.WaterY; r[HYaw] = c.Yaw;
             r[HHalfLength] = c.HalfLength; r[HHalfBeam] = c.HalfWidth; r[HCentreOffset] = c.CentreOffset;
             r[HSlopeAlong] = c.SlopeAlong; r[HSlopeAcross] = c.SlopeAcross; r[HDry] = c.Dry ? 1 : 0;
@@ -150,6 +157,7 @@ namespace Hansa
             r[HCalmSlopeAcross] = c.CalmSlopeAcross; r[HCalmZone] = c.CalmZone; r[HDryInset] = c.DryInset;
             r[HDryRake] = c.DryRake; r[HDryLevel0] = c.DryLevel0; r[HDryLevelStep] = c.DryLevelStep;
             if (dryProfile) for (int i = 0; i < c.DryProfile.Length; i++) r[HDryProfile + i] = c.DryProfile[i];
+            if (withTops) for (int i = 0; i < c.DryTops.Length; i++) r[HDryTops + i] = c.DryTops[i];
             return r;
         }
 

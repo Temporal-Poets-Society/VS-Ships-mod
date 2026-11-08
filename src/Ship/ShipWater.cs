@@ -169,6 +169,8 @@ namespace Hansa
                 DryProfile = wc.DryProfile, DryLevel0 = wc.DryRowY0 - wc.Height, DryLevelStep = wc.DryRowDY,
                 // its stern end: a plane through the transom, raked like it
                 DryRake = wc.DryRake,
+                // (8 November 2026) up to her rail at each station: her raised bow and stern castle stand higher than her waist
+                DryTops = wc.DryTops,
                 // the water in her: the sea shows under it (a little under the water drawn in her, so the two don't fight)
                 Flooded = !double.IsNaN(floodY), FloodY = double.IsNaN(floodY) ? 0 : floodY - FloodGap,
             };

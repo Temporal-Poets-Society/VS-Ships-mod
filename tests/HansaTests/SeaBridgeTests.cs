@@ -375,7 +375,7 @@ namespace HansaTests
             var renderer = ships.GetType("Hansa.ShipRenderer", true);
             var beaufortSea = sea.GetType("Sea.Beaufort", true);
             var beaufortShips = ships.GetType("Hansa.Beaufort", true);
-            Check(Fields(seaClip) == Fields(shipsClip) && C(shader, "DryStations").Equals(C(clipDef, "DryStations")) && C(shader, "DryLevels").Equals(C(clipDef, "DryLevels")) &&
+            Check(Fields(seaClip) == Fields(shipsClip) && C(shader, "DryStations").Equals(C(clipDef, "DryStations")) && C(shader, "DryLevels").Equals(C(clipDef, "DryLevels")) && C(shader, "DryTopStations").Equals(C(clipDef, "DryTopStations")) &&
                   C(shader, "ProfileStations").Equals(C(clipDef, "Stations")) && C(shader, "CalmZone").Equals(C(renderer, "StillCalmZone")) &&
                   C(beaufortSea, "MetersPerSecondPerUnit").Equals(C(beaufortShips, "MetersPerSecondPerUnit")),
                 $"Ships' HullWaterClip is Sea's WaterClipBox field for field; outline stations {C(clipDef, "DryStations")}x{C(clipDef, "DryLevels")}, profile {C(clipDef, "Stations")}, " +
@@ -393,6 +393,8 @@ namespace HansaTests
                 Profile = Enumerable.Range(0, 16).Select(i => 2f + 3f * (float)Math.Sin(Math.PI * i / 15)).ToArray(), HalfWidth = 5f,
                 SlopeAlong = F(), SlopeAcross = F(), CalmSlopeAcross = F(), CalmZone = 2.5f, Dry = true, DryInset = 1f, DryDepth = 3.2f, DryHeight = 5.5f,
                 DryProfile = Enumerable.Range(0, 128).Select(_ => F() + 3).ToArray(), DryLevel0 = -2f, DryLevelStep = 1.5f, DryRake = -0.24f, Flooded = true, FloodY = 109.3,
+                // (8 November 2026) the cut's tops: her waist's rail, a raised stern and bow
+                DryTops = Enumerable.Range(0, 16).Select(i => i < 3 ? 7.5f : (i < 12 ? 2.2f : 2.2f + 0.4f * (i - 11))).ToArray(),
             };
             var back = full.ToSea().ToShips();
             bool same = typeof(HullWaterClip).GetFields().All(f => f.FieldType.IsArray ? ReferenceEquals(f.GetValue(full), f.GetValue(back)) : Equals(f.GetValue(full), f.GetValue(back)));
@@ -438,9 +440,9 @@ namespace HansaTests
                 {
                     var c = full;
                     c.Flooded = flooded;
-                    if (!dryOutline) c.DryProfile = null;
+                    if (!dryOutline) { c.DryProfile = null; c.DryTops = null; }   // (the tops go with the dry outline)
                     if (!flooded) c.FloodY = 0;   // (a flood height without a flood is no field of the record)
-                    var r = ContractHulls.ToRecord(c, detailed: true);
+                    var r = ContractHulls.ToRecord(c, detailed: true, tops: true);
                     var own = c.ToSea();
                     detailedCases++;
                     if (!Sea.SeaContractMath.ToClip(r, out var fromRecord)) continue;
@@ -456,11 +458,25 @@ namespace HansaTests
                         if (own.InDryHull(x, y, z) != fromRecord.InDryHull(x, y, z)) off++;
                     }
                     detailedOff += off;
-                    if (fields && off == 0 && r.Length == (dryOutline ? ContractHulls.DetailedWithDryProfile : ContractHulls.DetailedLength)) detailedSame++;
+                    if (fields && off == 0 && r.Length == (dryOutline ? ContractHulls.DetailedWithDryTops : ContractHulls.DetailedLength)) detailedSame++;
                 }
             Check(detailedSame == detailedCases && Sea.SeaContractMath.HullRecordWithDryProfile == ContractHulls.DetailedWithDryProfile
-                && Sea.SeaContractMath.HDryProfile == ContractHulls.HDryProfile,
-                $"a detailed contract record is Sea's typed clip field for field and cuts the same: {detailedCases - detailedSame} of {detailedCases} cases off, {detailedOff} of {detailedPoints} points differ");
+                && Sea.SeaContractMath.HDryProfile == ContractHulls.HDryProfile
+                && Sea.SeaContractMath.HDryTops == ContractHulls.HDryTops && Sea.SeaContractMath.HullRecordWithDryTops == ContractHulls.DetailedWithDryTops,
+                $"a detailed contract record is Sea's typed clip field for field and cuts the same, the dry outline's tops included: {detailedCases - detailedSame} of {detailedCases} cases off, {detailedOff} of {detailedPoints} points differ");
+            // an owner from before the tops (recordLength 163) gets the record without them
+            var old = ContractHulls.ToRecord(full, detailed: true, tops: false);
+            Check(old.Length == ContractHulls.DetailedWithDryProfile && Sea.SeaContractMath.ToClip(old, out var oldClip) && !oldClip.HasDryTops,
+                "an owner that doesn't read the tops gets the record without them (its cut reaches DryHeight all along)");
+
+            // the caravel: her cut reaches her rail, higher at her bow and her stern castle than at her waist
+            var caravel = Newtonsoft.Json.JsonConvert.DeserializeObject<ShipDefinition>(System.IO.File.ReadAllText(System.IO.Path.Combine(FindRoot(), "assets", "ships", "config", "ships", "caravel.json")));
+            caravel.Init();
+            var t = caravel.WaterClip.DryTops;
+            double waist = t[8], bowTop = t[15], sternTop = t[0], height = caravel.WaterClip.Height;
+            Check(t != null && t.Length == 16 && t.All(v => v >= caravel.WaterClip.DryTop - height - 1e-4)
+                && waist < 2.5 && bowTop > waist + 0.5 && sternTop > waist + 2.5,
+                $"caravel: the dry cut's tops follow her rail: stern {sternTop:0.00}, waist {waist:0.00}, bow {bowTop:0.00} above the waterline (was {caravel.WaterClip.DryTop - height:0.00} all along)");
         }
     }
 }

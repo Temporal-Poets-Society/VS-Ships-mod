@@ -266,8 +266,8 @@ namespace Hansa
                 try { renderer?.AddWaterClips(hullClips); }
                 catch (Exception) { hullClips.Clear(); }
                 var r = new double[hullClips.Count][];
-                bool detailed = mod?.Hulls?.Detailed == true;
-                for (int i = 0; i < r.Length; i++) r[i] = ContractHulls.ToRecord(hullClips[i], detailed);
+                bool detailed = mod?.Hulls?.Detailed == true, tops = mod?.Hulls?.ReadsTops == true;
+                for (int i = 0; i < r.Length; i++) r[i] = ContractHulls.ToRecord(hullClips[i], detailed, tops);
                 return r;
             }
         }

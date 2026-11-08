@@ -334,6 +334,15 @@ namespace Hansa
         [JsonIgnore] public float[] DryProfile;
         [JsonIgnore] public float DryRowY0, DryRowDY;
         /// <summary>
+        /// (8 November 2026) How high Sea's cut reaches at DryTopStations stations from stern to bow (the dry outline's
+        /// stations), above the waterline (Height): her rail there, the top of her sides (a raised bow, the stern castle's
+        /// walls), never under DryTop. Each the highest rail within a station's spacing either side, so the cut, interpolated
+        /// between stations, never dips under it. Without it Sea cuts to DryTop all along, and a storm crest higher than her
+        /// waist's rail showed inside her raised bow.
+        /// </summary>
+        [JsonIgnore] public float[] DryTops;
+        public const int DryTopStations = 16;
+        /// <summary>
         /// The dry outline's stern end is a raked plane through the transom (HullWaterClip.DryRake): at the waterline
         /// (Height) it's the first station, and it moves this far along the keel per block up (negative: aft).
         /// </summary>
@@ -473,6 +482,35 @@ namespace Hansa
             }
             DryProfile = FitDryOutline(width, stern, bow, DryStations, DryLevels, DryRowY0 = DryRowY0Default, DryRowDY = DryRowDYDefault, KeelBottom, DryTop,
                 exact ? stern + Math.Min(0, DryRake) * (DryTop - Height) : stern);
+            DryTops = RailTops(g, stern, bow);
+        }
+
+        /// <summary>
+        /// Her rail at each of the dry outline's top stations (stern to bow over stern..bow), above the waterline: the highest
+        /// solid cell at her sides (off the centreline, so not a mast) within a station's spacing either side, and never
+        /// under DryTop.
+        /// </summary>
+        float[] RailTops(VoxelGrid g, double stern, double bow)
+        {
+            var tops = new float[DryTopStations];
+            double step = (bow - stern) / (DryTopStations - 1);
+            for (int s = 0; s < DryTopStations; s++)
+            {
+                double x = stern + s * step, top = DryTop;
+                int ia = Math.Max(0, g.CellX(x - step)), ib = Math.Min(g.NX - 1, g.CellX(x + step));
+                for (int i = ia; i <= ib; i++)
+                    for (int j = g.NY - 1; j >= 0; j--)
+                    {
+                        double y = g.OY + (j + 1) * g.V;
+                        if (y <= top) break;
+                        bool side = false;
+                        for (int k = 0; k < g.NZ && !side; k++)
+                            side = Math.Abs(g.OZ + (k + 0.5) * g.V) > 0.5 && g.Solid(i, j, k);
+                        if (side) { top = y; break; }
+                    }
+                tops[s] = (float)(top - Height);
+            }
+            return tops;
         }
 
         /// <summary>How far above the waterline the dry outline's stations reach the stem (a raked stem runs on forward above that).</summary>
