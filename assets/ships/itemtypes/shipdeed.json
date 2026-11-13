@@ -10,7 +10,8 @@
 		"shipdeed-carrack-a": { ship: "carrack-a" },
 		"shipdeed-carrack-m": { ship: "carrack-m" },
 		"shipdeed-hansa-carrack": { ship: "hansa-carrack" },
-		"shipdeed-caravel": { ship: "caravel" }
+		// (13 November 2026, SH-0012, the author) she's launched without guns: her gun places empty, fitted aboard later
+		"shipdeed-caravel": { ship: "caravel", unarmed: true }
 	},
 	maxstacksize: 1,
 	texture: { base: "game:item/lore/book" },

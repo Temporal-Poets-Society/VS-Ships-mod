@@ -3,7 +3,7 @@
 Status: proposal, 31 October 2026. For the release the caravel's charter (`ships:shipdeed-caravel`) becomes
 craftable in the grid; a real building process comes later. The amounts below are measured from the current model
 (`assets/ships/config/ships/caravel.json`, `assets/ships/config/shipmeshes/caravel.json`) and converted with
-vanilla's own ratios. How they are fitted into a 3x3 grid is not decided yet.
+vanilla's own ratios. How they are fitted into a 3x3 grid: below (decided 31 October 2026; guns left out 13 November).
 
 ## Vanilla ratios used
 
@@ -35,7 +35,7 @@ it.
 | Rudder, tiller, wheel | rudder 6.2 m tall |
 | Sails | main 145 m², mizzen 98 m² (lateen) |
 | Standing and running rigging (rope surface 53 m², about 4 cm rope) | about 210 m, plus boltropes about 110 m and anchor cable |
-| Guns | 10 bronze guns on carriages (existing recipe: 24 bronze ingots, 2 rope, 2 nails and strips, 8 boards each) |
+| Guns | 10 gun places for bronze guns on carriages (recipe: 24 bronze ingots, 2 rope, 2 nails and strips, 8 boards each); not in the charter since SH-0012 |
 | Fittings | anchor (iron), pump, helm, 2 gates, hatch, door, 2 stairs, 25 partition panels, hearth, oven, 2 lanterns, 2 tables, a storage vessel |
 | Copper sheathing | optional (`clad`), not part of a new ship |
 
@@ -48,7 +48,7 @@ it.
 | Debarked logs (`game:debarkedlog-*`) | about 50 | keel/stem/sternpost 30, masts 21 (one per 2 m) |
 | Linen (`game:linen-*`) | about 245 | 243 m² of sail at 1 per m² |
 | Rope (`game:rope`) | about 170 | rigging about 100, boltropes about 55, anchor cable about 16 |
-| Bronze guns (`ships:gun-bronze`) | 10 | equal to 240 bronze ingots, 20 rope, 20 nails and strips, 80 boards |
+| Bronze guns (`ships:gun-bronze`) | 10, fitted aboard later (not in the charter) | equal to 240 bronze ingots, 20 rope, 20 nails and strips, 80 boards |
 | Iron nails and strips (`game:metalnailsandstrips-iron`) | about 400 | 1 per 2 m² of hull and deck planking |
 | Iron ingots (`game:ingot-iron`) | about 10 | anchor and ironwork |
 | Resin (`game:resin`) and flax fibres (`game:flaxfibers`) | about 70 each | caulking the outside hull, 1 per 8 m² (the same pair as a seam repair) |
@@ -59,8 +59,7 @@ blocks; and the copper sheathing.
 ## Fitting it to a 3x3 grid (decided 31 October 2026: bundles, true amounts)
 
 One grid holds 9 stacks, and the boards alone exceed 9 full stacks. The user chose bundles that keep the true amounts.
-Each bundle is one full grid at vanilla stack sizes (boards 64, rope 16, nails and strips 32, resin 32, ingots 16; the
-bronze gun stacks one to a slot). Implemented in `assets/ships/itemtypes/shipkit.json` and
+Each bundle is one full grid at vanilla stack sizes (boards 64, rope 16, nails and strips 32, resin 32, ingots 16). Implemented in `assets/ships/itemtypes/shipkit.json` and
 `assets/ships/recipes/grid/shipkits.json`, checked by the self-test (`src/SelfTestCharter.cs`).
 
 | Bundle (`ships:shipkit-*`) | Grid | Charter takes |
@@ -70,9 +69,21 @@ bronze gun stacks one to a slot). Implemented in `assets/ships/itemtypes/shipkit
 | spars | 5 x 10 debarked logs, 4 iron ingots | 1 |
 | sails | 4 x 61 linen, 4 x 14 rope | 1 |
 | rigging | 8 x 15 rope, 8 iron ingots | 1 |
-| battery | 5 bronze guns | 2 |
 
-The charter (`ships:shipdeed-caravel`) also takes 64 resin (2 x 32) and 64 flax fibres. In all, one charter takes
-3,584 boards, 288 support beams, 50 debarked logs, 244 linen, 176 rope, 10 bronze guns (240 bronze ingots through the
-gun recipe), 256 nails and strips, 12 iron ingots, 64 resin and 64 flax fibres. The charter stays in the creative
-inventory as well.
+The charter (`ships:shipdeed-caravel`, grid `PFS,LR_,CCX`) also takes 64 resin (2 x 32) and 64 flax fibres. In all, one
+charter takes 3,584 boards, 288 support beams, 50 debarked logs, 244 linen, 176 rope, 256 nails and strips, 12 iron
+ingots, 64 resin and 64 flax fibres. The charter stays in the creative inventory as well.
+
+## Guns fitted later (SH-0012, the author, 13 November 2026)
+
+The caravel is craftable without cannons. A caravel launched from her charter comes with all ten gun places empty (her
+ports and the decks under them as designed); the charter item carries `unarmed: true`. Each bronze gun
+(`ships:gun-bronze`, its own grid recipe) is mounted aboard on a gun place: building mode (B), the gun in hand,
+right-click the empty place (it needs the deck under its working room laid and nothing standing there). A gun is taken
+up again with an empty hand, Shift + right-click, housed and cold. This is the same path for every mode: a creative
+player's charter also launches her unarmed (the creative player keeps the gun when mounting it). `/ships spawn` and
+ships launched before 0.1.1 keep the design's guns; `/ships gunplaces mount all` mounts every gun without items.
+
+Until 0.1.1 the charter took two `battery` bundles (five bronze guns each). The battery is no longer made and not in the
+creative inventory; it stays registered so one kept in a 0.1.0 save still loads, and right-click with it in hand unpacks
+its five guns (`ItemGunBattery`).

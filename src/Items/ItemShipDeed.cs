@@ -31,6 +31,11 @@ namespace Hansa
         string ShipCode => Attributes?["ship"].AsString(HansaMod.DefaultShip) ?? HansaMod.DefaultShip;
         /// <summary>The design it launches.</summary>
         public string ShipCodeOf => ShipCode;
+        /// <summary>
+        /// (13 November 2026, SH-0012, the author: the caravel craftable without cannons) Her charter launches her with every
+        /// gun place empty; guns are mounted aboard later (EntityShip.TryMountGun).
+        /// </summary>
+        public bool Unarmed => Attributes?["unarmed"].AsBool(false) == true;
         /// <summary>A boat you carry and put in the water yourself (Hansa's ship's boat).</summary>
         public bool IsBoat => Attributes?["boat"].AsBool(false) == true;
 
@@ -88,7 +93,7 @@ namespace Hansa
             }
             var mod = api.ModLoader.GetModSystem<HansaMod>();
             EntityShip ship;
-            string err = IsBoat ? mod.TryLaunchBoatAt(player, ShipCode, blockSel?.Position, out ship) : mod.TrySpawnShip(player, ShipCode, out ship);
+            string err = IsBoat ? mod.TryLaunchBoatAt(player, ShipCode, blockSel?.Position, out ship) : mod.TrySpawnShip(player, ShipCode, out ship, Unarmed);
             if (err == null && ship != null && slot.Itemstack?.Attributes.GetString("shipName") is string name)
                 ship.SetName(name, slot.Itemstack.Attributes.GetTreeAttribute("shipNameStyle") is ITreeAttribute style ? NameStyle.FromTree(style) : null);
             if (err != null)
@@ -114,6 +119,7 @@ namespace Hansa
         {
             base.GetHeldItemInfo(inSlot, dsc, world, withDebugInfo);
             dsc.AppendLine(Lang.Get(IsBoat ? "ships:boat-help" : "ships:deed-help"));
+            if (Unarmed) dsc.AppendLine(Lang.Get("ships:deed-unarmed"));
             if (inSlot.Itemstack?.Attributes.GetString("shipName") is string name) dsc.AppendLine(Lang.Get("ships:boat-named", name));
         }
     }

@@ -2,7 +2,11 @@
 	// (31 October 2026, the user: "make it craftable in grid - charter", "bundles, true amounts") the caravel's
 	// materials, gathered in bundles that each fit a grid; the charter is crafted from them
 	// (docs/proposals/caravel-charter-bom.md). A stand-in until ships are built in place.
+	// (13 November 2026, SH-0012) the charter takes no guns now: the battery (five bronze guns) is no longer made nor in the
+	// creative inventory, and stays registered so one kept from 0.1.0 still loads; held right-click unpacks its guns.
 	code: "shipkit",
+	classByType: { "*-battery": "ships.ItemGunBattery" },
+	attributesByType: { "*-battery": { unpacks: { type: "block", code: "ships:gun-bronze-north", quantity: 5 } } },
 	variantgroups: [
 		{ code: "kind", states: ["planking", "frames", "spars", "sails", "rigging", "battery"] }
 	],
@@ -17,7 +21,7 @@
 		"*-battery": { north: { base: "game:block/metal/plate/tinbronze" }, east: { base: "game:block/metal/plate/tinbronze" }, south: { base: "game:block/metal/plate/tinbronze" }, west: { base: "game:block/metal/plate/tinbronze" }, up: { base: "game:block/metal/plate/tinbronze" }, down: { base: "game:block/metal/plate/tinbronze" } }
 	},
 	materialDensity: 600,
-	creativeinventory: { "general": ["*"], "earthplus": ["*"] },
+	creativeinventory: { "general": ["*-planking", "*-frames", "*-spars", "*-sails", "*-rigging"], "earthplus": ["*-planking", "*-frames", "*-spars", "*-sails", "*-rigging"] },
 	guiTransform: {
 		rotation: { x: -22.6, y: -45.3, z: 0 },
 		origin: { x: 0.5, y: 0.5, z: 0.5 },

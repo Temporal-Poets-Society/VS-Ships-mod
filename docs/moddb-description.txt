@@ -50,7 +50,7 @@ STARTING A VOYAGE
 
 Install Ships and Sea on the server and every client, using compatible releases. In singleplayer, put the ZIP files in your Mods folder without extracting them.
 
-Craft the caravel charter from material bundles. Six bundles (planking, frames, spars, sails, rigging and battery) represent approximately the wood, sails, rigging, guns and other materials needed to build the ship. This is the current survival construction method; a proper, staged shipbuilding process is planned for later.
+Craft the caravel charter from material bundles. Five bundles (planking, frames, spars, sails and rigging) represent approximately the wood, sails, rigging and other materials needed to build the ship. She comes without guns: craft bronze guns and mount them on her ten gun places aboard (building mode, B; a gun in hand, right-click an empty gun place). This is the current survival construction method; a proper, staged shipbuilding process is planned for later.
 
 To launch the caravel: hold the charter, face clear open water and hold right-click for about two seconds. The water should be at least three blocks deep across the whole hull, with enough room for the full ship and extra clearance where possible. Launching checks both the water beneath the keel and whether the hull would hit terrain.
 
