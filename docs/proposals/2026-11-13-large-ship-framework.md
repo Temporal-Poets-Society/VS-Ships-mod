@@ -131,7 +131,7 @@ goes further than any doc or decision says:
 - **Data-driven.** `HansaMod.AssetsLoaded` loads every `config/ships/*.json` into `ShipDefinition`
   (`src/Ship/ShipDefinition.cs`), and `Init()` (lines 158-225) derives the rest: the collision `VoxelGrid` (0.25
   block), dry masks, slot layouts, damage parts, mount places, gun maps. "caravel" appears in C# only as
-  `DefaultShip` (`MagelanMod.cs:345`).
+  `DefaultShip` (`MagelanMod.cs`).
 - **Few hard-coded names remain:**
   - pennants by mast code `main`/`fore` (`PennantRenderer.cs:58`);
   - castle collapse looks up decks `quarter` and `forecastle` (`Wreck.cs:317`); the caravel's deck is
