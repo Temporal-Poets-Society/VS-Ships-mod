@@ -903,9 +903,10 @@ the 1991 Victoria was built the traditional way (oak keel, stem, sternpost and f
 March 1991, launched 22 November). The two later replicas are moulded shells with stiffeners, bulkheads and wood
 sheathing added after.
 
-- **Nao Santa María replica** (Punta Umbría, launched 16 March 2018 after about 14 months; the foundation's own page still says 2017): a **fibreglass hull lined
-  with wood**. That is a modern build. Her figures: length 28.30 m, beam 7.96 m, depth 3.49 m, about 200 t; main
-  deck, forecastle, tolda and toldilla; main, mizzen and fore masts and a bowsprit; about 300 m² of sail.
+- **Nao Santa María replica** (Punta Umbría, launched 16 March 2018 after about 14 months; the foundation's own page
+  still says 2017): a **fibreglass hull lined with wood**. That is a modern build. Her figures: length 28.30 m, beam
+  7.96 m, depth 3.49 m, about 200 t; main deck, forecastle, tolda and toldilla; main, mizzen and fore masts and a
+  bowsprit; about 300 m² of sail.
 - **Nao Victoria replica** (1991, designed and built by Ignacio Fernández Vial): the research page lists her
   sources (chronicles, 18 shipbuilding treatises of the 16th-17th centuries, 126 drawings, 3 wrecks) and
   materials: oak for the structure, pine for planking and spars. It gives no lines and no steps. No original plans
@@ -1095,8 +1096,9 @@ player's model, useful for her look and proportions, not as a historical source.
    cannot produce become `overrides` in her design; the author sees renders before the switch.
 2. **Over-building the generator.** A shipwright program invites endless historical refinement. *Mitigation:* the
    caravel's parity first, then one new ship at a time; nothing the game does not show or use.
-3. **The piece layer touches the mod's core.** `HullSlot`, `DeckSlot` and `SlotState` appear in 29 source files outside the self-tests.
-   *Mitigation:* the adapter step; the existing self-test (about 390 checks) and offline tests run unchanged against it.
+3. **The piece layer touches the mod's core.** `HullSlot`, `DeckSlot` and `SlotState` appear in 29 source files
+   outside the self-tests. *Mitigation:* the adapter step; the existing self-test (about 390 checks) and offline
+   tests run unchanged against it.
 4. **Save migration** for published caravels can lose damage or laid pieces. *Mitigation:* a generated table,
    tested on copies of real saves.
 5. **Two pipelines for a while.** Until step 7 the old export must stay runnable for the shipped caravel.
