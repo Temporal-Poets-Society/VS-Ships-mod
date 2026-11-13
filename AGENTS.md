@@ -11,15 +11,15 @@ D53; the construction rules below; `docs\proposals\ship-design-architecture.md` 
 - Trunk `main`, tracking the private `origin` (`andrisberzins-1/VS-Ships-mod`): all work and the tags (`v0.1.0`;
   old lines as `archive/*`).
 - Public `tps` (`Temporal-Poets-Society/VS-Ships-mod`, with a wiki) gets semi-clean release versions only: `main`
-  only, no tags. Push there only on the author's word.
+  and release tags (`v0.1.1-rc.1`), each with a GitHub release or prerelease carrying the zip (the author, 13
+  November 2026); no `archive/*` tags or other branches. Push there only on the author's word.
 
 ## Build
 - `dotnet build Hansa.csproj` (Debug) works without Sea: it warns and leaves out the bridge.
 - `dotnet build Hansa.csproj -c Release [-p:SeaRoot=<Sea checkout>]` needs `..\Sea\bin\Release\mod\Sea.dll`
   (build Sea in Release first). It builds `sea-bridge\ShipsSea.csproj` into `native\ShipsSea.dll`, never builds or
   changes Sea, and leaves the carrack assets out of the package.
-- It writes `release\ships-<version>.zip` **with overwrite**. `ships-0.1.1.zip` there is the packaged 0.1.1, and
-  `main` also says 0.1.1 (SH-0002, SH-0003): bump the version before a Release build.
+- It writes `release\ships-<version>.zip` **with overwrite**: bump the version before a Release build of new work.
 - Caravel model: `python tools\caravel\caravel_lines.py`, then
   `C:\AstoCAD\bin\AstoCADCmd.exe -c "exec(open(r'C:/VS mods/Hansa/tools/caravel/build_caravel.py').read())"`
   (about 23 minutes on new lines, cached in `%TEMP%\caravel-cache`); the viewer and mesh outputs are git-ignored.
@@ -41,8 +41,9 @@ D53; the construction rules below; `docs\proposals\ship-design-architecture.md` 
 
 ## Release
 - Bump `version` in `modinfo.json`, build Release with Sea's Release DLL, run the self-test, commit, tag `vX.Y.Z`
-  on `main`; update `docs\moddb-publishing-info.txt` (it still lists Sea 0.5.1 as required). The last Mod DB set
-  is in `C:\VS mods\overview\archive\release-2026-11-01\ships\`. A release may go to `tps/main` on the author's word.
+  on `main`; update `docs\moddb-publishing-info.txt` (Sea optional, the tested Sea version). The last Mod DB set
+  is in `C:\VS mods\overview\archive\release-2026-11-01\ships\`. On the author's word, push `main` and the tag to `tps` and
+  `gh release create vX.Y.Z release\ships-X.Y.Z.zip -R Temporal-Poets-Society/VS-Ships-mod` (`--prerelease` for an RC).
 
 ## Construction rules (accepted by the author; docs point here)
 - One ship-local block grid for every deck and component; detail inside a cell is geometry, never another

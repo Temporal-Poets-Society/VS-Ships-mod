@@ -10,10 +10,10 @@ ocean-going ships, with gameplay deviations stated explicitly; the planned carra
 hoblin remains a future possibility. The earlier construction/carrack notes below describe previous prototypes,
 not additional finished ships in the current public package.
 
-**Current package: Ships 0.1.1-rc.1** (release candidate, 13 November 2026; 0.1.0 was the first public release, 1 November 2026). The experimental rowing boat is
+**Current package: Ships 0.1.1-rc.1** (release candidate). The experimental rowing boat is
 withdrawn from crafting, creative inventory and the handbook at the author's request. Existing saved boats keep
 their item/entity/model support. The caravel and its charter, crafted from six material bundles, remain.
-Sea is optional (0.1.0 required Sea `0.5.1`): Ships uses Sea `0.6.0-pre.1` or newer (tested with 0.6.0-rc.2) when it is
+Sea is optional: Ships uses Sea `0.6.0-pre.1` or newer (tested with 0.6.0-rc.2) when it is
 installed and runs without it. Build against a Sea checkout's existing Release DLL:
 `dotnet build -c Release -p:SeaRoot="<Sea checkout>"` (the bridge below needs it; Ships.dll itself doesn't).
 Ships reads the waves through its own `WaveTrains` (`src/Ship/WaveTrains.cs`): from Sea's typed API whenever Sea
@@ -100,7 +100,7 @@ Ideas taken from other walking-deck and sea mods (proposals only): `docs/ideas-f
 The **Hansa carrack**, `hansa-carrack`, is carrack-m as Magelan's generator builds it, adjusted to
 stand on the block grid (`tools/shipgen/carrack.py` with `HANSA_MODULAR=1 HANSA_SHIP=hansa-carrack`;
 the changes are listed in `docs/carrack-m-inventory.md`). Her charter is no longer in the creative
-inventory (Ships 0.1.0 publishes the caravel only). She has everything carrack-m has: its stairs,
+inventory (the package publishes the caravel only). She has everything carrack-m has: its stairs,
 companionway, cabins, fittings and mechanics. Each hull panel is one block. Her ribs, beams, keel and
 the other fixed structure can't be edited yet.
 
