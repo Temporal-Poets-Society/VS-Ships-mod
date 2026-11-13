@@ -3,9 +3,11 @@
 Sailing ships you build, sail and live aboard: the caravel now, carracks paused. The project began as Hansa: The
 Last Voyage; the folder and C# namespace stay `Hansa`, the mod ID and asset domain are `ships`. Suite rules:
 `C:\VS mods\AGENTS.md`. Current state: the card `C:\VS mods\overview\mods\ships.md`. Open issues:
-`tools\Update-Backlog.ps1 -Mod ships` from `C:\VS mods` (prefix SH). No decisions file: suite D10, D17, D39, D48,
-D53; the construction rules below; `docs\proposals\ship-design-architecture.md` (only section 8 agreed),
-`docs\master-model.md`, `models\caravel\caravel-design.md`.
+`tools\Update-Backlog.ps1 -Mod ships` from `C:\VS mods` (prefix SH). Decisions: `docs\decisions.md` (the ship
+framework and the caravel pilot); suite D10, D17, D39, D48, D53, D71; the construction rules below;
+`docs\proposals\ship-design-architecture.md` (only section 8 agreed), `docs\master-model.md`,
+`models\caravel\caravel-design.md`. The framework proposal is `docs\proposals\2026-11-13-large-ship-framework.md`; the
+caravel pilot's plan is `docs\proposals\2026-11-14-caravel-pilot-plan.md` (SH-0016).
 
 ## Repository
 - Trunk `main`, tracking the private `origin` (`andrisberzins-1/VS-Ships-mod`): all work and the tags (`v0.1.0`;
