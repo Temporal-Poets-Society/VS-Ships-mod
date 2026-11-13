@@ -283,6 +283,8 @@ namespace HansaTests
                 if (dcode == "caravel") CaravelHoldStair(root);
                 // (24 October 2026, caravel notes 57-82) putting things aboard and taking them up
                 if (dcode == "caravel") CaravelBuildPlace(root);
+                // (13 November 2026, SH-0012) her charter launches her without guns; they're mounted aboard later
+                if (dcode == "caravel") CaravelCharterUnarmed(root);
                 Console.WriteLine(failures == 0 ? "ALL OK" : $"{failures} FAILED");
                 return failures == 0 ? 0 : 1;
             }

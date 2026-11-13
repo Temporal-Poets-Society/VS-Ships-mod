@@ -31,8 +31,9 @@ The release focuses on the caravel. Carracks remain roadmap content.
 The experimental rowing boat is withdrawn from crafting, creative inventory and handbook.
 Its item/entity/model registrations remain solely to preserve boats already in saves.
 The recipe is archived under docs/legacy/rowboat, outside packaged assets; the generator cannot re-add it.
-Caravel charter crafting uses six material-bundle recipes (planking, frames, spars, sails, rigging, battery) at about
-the ship's true material cost (docs/proposals/caravel-charter-bom.md).
+Caravel charter crafting uses five material-bundle recipes (planking, frames, spars, sails, rigging) at about
+the ship's true material cost (docs/proposals/caravel-charter-bom.md). She launches without guns; bronze guns are
+crafted and mounted on her gun places aboard (SH-0012). A battery bundle kept from 0.1.0 unpacks into its five guns.
 A later proper staged shipbuilding process replaces the temporary charter route.
 Launch: about 2 seconds holding right-click (native constant 1.5 s), facing open water at least 3 blocks deep
 across the full hull. Current draft is 2.75 blocks. Native collision/keel checks still decide valid launch positions;

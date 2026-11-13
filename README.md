@@ -12,7 +12,7 @@ not additional finished ships in the current public package.
 
 **Current package: Ships 0.1.1-rc.1** (release candidate). The experimental rowing boat is
 withdrawn from crafting, creative inventory and the handbook at the author's request. Existing saved boats keep
-their item/entity/model support. The caravel and its charter, crafted from six material bundles, remain.
+their item/entity/model support. The caravel and its charter, crafted from five material bundles, remain; she launches without guns, and bronze guns are mounted on her gun places aboard.
 Sea is optional: Ships uses Sea `0.6.0-pre.1` or newer (tested with 0.6.0-rc.2) when it is
 installed and runs without it. Build against a Sea checkout's existing Release DLL:
 `dotnet build -c Release -p:SeaRoot="<Sea checkout>"` (the bridge below needs it; Ships.dll itself doesn't).

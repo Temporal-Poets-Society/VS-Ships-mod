@@ -150,6 +150,9 @@ namespace Hansa
                 // (0.3.17) the modular carrack launched, laid, sealed, walked, reloaded (gone again before the carrack sails)
                 ModularLaunch(mod, spawn, y0);
                 if (cfg.Only == "modular") { Finish(); return; }
+                // (SH-0012) her charter launches her without guns; they're mounted aboard later
+                CharterUnarmed(mod, def, spawn, y0);
+                if (cfg.Only == "charter") { CaravelCharterRecipes(); Finish(); return; }
                 if (cfg.Only == "blocks")
                 {
                     WorkingBlocksWorks(mod, def, spawn, EntityShip.FindWaterSurface(sapi.World, new BlockPos(spawn.X, y0 + 5, spawn.Z, 0), 2, 6), Finish);

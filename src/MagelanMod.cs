@@ -183,6 +183,7 @@ namespace Hansa
             if(api.Side==EnumAppSide.Server) LoadServerConfig(api);
             api.RegisterEntity("ships.EntityShip", typeof(EntityShip));
             api.RegisterItemClass("ships.ItemShipDeed", typeof(ItemShipDeed));
+            api.RegisterItemClass("ships.ItemGunBattery", typeof(ItemGunBattery));
             api.RegisterEntity("ships.EntityRowBoat", typeof(EntityRowBoat));
             api.RegisterItemClass("ships.ItemRowBoat", typeof(ItemRowBoat));
             api.RegisterItemClass("ships.ItemSurveyorsChalk", typeof(ItemSurveyorsChalk));
@@ -832,8 +833,11 @@ namespace Hansa
 
         // ------------------------------------------------------------------ spawning
 
-        /// <summary>Puts a new ship on open water in front of the player, side-on. Returns an error lang code or null.</summary>
-        public string TrySpawnShip(IServerPlayer player, string code, out EntityShip spawned)
+        /// <summary>
+        /// Puts a new ship on open water in front of the player, side-on. Returns an error lang code or null. Unarmed (her
+        /// charter's, SH-0012): every gun place that starts with its gun starts empty instead.
+        /// </summary>
+        public string TrySpawnShip(IServerPlayer player, string code, out EntityShip spawned, bool unarmed = false)
         {
             spawned = null;
             var def = GetShip(code);
@@ -862,6 +866,7 @@ namespace Hansa
                 entity.Pos.Yaw = GameMath.Mod((float)shipYaw, GameMath.TWOPI);
                 entity.PositionBeforeFalling.Set(x, wy, z);
                 entity.Attributes.SetString("origin", "playerplaced");
+                if (unarmed) EntityShip.LaunchUnarmed(entity, def);
                 sapi.World.SpawnEntity(entity);
                 NoteLaunch(def, x, z, shipYaw, ep.Pos.Dimension);
                 spawned = entity;

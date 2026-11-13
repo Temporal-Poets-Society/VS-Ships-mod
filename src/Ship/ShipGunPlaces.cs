@@ -52,6 +52,20 @@ namespace Hansa
         /// <summary>The deck cells a place needs filled.</summary>
         public List<int> GunPlaceCells(GunPlaceDef p) => GunPlaces.Cells(Def, p);
 
+        /// <summary>
+        /// (13 November 2026, SH-0012) A new ship, before she's spawned, launched without her guns: every place that starts
+        /// with its gun saved as empty (the same differences a gun taken up leaves), so her ports and the decks under them
+        /// stay as designed and each gun is mounted later aboard (<see cref="TryMountGun"/>). Fixed guns (no place) stay.
+        /// </summary>
+        public static void LaunchUnarmed(Vintagestory.API.Common.Entities.Entity ship, ShipDefinition def)
+        {
+            if (ship == null || def?.GunPlaces == null || def.GunPlaces.Length == 0) return;
+            var t = new TreeAttribute();
+            foreach (var p in def.GunPlaces)
+                if (p.StartsLaid) t.SetInt(p.Id, 0);
+            ship.WatchedAttributes["hansaGunPlaces"] = t;
+        }
+
         void InitGunPlaces()
         {
             gunPlaceStates = Def == null ? null : new GunPlaceStates(Def);
