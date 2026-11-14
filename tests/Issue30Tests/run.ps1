@@ -1,6 +1,6 @@
 param(
     [string]$SeaRoot = 'C:\VS mods\Sea',
-    [string]$SeaSourceRoot = 'C:\VS mods\Sea\.claude\worktrees\codex-storm-waves',
+    [string]$SeaSourceRoot = $SeaRoot,
     [string]$GameRoot = 'C:\Users\andri\AppData\Roaming\Vintagestory',
     [string]$Python = 'C:\AstoCAD\bin\python.exe'
 )

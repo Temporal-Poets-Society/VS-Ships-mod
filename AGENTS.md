@@ -21,7 +21,9 @@ caravel pilot's plan is `docs\proposals\2026-11-14-caravel-pilot-plan.md` (SH-00
 - `dotnet build Hansa.csproj -c Release [-p:SeaRoot=<Sea checkout>]` needs `..\Sea\bin\Release\mod\Sea.dll`
   (build Sea in Release first). It builds `sea-bridge\ShipsSea.csproj` into `native\ShipsSea.dll`, never builds or
   changes Sea, and leaves the carrack assets out of the package.
-- It writes `release\ships-<version>.zip` **with overwrite**: bump the version before a Release build of new work.
+- It writes `release\ships-<version>.zip` and **never overwrites** one: if that version's zip exists the build
+  stops after compiling (`bin\Release\mod` is fresh). Bump the version, or pass `-p:PackageFile=<path>` (for example
+  a test zip under `C:\VS mods\work\`) and give that path to the self-test as `SHIPS_ZIP`.
 - Caravel model: `python tools\caravel\caravel_lines.py`, then
   `C:\AstoCAD\bin\AstoCADCmd.exe -c "exec(open(r'C:/VS mods/Hansa/tools/caravel/build_caravel.py').read())"`
   (about 23 minutes on new lines, cached in `%TEMP%\caravel-cache`); the viewer and mesh outputs are git-ignored.
@@ -32,12 +34,14 @@ caravel pilot's plan is `docs\proposals\2026-11-14-caravel-pilot-plan.md` (SH-00
 - `dotnet run --project tests\HansaTests\HansaTests.csproj`: the full pass had 7 known failures (7 November; among
   them the stern dry outline, SE-0027). Groups: `-c Release -- sea-bridge`, `sea-coast`, `wave-trains`,
   `caravel-all`, `grid`.
-- Server: `tools/run_selftest.sh` in Git Bash after Release builds of Ships and `..\Sea` (`SEA_ROOT` to override).
-  `--with-earth` is stale: it looks for `Earth\release\earthmap-*.zip` and loads no Hydrology.
+- Server: `tools/run_selftest.sh` in Git Bash after Release builds of Ships and Sea. It finds the suite root from
+  a worktree too; `SHIPS_ZIP` and `SEA_ZIP` (a zip or a mod folder) and `SEA_ROOT` override. `--with-earth` adds the
+  newest Earth, Hydrology and Cylinder World zips from their `release` folders (`EARTH_ZIP`, `HYDROLOGY_ZIP`,
+  `CWORLD_ZIP` override).
 - `tools\run-sea-contracts.ps1 -SeaPackage <sea zip> [-ModBuild bin\Release\mod]`: the open sea contracts
   against the real Sea on an isolated server.
-- `tests\Issue30Tests\run.ps1`: pass `-SeaSourceRoot "C:\VS mods\Sea"` (the default is a removed worktree,
-  SH-0005); it uses AstoCAD's Python.
+- `tests\Issue30Tests\run.ps1`: reads Sea's sources and Debug `Sea.dll` from `-SeaSourceRoot` (default: `-SeaRoot`,
+  `C:\VS mods\Sea`); it uses AstoCAD's Python.
 - In game: the AgentBridge bench with the Ships zip, with and without Sea; `"SeaBridge": false` in
   `ModConfig\ships-dev.json` tests the contract path. Not checked: multiplayer, play without Sea.
 

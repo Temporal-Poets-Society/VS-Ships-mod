@@ -86,8 +86,9 @@
     <RemoveDir Directories="$(OutputPath)" />
   </Target>
 
-  <!-- Release build also produces a ready-to-install zip in .\release, named with the version from modinfo.json
-       (release\hansa-0.2.0.zip); older zips there are removed. -->
+  <!-- A Release build also produces a ready-to-install zip, release\ships-<version>.zip with the version from
+       modinfo.json. It never overwrites one: an existing zip of that version stops the build (bump the version), or
+       pass -p:PackageFile=<path> to write the package somewhere else. -->
   <Target Name="NoSeaBridge" AfterTargets="Build" Condition="'$(Configuration)' != 'Release' And !Exists('$(SeaRootFull)\bin\$(Configuration)\mod\Sea.dll')">
     <Warning Text="No Sea build at $(SeaRootFull)\bin\$(Configuration)\mod\Sea.dll: Ships built without its bridge to Sea (runs as without Sea; pass -p:SeaRoot=&lt;Sea checkout&gt;)" />
   </Target>
@@ -97,7 +98,9 @@
   <Target Name="PackageMod" AfterTargets="BuildSeaBridge" Condition="'$(Configuration)' == 'Release'">
     <Error Condition="'$(ModVersion)' == ''" Text="No version found in modinfo.json" />
     <MakeDir Directories="$(MSBuildProjectDirectory)\release" />
-    <ZipDirectory SourceDirectory="$(OutputPath)" DestinationFile="$(MSBuildProjectDirectory)\release\ships-$(ModVersion).zip" Overwrite="true" />
+    <Error Text="Package release\ships-$(ModVersion).zip already exists. Preserve release snapshots: bump the version in modinfo.json, or pass -p:PackageFile=&lt;path&gt;." Condition="'$(PackageFile)' == '' and Exists('$(MSBuildProjectDirectory)\release\ships-$(ModVersion).zip')" />
+    <PropertyGroup><PackageFile Condition="'$(PackageFile)' == ''">$(MSBuildProjectDirectory)\release\ships-$(ModVersion).zip</PackageFile></PropertyGroup>
+    <ZipDirectory SourceDirectory="$(OutputPath)" DestinationFile="$(PackageFile)" Overwrite="false" />
   </Target>
 
 </Project>
