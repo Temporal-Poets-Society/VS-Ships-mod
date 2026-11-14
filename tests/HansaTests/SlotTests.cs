@@ -200,6 +200,15 @@ namespace HansaTests
                         }
                     continue;
                 }
+                if (s.IsGunPort)
+                {
+                    // ((SH-0025; 0.3.29, docs/slots.md §12) a castle port itself: a port in her side, not a deck cell; its gun's
+                    // place names it, its Cover is its board (a port slot), it has no voxels of its own (the hole's are the board's))
+                    if (def.GunPlaces?.Any(gp => gp.GunPort == s.Id) != true) bad.Add($"{s.Id}: no gun place names it");
+                    if (s.Cover != null && l.Get(s.Cover)?.IsPort != true) bad.Add($"{s.Id}: its cover {s.Cover} isn't a port's board");
+                    if (s.SolidBoxes?.Length > 0) bad.Add($"{s.Id}: voxels of its own");
+                    continue;
+                }
                 if(s.IsStructure)
                 {
                     if(s.Cell?.Length!=3) bad.Add(s.Id+": no model cell");
@@ -223,7 +232,8 @@ namespace HansaTests
                         foreach (long v in DeckSlotLayout.Voxels(g, sb))
                         {
                             int k = (int)(v % g.NZ), j = (int)(v / g.NZ % g.NY), i = (int)(v / g.NZ / g.NY);
-                            if (!g.Solid(i, j, k)) { bad.Add($"{s.Id}: a voxel not solid"); break; }
+                            // ((SH-0025) solid as its start says: a beam's length taken out for a design well starts empty)
+                            if (g.Solid(i, j, k) != !s.StartsEmpty) { bad.Add($"{s.Id}: a voxel {(s.StartsEmpty ? "solid though it starts empty" : "not solid")}"); break; }
                         }
                     continue;
                 }
@@ -279,7 +289,7 @@ namespace HansaTests
                     }
                 }
             }
-            var noTop = Enumerable.Range(0, l.Count).Where(n => l.Slots[n].IsStructure ? ownedFaces[n]==0 : !l.Slots[n].IsPort && (tops[n] == 0 || unders[n] == 0)).ToList();
+            var noTop = Enumerable.Range(0, l.Count).Where(n => l.Slots[n].IsStructure ? ownedFaces[n]==0 : !l.Slots[n].IsPort && !l.Slots[n].IsGunPort && (tops[n] == 0 || unders[n] == 0)).ToList();
             foreach (int n in noTop.Take(8)) Console.WriteLine($"         {l.Slots[n].Id}: {tops[n]} tops, {unders[n]} undersides");
             Check(noTop.Count == 0, $"{def.Code}: every slot has a top and an underside of its own ({noTop.Count} without)");
             foreach (var x in outside.Take(8)) Console.WriteLine("         " + x);

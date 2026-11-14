@@ -706,7 +706,7 @@ namespace Hansa
         /// (0.3.19) Walk a walked stair up and down again in a collision grid, as a player would (the deck mover: steps up at
         /// most 0.6, snaps down the steps; 0.1.0-dev.6, note 36: on a short stair a ship's stair's step): from half a block before its foot walking up the run until past its head on the
         /// deck above, then back down to the foot. top: how high over its deck the walk up ended; back: where the walk down
-        /// ended. True if both ended on her floor at the right decks.
+        /// ended. True if both ended on her floor at the right decks (the walk down on the landing he stepped on from).
         /// </summary>
         public static bool WalkFlight(VoxelGrid g, MountPoint foot, int up, double rise, out double top, out double back, double run = FlightRun)
         {
@@ -717,6 +717,9 @@ namespace Hansa
             var steep = SteepFlightBox(foot, up, rise, run);
             var mv = new DeckMover(a[0], a[1], a[2]) { OnGround = true, SteepFlights = steep == null ? null : new[] { steep } };
             mv.Unstick(g);
+            // (SH-0025) where he stepped on: a landing may stand up to half a block over its deck (1 November 2026: a coaming,
+            // a sill, her hold's floor rising to her side are stepped over, StairLanding.Blocked)
+            double onto = mv.Y - a[1];
             for (int n = 0; n < 200; n++)
             {
                 mv.Step(g, 0.05, ax, az, 3.0, false, false);
@@ -732,7 +735,8 @@ namespace Hansa
             }
             for (int n = 0; n < 10; n++) mv.Step(g, 0.05, 0, 0, 3.0, false, false);
             back = mv.Y - a[1];
-            return upOk && Math.Abs(back) < 0.1;
+            // (back down on the landing he stepped on from: on the deck, or up to half a block over it)
+            return upOk && Math.Abs(back - onto) < 0.1 && onto < 0.5 + 0.1;
         }
 
         // ------------------------------------------------------------------ (0.3.18, note 162) the companion ladder-stair

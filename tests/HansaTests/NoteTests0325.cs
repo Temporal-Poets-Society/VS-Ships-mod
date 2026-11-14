@@ -88,10 +88,20 @@ namespace HansaTests
             st.Set(sp, false);
             Check(first == null && other != null && refused == "ships:gunplace-gun-room" && inWay == sp && then == null && bothChasers == null,
                 $"179: {sp.Id} mounted ({first ?? "ok"}), {other?.Id} is refused ({refused}, {inWay?.Id} in the way); {sp.Id} taken up, it may ({then ?? "ok"}); both chasers at once ({bothChasers ?? "ok"})");
-            // the sea: no waist downflood point from a stern chaser's port (its "port" is across her, not along her side)
+            // the sea through a stern chaser's port: (0.3.25) never a waist point along her side (its port is across her);
+            // (SH-0025) since issue 30b's gun-port inflow every open lidded port has its sill's points, a chaser's at the
+            // transom's outside face across the port, and on her open poop the sea lands on the deck (not straight below)
             var points = md.DamageParts?.Downflood;
-            Check(points != null && !points.Any(p => stern.Any(s => p.OpenFixture == s.Gun)),
-                $"179: no downflood point from the stern chasers' ports (open deck) among her {points?.Length ?? 0}");
+            var chaserPoints = points?.Where(p => stern.Any(s => p.OpenFixture == s.Gun)).ToList() ?? new List<DownfloodPoint>();
+            bool atTransom = chaserPoints.All(p =>
+            {
+                var f = md.Fixture(p.OpenFixture);
+                var pb = ShipCompartments.PortBox(f);
+                double face = f.Out[0] < 0 ? pb[0] : pb[3];
+                return Math.Abs(p.X - face) < 1e-6 && p.Z >= pb[2] - 1e-6 && p.Z <= pb[5] + 1e-6 && !p.Direct;
+            });
+            Check(points != null && chaserPoints.Count > 0 && atTransom && stern.All(s => chaserPoints.Any(p => p.OpenFixture == s.Gun)),
+                $"179: the stern chasers' ports pour in at the transom, across the port, onto the open deck ({chaserPoints.Count} points of her {points?.Length ?? 0})");
             // the fire command's sides: port and starboard are her broadsides, stern the chasers
             Check(guns.Count(f => ShipCompartments.AlongX(f) && f.Out[0] < 0) == 2 && guns.Where(f => !ShipCompartments.AlongX(f)).All(f => Math.Abs(f.Out[2]) > 0.99),
                 "179: /ships fire port|starboard picks the broadside guns, stern the two chasers");
@@ -104,14 +114,21 @@ namespace HansaTests
             var tabs = deed["creativeinventory"]?["general"]?.Select(t => (string)t).ToList() ?? new List<string>();
             bool Matches(string code) => tabs.Any(w => w == "*" || w.StartsWith("*") ? code.EndsWith(w.TrimStart('*')) : code == w);
             var lang = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(Path.Combine(assets, "lang", "en.json")));
+            // (SH-0025) as decided since 0.3.25: the user, 18 October 2026, only the caravel's charter is to be had (the carracks
+            // are paused, out of the release); 31 October 2026, her charter is crafted (shipkits.json). The carracks' charters
+            // stay registered and their ships load, so old deeds still launch where a build has them.
             Check(states.Contains("carrack") && states.Contains("carrack-a") && states.Contains("carrack-m") &&
-                  Matches("shipdeed-carrack-m") && !Matches("shipdeed-carrack") && !Matches("shipdeed-carrack-a") &&
-                  File.Exists(Path.Combine(assets, "entities", "ship", "carrack.json")) && File.Exists(Path.Combine(assets, "entities", "ship", "carrack-a.json")),
-                $"archived: only carrack-m's charter in the creative inventory ({string.Join(", ", tabs)}); carrack's and carrack-a's charters and ships still load (old deeds launch)");
+                  Matches("shipdeed-caravel") && !Matches("shipdeed-carrack-m") && !Matches("shipdeed-carrack") && !Matches("shipdeed-carrack-a") &&
+                  File.Exists(Path.Combine(assets, "entities", "ship", "carrack.json")) && File.Exists(Path.Combine(assets, "entities", "ship", "carrack-a.json")) &&
+                  File.Exists(Path.Combine(assets, "entities", "ship", "carrack-m.json")),
+                $"archived: only the caravel's charter in the creative inventory ({string.Join(", ", tabs)}); the carracks' charters and ships still load (old deeds launch)");
             lang.TryGetValue("entity-carrack-m", out var en); lang.TryGetValue("item-shipdeed-carrack-m", out var dn);
-            Check(en == "Carrack" && dn == "Charter of a carrack" &&
-                  md.Name == "Carrack" && !Directory.GetFiles(Path.Combine(assets, "recipes"), "*.json", SearchOption.AllDirectories).Any(f => File.ReadAllText(f).Contains("shipdeed")),
-                $"archived: carrack-m is plainly \"{en}\" (her charter \"{dn}\", her design \"{md.Name}\"); no recipe gives a charter");
+            var charterRecipes = Directory.GetFiles(Path.Combine(assets, "recipes"), "*.json", SearchOption.AllDirectories)
+                .Where(f => File.ReadAllText(f).Contains("shipdeed")).Select(Path.GetFileName).ToList();
+            bool onlyCaravel = charterRecipes.All(f => System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(
+                Directory.GetFiles(Path.Combine(assets, "recipes"), f, SearchOption.AllDirectories)[0]), @"ships:shipdeed-[a-z-]+").Select(m => m.Value).All(c => c == "ships:shipdeed-caravel"));
+            Check(en == "Carrack" && dn == "Charter of a carrack" && md.Name == "Carrack" && charterRecipes.Count == 1 && onlyCaravel,
+                $"archived: carrack-m is plainly \"{en}\" (her charter \"{dn}\", her design \"{md.Name}\"); the only charter a recipe gives is the caravel's ({string.Join(", ", charterRecipes)})");
         }
 
         static void CrawlMaths()

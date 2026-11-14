@@ -23,6 +23,8 @@ namespace HansaTests
             var (md, _) = LoadHullDesign(root);
             Hood0328(md);
             SternStair0328(md);
+            var (cd, _) = LoadHullDesign(root, "caravel");
+            StairsWalk(cd, new[] { "hold", "main" }, 20);
         }
 
         static readonly FakePiece Planks0328 = new() { Code = "game:planks-oak-ud", Family = "planks", Planks = true };
@@ -243,10 +245,19 @@ namespace HansaTests
                 Check(Math.Abs(foot12[3] - foot12[0] - 2 * DeckMover.HalfWidth) < 1e-6 && Math.Abs(foot12[5] - foot12[2] - 2 * DeckMover.HalfWidth) < 1e-6,
                     $"a stair's landings are checked as wide and long as a man (0.6 × 0.6; were 0.5): {string.Join(", ", foot12.Select(v => v.ToString("0.##")))}");
             }
-            // every steep or long stair that can be put on her lower and main decks (through a well opened for it) walks
+            StairsWalk(md, new[] { "lower", "main" });
+        }
+
+        /// <summary>
+        /// Every steep or long ship's stair that can be put on a design's decks (through a well opened for it) walks up and
+        /// down. (SH-0025) Also on the caravel, the released ship (her hold and main deck).
+        /// </summary>
+        static void StairsWalk(ShipDefinition md, string[] decks, int minPut = 100)
+        {
+            var ml = md.Mounts;
             int tried = 0, put = 0;
             var stuck = new List<string>();
-            foreach (var foot in ml.Floors.Where(m => m.Deck is "lower" or "main").ToList())
+            foreach (var foot in ml.Floors.Where(m => decks.Contains(m.Deck)).ToList())
                 foreach (int cells in new[] { 2, 3 })
                     for (int up = 0; up < 4; up++)
                     {
@@ -257,8 +268,8 @@ namespace HansaTests
                         put++;
                         if (!walked) stuck.Add($"{foot.Id} up {MountLayout.DirCode[up]} {cells} long ({why})");
                     }
-            Check(stuck.Count == 0 && put > 100,
-                $"every ship's stair that can be put on her lower and main decks walks up and down ({put} put of {tried} tried){(stuck.Count > 0 ? ": " + stuck.Count + " don't: " + string.Join("; ", stuck.Take(8)) : "")}");
+            Check(stuck.Count == 0 && put > minPut,
+                $"{md.Code}: every ship's stair that can be put on her {string.Join(" and ", decks)} decks walks up and down ({put} put of {tried} tried){(stuck.Count > 0 ? ": " + stuck.Count + " don't: " + string.Join("; ", stuck.Take(8)) : "")}");
         }
 
         /// <summary>A ship's stair on a floor place climbing up (cells 2 or 3), the cells it passes in the deck above opened (and the beams in its way out): the server's verdict, and whether it walks.</summary>
