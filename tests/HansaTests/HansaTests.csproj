@@ -173,6 +173,7 @@
     <!-- (Sea 0.6.0) the coast under a place's water: surf and breakers (WaveField reads it) -->
     <Compile Include="$(SeaRoot)\src\Coast\CoastMath.cs" Link="Sea\CoastMath.cs" />
     <Compile Include="$(SeaRoot)\src\Water\WaterShader.cs" Link="Sea\WaterShader.cs" />
+    <Compile Include="$(SeaRoot)\src\Water\WaterClip.cs" Link="Sea\WaterClip.cs" />
     <Compile Include="$(SeaRoot)\src\Wind\Wind.cs" Link="Sea\Wind.cs" />
     <Compile Include="$(SeaRoot)\src\Wind\WorldShape.cs" Link="Sea\WorldShape.cs" />
     <Compile Include="$(SeaRoot)\src\Wind\Noise.cs" Link="Sea\Noise.cs" />
