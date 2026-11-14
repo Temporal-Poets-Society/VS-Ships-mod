@@ -166,6 +166,10 @@
     <Compile Include="..\..\src\Ship\ModularGeometry.cs" Link="Ship\ModularGeometry.cs" />
     <!-- Sea's waves, which the ship rides -->
     <Compile Include="$(SeaRoot)\src\Water\WaveField.cs" Link="Sea\WaveField.cs" />
+    <Compile Include="$(SeaRoot)\src\Water\WaveSpectrum.cs" Link="Sea\WaveSpectrum.cs" />
+    <Compile Include="$(SeaRoot)\src\Water\WaveSource.cs" Link="Sea\WaveSource.cs" />
+    <Compile Include="$(SeaRoot)\src\Water\SampleHours.cs" Link="Sea\SampleHours.cs" />
+    <Compile Include="$(SeaRoot)\src\Water\WaveClock.cs" Link="Sea\WaveClock.cs" />
     <!-- (Sea 0.6.0) the coast under a place's water: surf and breakers (WaveField reads it) -->
     <Compile Include="$(SeaRoot)\src\Coast\CoastMath.cs" Link="Sea\CoastMath.cs" />
     <Compile Include="$(SeaRoot)\src\Water\WaterShader.cs" Link="Sea\WaterShader.cs" />
