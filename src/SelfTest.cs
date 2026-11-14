@@ -96,9 +96,14 @@ namespace Hansa
                 Notes0314(mod);
             }
             if (def == null) { Finish(); return; }
+            // (SH-0011) the pools over coastal water, where Sea gives waves (its ocean map: none inland since Sea 0.5.3)
+            PoolSite(mod, sapi.World.DefaultSpawnPosition.AsBlockPos, spawn => InPool(mod, def, spawn));
+        }
 
+        /// <summary>The pool built in the sky over <paramref name="spawn"/> (<see cref="PoolSite"/>), and the tests in it.</summary>
+        void InPool(HansaMod mod, ShipDefinition def, BlockPos spawn)
+        {
             // a 90 x 26 pool, 5 deep, walled, well above the terrain
-            var spawn = sapi.World.DefaultSpawnPosition.AsBlockPos;
             int top = sapi.WorldManager.MapSizeY - 20;
             int y0 = top - 8, x0 = spawn.X - 45, z0 = spawn.Z - 13, x1 = spawn.X + 45, z1 = spawn.Z + 13;
             if (cfg.Only == "flooding") { z0 = spawn.Z - 45; z1 = spawn.Z + 45; }
@@ -397,6 +402,8 @@ namespace Hansa
             }
             sea.SetWindOverride(0, 1.2);
             double lo = double.MaxValue, hi = double.MinValue, worstApplied = 0, worstAgain = 0, t0 = sea.WaveTime;
+            double fLo = double.MaxValue, fHi = double.MinValue;
+            var ridden = new List<(WaveTrains W, double X, double Z, float Yaw, double Speed, double Heave, double Hl, double Hb, double Cx)>();
             int n = 0;
             long id = 0;
             id = sapi.Event.RegisterGameTickListener(dt =>
@@ -409,24 +416,52 @@ namespace Hansa
                 // the heave is the ship's answer to the waves at its place, worked out from nothing but shared inputs
                 ship.Def.Waterplane(out double hl, out double hb, out _);
                 double cx = ship.WaveHull.FlotationCentre; // (31 October 2026) she pitches about her centre of flotation, as the ship does
-                var again = ShipMotion.Waves(ship.Waves, sea.WaveFactorAt(ship.Pos.X, ship.Pos.Z), ship.Waves.Time, ship.Pos.X, ship.Pos.Z,
+                double fNow = sea.WaveFactorAt(ship.Pos.X, ship.Pos.Z);
+                fLo = Math.Min(fLo, fNow); fHi = Math.Max(fHi, fNow);
+                var again = ShipMotion.Waves(ship.Waves, fNow, ship.Waves.Time, ship.Pos.X, ship.Pos.Z,
                     ship.Pos.Yaw, ship.Speed, hl, hb, cx, ship.Def.Motion);
                 worstAgain = Math.Max(worstAgain, Math.Abs(again.Heave - ship.Heave));
+                // ((SH-0011) her trains kept with her heave: Sea 0.6 reads the shelter at the inverse of the waves' horizontal
+                // displacement, so in sheltered water it drifts a little at a fixed place as they run, and her tick read it a moment
+                // before this; she's checked against the band of shelters seen at her place)
+                var kept = new WaveTrains();
+                kept.Set(ship.Waves.Time, ship.Waves.Count, ship.Waves.Kx, ship.Waves.Kz, ship.Waves.Omega, ship.Waves.Phase, ship.Waves.Amp);
+                ridden.Add((kept, ship.Pos.X, ship.Pos.Z, ship.Pos.Yaw, ship.Speed, ship.Heave, hl, hb, cx));
                 if (n < 80) return;
                 sapi.Event.UnregisterGameTickListener(id);
+                // the furthest her heave is outside what the shared waves give over the band of shelters seen here
+                double outside = 0;
+                foreach (var r in ridden)
+                {
+                    double a = ShipMotion.Waves(r.W, fLo, r.W.Time, r.X, r.Z, r.Yaw, r.Speed, r.Hl, r.Hb, r.Cx, ship.Def.Motion).Heave;
+                    double b = ShipMotion.Waves(r.W, fHi, r.W.Time, r.X, r.Z, r.Yaw, r.Speed, r.Hl, r.Hb, r.Cx, ship.Def.Motion).Heave;
+                    outside = Math.Max(outside, Math.Max(Math.Min(a, b) - r.Heave, r.Heave - Math.Max(a, b)));
+                }
                 double factor = sea.WaveFactorAt(ship.Pos.X, ship.Pos.Z);
                 var s = sea.SeaAt(ship.Pos.X, ship.Pos.Z);
-                Log($"storm at anchor: sea {s.Height:0.0} blocks × {factor:0.00} here (sheltered 0.2 .. open sea 1), {ship.Waves.Count} wave trains, wave clock {t0:0.0} → {sea.WaveTime:0.0} s");
+                Log($"storm at anchor: sea {s.Height:0.0} blocks × {factor:0.00} here (inland 0, sheltered 0.2, open sea 1), {ship.Waves.Count} wave trains, wave clock {t0:0.0} → {sea.WaveTime:0.0} s");
                 Check(sea.WaveTime - t0 > 6, $"the wave clock runs with the server ({sea.WaveTime - t0:0.0} s)");
                 Check(hi - lo > 0.1 * s.Height * factor, $"she heaves with the waves: {lo:0.00} .. {hi:0.00} blocks");
                 Check(worstApplied < 1e-9, "her height is the still-water level plus the heave");
-                Check(worstAgain < 1e-9, $"the heave is the ship's answer to the shared waves (worst {worstAgain:e1})");
+                Check(outside < 1e-9, $"the heave is the ship's answer to the shared waves (at the shelter read here, worst {worstAgain:e1}; " +
+                    $"outside the band of shelters {fLo:0.0000} .. {fHi:0.0000} seen here {outside:e1}{(ship.Waves.Surf != null ? "; a beach's surf under her" : "")})");
                 Check(Math.Abs(ship.BaseY - surface) < 0.05, $"the still-water level stays at the surface ({ship.BaseY - surface:0.000})");
                 Check(Math.Abs((ship.WatchedAttributes.GetTreeAttribute("ships")?.GetDouble("baseY") ?? double.NaN) - ship.BaseY) < 1e-9, "the still-water level is synced to clients");
                 // what riding the waves costs a ship each server tick
+                ship.Def.Waterplane(out double hlen, out double hbeam, out _);
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 for (int i = 0; i < 2000; i++) ship.WaveMotion(ship.Pos.X, ship.Pos.Z, ship.Pos.Yaw + i * 1e-4);
                 double us = sw.Elapsed.TotalMilliseconds * 1000 / 2000;
+                // (SH-0011) its parts: Sea's trains sampled at her place, its shelter there, her own response to the trains, the wind
+                var src = ship.WaveSource;
+                var probe = new WaveTrains();
+                double Time(Action a) { var w = System.Diagnostics.Stopwatch.StartNew(); for (int i = 0; i < 2000; i++) a(); return w.Elapsed.TotalMilliseconds * 1000 / 2000; }
+                double px = ship.Pos.X, pz = ship.Pos.Z;
+                double tSample = Time(() => src.Sample(probe, px, pz));
+                double tShelter = Time(() => src.Shelter(px, pz));
+                double tWaves = Time(() => ShipMotion.Waves(probe, 1, probe.Time, px, pz, ship.Pos.Yaw, 0, hlen, hbeam, ship.WaveHull.FlotationCentre, ship.Def.Motion));
+                double tWind = Time(() => ship.WindHere(px, pz));
+                Log($"wave cost: {us:0.0} µs a tick for {probe.Count} trains: Sea's sampling {tSample:0.0}, its shelter {tShelter:0.0}, her response {tWaves:0.0}, the wind {tWind:0.0} µs");
                 Check(us < 50, $"riding the waves costs {us:0.0} µs a tick");
                 sea.ClearWindOverride();
                 then();

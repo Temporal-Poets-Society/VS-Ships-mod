@@ -64,7 +64,9 @@ wc["Seed"] = "4242"
 wc["SaveFileLocation"] = ts.replace("/", "\\") + "\\Saves\\hansatest.vcdbs"
 wc["WorldName"] = "Hansa test"
 wc["MapSizeY"] = 256
-wc["WorldConfiguration"] = {"worldWidth": "4096", "worldLength": "4096", "worldEdge": "blocked", "gameMode": "creative"}
+# (SH-0011) mostly ocean, as tools/run-sea-contracts.ps1 has it (vanilla's landcover, land kept at spawn): Sea 0.6 gives
+# waves only where the ocean map says sea, and the test's pools go over coastal water (SelfTestPoolSite.cs)
+wc["WorldConfiguration"] = {"worldWidth": "4096", "worldLength": "4096", "worldEdge": "blocked", "gameMode": "creative", "landcover": "0.3"}
 json.dump(d, open(p, "w", encoding="utf-8"), indent=2)
 json.dump({"Enabled": True, "Shutdown": True, "Only": os.environ.get("HANSA_SELFTEST_ONLY")}, open(ts + "/ModConfig/ships-selftest.json", "w"))
 EOF
