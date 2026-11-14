@@ -152,9 +152,12 @@ assets. It is a development snapshot, not a trusted release. Historical notes ar
 under `docs/legacy`; `tools/shipgen` is the retained generator for reference.
 Build output, ZIPs, test worlds and parked experiment copies were not carried over.
 
-Asset domain, namespaces, entity classes, channels, saved attribute keys and commands
-are `hansa`/`Hansa`. Existing Magelan ships are not automatically migrated.
-The new project has no Git remote. Baseline commit: `c6c217f` on `main`;
-prototype work is on `prototype/grid-bays`.
+At the fork the asset domain, entity classes, channels, saved attribute keys and commands were
+`hansa`; since 0.1.0-dev.18 they are `ships` (suite decision D39), and only the C# namespace stays
+`Hansa`. Ships saved as `hansa:` entities, and Magelan ships, do not load; there is no migration.
+The fork's baseline commit is `c6c217f`. The repository is the private
+`andrisberzins-1/VS-Ships-mod` (remote `origin`); release versions also go to the public
+`Temporal-Poets-Society/VS-Ships-mod` (remote `tps`). Old lines that were not merged are kept as
+`archive/*` tags.
 
 See `docs/grid-contract.md` for the accepted direction and remaining work.
