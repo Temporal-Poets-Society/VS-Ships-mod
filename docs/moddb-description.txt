@@ -30,7 +30,7 @@ The caravel's wheel, deck arrangement and equipment are part of the current game
 
 WHAT CHANGES FOR THE VANILLA RAFT AND SAILBOAT?
 
-The vanilla raft and sailboat remain available. The changes below are supplied by Sea, which Ships requires. They also work with Sea alone, without Ships installed.
+The vanilla raft and sailboat remain available. The changes below are supplied by Sea (recommended with Ships). They also work with Sea alone, without Ships installed.
 
 - Following the waves: both vanilla boats rise, pitch and roll with the surface. Their seats and interaction targets move with them.
 
@@ -44,11 +44,11 @@ The vanilla raft and sailboat remain available. The changes below are supplied b
 
 - The mounted view: underwater effects and breathing follow the displaced waves. A dry rider in a trough is no longer treated as underwater simply because the camera is below the flat water level.
 
-Without Sea, vanilla boats keep their normal vanilla behavior. Ships itself needs Sea to load. The larger Ships vessels use their own sailing, damage and pumping systems; the empty-bucket controls above describe the vanilla sailboat.
+Without Sea, vanilla boats keep their normal vanilla behavior. Ships also runs without Sea: the caravel floats on calm water and sails by vanilla's wind, which blows only from the east or the west (a mod that provides wind through the open sea contracts, such as Earth, gives her real wind). The larger Ships vessels use their own sailing, damage and pumping systems; the empty-bucket controls above describe the vanilla sailboat.
 
 STARTING A VOYAGE
 
-Install Ships and Sea on the server and every client, using compatible releases. In singleplayer, put the ZIP files in your Mods folder without extracting them.
+Install Ships, and Sea 0.6.0 or later, on the server and every client. With an older Sea, Ships says Sea is too old and runs as without it until Sea is updated. In singleplayer, put the ZIP files in your Mods folder without extracting them.
 
 Craft the caravel charter from material bundles. Five bundles (planking, frames, spars, sails and rigging) represent approximately the wood, sails, rigging and other materials needed to build the ship. She comes without guns: craft bronze guns and mount them on her ten gun places aboard (building mode, B; a gun in hand, right-click an empty gun place). This is the current survival construction method; a proper, staged shipbuilding process is planned for later.
 
@@ -60,7 +60,7 @@ Ships is primarily intended for Earth, but Earth is optional. If you use Earth, 
 
 RECOMMENDED COMPANIONS
 
-- Sea — required: waves, wind access, water rendering and dry-hull services. Sea 0.5.1 removes its experimental wakes; breaking-wave foam remains.
+- Sea 0.6.0 or later — strongly recommended: waves, the beaches' surf and currents, wind access, water rendering and dry-hull services. Ships runs without it on calm water.
 
 - Earth — strongly recommended: real geography, regional climates and changing winds for long-distance exploration.
 
