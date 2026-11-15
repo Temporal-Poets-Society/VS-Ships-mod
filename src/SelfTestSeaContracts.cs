@@ -124,7 +124,10 @@ namespace Hansa
             int recordLength = e != null && e.TryGetValue("recordLength", out var rl) && rl is int n ? n : 0;
             Check(e != null && e.TryGetValue("owner", out var owner) && owner as string == "sea" && register != null && unregister != null && isDry != null,
                 "sea-contracts: Sea publishes seacontracts:hulls with registerDry, unregisterDry and isDry");
-            Check(recordLength == ContractHulls.DetailedWithDryProfile, $"sea-contracts: Sea reads the detailed hull record ({recordLength} values; Ships writes {ContractHulls.DetailedWithDryProfile})");
+            // ((SH-0020) since 8 November the record ends with the dry outline's tops, DryTops, when the owner's recordLength takes
+            // them: Sea 0.6.0 does, 179 values; Ships writes the same, ContractHulls.Record with ReadsTops)
+            Check(recordLength == ContractHulls.DetailedWithDryTops,
+                $"sea-contracts: Sea reads the detailed hull record with the dry outline's tops ({recordLength} values; Ships writes {ContractHulls.DetailedWithDryTops})");
             if (register == null || unregister == null || isDry == null) return;
             const double X = 1000.5, Y = 120.5, Z = -2000.5;
             bool Box(double x, double y, double z) => Math.Abs(x - X) < 2 && Math.Abs(y - Y) < 2 && Math.Abs(z - Z) < 2;
