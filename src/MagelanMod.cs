@@ -226,10 +226,17 @@ namespace Hansa
             if (api is Vintagestory.API.Client.ICoreClientAPI wcapi)
                 wcapi.Event.LevelFinalize += () =>
                 {
-                    if (!VanillaWindOnly) return;
-                    Mod.Logger.Warning(NoWindModelLogNow);
+                    // (Sea too old: said whatever the wind's source, since she lies flat on its waves with its water in her
+                    // hull even when another mod gives the wind; the review of SH-0032)
+                    bool tooOld = SeaUnbound?.TooOld == true;
+                    if (!VanillaWindOnly && !tooOld) return;
+                    if (VanillaWindOnly) Mod.Logger.Warning(NoWindModelLogNow);
                     // (the chat isn't up yet at LevelFinalize: a line shown then is lost, as seen on the bench)
-                    wcapi.Event.RegisterCallback(_ => { if (VanillaWindOnly) wcapi.ShowChatMessage(VanillaWindChat); }, 5000);
+                    wcapi.Event.RegisterCallback(_ =>
+                    {
+                        if (SeaUnbound?.TooOld == true) wcapi.ShowChatMessage(Lang.Get("ships:sea-too-old", SeaUnbound.Version));
+                        else if (VanillaWindOnly) wcapi.ShowChatMessage(VanillaWindChat);
+                    }, 5000);
                 };
             else if (api is ICoreServerAPI wsapi)
                 wsapi.Event.ServerRunPhase(EnumServerRunPhase.RunGame, () => { if (VanillaWindOnly) Mod.Logger.Warning(NoWindModelLogNow); });

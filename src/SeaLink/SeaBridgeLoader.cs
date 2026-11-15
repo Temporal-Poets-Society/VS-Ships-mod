@@ -84,23 +84,6 @@ namespace Hansa
         public static ISeaLink Bind(ICoreAPI api, ILogger log, out SeaUnbound unbound)
         {
             unbound = null;
-            var link = BindInner(api, log);
-            if (link == null && api?.ModLoader?.GetMod(SeaModId) is Mod sea && !DevOff(api))
-            {
-                string version = sea.Info?.Version;
-                unbound = new SeaUnbound(version, !VersionOk(version, out _));
-            }
-            return link;
-        }
-
-        static bool DevOff(ICoreAPI api)
-        {
-            try { return api?.LoadModConfig<ShipsDevConfig>("ships-dev.json") is ShipsDevConfig d && !d.SeaBridge; }
-            catch (Exception) { return false; }
-        }
-
-        static ISeaLink BindInner(ICoreAPI api, ILogger log)
-        {
             // (development) ModConfig/ships-dev.json { "SeaBridge": false }: run as without Sea even with Sea installed, so
             // Ships reads Sea only through the open contracts, as another mod's boat would (for checking them in game)
             ShipsDevConfig dev = null;
@@ -121,6 +104,7 @@ namespace Hansa
             if (!VersionOk(version, out string why))
             {
                 if (Once("old")) log?.Warning("Sea is installed, but {0}: Ships runs as without Sea (update Sea to bind to it).", why);
+                unbound = new SeaUnbound(version, true);
                 return null;
             }
             lock (sync)
@@ -139,6 +123,7 @@ namespace Hansa
             if (bridge == null)
             {
                 if (Once("unloadable")) log?.Error("Sea {0} is installed, but Ships' bridge to it can't be loaded ({1}): Ships runs as without Sea.", version, bridgeError);
+                unbound = new SeaUnbound(version, false);
                 return null;
             }
             try
@@ -151,6 +136,7 @@ namespace Hansa
                     return link;
                 }
                 log?.Warning("Sea {0} is installed, but its mod system isn't running on this side: Ships runs as without Sea here.", version);
+                unbound = new SeaUnbound(version, false);
                 return null;
             }
             catch (Exception e)
@@ -158,6 +144,7 @@ namespace Hansa
                 var inner = e is TargetInvocationException t && t.InnerException != null ? t.InnerException : e;
                 if (Once("unbound")) log?.Error("Sea {0} is installed, but Ships' bridge to it doesn't bind ({1}: {2}): Ships runs as without Sea.",
                     version, inner.GetType().Name, inner.Message);
+                unbound = new SeaUnbound(version, false);
                 return null;
             }
         }
