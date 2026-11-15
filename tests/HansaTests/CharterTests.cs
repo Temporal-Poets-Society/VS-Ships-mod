@@ -19,10 +19,15 @@ namespace HansaTests
             string assets = Path.Combine(root, "assets", "ships");
             var deed = JObject.Parse(File.ReadAllText(Path.Combine(assets, "itemtypes", "shipdeed.json")));
             var caravelAttrs = deed["attributesByType"]?["shipdeed-caravel"];
-            Check((string)caravelAttrs?["ship"] == "caravel" && (bool?)caravelAttrs?["unarmed"] == true,
-                "SH-0012: the caravel's charter launches her unarmed (attributes ship caravel, unarmed true)");
             var recipes = JArray.Parse(File.ReadAllText(Path.Combine(assets, "recipes", "grid", "shipkits.json")));
             var charter = recipes.FirstOrDefault(r => (string)r["output"]?["code"] == "ships:shipdeed-caravel");
+            // (SH-0031) the mark is on the stack (the recipe's output, the creative inventory's stack), never on the type: a
+            // charter crafted under 0.1.0 has no mark and launches her armed
+            var creative = deed["creativeinventoryStacksByType"]?["*-caravel"]?[0]?["stacks"]?[0];
+            Check((string)caravelAttrs?["ship"] == "caravel" && caravelAttrs?["unarmed"] == null &&
+                  (bool?)charter?["output"]?["attributes"]?["unarmed"] == true && (bool?)creative?["attributes"]?["unarmed"] == true &&
+                  deed["creativeinventory"] == null,
+                "SH-0012, SH-0031: the caravel's charter is marked unarmed on the stack (the recipe's output, the creative stack), not on its type");
             bool batteryAnywhere = recipes.Any(r => r.ToString(Formatting.None).Contains("shipkit-battery"));
             var codes = charter?["ingredients"]?.Children<JProperty>().Select(p => (string)p.Value["code"]).ToList();
             Check(charter != null && !batteryAnywhere && codes.Count == 7 && !codes.Any(c => c.Contains("gun")),

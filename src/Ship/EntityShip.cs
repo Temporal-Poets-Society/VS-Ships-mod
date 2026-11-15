@@ -393,29 +393,51 @@ namespace Hansa
         /// The same, and (Sea 0.6.0) over coastal water the beach's surf under her (<see cref="ShipMotion.Surf"/>, not yet
         /// eased or added); default off the coast. A contract surface with no trains but a pose: the pose (ShipMotion.Ride).
         /// </summary>
-        public ShipAttitude WaveMotion(double x, double z, double yaw, out ShipAttitude surf)
+        public ShipAttitude WaveMotion(double x, double z, double yaw, out ShipAttitude surf) => WaveMotion(x, z, yaw, out surf, out _, true);
+
+        /// <summary>(SH-0034, for the self-test's timing) A ride without the surf plane fitted, as the ticks between fits are.</summary>
+        public ShipAttitude WaveMotionNoSurfFit(double x, double z, double yaw) => WaveMotion(x, z, yaw, out _, out _, false);
+
+        ShipAttitude WaveMotion(double x, double z, double yaw, out ShipAttitude surf, out bool surfHere, bool fitSurf)
         {
             surf = default;
+            surfHere = false;
             var source = WaveSource;
             if (source == null || Def == null) return default;
             Def.Waterplane(out double halfLength, out double halfBeam, out double centreX);
             centreX = WaveHull.FlotationCentre;
             double steady = ShipMotion.SailSteadiness(SailsDrawing, WindHere(x, z).Strength);
             // (the water in her slows her roll: MotionNow; the heave and pitch are the design's, alike everywhere)
-            return ShipMotion.Ride(source, waves, x, z, yaw, Speed, halfLength, halfBeam, centreX, MotionNow, steady, out surf);
+            return ShipMotion.Ride(source, waves, x, z, yaw, Speed, halfLength, halfBeam, centreX, MotionNow, steady, out surf, out surfHere, fitSurf);
         }
 
         /// <summary>Her surf attitude, eased (<see cref="ShipMotion.EaseSurf"/>); each side its own. Zero off the coast.</summary>
         ShipAttitude surfEased;
 
         /// <summary>
+        /// (SH-0034, review M5) How often the surf plane under her is fitted again (ms), each side for itself: it's 18 of Sea's
+        /// inverse surface solves (0.12-0.23 ms a fit over a beach), and <see cref="ShipMotion.EaseSurf"/> smooths what she rides
+        /// toward it over 0.4 s anyway. Off the coast nothing is fitted.
+        /// </summary>
+        public const long SurfFitEveryMs = 100;
+        ShipAttitude surfTarget;
+        /// <summary>When the surf plane was last fitted (ms); far back: fit at the next ride (half of MinValue: no overflow in now - it).</summary>
+        long surfFitMs = NeverFitted;
+        const long NeverFitted = long.MinValue / 2;
+
+        /// <summary>
         /// <see cref="WaveMotion(double, double, double)"/> with the beach's surf eased over dt and added: what she rides
-        /// each server tick and client frame. Off the coast exactly the waves' motion.
+        /// each server tick and client frame. Off the coast exactly the waves' motion. (SH-0034) The surf she eases toward is
+        /// fitted every <see cref="SurfFitEveryMs"/>, not every tick and frame.
         /// </summary>
         ShipAttitude RideNow(double x, double z, double yaw, double dt)
         {
-            var mo = WaveMotion(x, z, yaw, out var surf);
-            surfEased = ShipMotion.EaseSurf(surfEased, surf, dt);
+            long now = World?.ElapsedMilliseconds ?? 0;
+            bool fit = now - surfFitMs >= SurfFitEveryMs;
+            var mo = WaveMotion(x, z, yaw, out var surf, out bool surfHere, fit);
+            if (!surfHere) { surfTarget = default; surfFitMs = NeverFitted; }
+            else if (fit) { surfTarget = surf; surfFitMs = now; }
+            surfEased = ShipMotion.EaseSurf(surfEased, surfTarget, dt);
             return ShipMotion.AddSurf(mo, surfEased);
         }
 
@@ -2116,6 +2138,30 @@ namespace Hansa
             if (Math.Abs(Speed) + Math.Abs(Leeway) > 1e-4 || Math.Abs(YawRate) > 1e-5 || Math.Abs(current.X) + Math.Abs(current.Z) > 1e-4)
             {
                 var pose = PoseToward(nx, nz, newYaw);
+                // (SH-0033, review M4) the current pressing her on the shore: one blow on the first contact, then she lies
+                // against it moved by her own way only (CurrentPush), not aground and set on again every other tick
+                bool hasCurrent = Math.Abs(current.X) + Math.Abs(current.Z) > 1e-4;
+                if (pose != PoseState.Unloaded && !(pose == PoseState.Blocked && blockedByShip))
+                {
+                    double cx = nx, cz = nz, ox = nx, oz = nz;
+                    var withoutPose = pose;
+                    bool blockedWithout = true;
+                    if (hasCurrent && pose == PoseState.Blocked)
+                    {
+                        // her own pose, without the current's displacement
+                        HelmMath.Advance(Pos.X, Pos.Z, Pos.Yaw, newYaw, Speed, Leeway, dt, WaveHull.LateralCentre, out ox, out oz);
+                        withoutPose = PoseToward(ox, oz, newYaw);
+                        blockedWithout = withoutPose == PoseState.Blocked || withoutPose == PoseState.Unloaded;
+                    }
+                    var outcome = CurrentPush.Decide(hasCurrent, pose == PoseState.Blocked, blockedWithout, ref currentHeld, out bool currentBlow);
+                    if (outcome == CurrentPush.Outcome.Held)
+                    {
+                        // the blow of the current's contact (its pose's contacts, at the current's speed), then her own move
+                        if (currentBlow) { PoseToward(cx, cz, newYaw); Grounded(cx, cz, newYaw, dt); PoseToward(ox, oz, newYaw); }
+                        nx = ox; nz = oz; pose = withoutPose;
+                    }
+                    else if (outcome == CurrentPush.Outcome.Grounded && hasCurrent) { nx = ox; nz = oz; pose = withoutPose; }
+                }
                 if (pose == PoseState.Unloaded)
                 {
                     // the sea ahead isn't loaded yet (just after a teleport or the seam jump): wait for it, keep way on
@@ -2350,6 +2396,9 @@ namespace Hansa
         }
 
         bool blockedByShip;
+
+        /// <summary>(SH-0033) The current has pressed her against the shore since she last went freely with it (<see cref="CurrentPush"/>).</summary>
+        bool currentHeld;
 
         /// <summary>
         /// Is this ship-local point in her hull: inside its planking below the main deck (the dry mask: the hold and the

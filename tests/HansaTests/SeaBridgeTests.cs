@@ -147,7 +147,8 @@ namespace HansaTests
             var log = FakeApi.Make<ILogger>((m, a) => { if (m.Name is "Notification" or "Warning" or "Error") notes.Add(m.Name + ": " + a[0]); return null; });
             var modLoader = FakeApi.Make<IModLoader>((m, a) => null);
             var noSea = FakeApi.Make<ICoreAPI>((m, a) => m.Name == "get_ModLoader" ? modLoader : null);
-            var bind = loader.GetMethod("Bind");
+            // ((SH-0032) Bind(api, log) beside Bind(api, log, out SeaUnbound))
+            var bind = loader.GetMethod("Bind", new[] { typeof(ICoreAPI), typeof(ILogger) });
             object l1 = bind.Invoke(null, new object[] { noSea, log }), l2 = bind.Invoke(null, new object[] { noSea, log });
             Check(l1 == null && l2 == null && notes.Count == 1 && notes[0].StartsWith("Notification") && notes[0].Contains("Sea is not installed"),
                 $"no Sea: no link, and one note, once ({string.Join(" | ", notes)})");

@@ -10,11 +10,11 @@ ocean-going ships, with gameplay deviations stated explicitly; the planned carra
 hoblin remains a future possibility. The earlier construction/carrack notes below describe previous prototypes,
 not additional finished ships in the current public package.
 
-**Current package: Ships 0.1.1-rc.1** (release candidate). The experimental rowing boat is
+**Current package: Ships 0.1.1** (changes in [CHANGELOG.md](CHANGELOG.md)). The experimental rowing boat is
 withdrawn from crafting, creative inventory and the handbook at the author's request. Existing saved boats keep
 their item/entity/model support. The caravel and its charter, crafted from five material bundles, remain; she launches without guns, and bronze guns are mounted on her gun places aboard.
-Sea is optional: Ships uses Sea `0.6.0-pre.1` or newer (tested with 0.6.0-rc.2) when it is
-installed and runs without it. Build against a Sea checkout's existing Release DLL:
+Sea is optional: Ships uses Sea 0.6.0 or newer (tested with 0.6.0) when it is installed and runs without it; with an
+older Sea it says Sea is too old and runs as without it. Build against a Sea checkout's existing Release DLL:
 `dotnet build -c Release -p:SeaRoot="<Sea checkout>"` (the bridge below needs it; Ships.dll itself doesn't).
 Ships reads the waves through its own `WaveTrains` (`src/Ship/WaveTrains.cs`): from Sea's typed API whenever Sea
 is loaded, otherwise from the open sea contracts' `seacontracts:surface` (`trains`, `seconds`) and

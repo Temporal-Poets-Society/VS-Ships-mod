@@ -161,6 +161,7 @@
     <Compile Include="..\..\src\Ship\GunPlaces.cs" Link="Ship\GunPlaces.cs" />
     <Compile Include="GunPlaceTests.cs" />
     <Compile Include="CharterTests.cs" />
+    <Compile Include="CurrentPushTests.cs" />
     <Compile Include="LiddedPortTests.cs" />
     <Compile Include="..\..\src\Ship\AimPlace.cs" Link="Ship\AimPlace.cs" />
     <Compile Include="..\..\src\Ship\ModularGeometry.cs" Link="Ship\ModularGeometry.cs" />

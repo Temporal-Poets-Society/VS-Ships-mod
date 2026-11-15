@@ -65,12 +65,16 @@ namespace Hansa
             }
         }
 
+        /// <summary>The lids' meshes worked out this frame, drawn together once the state is set.</summary>
+        readonly List<MeshRef> toDraw = new();
+
         void Draw(EntityPlayer ep)
         {
             var rapi = capi.Render;
             var cam = ep.CameraPos;
-            IShaderProgram prog = null;
             seen.Clear();
+            toDraw.Clear();
+            // (SH-0030) each lid's mesh first, with nothing of the GL state changed: a fault in one throws before any
             foreach (var ship in sys.Ships)
             {
                 var def = ship.Def;
@@ -83,10 +87,17 @@ namespace Hansa
                 if (!Outline(def, o, ship.Pos.Yaw, ship.Pitch, ship.Roll, still + Lift, cam, md)) continue;
                 rapi.UpdateMesh(mesh, md);
                 seen.Add(ship.EntityId);
-                if (prog == null)
+                toDraw.Add(mesh);
+            }
+            if (toDraw.Count > 0)
+            {
+                // vanilla's lid: depth only (EntityBehaviorHideWaterSurface draws into no colour buffer; here the colour mask
+                // does the same for every buffer), its depth program, the world as the camera sees it. (SH-0030) The state is
+                // put back whatever happens in between: a program left bound throws in the next renderer's Use, and a colour
+                // mask left off draws nothing more
+                IShaderProgram prog = null;
+                try
                 {
-                    // vanilla's lid: depth only (EntityBehaviorHideWaterSurface draws into no colour buffer; here the
-                    // colour mask does the same for every buffer), its depth program, the world as the camera sees it
                     rapi.GlColorMask(false, false, false, false);
                     rapi.GLDepthMask(true);
                     rapi.GLEnableDepthTest();
@@ -96,15 +107,15 @@ namespace Hansa
                     prog.BindTexture2D("tex2d", 0, 0);
                     prog.UniformMatrix("mvpMatrix", mvp);
                     prog.Uniform("origin", 0f, 0f, 0f);
+                    foreach (var mesh in toDraw) rapi.RenderMesh(mesh);
                 }
-                rapi.RenderMesh(mesh);
-            }
-            if (prog != null)
-            {
-                prog.Stop();
-                rapi.GLDepthMask(false);
-                rapi.GLEnableDepthTest();
-                rapi.GlColorMask(true, true, true, true);
+                finally
+                {
+                    if (prog != null && capi.Render.CurrentActiveShader == prog) prog.Stop();
+                    rapi.GLDepthMask(false);
+                    rapi.GLEnableDepthTest();
+                    rapi.GlColorMask(true, true, true, true);
+                }
             }
             // ships gone from this client: their meshes go too
             if (meshes.Count > seen.Count + 8)

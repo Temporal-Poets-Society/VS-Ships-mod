@@ -36,10 +36,10 @@ namespace Hansa
         /// it. Off, the sails are a throttle (full sail = top speed whatever the wind).</summary>
         public bool SailByWind = true;
         /// <summary>
-        /// Degrees closer to the wind every ship points than her design (the carrack 67Â° off the true wind, the skiff 55Â°;
+        /// Degrees closer to the wind every ship points than her design (the carrack 67° off the true wind, the skiff 55°;
         /// negative: less close). Her speed on the wind comes with it. 0: historical; 7: the carrack as weatherly as the
-        /// best square-riggers ever (clippers, today's sail-training ships, about 60Â°); past 10 it's beyond any square rig.
-        /// Ships never point closer than 35Â°.
+        /// best square-riggers ever (clippers, today's sail-training ships, about 60°); past 10 it's beyond any square rig.
+        /// Ships never point closer than 35°.
         /// </summary>
         public float PointCloser = 0;
         /// <summary>Cabins keep rain, hail and cold out, and stoves warm the room.</summary>
@@ -207,7 +207,8 @@ namespace Hansa
             Patches.Apply(api, Mod.Logger);
             Contracts = new ContractWaves(api.ObjectCache, m => Mod.Logger.Warning(m));
             // Sea, when it's installed: its typed API through Ships' bridge (Sea's own Start, order 0.15, has run)
-            SeaLink = SeaBridgeLoader.Bind(api, Mod.Logger);
+            SeaLink = SeaBridgeLoader.Bind(api, Mod.Logger, out var unbound);
+            SeaUnbound = unbound;
             // below the waterline the hulls are dry: no water, fog or breath bar in the hold and on the lower deck
             if (SeaLink != null) seaDry = SeaLink.AddDrySpaces(Dry);
             else
@@ -221,20 +222,42 @@ namespace Hansa
             }
             // No wind model (no Sea, no seacontracts:weather): say so once the world is up, when every mod has published
             // what it will. The client tells its player; the server writes it to its log.
+            // ((SH-0032) Sea installed but not bound, too old or its bridge failing: say that, not "install Sea")
             if (api is Vintagestory.API.Client.ICoreClientAPI wcapi)
                 wcapi.Event.LevelFinalize += () =>
                 {
-                    if (!VanillaWindOnly) return;
-                    Mod.Logger.Warning(NoWindModelLog);
+                    // (Sea too old: said whatever the wind's source, since she lies flat on its waves with its water in her
+                    // hull even when another mod gives the wind; the review of SH-0032)
+                    bool tooOld = SeaUnbound?.TooOld == true;
+                    if (!VanillaWindOnly && !tooOld) return;
+                    if (VanillaWindOnly) Mod.Logger.Warning(NoWindModelLogNow);
                     // (the chat isn't up yet at LevelFinalize: a line shown then is lost, as seen on the bench)
-                    wcapi.Event.RegisterCallback(_ => { if (VanillaWindOnly) wcapi.ShowChatMessage(Lang.Get("ships:vanilla-wind-warning")); }, 5000);
+                    wcapi.Event.RegisterCallback(_ =>
+                    {
+                        if (SeaUnbound?.TooOld == true) wcapi.ShowChatMessage(Lang.Get("ships:sea-too-old", SeaUnbound.Version));
+                        else if (VanillaWindOnly) wcapi.ShowChatMessage(VanillaWindChat);
+                    }, 5000);
                 };
             else if (api is ICoreServerAPI wsapi)
-                wsapi.Event.ServerRunPhase(EnumServerRunPhase.RunGame, () => { if (VanillaWindOnly) Mod.Logger.Warning(NoWindModelLog); });
+                wsapi.Event.ServerRunPhase(EnumServerRunPhase.RunGame, () => { if (VanillaWindOnly) Mod.Logger.Warning(NoWindModelLogNow); });
         }
 
         const string NoWindModelLog = "No wind model: neither Sea nor any mod publishing seacontracts:weather or seacontracts:seastate is installed. " +
             "Ships sail by vanilla's wind, which blows only from the east or the west and follows no weather systems.";
+
+        /// <summary>(SH-0032) Sea is installed but Ships runs as without it (too old, or its bridge failed), or null.</summary>
+        public SeaUnbound SeaUnbound { get; private set; }
+
+        string NoWindModelLogNow => SeaUnbound == null ? NoWindModelLog
+            : $"Sea {SeaUnbound.Version} is installed but " + (SeaUnbound.TooOld ? $"older than {SeaBridgeLoader.MinSeaVersion}" : "Ships' bridge to it failed (see above)") +
+              ": Ships run as without Sea and sail by vanilla's wind, which blows only from the east or the west.";
+
+        /// <summary>What the player is told in chat while the wind is vanilla's.</summary>
+        string VanillaWindChat => SeaUnbound == null ? Lang.Get("ships:vanilla-wind-warning")
+            : Lang.Get(SeaUnbound.TooOld ? "ships:sea-too-old" : "ships:sea-not-bound", SeaUnbound.Version);
+
+        /// <summary>The wind panel's line while the wind is vanilla's.</summary>
+        public string VanillaWindPanel => Lang.Get(SeaUnbound == null ? "ships:windpanel-warn-vanilla" : SeaUnbound.TooOld ? "ships:windpanel-warn-sea-old" : "ships:windpanel-warn-sea-unbound");
 
         /// <summary>
         /// True while the wind is vanilla's on this side: no Sea, and no mod publishing <c>seacontracts:weather</c>. Vanilla's
@@ -1083,7 +1106,7 @@ namespace Hansa
                         if (ship == null) return TextCommandResult.Error("No ship within 64 blocks.");
                         int crew = ship.Seats.Count(s => s.Passenger != null);
                         return TextCommandResult.Success(string.Format(
-                            "{0} #{1} at {2:0.0},{3:0.0},{4:0.0} heading {5:0}Â°, {6:0.0} b/s, sails {7} ({8:0%}), rudder {9:0.00}, {10}{11}, crew {12}; " +
+                            "{0} #{1} at {2:0.0},{3:0.0},{4:0.0} heading {5:0}°, {6:0.0} b/s, sails {7} ({8:0%}), rudder {9:0.00}, {10}{11}, crew {12}; " +
                             "afloat at y {13:0.00}, heaving {14:0.00} on waves of {15:0.0} blocks",
                             ship.GetName(), ship.EntityId, ship.Pos.X, ship.Pos.Y, ship.Pos.Z, HeadingDeg(ship.Pos.Yaw), ship.Speed,
                             ship.SailSet + (ship.Crawl ? " (under the sweeps)" : ""), ship.SailFraction, ship.Rudder, ship.Anchored ? "anchored" : "anchor up", ship.Aground ? ", aground" : "", crew,
@@ -1271,7 +1294,7 @@ namespace Hansa
                 if (st > worst) worst = st;
             }
             return string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                "{0}: water {1:0.0} t of {2:0} (reserve {3:0}), {4:+0.0;-0.0} l/s, sinkage {5:0.00}, list {6:0.0}Â°, {7}{8}; {9} of {10} parts hurt (worst {11}), foul {12:0%}, sail drive {13:0%}",
+                "{0}: water {1:0.0} t of {2:0} (reserve {3:0}), {4:+0.0;-0.0} l/s, sinkage {5:0.00}, list {6:0.0}°, {7}{8}; {9} of {10} parts hurt (worst {11}), foul {12:0%}, sail drive {13:0%}",
                 ship.Stage, ship.Water, l.Capacity, l.Reserve, ship.WaterRate * 1000, ship.Sinkage, ship.ListAngle * GameMath.RAD2DEG,
                 ship.Pumpers > 0 ? ship.Pumpers + " at the pumps" : "no one at the pumps", ship.OnBottom ? ", on the bottom" : "",
                 hurt, l.Count, worst, ship.Fouling, ship.SailDrive);

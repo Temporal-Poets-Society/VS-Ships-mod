@@ -73,7 +73,13 @@ namespace Hansa
         void CharterUnarmed(HansaMod mod, ShipDefinition def, BlockPos spawn, int y0)
         {
             var deed=sapi.World.GetItem(new AssetLocation("ships","shipdeed-caravel")) as ItemShipDeed;
-            Check(deed?.Unarmed==true && deed.ShipCodeOf=="caravel","SH-0012: the caravel's charter launches her without guns (unarmed)");
+            // (SH-0031) the mark is on the stack: the recipe's charter and the creative inventory's carry it; a charter crafted
+            // under 0.1.0 (ten guns went into it) has none and launches her armed
+            var made=sapi.World.GridRecipes.FirstOrDefault(r=>r.Output?.Code?.Path=="shipdeed-caravel")?.Output?.ResolvedItemStack;
+            var fromTab=deed?.CreativeInventoryStacks?.SelectMany(t=>t.Stacks).FirstOrDefault()?.ResolvedItemstack;
+            bool old=deed!=null && ItemShipDeed.Unarmed(new ItemStack(deed));
+            Check(deed?.ShipCodeOf=="caravel" && ItemShipDeed.Unarmed(made) && ItemShipDeed.Unarmed(fromTab) && !old,
+                $"SH-0012, SH-0031: the caravel's charter as crafted now and from the creative inventory launches her without guns ({ItemShipDeed.Unarmed(made)}, {ItemShipDeed.Unarmed(fromTab)}); one crafted under 0.1.0, unmarked, with them ({!old})");
             if(def?.Code!="caravel" || def.GunPlaces==null || def.GunPlaces.Length==0) { Log($"SH-0012: {def?.Code} has no gun places: the unarmed launch not checked"); return; }
             var type=sapi.World.GetEntityType(new AssetLocation("ships",def.Code));
             double wy=EntityShip.FindWaterSurface(sapi.World,new BlockPos(spawn.X,y0+5,spawn.Z,0),2,6);

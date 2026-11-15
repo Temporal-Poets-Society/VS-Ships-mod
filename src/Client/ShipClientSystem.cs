@@ -1121,7 +1121,8 @@ namespace Hansa
                     handled = EnumHandling.PreventDefault;
                     return;
                 }
-                bool sneak = ep.Controls.Sneak || ep.Controls.ShiftKey || (ep.MountedOn is ShipSeat seat && seat.Controls.Sneak);
+                // ((SH-0020) aboard, the game writes the keys into her seat's controls: its Shift key counts as off her deck)
+                bool sneak = ep.Controls.Sneak || ep.Controls.ShiftKey || (ep.MountedOn is ShipSeat seat && (seat.Controls.Sneak || seat.Controls.ShiftKey));
                 // Shift (or Ctrl: on a rope ladder Shift climbs down) + right-click a boat to pick it up (nobody and
                 // nothing in her), from the water, a dock, or a ship alongside; but Shift + right-click a chest or vessel
                 // in her takes that back
@@ -1279,7 +1280,9 @@ namespace Hansa
                     RequestGunMount(inSight.Ship, inSight.Gun);
                     return true;
                 }
-                bool sneak = ep.Controls.Sneak || ep.Controls.ShiftKey || ep.MountedOn is ShipSeat sk && sk.Controls.Sneak;
+                // ((SH-0020) on her deck too the Shift key counts, not only the sneak key: the game sets the Shift key whether or not
+                // the mouse is grabbed, the sneak key only while it is)
+                bool sneak = ep.Controls.Sneak || ep.Controls.ShiftKey || ep.MountedOn is ShipSeat sk && (sk.Controls.Sneak || sk.Controls.ShiftKey);
                 var loadTarget=inSight.Ship!=null?inSight:seat!=null?(seat.Ship,seat.Fixture):default;
                 if(loadTarget.Item1?.CannonsNeedShot==true && GunLoading.IsLoad(capi.World.Player.InventoryManager.ActiveHotbarSlot?.Itemstack?.Collectible?.Code?.ToString(),true))
                 {

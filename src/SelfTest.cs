@@ -187,7 +187,9 @@ namespace Hansa
                 // stay registered, and where a build carries their ships (not the release) an old deed still launches its
                 // ship (0.3.25 kept carrack-m's alone in the inventory)
                 Item Deed(string c) => sapi.World.GetItem(new AssetLocation("ships", "shipdeed-" + c));
-                bool InCreative(Item it) => it?.CreativeInventoryTabs?.Contains("general") == true;
+                // ((SH-0031) the caravel's charter is in it as a stack with its mark: creativeinventoryStacks)
+                bool InCreative(Item it) => it?.CreativeInventoryTabs?.Contains("general") == true ||
+                                            it?.CreativeInventoryStacks?.Any(t => t.Tabs?.Contains("general") == true && t.Stacks?.Length > 0) == true;
                 var dc = Deed(HansaMod.DefaultShip);
                 var carracks = new[] { "carrack", "carrack-a", "carrack-m", "hansa-carrack" };
                 Check(InCreative(dc) && dc.Attributes?["ship"].AsString() == HansaMod.DefaultShip &&
@@ -463,6 +465,7 @@ namespace Hansa
                 double tWind = Time(() => ship.WindHere(px, pz));
                 Log($"wave cost: {us:0.0} µs a tick for {probe.Count} trains: Sea's sampling {tSample:0.0}, its shelter {tShelter:0.0}, her response {tWaves:0.0}, the wind {tWind:0.0} µs");
                 Check(us < 50, $"riding the waves costs {us:0.0} µs a tick");
+                SurfRideCost(ship, src);
                 sea.ClearWindOverride();
                 then();
             }, 100);
