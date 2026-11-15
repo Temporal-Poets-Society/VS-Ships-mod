@@ -230,9 +230,9 @@ already made this way (`tools/master/master_fields.py`; its 1,424.8 m³ displace
   `tools/master/sample_lines.py`, which samples Magelan's formulas, and `master_fields.sample`, which reads a
   half-breadth field off a CAD solid.
 - **Models now at hand** (not in the repo):
-  - `Knarr.bbmodel`, the author's example of such an input. Another player, Gary, made her for his own
-    work-in-progress mod and sent her to the author to show how such a mod is made ("feel free to make whatever
-    changes you want"). She is an example, not a ship planned for Ships. A Blockbench file in Vintage Story's
+  - `Knarr.bbmodel`, the author's example of such an input. Another player made her for their own
+    work-in-progress mod and sent her to the author to show how such a mod is made, free to change. She is an
+    example, not a ship planned for Ships. A Blockbench file in Vintage Story's
     format: 1,010 cubes in named
     groups (`HullR`, `HullL`, `Keel`, `Deck`, `Mast`, `Sail`, `Rigging`, `Rudder`, `Collision`, `HideWater`,
     `Seats`, `Controls`, `AtachmentPoints` and more). Section 6.7 has her measures.
@@ -586,7 +586,7 @@ model and sidecar always give the same design.
 ```jsonc
 {
   "source": "models/knarr/Knarr.bbmodel", "sha256": "...",
-  "credit": "Gary", "permission": "sent as an example, free to change (14 November 2026); publishing not asked",
+  "credit": "<her maker>", "permission": "sent as an example, free to change (14 November 2026); publishing not asked",
   "depth": "look",
   "units": "blocks",                 // a mesh: "m", "mm", "ft", or "lengthOnDeck": 16.5 to set the scale by a measure
   "scale": 1.0,
@@ -846,7 +846,7 @@ The stage list is data, one file per tradition, holding the order, the member ty
 
 ### 6.7 The example: a knarr model
 
-`Knarr.bbmodel` is the author's example of a small ship and of a model as input. Another player made her for his
+`Knarr.bbmodel` is the author's example of a small ship and of a model as input. Another player made her for their
 own mod and sent her to show how it is done; she is not a ship planned for Ships. Measured by the spike:
 
 | | |
@@ -868,7 +868,7 @@ own mod and sent her to show how it is done; she is not a ship planned for Ships
 - **What she shows:** a model made by a player for the game reads cleanly (named groups, block units, game
   textures) and needs a ten-line sidecar. A knarr of the author's own would more likely be designed from a find's
   survey with the `norse-clinker` tradition, and a model like this one used as a reference for her look.
-- **If she herself were ever wanted in Ships:** Gary's word on publishing and credit first; then her scale and her
+- **If she herself were ever wanted in Ships:** her maker's word on publishing and credit first; then her scale and her
   waterline.
 
 ## 7. What survives
