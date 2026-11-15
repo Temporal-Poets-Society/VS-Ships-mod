@@ -36,10 +36,10 @@ namespace Hansa
         /// it. Off, the sails are a throttle (full sail = top speed whatever the wind).</summary>
         public bool SailByWind = true;
         /// <summary>
-        /// Degrees closer to the wind every ship points than her design (the carrack 67Â° off the true wind, the skiff 55Â°;
+        /// Degrees closer to the wind every ship points than her design (the carrack 67° off the true wind, the skiff 55°;
         /// negative: less close). Her speed on the wind comes with it. 0: historical; 7: the carrack as weatherly as the
-        /// best square-riggers ever (clippers, today's sail-training ships, about 60Â°); past 10 it's beyond any square rig.
-        /// Ships never point closer than 35Â°.
+        /// best square-riggers ever (clippers, today's sail-training ships, about 60°); past 10 it's beyond any square rig.
+        /// Ships never point closer than 35°.
         /// </summary>
         public float PointCloser = 0;
         /// <summary>Cabins keep rain, hail and cold out, and stoves warm the room.</summary>
@@ -1106,7 +1106,7 @@ namespace Hansa
                         if (ship == null) return TextCommandResult.Error("No ship within 64 blocks.");
                         int crew = ship.Seats.Count(s => s.Passenger != null);
                         return TextCommandResult.Success(string.Format(
-                            "{0} #{1} at {2:0.0},{3:0.0},{4:0.0} heading {5:0}Â°, {6:0.0} b/s, sails {7} ({8:0%}), rudder {9:0.00}, {10}{11}, crew {12}; " +
+                            "{0} #{1} at {2:0.0},{3:0.0},{4:0.0} heading {5:0}°, {6:0.0} b/s, sails {7} ({8:0%}), rudder {9:0.00}, {10}{11}, crew {12}; " +
                             "afloat at y {13:0.00}, heaving {14:0.00} on waves of {15:0.0} blocks",
                             ship.GetName(), ship.EntityId, ship.Pos.X, ship.Pos.Y, ship.Pos.Z, HeadingDeg(ship.Pos.Yaw), ship.Speed,
                             ship.SailSet + (ship.Crawl ? " (under the sweeps)" : ""), ship.SailFraction, ship.Rudder, ship.Anchored ? "anchored" : "anchor up", ship.Aground ? ", aground" : "", crew,
@@ -1294,7 +1294,7 @@ namespace Hansa
                 if (st > worst) worst = st;
             }
             return string.Format(System.Globalization.CultureInfo.InvariantCulture,
-                "{0}: water {1:0.0} t of {2:0} (reserve {3:0}), {4:+0.0;-0.0} l/s, sinkage {5:0.00}, list {6:0.0}Â°, {7}{8}; {9} of {10} parts hurt (worst {11}), foul {12:0%}, sail drive {13:0%}",
+                "{0}: water {1:0.0} t of {2:0} (reserve {3:0}), {4:+0.0;-0.0} l/s, sinkage {5:0.00}, list {6:0.0}°, {7}{8}; {9} of {10} parts hurt (worst {11}), foul {12:0%}, sail drive {13:0%}",
                 ship.Stage, ship.Water, l.Capacity, l.Reserve, ship.WaterRate * 1000, ship.Sinkage, ship.ListAngle * GameMath.RAD2DEG,
                 ship.Pumpers > 0 ? ship.Pumpers + " at the pumps" : "no one at the pumps", ship.OnBottom ? ", on the bottom" : "",
                 hurt, l.Count, worst, ship.Fouling, ship.SailDrive);
