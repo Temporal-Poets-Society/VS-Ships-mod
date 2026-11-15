@@ -465,6 +465,7 @@ namespace Hansa
                 double tWind = Time(() => ship.WindHere(px, pz));
                 Log($"wave cost: {us:0.0} µs a tick for {probe.Count} trains: Sea's sampling {tSample:0.0}, its shelter {tShelter:0.0}, her response {tWaves:0.0}, the wind {tWind:0.0} µs");
                 Check(us < 50, $"riding the waves costs {us:0.0} µs a tick");
+                SurfRideCost(ship, src);
                 sea.ClearWindOverride();
                 then();
             }, 100);

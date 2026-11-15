@@ -110,14 +110,25 @@ namespace Hansa
         /// <param name="halfLength">half the waterplane's length (<see cref="ShipDefinition.Waterplane"/>)</param>
         /// <param name="centreX">its centre along the keel (the flotation centre)</param>
         public static ShipAttitude Ride(IWaveTrainSource source, WaveTrains waves, double x, double z, double yaw, double speed,
-            double halfLength, double halfBeam, double centreX, MotionDef m, double steady, out ShipAttitude surf)
+            double halfLength, double halfBeam, double centreX, MotionDef m, double steady, out ShipAttitude surf) =>
+            Ride(source, waves, x, z, yaw, speed, halfLength, halfBeam, centreX, m, steady, out surf, out _, true);
+
+        /// <summary>
+        /// The same; (SH-0034) the surf plane fitted only when <paramref name="fitSurf"/> (it's 18 of the source's inverse
+        /// surface solves, 0.12-0.23 ms: the ship asks for it at a fixed rate and eases between). <paramref name="surfHere"/>:
+        /// whether there's surf under her at all.
+        /// </summary>
+        public static ShipAttitude Ride(IWaveTrainSource source, WaveTrains waves, double x, double z, double yaw, double speed,
+            double halfLength, double halfBeam, double centreX, MotionDef m, double steady, out ShipAttitude surf, out bool surfHere, bool fitSurf)
         {
             surf = default;
+            surfHere = false;
             if (source == null || m == null) return default;
             if (!source.Sample(waves, x, z)) return PoseOf(source, x, z, yaw, halfLength, halfBeam, centreX, m);
             if (waves.Count == 0 && source is ContractWaves { HasPose: true }) return PoseOf(source, x, z, yaw, halfLength, halfBeam, centreX, m);
             var a = Waves(waves, source.Shelter(x, z), waves.Time, x, z, yaw, speed, halfLength, halfBeam, centreX, m, steady);
-            if (waves.Surf != null) surf = Surf(waves.Surf, x, z, yaw, halfLength, halfBeam, centreX, m);
+            surfHere = waves.Surf != null;
+            if (surfHere && fitSurf) surf = Surf(waves.Surf, x, z, yaw, halfLength, halfBeam, centreX, m);
             return a;
         }
 
