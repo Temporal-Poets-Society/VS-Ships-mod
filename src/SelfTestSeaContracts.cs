@@ -125,7 +125,7 @@ namespace Hansa
             Check(e != null && e.TryGetValue("owner", out var owner) && owner as string == "sea" && register != null && unregister != null && isDry != null,
                 "sea-contracts: Sea publishes seacontracts:hulls with registerDry, unregisterDry and isDry");
             // ((SH-0020) since 8 November the record ends with the dry outline's tops, DryTops, when the owner's recordLength takes
-            // them: Sea 0.6.0 does, 179 values; Ships writes the same, ContractHulls.Record with ReadsTops)
+            // them: Sea 0.6.0 does, 179 values; Ships writes the same, ContractHulls.ToRecord with tops)
             Check(recordLength == ContractHulls.DetailedWithDryTops,
                 $"sea-contracts: Sea reads the detailed hull record with the dry outline's tops ({recordLength} values; Ships writes {ContractHulls.DetailedWithDryTops})");
             if (register == null || unregister == null || isDry == null) return;

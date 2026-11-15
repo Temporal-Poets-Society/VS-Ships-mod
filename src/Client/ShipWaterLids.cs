@@ -96,12 +96,12 @@ namespace Hansa
                 // put back whatever happens in between: a program left bound throws in the next renderer's Use, and a colour
                 // mask left off draws nothing more
                 IShaderProgram prog = null;
-                rapi.GlColorMask(false, false, false, false);
-                rapi.GLDepthMask(true);
-                rapi.GLEnableDepthTest();
                 try
                 {
-                    prog = capi.Shader.GetProgram(rapi.UseSSBOs ? (int)EnumShaderProgram.Chunkshadowmap_NoSSBOs : (int)EnumShaderProgram.Chunkshadowmap);
+                    rapi.GlColorMask(false, false, false, false);
+                    rapi.GLDepthMask(true);
+                    rapi.GLEnableDepthTest();
+                    prog =capi.Shader.GetProgram(rapi.UseSSBOs ? (int)EnumShaderProgram.Chunkshadowmap_NoSSBOs : (int)EnumShaderProgram.Chunkshadowmap);
                     prog.Use();
                     Mat4f.Mul(mvp, rapi.CurrentProjectionMatrix, rapi.CameraMatrixOriginf);
                     prog.BindTexture2D("tex2d", 0, 0);
