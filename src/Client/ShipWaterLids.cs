@@ -101,7 +101,7 @@ namespace Hansa
                     rapi.GlColorMask(false, false, false, false);
                     rapi.GLDepthMask(true);
                     rapi.GLEnableDepthTest();
-                    prog =capi.Shader.GetProgram(rapi.UseSSBOs ? (int)EnumShaderProgram.Chunkshadowmap_NoSSBOs : (int)EnumShaderProgram.Chunkshadowmap);
+                    prog = capi.Shader.GetProgram(rapi.UseSSBOs ? (int)EnumShaderProgram.Chunkshadowmap_NoSSBOs : (int)EnumShaderProgram.Chunkshadowmap);
                     prog.Use();
                     Mat4f.Mul(mvp, rapi.CurrentProjectionMatrix, rapi.CameraMatrixOriginf);
                     prog.BindTexture2D("tex2d", 0, 0);

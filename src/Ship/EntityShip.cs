@@ -2123,12 +2123,15 @@ namespace Hansa
                 {
                     double cx = nx, cz = nz, ox = nx, oz = nz;
                     var withoutPose = pose;
-                    var outcome = CurrentPush.Decide(hasCurrent, pose == PoseState.Blocked, () =>
+                    bool blockedWithout = true;
+                    if (hasCurrent && pose == PoseState.Blocked)
                     {
+                        // her own pose, without the current's displacement
                         HelmMath.Advance(Pos.X, Pos.Z, Pos.Yaw, newYaw, Speed, Leeway, dt, WaveHull.LateralCentre, out ox, out oz);
                         withoutPose = PoseToward(ox, oz, newYaw);
-                        return withoutPose == PoseState.Blocked || withoutPose == PoseState.Unloaded;
-                    }, ref currentHeld, out bool currentBlow);
+                        blockedWithout = withoutPose == PoseState.Blocked || withoutPose == PoseState.Unloaded;
+                    }
+                    var outcome = CurrentPush.Decide(hasCurrent, pose == PoseState.Blocked, blockedWithout, ref currentHeld, out bool currentBlow);
                     if (outcome == CurrentPush.Outcome.Held)
                     {
                         // the blow of the current's contact (its pose's contacts, at the current's speed), then her own move
@@ -2343,9 +2346,6 @@ namespace Hansa
         /// a bank, someone built there), she may still move as long as she touches nothing she doesn't touch already, so
         /// she can be worked off with the sweeps or the helm, or dug free.
         /// </summary>
-        /// <summary>(SH-0033) The current has pressed her against the shore since she last went freely with it (<see cref="CurrentPush"/>).</summary>
-        bool currentHeld;
-
         public PoseState PoseToward(double nx, double nz, double newYaw)
         {
             hitsAhead.Clear();
@@ -2374,6 +2374,9 @@ namespace Hansa
         }
 
         bool blockedByShip;
+
+        /// <summary>(SH-0033) The current has pressed her against the shore since she last went freely with it (<see cref="CurrentPush"/>).</summary>
+        bool currentHeld;
 
         /// <summary>
         /// Is this ship-local point in her hull: inside its planking below the main deck (the dry mask: the hold and the

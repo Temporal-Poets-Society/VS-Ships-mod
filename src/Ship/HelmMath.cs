@@ -24,14 +24,15 @@ namespace Hansa
 
         /// <param name="hasCurrent">the current moves her this tick</param>
         /// <param name="blockedWith">the pose with the current's displacement is blocked by the bottom or the shore</param>
-        /// <param name="blockedWithout">the same pose without it (asked only when needed)</param>
+        /// <param name="blockedWithout">the same pose without it (worked out by the caller only when the current moves her and
+        /// the pose with it is blocked; anything otherwise)</param>
         /// <param name="held">kept by the ship: the current has pressed her against the shore since her last free move</param>
         /// <param name="blow">a blow of the current's contact now (on the first contact only)</param>
-        public static Outcome Decide(bool hasCurrent, bool blockedWith, Func<bool> blockedWithout, ref bool held, out bool blow)
+        public static Outcome Decide(bool hasCurrent, bool blockedWith, bool blockedWithout, ref bool held, out bool blow)
         {
             blow = false;
             if (!blockedWith) { held = false; return Outcome.Free; }
-            if (hasCurrent && !blockedWithout())
+            if (hasCurrent && !blockedWithout)
             {
                 blow = !held;
                 held = true;

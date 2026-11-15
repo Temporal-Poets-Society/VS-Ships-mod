@@ -22,7 +22,7 @@ namespace HansaTests
                 for (int i = 0; i < ticks; i++)
                 {
                     double withX = x + (ownSpeed + current) * dt, withoutX = x + ownSpeed * dt;
-                    var outcome = CurrentPush.Decide(current != 0, withX > wall, () => withoutX > wall, ref held, out bool blow);
+                    var outcome = CurrentPush.Decide(current != 0, withX > wall, withoutX > wall, ref held, out bool blow);
                     if (blow) blows++;
                     if (outcome == CurrentPush.Outcome.Free) x = withX;
                     else if (outcome == CurrentPush.Outcome.Held) x = withoutX;
