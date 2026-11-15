@@ -10,15 +10,20 @@
 		"shipdeed-carrack-a": { ship: "carrack-a" },
 		"shipdeed-carrack-m": { ship: "carrack-m" },
 		"shipdeed-hansa-carrack": { ship: "hansa-carrack" },
-		// (13 November 2026, SH-0012, the author) she's launched without guns: her gun places empty, fitted aboard later
-		"shipdeed-caravel": { ship: "caravel", unarmed: true }
+		"shipdeed-caravel": { ship: "caravel" }
 	},
 	maxstacksize: 1,
 	texture: { base: "game:item/lore/book" },
 	// (0.3.25, the user: "keep only modular now and park in archive previous") only the carrack (carrack-m) is to be had;
 	// the archived charters (carrack, carrack-a) stay registered so deeds already in inventories still launch their ships
 	// (the user, 18 October 2026) the caravel's charter only: the carracks are out of the release and paused
-	creativeinventory: { "general": ["*-caravel"], "earthplus": ["*-caravel"] },
+	// (13 November 2026, SH-0012, the author) she's launched without guns: her gun places empty, fitted aboard later.
+	// (15 November 2026, SH-0031) The mark is on the stack, not the type: a charter made by today's recipe (its output) or
+	// taken from the creative inventory (this stack) carries "unarmed"; one crafted under 0.1.0, which took ten guns, has
+	// no mark and launches her armed, as it was paid for.
+	creativeinventoryStacksByType: {
+		"*-caravel": [ { tabs: ["general", "earthplus"], stacks: [ { type: "item", code: "shipdeed-caravel", attributes: { unarmed: true } } ] } ]
+	},
 	guiTransform: {
 		rotation: { x: 0, y: 0, z: 0 },
 		origin: { x: 0.5, y: 0, z: 0.5 },

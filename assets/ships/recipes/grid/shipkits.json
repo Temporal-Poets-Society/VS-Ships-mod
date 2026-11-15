@@ -69,6 +69,7 @@
 			"X": { type: "item", code: "game:flaxfibers", quantity: 64 }
 		},
 		width: 3, height: 3,
-		output: { type: "item", code: "ships:shipdeed-caravel" }
+		// (SH-0031) a charter made without guns says so on itself: one crafted under 0.1.0 (ten guns in it) has no mark
+		output: { type: "item", code: "ships:shipdeed-caravel", attributes: { unarmed: true } }
 	}
 ]

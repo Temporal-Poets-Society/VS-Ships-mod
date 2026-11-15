@@ -111,7 +111,11 @@ namespace HansaTests
         {
             var deed = JObject.Parse(File.ReadAllText(Path.Combine(assets, "itemtypes", "shipdeed.json")));
             var states = deed["variantgroups"]?[0]?["states"]?.Select(t => (string)t).ToList() ?? new List<string>();
-            var tabs = deed["creativeinventory"]?["general"]?.Select(t => (string)t).ToList() ?? new List<string>();
+            // ((SH-0031) the caravel's charter is in the creative inventory as a marked stack: creativeinventoryStacksByType's
+            // keys are the variants listed there)
+            var tabs = (deed["creativeinventory"]?["general"]?.Select(t => (string)t) ?? Enumerable.Empty<string>())
+                .Concat((deed["creativeinventoryStacksByType"] as JObject)?.Properties().Where(p => p.Value.Any(t => t["tabs"]?.Any(x => (string)x == "general") == true))
+                    .Select(p => p.Name) ?? Enumerable.Empty<string>()).ToList();
             bool Matches(string code) => tabs.Any(w => w == "*" || w.StartsWith("*") ? code.EndsWith(w.TrimStart('*')) : code == w);
             var lang = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(Path.Combine(assets, "lang", "en.json")));
             // (SH-0025) as decided since 0.3.25: the user, 18 October 2026, only the caravel's charter is to be had (the carracks
