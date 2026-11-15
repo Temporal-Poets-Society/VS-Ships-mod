@@ -207,7 +207,8 @@ namespace Hansa
             Patches.Apply(api, Mod.Logger);
             Contracts = new ContractWaves(api.ObjectCache, m => Mod.Logger.Warning(m));
             // Sea, when it's installed: its typed API through Ships' bridge (Sea's own Start, order 0.15, has run)
-            SeaLink = SeaBridgeLoader.Bind(api, Mod.Logger);
+            SeaLink = SeaBridgeLoader.Bind(api, Mod.Logger, out var unbound);
+            SeaUnbound = unbound;
             // below the waterline the hulls are dry: no water, fog or breath bar in the hold and on the lower deck
             if (SeaLink != null) seaDry = SeaLink.AddDrySpaces(Dry);
             else
@@ -221,20 +222,35 @@ namespace Hansa
             }
             // No wind model (no Sea, no seacontracts:weather): say so once the world is up, when every mod has published
             // what it will. The client tells its player; the server writes it to its log.
+            // ((SH-0032) Sea installed but not bound, too old or its bridge failing: say that, not "install Sea")
             if (api is Vintagestory.API.Client.ICoreClientAPI wcapi)
                 wcapi.Event.LevelFinalize += () =>
                 {
                     if (!VanillaWindOnly) return;
-                    Mod.Logger.Warning(NoWindModelLog);
+                    Mod.Logger.Warning(NoWindModelLogNow);
                     // (the chat isn't up yet at LevelFinalize: a line shown then is lost, as seen on the bench)
-                    wcapi.Event.RegisterCallback(_ => { if (VanillaWindOnly) wcapi.ShowChatMessage(Lang.Get("ships:vanilla-wind-warning")); }, 5000);
+                    wcapi.Event.RegisterCallback(_ => { if (VanillaWindOnly) wcapi.ShowChatMessage(VanillaWindChat); }, 5000);
                 };
             else if (api is ICoreServerAPI wsapi)
-                wsapi.Event.ServerRunPhase(EnumServerRunPhase.RunGame, () => { if (VanillaWindOnly) Mod.Logger.Warning(NoWindModelLog); });
+                wsapi.Event.ServerRunPhase(EnumServerRunPhase.RunGame, () => { if (VanillaWindOnly) Mod.Logger.Warning(NoWindModelLogNow); });
         }
 
         const string NoWindModelLog = "No wind model: neither Sea nor any mod publishing seacontracts:weather or seacontracts:seastate is installed. " +
             "Ships sail by vanilla's wind, which blows only from the east or the west and follows no weather systems.";
+
+        /// <summary>(SH-0032) Sea is installed but Ships runs as without it (too old, or its bridge failed), or null.</summary>
+        public SeaUnbound SeaUnbound { get; private set; }
+
+        string NoWindModelLogNow => SeaUnbound == null ? NoWindModelLog
+            : $"Sea {SeaUnbound.Version} is installed but " + (SeaUnbound.TooOld ? $"older than {SeaBridgeLoader.MinSeaVersion}" : "Ships' bridge to it failed (see above)") +
+              ": Ships run as without Sea and sail by vanilla's wind, which blows only from the east or the west.";
+
+        /// <summary>What the player is told in chat while the wind is vanilla's.</summary>
+        string VanillaWindChat => SeaUnbound == null ? Lang.Get("ships:vanilla-wind-warning")
+            : Lang.Get(SeaUnbound.TooOld ? "ships:sea-too-old" : "ships:sea-not-bound", SeaUnbound.Version);
+
+        /// <summary>The wind panel's line while the wind is vanilla's.</summary>
+        public string VanillaWindPanel => Lang.Get(SeaUnbound == null ? "ships:windpanel-warn-vanilla" : SeaUnbound.TooOld ? "ships:windpanel-warn-sea-old" : "ships:windpanel-warn-sea-unbound");
 
         /// <summary>
         /// True while the wind is vanilla's on this side: no Sea, and no mod publishing <c>seacontracts:weather</c>. Vanilla's

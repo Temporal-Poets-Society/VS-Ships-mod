@@ -75,7 +75,31 @@ namespace Hansa
         /// Sea's typed API on this side through the bridge, or null: Sea isn't installed, is too old, or the bridge can't
         /// be loaded or bound (each logged once, saying what Ships does instead).
         /// </summary>
-        public static ISeaLink Bind(ICoreAPI api, ILogger log)
+        public static ISeaLink Bind(ICoreAPI api, ILogger log) => Bind(api, log, out _);
+
+        /// <summary>
+        /// (SH-0032) The same, and why Sea is installed but not bound (null when it's bound, absent, or switched off by the
+        /// development setting): what the player is told instead of "install Sea".
+        /// </summary>
+        public static ISeaLink Bind(ICoreAPI api, ILogger log, out SeaUnbound unbound)
+        {
+            unbound = null;
+            var link = BindInner(api, log);
+            if (link == null && api?.ModLoader?.GetMod(SeaModId) is Mod sea && !DevOff(api))
+            {
+                string version = sea.Info?.Version;
+                unbound = new SeaUnbound(version, !VersionOk(version, out _));
+            }
+            return link;
+        }
+
+        static bool DevOff(ICoreAPI api)
+        {
+            try { return api?.LoadModConfig<ShipsDevConfig>("ships-dev.json") is ShipsDevConfig d && !d.SeaBridge; }
+            catch (Exception) { return false; }
+        }
+
+        static ISeaLink BindInner(ICoreAPI api, ILogger log)
         {
             // (development) ModConfig/ships-dev.json { "SeaBridge": false }: run as without Sea even with Sea installed, so
             // Ships reads Sea only through the open contracts, as another mod's boat would (for checking them in game)
@@ -142,6 +166,17 @@ namespace Hansa
 
 namespace Hansa
 {
+    /// <summary>
+    /// (SH-0032) Sea is installed but Ships runs as without it: its version, and whether it's because that version is older
+    /// than <see cref="SeaBridgeLoader.MinSeaVersion"/> (else the bridge failed to load or bind: the log says how).
+    /// </summary>
+    public sealed class SeaUnbound
+    {
+        public readonly string Version;
+        public readonly bool TooOld;
+        public SeaUnbound(string version, bool tooOld) { Version = version ?? "?"; TooOld = tooOld; }
+    }
+
     /// <summary>ModConfig/ships-dev.json, for development only (absent in play): see <see cref="SeaBridgeLoader.Bind"/>.</summary>
     public class ShipsDevConfig
     {
