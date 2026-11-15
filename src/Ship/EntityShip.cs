@@ -2116,6 +2116,27 @@ namespace Hansa
             if (Math.Abs(Speed) + Math.Abs(Leeway) > 1e-4 || Math.Abs(YawRate) > 1e-5 || Math.Abs(current.X) + Math.Abs(current.Z) > 1e-4)
             {
                 var pose = PoseToward(nx, nz, newYaw);
+                // (SH-0033, review M4) the current pressing her on the shore: one blow on the first contact, then she lies
+                // against it moved by her own way only (CurrentPush), not aground and set on again every other tick
+                bool hasCurrent = Math.Abs(current.X) + Math.Abs(current.Z) > 1e-4;
+                if (pose != PoseState.Unloaded && !(pose == PoseState.Blocked && blockedByShip))
+                {
+                    double cx = nx, cz = nz, ox = nx, oz = nz;
+                    var withoutPose = pose;
+                    var outcome = CurrentPush.Decide(hasCurrent, pose == PoseState.Blocked, () =>
+                    {
+                        HelmMath.Advance(Pos.X, Pos.Z, Pos.Yaw, newYaw, Speed, Leeway, dt, WaveHull.LateralCentre, out ox, out oz);
+                        withoutPose = PoseToward(ox, oz, newYaw);
+                        return withoutPose == PoseState.Blocked || withoutPose == PoseState.Unloaded;
+                    }, ref currentHeld, out bool currentBlow);
+                    if (outcome == CurrentPush.Outcome.Held)
+                    {
+                        // the blow of the current's contact (its pose's contacts, at the current's speed), then her own move
+                        if (currentBlow) { PoseToward(cx, cz, newYaw); Grounded(cx, cz, newYaw, dt); PoseToward(ox, oz, newYaw); }
+                        nx = ox; nz = oz; pose = withoutPose;
+                    }
+                    else if (outcome == CurrentPush.Outcome.Grounded && hasCurrent) { nx = ox; nz = oz; pose = withoutPose; }
+                }
                 if (pose == PoseState.Unloaded)
                 {
                     // the sea ahead isn't loaded yet (just after a teleport or the seam jump): wait for it, keep way on
@@ -2322,6 +2343,9 @@ namespace Hansa
         /// a bank, someone built there), she may still move as long as she touches nothing she doesn't touch already, so
         /// she can be worked off with the sweeps or the helm, or dug free.
         /// </summary>
+        /// <summary>(SH-0033) The current has pressed her against the shore since she last went freely with it (<see cref="CurrentPush"/>).</summary>
+        bool currentHeld;
+
         public PoseState PoseToward(double nx, double nz, double newYaw)
         {
             hitsAhead.Clear();

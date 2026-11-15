@@ -3,6 +3,45 @@ using System;
 namespace Hansa
 {
     /// <summary>
+    /// (SH-0033, review M4) A beach's current pushing her against the shore, as a pure decision (the server's tick and the
+    /// offline tests share it). The current is a push, not way on: the first time the shore stops what the current carries
+    /// her she takes the blow of that contact, then lies against it moved by her own way only, with no further blows, until
+    /// the current carries her freely again. Before, the blocked push grounded her (a blow at the current's speed), a turn
+    /// of her head cleared "aground" the next tick, and the current set her on again: a blow every 0.4 s for as long as she
+    /// lay there. Her own way into the shore grounds her as before.
+    /// </summary>
+    public static class CurrentPush
+    {
+        public enum Outcome
+        {
+            /// <summary>The pose with the current is clear: she goes with it.</summary>
+            Free,
+            /// <summary>The current's pose is blocked, her own isn't: she moves by her own way, held against the shore.</summary>
+            Held,
+            /// <summary>Blocked by her own way (or no current): she runs aground as before.</summary>
+            Grounded,
+        }
+
+        /// <param name="hasCurrent">the current moves her this tick</param>
+        /// <param name="blockedWith">the pose with the current's displacement is blocked by the bottom or the shore</param>
+        /// <param name="blockedWithout">the same pose without it (asked only when needed)</param>
+        /// <param name="held">kept by the ship: the current has pressed her against the shore since her last free move</param>
+        /// <param name="blow">a blow of the current's contact now (on the first contact only)</param>
+        public static Outcome Decide(bool hasCurrent, bool blockedWith, Func<bool> blockedWithout, ref bool held, out bool blow)
+        {
+            blow = false;
+            if (!blockedWith) { held = false; return Outcome.Free; }
+            if (hasCurrent && !blockedWithout())
+            {
+                blow = !held;
+                held = true;
+                return Outcome.Held;
+            }
+            return Outcome.Grounded;
+        }
+    }
+
+    /// <summary>
     /// The helm and the wind relative to her, as pure functions (the server's sailing, the HUD's wind panel, the map
     /// layer and the offline tests share them). Her frame: the bow points along (sin yaw, cos yaw) in the world, her
     /// starboard side is (-cos yaw, sin yaw) (+X east, +Z south), so turning to starboard makes the yaw smaller.
