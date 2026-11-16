@@ -1,5 +1,13 @@
 # Ships changelog
 
+## 0.1.2 (16 November 2026)
+
+- **The caravel sails like a lateen-rigged ship.** She now points to 50° off the true wind (was 60°) and has a sailing
+  curve of her own: her lateens draw from 50° on, she is fastest from a close reach to a broad reach, and slower dead
+  downwind. Until now she sailed on the carrack's square-rig curve, which gave her almost nothing until about 75° off the
+  wind. To windward she now makes about twice the progress (0.29 of her top speed at about 64° off the wind, against
+  0.15 at 70°). The server option `PointCloser` still points her closer, down to 35°.
+
 ## 0.1.1 (15 November 2026)
 
 **Sea is optional now.** Ships runs without Sea; with Sea, it needs Sea 0.6.0 or later (Sea 0.5 is too old: Ships says
