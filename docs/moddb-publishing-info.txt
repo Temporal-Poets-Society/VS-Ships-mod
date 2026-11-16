@@ -1,5 +1,6 @@
 SHIPS — MOD DB PUBLISHING INFORMATION
-Prepared 15 November 2026 for Ships 0.1.1 (first prepared 1 November 2026 for 0.1.0).
+Prepared 16 November 2026 for Ships 0.1.2 (first prepared 1 November 2026 for 0.1.0; 0.1.1 published 16 November 2026,
+tag v0.1.1 at 563a93f, with a GitHub release).
 0.1.0 was published on Mod DB on 1 November 2026 (19:23 Mod DB time); its source is tagged v0.1.0 (532adc7), its file
 SHA-256 dd1c92b6c970bf03bfae16594b891c02fea02f8425fb1321507ca231e6948613. Every change after it is a new version.
 0.1.1-rc.1 was a GitHub prerelease only (13 November 2026); a 3 November ships-0.1.1.zip was never released (archived in
@@ -9,10 +10,10 @@ LISTING
 https://mods.vintagestory.at/ships
 Name: Ships
 Mod ID: ships
-Version: 0.1.1
+Version: 0.1.2
 Author: Andris
 Side: client and server, same release on both.
-Sea: optional. With Sea: Sea 0.6.0 or later (tested with Sea 0.6.0); without it, the open sea contracts or calm water.
+Sea: optional. With Sea: Sea 0.6.0 or later (0.1.2 tested with Sea 0.6.1, 0.1.1 with 0.6.0); without it, the open sea contracts or calm water.
 An older Sea (0.5.x, what 0.1.0 required) is reported in chat as too old, and Ships runs as without it.
 Game manifest minimum: Vintage Story 1.22.0; tested on 1.22.7 only, do not infer testing on every 1.22 build.
 Suggested tags: Ships, Transportation, Exploration, Immersion, Survival (choose available Mod DB tags).
@@ -27,9 +28,11 @@ Local styled review: docs/moddb-preview.html
 The user-supplied Earth text is a style/reference document; it was not treated as instructions for Earth edits.
 
 CURRENT PACKAGE
-C:\VS mods\Hansa\release\ships-0.1.1.zip, 5,575,691 bytes (changelog: CHANGELOG.md, 0.1.1 section)
-SHA-256: c52d767bead614d56583860b0bd11439b5fc641515a9908d5b20b01df6e349cc
-Built 15 November 2026 from claude/ships-011 dd34e13 (merged into main), the bridge against Sea v0.6.0.
+C:\VS mods\Hansa\release\ships-0.1.2.zip, 5,575,765 bytes (changelog: CHANGELOG.md, 0.1.2 section)
+SHA-256: b1085dbebcef4587b9515c4689d54b9eed4df849af8348caa3c4e6021e4bc719
+Built 16 November 2026 from claude/ships-012 f0fb349 (merged into main), the bridge against Sea v0.6.1.
+0.1.2 changes only the caravel's sailing data (SH-0036): her own lateen polar, pointing to 50° off the true wind.
+The 0.1.1 package: ships-0.1.1.zip, 5,575,691 bytes, SHA-256 c52d767bead614d56583860b0bd11439b5fc641515a9908d5b20b01df6e349cc.
 The package carries modicon.png (128 px, from the wheel logo).
 The release focuses on the caravel. Carracks remain roadmap content.
 The experimental rowing boat is withdrawn from crafting, creative inventory and handbook.

@@ -1673,7 +1673,12 @@ definition = {
     "frames": {"x0": float(FR["x0"]), "space": float(FR["space"]), "count": FR["count"]},
     "grid": {"origin": [0.0, 0.125, 0.5]},
     "motion": {"rollPeriod": 4.5, "rollDamping": 0.55},
-    "sailing": {"maxBrace": 36.0, "noGo": 60.0, "maxSheet": 25.0},
+    # (16 November 2026, SH-0036, the author: "Yes, build 0.1.2", "maybe we can set default pointer to 50 deg") her
+    # lateens' own polar and no-go: she points to 50 degrees off the wind, drive builds right from there, strongest from
+    # a close reach to a broad reach, weaker dead downwind. Before, she had no polar and sailed on SailingDef's default,
+    # the carrack's square-rig polar (0 at 62 degrees): her dead zone was about 75 degrees a side
+    "sailing": {"maxBrace": 36.0, "noGo": 50.0, "maxSheet": 25.0,
+                "polar": [[0, 0], [50, 0], [55, 0.45], [65, 0.68], [75, 0.8], [90, 0.92], [115, 1.0], [140, 0.95], [165, 0.8], [180, 0.7]]},
     "damage": {"hullToughness": 70.0, "deckToughness": 55.0, "rudderToughness": 50.0, "mastToughness": 300.0,
                "sailToughness": 25.0, "riggingToughness": 70.0,
                "rudder": [r4(rud_pt[0] - 1.6), r4(keel_y - 0.05), -0.15, r4(rud_pt[0] + 0.1), r4(deck_y + 0.5), 0.15], "pumpersPerPump": 2},
